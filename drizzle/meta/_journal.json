@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "mysql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "5",
+      "when": 1786228085913,
+      "tag": "0000_tense_zzzax",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1786228239105,
+      "tag": "0001_wakeful_chronomancer",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1786228588949,
+      "tag": "0002_giant_spyke",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1786229651698,
+      "tag": "0003_flowery_gambit",
+      "breakpoints": true
+    }
+  ]
+}

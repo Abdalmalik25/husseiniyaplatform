@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Noto+Kufi+Arabic:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  --color-background: #fbf8f2;
+  --color-foreground: #102a2b;
+  --color-card: #ffffff;
+  --color-card-foreground: #102a2b;
+  --color-primary: #102a2b;
+  --color-primary-foreground: #ffffff;
+  --color-border: #e6e2da;
+  --color-input: #e6e2da;
+  --color-ring: #b87945;
+  --color-cream: #fbf8f2;
+  --color-ink: #102a2b;
+  --color-copper: #b87945;
+  --color-sand: #eee6d6;
+  --font-sans: 'Cairo', sans-serif;
+  --font-display: 'Noto Kufi Arabic', sans-serif;
+  --radius: 0.75rem;
+}
+
+:root { font-family: 'Cairo', sans-serif; color: #102a2b; background: #fbf8f2; font-synthesis: none; text-rendering: optimizeLegibility; }
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body { margin: 0; min-width: 320px; background: #fbf8f2; }
+button, a, input, textarea, select { font: inherit; }
+a { color: inherit; text-decoration: none; }
+.container { width: 100%; max-width: 1180px; margin-inline: auto; padding-inline: 1.25rem; }
+.shadow-soft { box-shadow: 0 16px 44px rgba(16, 42, 43, .08); }
+.font-display { font-family: 'Noto Kufi Arabic', 'Cairo', sans-serif; }
+.text-ink { color: #102a2b; }
+.text-copper { color: #b87945; }
+.bg-cream { background: #fbf8f2; }
+.bg-ink { background: #102a2b; }
+.bg-copper { background: #b87945; }
+.bg-sand { background: #eee6d6; }
+::selection { background: #b87945; color: white; }
+@media (max-width: 640px) { .container { padding-inline: 1rem; } }
