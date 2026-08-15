@@ -6,21 +6,23 @@ import { consumeCredit, getDb } from "./db";
 let db: Awaited<ReturnType<typeof getDb>>;
 const userId = -Math.floor(Date.now() / 1000);
 
-beforeAll(async () => {
-  db = await getDb();
-  if (!db) throw new Error("Database is required for the credits.consume integration test");
-  await db.delete(creditTransactions).where(eq(creditTransactions.userId, userId));
-  await db.delete(creditWallets).where(eq(creditWallets.userId, userId));
-  await db.insert(creditWallets).values({ userId, freeCredits: 1, paidCredits: 0 });
-});
+const hasDatabase = Boolean(process.env.DATABASE_URL);
 
-afterAll(async () => {
-  if (!db) return;
-  await db.delete(creditTransactions).where(eq(creditTransactions.userId, userId));
-  await db.delete(creditWallets).where(eq(creditWallets.userId, userId));
-});
+describe.skipIf(!hasDatabase)("credits.consume integration", () => {
+  beforeAll(async () => {
+    db = await getDb();
+    if (!db) throw new Error("Database is required for the credits.consume integration test");
+    await db.delete(creditTransactions).where(eq(creditTransactions.userId, userId));
+    await db.delete(creditWallets).where(eq(creditWallets.userId, userId));
+    await db.insert(creditWallets).values({ userId, freeCredits: 1, paidCredits: 0 });
+  });
 
-describe("credits.consume integration", () => {
+  afterAll(async () => {
+    if (!db) return;
+    await db.delete(creditTransactions).where(eq(creditTransactions.userId, userId));
+    await db.delete(creditWallets).where(eq(creditWallets.userId, userId));
+  });
+
   it("allows only one successful debit when two requests race for one credit", async () => {
     const [first, second] = await Promise.all([
       consumeCredit(userId, "integration-race-a"),
