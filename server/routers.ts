@@ -3,7 +3,7 @@ import { COOKIE_NAME } from "@shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { adminProcedure, protectedProcedure, publicProcedure, router } from "./_core/trpc";
-import { consumeCredit, createAppointment, createContactMessage, createServiceRequest, createProject, createService, getAdminContent, getAdminInbox, getCreditTransactions, getDevices, getOrCreateCreditWallet, getOrCreateSubscription, getPendingSyncs, getProperties, getPublicContent, markSyncComplete, registerDevice, updateAppointmentStatus, updateServiceRequestStatus, updateSubscription, enqueueSync, getCustomers, createCustomer, getSuppliers, createSupplier, getProducts, createProduct, adjustStock, getInventoryTransactions, getInvoices, createInvoice, getCustomerOrders, createCustomerOrder, getDistributionChannels, createDistributionChannel, getDistributions, createDistribution, getPayments, createPayment, getExpenses, createExpense, getCommerceDashboard, getOrCreateOrganization, getChartOfAccounts, createAccount, getBranches, createBranch, getCurrencies, createCurrency, seedDefaultCurrencies, getUnitsOfMeasure, createUnitOfMeasure, seedDefaultUnits, getEmployees, createEmployee, getJournalEntries, createJournalEntry, getDailyTransactions, createDailyTransaction } from "./db";
+import { consumeCredit, createAppointment, createContactMessage, createServiceRequest, createProject, createService, getAdminContent, getAdminInbox, getCreditTransactions, getDevices, getOrCreateCreditWallet, getOrCreateSubscription, getPendingSyncs, getProperties, getPublicContent, markSyncComplete, registerDevice, updateAppointmentStatus, updateServiceRequestStatus, updateSubscription, enqueueSync, getCustomers, createCustomer, getSuppliers, createSupplier, getProducts, createProduct, adjustStock, getInventoryTransactions, getInvoices, createInvoice, getCustomerOrders, createCustomerOrder, getDistributionChannels, createDistributionChannel, getDistributions, createDistribution, getPayments, createPayment, getExpenses, createExpense, getCommerceDashboard, getOrCreateOrganization, getChartOfAccounts, createAccount, getBranches, createBranch, getCurrencies, createCurrency, seedDefaultCurrencies, getUnitsOfMeasure, createUnitOfMeasure, seedDefaultUnits, getEmployees, createEmployee, getJournalEntries, createJournalEntry, getDailyTransactions, createDailyTransaction, getTestimonials, createTestimonial, getArticles, createArticle, getStudentServices, createStudentService, getAlerts, getAiInsights, recordPageView, recordVisitorSession, recordClientInteraction, getActivityLogs, createActivityLog } from "./db";
 import { createCheckoutRequest } from "./payments";
 
 const personFields = { name: z.string().min(2), phone: z.string().min(7), email: z.string().email().optional().or(z.literal("")) };
@@ -14,7 +14,7 @@ export const appRouter = router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => { ctx.res.clearCookie(COOKIE_NAME, { ...getSessionCookieOptions(ctx.req), maxAge: -1 }); return { success: true } as const; }),
   }),
-  content: publicProcedure.query(async () => { const content = await getPublicContent(); return { ...content, properties: await getProperties() }; }),
+  content: publicProcedure.query(async () => { const content = await getPublicContent(); return { ...content, properties: await getProperties(), testimonials: await getTestimonials(), articles: await getArticles(), studentServices: await getStudentServices() }; }),
   credits: router({
     me: protectedProcedure.query(({ ctx }) => getOrCreateCreditWallet(ctx.user.id)),
     history: protectedProcedure.query(({ ctx }) => getCreditTransactions(ctx.user.id)),
@@ -115,6 +115,19 @@ export const appRouter = router({
     dashboard: protectedProcedure.query(({ ctx }) => ({ isAdmin: ctx.user.role === "admin" })),
     createService: adminProcedure.input(z.object({ category: z.enum(["engineering", "realEstate", "consulting"]), title: z.string().min(2), description: z.string().min(5), icon: z.string().default("sparkles") })).mutation(({ input }) => createService(input)),
     createProject: adminProcedure.input(z.object({ title: z.string().min(2), category: z.string().min(2), location: z.string().optional(), description: z.string().min(5), imageUrl: z.string().optional() })).mutation(({ input }) => createProject(input)),
+    createTestimonial: adminProcedure.input(z.object({ clientName: z.string().min(2), clientTitle: z.string().optional(), clientCompany: z.string().optional(), content: z.string().min(10), rating: z.number().min(1).max(5).optional(), serviceType: z.string().optional(), imageUrl: z.string().optional(), isFeatured: z.boolean().optional() })).mutation(({ input }) => createTestimonial(input)),
+    createArticle: adminProcedure.input(z.object({ title: z.string().min(2), slug: z.string().min(2), excerpt: z.string().optional(), content: z.string().min(10), category: z.string().optional(), authorName: z.string().optional(), imageUrl: z.string().optional(), readTime: z.number().optional() })).mutation(({ input }) => createArticle(input)),
+    createStudentService: adminProcedure.input(z.object({ title: z.string().min(2), description: z.string().min(5), icon: z.string().optional(), price: z.number().optional(), originalPrice: z.number().optional(), discountPercent: z.number().optional(), category: z.string().optional() })).mutation(({ input }) => createStudentService({ ...input, price: input.price != null ? String(input.price) : undefined, originalPrice: input.originalPrice != null ? String(input.originalPrice) : undefined })),
+  }),
+  analytics: router({
+    pageView: publicProcedure.input(z.object({ sessionId: z.string().min(1), page: z.string().min(1), visitorId: z.string().optional(), title: z.string().optional() })).mutation(({ input }) => recordPageView(input.sessionId, input.page, input.visitorId, input.title)),
+    visitorSession: publicProcedure.input(z.object({ sessionId: z.string().min(1), visitorId: z.string().optional(), ipAddress: z.string().optional(), userAgent: z.string().optional(), referrer: z.string().optional(), firstPage: z.string().optional(), device: z.string().optional(), browser: z.string().optional(), os: z.string().optional() })).mutation(({ input }) => recordVisitorSession(input.sessionId, input)),
+    clientInteraction: publicProcedure.input(z.object({ interactionType: z.string().min(1), page: z.string().min(1), visitorId: z.string().optional(), metadata: z.any().optional() })).mutation(({ input }) => recordClientInteraction(input.interactionType, input.page, undefined, input.visitorId, input.metadata)),
+  }),
+  intelligence: router({
+    alerts: protectedProcedure.query(({ ctx }) => getAlerts(ctx.user.id)),
+    insights: protectedProcedure.query(({ ctx }) => getAiInsights(null, true)),
+    activityLog: protectedProcedure.query(({ ctx }) => getActivityLogs(null)),
   }),
 });
 

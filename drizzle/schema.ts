@@ -1,71 +1,147 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json } from "drizzle-orm/mysql-core";
+import {
+  pgTable,
+  serial,
+  integer,
+  varchar,
+  text,
+  timestamp,
+  numeric,
+  boolean,
+  jsonb,
+  pgEnum,
+  unique,
+} from "drizzle-orm/pg-core";
 
-export const users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
-  name: text("name"),
+// ─── Enums ────────────────────────────────────────────────────────
+export const userRoleEnum = pgEnum("user_role", ["admin", "auditor", "accountant", "owner", "user"]);
+export const serviceCategoryEnum = pgEnum("service_category", ["engineering", "realEstate", "consulting"]);
+export const requestStatusEnum = pgEnum("request_status", ["new", "contacted", "closed"]);
+export const appointmentStatusEnum = pgEnum("appointment_status", ["new", "confirmed", "completed", "cancelled"]);
+export const creditTypeEnum = pgEnum("credit_type", ["grant", "consume", "purchase"]);
+export const subscriptionStatusEnum = pgEnum("subscription_status", ["active", "cancelled", "expired", "trial"]);
+export const syncOperationEnum = pgEnum("sync_operation", ["create", "update", "delete"]);
+export const syncStatusEnum = pgEnum("sync_status", ["pending", "synced", "failed"]);
+export const customerTypeEnum = pgEnum("customer_type", ["individual", "company", "government", "student"]);
+export const invoiceTypeEnum = pgEnum("invoice_type", ["sales", "purchase"]);
+export const invoiceStatusEnum = pgEnum("invoice_status", ["draft", "issued", "paid", "partial", "overdue", "cancelled"]);
+export const orderStatusEnum = pgEnum("order_status", ["new", "processing", "shipped", "delivered", "cancelled"]);
+export const distributionChannelTypeEnum = pgEnum("distribution_channel_type", ["retail", "wholesale", "online", "agent", "other"]);
+export const distributionStatusEnum = pgEnum("distribution_status", ["pending", "shipped", "delivered", "cancelled"]);
+export const paymentTypeEnum = pgEnum("payment_type", ["receive", "pay"]);
+export const inventoryTypeEnum = pgEnum("inventory_type", ["in", "out", "adjustment"]);
+export const accountTypeEnum = pgEnum("account_type", ["asset", "liability", "equity", "revenue", "expense"]);
+export const accountCategoryEnum = pgEnum("account_category", ["current", "fixed", "current_liability", "long_term_liability", "capital", "retained_earnings", "sales", "other_income", "operating", "administrative", "financial", "other"]);
+export const transactionTypeEnum = pgEnum("transaction_type", ["voucher", "invoice", "request", "order", "receipt", "payment", "transfer", "adjustment", "other"]);
+export const journalStatusEnum = pgEnum("journal_status", ["draft", "posted", "void"]);
+export const dailyTxStatusEnum = pgEnum("daily_tx_status", ["draft", "posted", "approved", "void"]);
+export const lifecycleStatusEnum = pgEnum("lifecycle_status", ["saved", "approved", "sent", "posted", "completed"]);
+export const subscriptionPlanEnum = pgEnum("subscription_plan", ["trial", "standard", "premium", "enterprise"]);
+
+// ─── Users & Auth ─────────────────────────────────────────────────
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  openId: varchar("openId", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: userRoleEnum("role").default("user").notNull(),
+  themePreference: varchar("themePreference", { length: 20 }).default("dark").notNull(),
+  emailNotifications: boolean("emailNotifications").default(true).notNull(),
+  whatsappNotifications: boolean("whatsappNotifications").default(true).notNull(),
+  compactMode: boolean("compactMode").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
 });
 
-export const services = mysqlTable("services", {
-  id: int("id").autoincrement().primaryKey(),
-  category: mysqlEnum("category", ["engineering", "realEstate", "consulting"]).notNull(),
-  title: varchar("title", { length: 180 }).notNull(),
-  description: text("description").notNull(),
-  icon: varchar("icon", { length: 40 }).default("sparkles").notNull(),
-  isActive: int("isActive").default(1).notNull(),
+// ─── Multi-Tenant (from AppHusseniya) ────────────────────────────
+export const tenants = pgTable("tenants", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  ownerUserId: integer("ownerUserId").notNull(),
+  currency: varchar("currency", { length: 20 }).default("YER").notNull(),
+  country: varchar("country", { length: 100 }).default("اليمن").notNull(),
+  subscriptionPlan: subscriptionPlanEnum("subscriptionPlan").default("standard").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const projects = mysqlTable("projects", {
-  id: int("id").autoincrement().primaryKey(),
+export const userBranchPermissions = pgTable("user_branch_permissions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  branchId: integer("branchId").notNull(),
+  canView: boolean("canView").default(true).notNull(),
+  canInsert: boolean("canInsert").default(true).notNull(),
+  canApprove: boolean("canApprove").default(false).notNull(),
+  canPost: boolean("canPost").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── Services (Public-facing) ─────────────────────────────────────
+export const services = pgTable("services", {
+  id: serial("id").primaryKey(),
+  category: serviceCategoryEnum("category").notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  description: text("description").notNull(),
+  icon: varchar("icon", { length: 40 }).default("sparkles").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  imageUrl: text("imageUrl"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
   title: varchar("title", { length: 180 }).notNull(),
   category: varchar("category", { length: 80 }).notNull(),
   location: varchar("location", { length: 160 }),
   description: text("description").notNull(),
   imageUrl: text("imageUrl"),
+  year: integer("year"),
+  clientName: varchar("clientName", { length: 160 }),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const properties = mysqlTable("properties", {
-  id: int("id").autoincrement().primaryKey(),
+export const properties = pgTable("properties", {
+  id: serial("id").primaryKey(),
   title: varchar("title", { length: 180 }).notNull(),
   type: varchar("type", { length: 80 }).notNull(),
   location: varchar("location", { length: 160 }).notNull(),
   size: varchar("size", { length: 120 }),
+  price: numeric("price", { precision: 15, scale: 2 }),
   note: text("note").notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const teamMembers = mysqlTable("teamMembers", {
-  id: int("id").autoincrement().primaryKey(),
+export const teamMembers = pgTable("teamMembers", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
   title: varchar("title", { length: 180 }).notNull(),
   specialty: varchar("specialty", { length: 180 }).notNull(),
-  experienceYears: int("experienceYears").default(0).notNull(),
+  experienceYears: integer("experienceYears").default(0).notNull(),
   bio: text("bio").notNull(),
+  imageUrl: text("imageUrl"),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const serviceRequests = mysqlTable("serviceRequests", {
-  id: int("id").autoincrement().primaryKey(),
+// ─── Public Interactions ──────────────────────────────────────────
+export const serviceRequests = pgTable("serviceRequests", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }).notNull(),
   email: varchar("email", { length: 320 }),
   serviceType: varchar("serviceType", { length: 180 }).notNull(),
   details: text("details").notNull(),
-  status: mysqlEnum("status", ["new", "contacted", "closed"]).default("new").notNull(),
+  status: requestStatusEnum("status").default("new").notNull(),
+  notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const appointments = mysqlTable("appointments", {
-  id: int("id").autoincrement().primaryKey(),
+export const appointments = pgTable("appointments", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }).notNull(),
   email: varchar("email", { length: 320 }),
@@ -73,235 +149,232 @@ export const appointments = mysqlTable("appointments", {
   appointmentDate: varchar("appointmentDate", { length: 40 }).notNull(),
   appointmentTime: varchar("appointmentTime", { length: 20 }).notNull(),
   notes: text("notes"),
-  status: mysqlEnum("status", ["new", "confirmed", "completed", "cancelled"]).default("new").notNull(),
+  status: appointmentStatusEnum("status").default("new").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const contactMessages = mysqlTable("contactMessages", {
-  id: int("id").autoincrement().primaryKey(),
+export const contactMessages = pgTable("contactMessages", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }).notNull(),
   email: varchar("email", { length: 320 }),
+  subject: varchar("subject", { length: 200 }),
   message: text("message").notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export type User = typeof users.$inferSelect;
-export type InsertUser = typeof users.$inferInsert;
-export type ServiceRequest = typeof serviceRequests.$inferSelect;
-export type Appointment = typeof appointments.$inferSelect;
-export const creditWallets = mysqlTable("creditWallets", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique(),
-  freeCredits: int("freeCredits").default(3).notNull(),
-  paidCredits: int("paidCredits").default(0).notNull(),
+// ─── Credits & Subscriptions ──────────────────────────────────────
+export const creditWallets = pgTable("creditWallets", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
+  freeCredits: integer("freeCredits").default(3).notNull(),
+  paidCredits: integer("paidCredits").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-export const creditTransactions = mysqlTable("creditTransactions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  amount: int("amount").notNull(),
-  type: mysqlEnum("type", ["grant", "consume", "purchase"]).notNull(),
+export const creditTransactions = pgTable("creditTransactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  amount: integer("amount").notNull(),
+  type: creditTypeEnum("type").notNull(),
   reference: varchar("reference", { length: 160 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-// Subscription management for the commercial system
-export const subscriptions = mysqlTable("subscriptions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique(),
+export const subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
   planId: varchar("planId", { length: 40 }).notNull(),
-  status: mysqlEnum("status", ["active", "cancelled", "expired", "trial"]).default("trial").notNull(),
+  status: subscriptionStatusEnum("status").default("trial").notNull(),
   startedAt: timestamp("startedAt").defaultNow().notNull(),
   expiresAt: timestamp("expiresAt"),
-  autoRenew: int("autoRenew").default(0).notNull(),
+  autoRenew: boolean("autoRenew").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-// Device registration for multi-platform sync
-export const devices = mysqlTable("devices", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+// ─── Devices & Sync ──────────────────────────────────────────────
+export const devices = pgTable("devices", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   deviceId: varchar("deviceId", { length: 100 }).notNull(),
-  platform: varchar("platform", { length: 40 }).notNull(), // web, desktop, mobile, cloud
+  platform: varchar("platform", { length: 40 }).notNull(),
   name: varchar("name", { length: 160 }),
   lastSyncAt: timestamp("lastSyncAt").defaultNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
+}, (t) => [unique().on(t.userId, t.deviceId)]);
 
-// Sync queue for offline-first synchronization
-export const syncQueue = mysqlTable("syncQueue", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+export const syncQueue = pgTable("syncQueue", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   deviceId: varchar("deviceId", { length: 100 }).notNull(),
   entityType: varchar("entityType", { length: 40 }).notNull(),
   entityId: varchar("entityId", { length: 100 }),
-  operation: mysqlEnum("operation", ["create", "update", "delete"]).notNull(),
-  payload: json("payload"),
-  status: mysqlEnum("status", ["pending", "synced", "failed"]).default("pending").notNull(),
+  operation: syncOperationEnum("operation").notNull(),
+  payload: jsonb("payload"),
+  status: syncStatusEnum("status").default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   syncedAt: timestamp("syncedAt"),
 });
 
-// ==== النظام التجاري: العملاء والموردون ====
-export const customers = mysqlTable("customers", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+// ─── Commerce: Customers & Suppliers ──────────────────────────────
+export const customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }),
   email: varchar("email", { length: 320 }),
   address: text("address"),
-  type: mysqlEnum("type", ["individual", "company", "government", "student"]).default("individual").notNull(),
-  balance: int("balance").default(0).notNull(),
+  type: customerTypeEnum("type").default("individual").notNull(),
+  balance: numeric("balance", { precision: 15, scale: 2 }).default("0").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-export const suppliers = mysqlTable("suppliers", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+export const suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }),
   email: varchar("email", { length: 320 }),
   address: text("address"),
-  balance: int("balance").default(0).notNull(),
+  balance: numeric("balance", { precision: 15, scale: 2 }).default("0").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-// ==== النظام التجاري: المنتجات والمخزون ====
-export const products = mysqlTable("products", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+// ─── Commerce: Products & Inventory ───────────────────────────────
+export const products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 180 }).notNull(),
   sku: varchar("sku", { length: 60 }),
   category: varchar("category", { length: 80 }),
   unit: varchar("unit", { length: 40 }).default("وحدة").notNull(),
-  costPrice: int("costPrice").default(0).notNull(),
-  sellingPrice: int("sellingPrice").default(0).notNull(),
-  stockQuantity: int("stockQuantity").default(0).notNull(),
-  minStock: int("minStock").default(0).notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  costPrice: numeric("costPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+  sellingPrice: numeric("sellingPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+  stockQuantity: integer("stockQuantity").default(0).notNull(),
+  minStock: integer("minStock").default(0).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-export const inventoryTransactions = mysqlTable("inventoryTransactions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  productId: int("productId").notNull(),
-  quantity: int("quantity").notNull(),
-  type: mysqlEnum("type", ["in", "out", "adjustment"]).notNull(),
+export const inventoryTransactions = pgTable("inventoryTransactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  productId: integer("productId").notNull(),
+  quantity: integer("quantity").notNull(),
+  type: inventoryTypeEnum("type").notNull(),
   reference: varchar("reference", { length: 160 }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-// ==== النظام التجاري: الفواتير والمبيعات والمشتريات ====
-export const invoices = mysqlTable("invoices", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+// ─── Commerce: Invoices & Orders ──────────────────────────────────
+export const invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   invoiceNumber: varchar("invoiceNumber", { length: 40 }).notNull(),
-  customerId: int("customerId"),
-  supplierId: int("supplierId"),
-  type: mysqlEnum("type", ["sales", "purchase"]).notNull(),
-  status: mysqlEnum("status", ["draft", "issued", "paid", "partial", "overdue", "cancelled"]).default("draft").notNull(),
-  subtotal: int("subtotal").default(0).notNull(),
-  discount: int("discount").default(0).notNull(),
-  tax: int("tax").default(0).notNull(),
-  total: int("total").default(0).notNull(),
-  paidAmount: int("paidAmount").default(0).notNull(),
+  customerId: integer("customerId"),
+  supplierId: integer("supplierId"),
+  type: invoiceTypeEnum("type").notNull(),
+  status: invoiceStatusEnum("status").default("draft").notNull(),
+  subtotal: numeric("subtotal", { precision: 15, scale: 2 }).default("0").notNull(),
+  discount: numeric("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+  tax: numeric("tax", { precision: 15, scale: 2 }).default("0").notNull(),
+  total: numeric("total", { precision: 15, scale: 2 }).default("0").notNull(),
+  paidAmount: numeric("paidAmount", { precision: 15, scale: 2 }).default("0").notNull(),
   dueDate: timestamp("dueDate"),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-export const invoiceItems = mysqlTable("invoiceItems", {
-  id: int("id").autoincrement().primaryKey(),
-  invoiceId: int("invoiceId").notNull(),
-  productId: int("productId"),
+export const invoiceItems = pgTable("invoiceItems", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoiceId").notNull(),
+  productId: integer("productId"),
   description: varchar("description", { length: 200 }).notNull(),
-  quantity: int("quantity").default(1).notNull(),
-  unitPrice: int("unitPrice").default(0).notNull(),
-  total: int("total").default(0).notNull(),
+  quantity: integer("quantity").default(1).notNull(),
+  unitPrice: numeric("unitPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+  total: numeric("total", { precision: 15, scale: 2 }).default("0").notNull(),
 });
 
-// ==== النظام التجاري: طلبات العملاء ====
-export const customerOrders = mysqlTable("customerOrders", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+export const customerOrders = pgTable("customerOrders", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   orderNumber: varchar("orderNumber", { length: 40 }).notNull(),
-  customerId: int("customerId"),
-  status: mysqlEnum("status", ["new", "processing", "shipped", "delivered", "cancelled"]).default("new").notNull(),
-  total: int("total").default(0).notNull(),
+  customerId: integer("customerId"),
+  status: orderStatusEnum("status").default("new").notNull(),
+  total: numeric("total", { precision: 15, scale: 2 }).default("0").notNull(),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-export const orderItems = mysqlTable("orderItems", {
-  id: int("id").autoincrement().primaryKey(),
-  orderId: int("orderId").notNull(),
-  productId: int("productId"),
+export const orderItems = pgTable("orderItems", {
+  id: serial("id").primaryKey(),
+  orderId: integer("orderId").notNull(),
+  productId: integer("productId"),
   description: varchar("description", { length: 200 }).notNull(),
-  quantity: int("quantity").default(1).notNull(),
-  unitPrice: int("unitPrice").default(0).notNull(),
-  total: int("total").default(0).notNull(),
+  quantity: integer("quantity").default(1).notNull(),
+  unitPrice: numeric("unitPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+  total: numeric("total", { precision: 15, scale: 2 }).default("0").notNull(),
 });
 
-// ==== النظام التجاري: التوزيع وقنوات البيع ====
-export const distributionChannels = mysqlTable("distributionChannels", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+// ─── Commerce: Distribution ───────────────────────────────────────
+export const distributionChannels = pgTable("distributionChannels", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 160 }).notNull(),
-  type: mysqlEnum("type", ["retail", "wholesale", "online", "agent", "other"]).default("other").notNull(),
+  type: distributionChannelTypeEnum("type").default("other").notNull(),
   location: varchar("location", { length: 160 }),
-  balance: int("balance").default(0).notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  balance: numeric("balance", { precision: 15, scale: 2 }).default("0").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const distributions = mysqlTable("distributions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  channelId: int("channelId").notNull(),
-  productId: int("productId").notNull(),
-  quantity: int("quantity").notNull(),
-  status: mysqlEnum("status", ["pending", "shipped", "delivered", "cancelled"]).default("pending").notNull(),
+export const distributions = pgTable("distributions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  channelId: integer("channelId").notNull(),
+  productId: integer("productId").notNull(),
+  quantity: integer("quantity").notNull(),
+  status: distributionStatusEnum("status").default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   deliveredAt: timestamp("deliveredAt"),
 });
 
-// ==== النظام التجاري: المدفوعات والمصروفات ====
-export const payments = mysqlTable("payments", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  amount: int("amount").notNull(),
-  type: mysqlEnum("type", ["receive", "pay"]).notNull(),
+// ─── Commerce: Payments & Expenses ────────────────────────────────
+export const payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
+  type: paymentTypeEnum("type").notNull(),
   method: varchar("method", { length: 60 }).default("نقدي").notNull(),
   reference: varchar("reference", { length: 160 }),
-  invoiceId: int("invoiceId"),
-  customerId: int("customerId"),
-  supplierId: int("supplierId"),
+  invoiceId: integer("invoiceId"),
+  customerId: integer("customerId"),
+  supplierId: integer("supplierId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const expenses = mysqlTable("expenses", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  amount: int("amount").notNull(),
+export const expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
   category: varchar("category", { length: 80 }).notNull(),
   description: varchar("description", { length: 200 }),
+  accountId: integer("accountId"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-// ==== النظام المحاسبي: المؤسسة والفروع ====
-export const organizations = mysqlTable("organizations", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique(),
+// ─── Accounting: Organization & Branches ──────────────────────────
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
   name: varchar("name", { length: 180 }).notNull(),
   commercialName: varchar("commercialName", { length: 180 }),
   legalName: varchar("legalName", { length: 180 }),
@@ -313,130 +386,349 @@ export const organizations = mysqlTable("organizations", {
   fiscalYearStart: varchar("fiscalYearStart", { length: 10 }).default("01-01"),
   logo: text("logo"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-export const branches = mysqlTable("branches", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
+export const branches = pgTable("branches", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId"),
+  tenantId: integer("tenantId"),
+  organizationId: integer("organizationId"),
   name: varchar("name", { length: 160 }).notNull(),
   code: varchar("code", { length: 40 }),
+  city: varchar("city", { length: 100 }),
   address: text("address"),
   phone: varchar("phone", { length: 40 }),
-  isActive: int("isActive").default(1).notNull(),
+  isMain: boolean("isMain").default(false).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-// ==== النظام المحاسبي: دليل الحسابات ====
-export const chartOfAccounts = mysqlTable("chartOfAccounts", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
+// ─── Accounting: Chart of Accounts ────────────────────────────────
+export const chartOfAccounts = pgTable("chartOfAccounts", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId").notNull(),
   code: varchar("code", { length: 40 }).notNull(),
   name: varchar("name", { length: 180 }).notNull(),
   nameEn: varchar("nameEn", { length: 180 }),
-  type: mysqlEnum("type", ["asset", "liability", "equity", "revenue", "expense"]).notNull(),
-  category: mysqlEnum("category", ["current", "fixed", "current_liability", "long_term_liability", "capital", "retained_earnings", "sales", "other_income", "operating", "administrative", "financial", "other"]).default("other").notNull(),
-  parentId: int("parentId"),
-  isActive: int("isActive").default(1).notNull(),
-  openingBalance: int("openingBalance").default(0).notNull(),
+  type: accountTypeEnum("type").notNull(),
+  category: accountCategoryEnum("category").default("other").notNull(),
+  parentId: integer("parentId"),
+  isActive: boolean("isActive").default(true).notNull(),
+  isCustom: boolean("isCustom").default(false).notNull(),
+  openingBalance: numeric("openingBalance", { precision: 15, scale: 2 }).default("0").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
 });
 
-// ==== النظام المحاسبي: العملات ووحدات القياس ====
-export const currencies = mysqlTable("currencies", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+// ─── Accounting: Currencies & Units ───────────────────────────────
+export const currencies = pgTable("currencies", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   code: varchar("code", { length: 10 }).notNull(),
   name: varchar("name", { length: 80 }).notNull(),
   symbol: varchar("symbol", { length: 10 }),
-  exchangeRate: int("exchangeRate").default(1).notNull(),
-  isBase: int("isBase").default(0).notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  exchangeRate: numeric("exchangeRate", { precision: 15, scale: 6 }).default("1").notNull(),
+  isBase: boolean("isBase").default(false).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const unitsOfMeasure = mysqlTable("unitsOfMeasure", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+export const unitsOfMeasure = pgTable("unitsOfMeasure", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 80 }).notNull(),
   abbreviation: varchar("abbreviation", { length: 20 }),
-  isActive: int("isActive").default(1).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-// ==== النظام المحاسبي: الموظفون ====
-export const employees = mysqlTable("employees", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
+// ─── Accounting: Employees ────────────────────────────────────────
+export const employees = pgTable("employees", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId").notNull(),
   name: varchar("name", { length: 160 }).notNull(),
   role: varchar("role", { length: 80 }).default("employee").notNull(),
   phone: varchar("phone", { length: 40 }),
   email: varchar("email", { length: 320 }),
-  salary: int("salary").default(0).notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  salary: numeric("salary", { precision: 15, scale: 2 }).default("0").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-// ==== النظام المحاسبي: القيود اليومية ====
-export const journalEntries = mysqlTable("journalEntries", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
-  branchId: int("branchId"),
+// ─── Accounting: Journal Entries ──────────────────────────────────
+export const journalEntries = pgTable("journalEntries", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId").notNull(),
+  branchId: integer("branchId"),
   entryNumber: varchar("entryNumber", { length: 40 }).notNull(),
   entryDate: timestamp("entryDate").defaultNow().notNull(),
   description: varchar("description", { length: 200 }),
-  debitTotal: int("debitTotal").default(0).notNull(),
-  creditTotal: int("creditTotal").default(0).notNull(),
+  debitTotal: numeric("debitTotal", { precision: 15, scale: 2 }).default("0").notNull(),
+  creditTotal: numeric("creditTotal", { precision: 15, scale: 2 }).default("0").notNull(),
   currencyCode: varchar("currencyCode", { length: 10 }).default("YER").notNull(),
-  exchangeRate: int("exchangeRate").default(1).notNull(),
-  status: mysqlEnum("status", ["draft", "posted", "void"]).default("draft").notNull(),
-  createdBy: int("createdBy"),
+  exchangeRate: numeric("exchangeRate", { precision: 15, scale: 6 }).default("1").notNull(),
+  status: journalStatusEnum("status").default("draft").notNull(),
+  createdBy: integer("createdBy"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
-export const journalEntryLines = mysqlTable("journalEntryLines", {
-  id: int("id").autoincrement().primaryKey(),
-  entryId: int("entryId").notNull(),
-  accountId: int("accountId").notNull(),
-  debit: int("debit").default(0).notNull(),
-  credit: int("credit").default(0).notNull(),
+export const journalEntryLines = pgTable("journalEntryLines", {
+  id: serial("id").primaryKey(),
+  entryId: integer("entryId").notNull(),
+  accountId: integer("accountId").notNull(),
+  debit: numeric("debit", { precision: 15, scale: 2 }).default("0").notNull(),
+  credit: numeric("credit", { precision: 15, scale: 2 }).default("0").notNull(),
   description: varchar("description", { length: 200 }),
   entityType: varchar("entityType", { length: 40 }),
-  entityId: int("entityId"),
+  entityId: integer("entityId"),
 });
 
-// ==== النظام المحاسبي: المعاملات اليومية العامة (سندات/فواتير/طلبات/أوامر) ====
-export const dailyTransactions = mysqlTable("dailyTransactions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
-  branchId: int("branchId"),
+// ─── Accounting: Daily Transactions ───────────────────────────────
+export const dailyTransactions = pgTable("dailyTransactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId").notNull(),
+  branchId: integer("branchId"),
   transactionNumber: varchar("transactionNumber", { length: 40 }).notNull(),
-  transactionType: mysqlEnum("transactionType", ["voucher", "invoice", "request", "order", "receipt", "payment", "transfer", "adjustment", "other"]).notNull(),
+  transactionType: transactionTypeEnum("transactionType").notNull(),
   transactionDate: timestamp("transactionDate").defaultNow().notNull(),
-  accountId: int("accountId"),
-  customerId: int("customerId"),
-  supplierId: int("supplierId"),
-  employeeId: int("employeeId"),
-  agentId: int("agentId"),
-  distributorId: int("distributorId"),
-  productId: int("productId"),
-  amount: int("amount").default(0).notNull(),
+  accountId: integer("accountId"),
+  customerId: integer("customerId"),
+  supplierId: integer("supplierId"),
+  employeeId: integer("employeeId"),
+  agentId: integer("agentId"),
+  distributorId: integer("distributorId"),
+  productId: integer("productId"),
+  amount: numeric("amount", { precision: 15, scale: 2 }).default("0").notNull(),
   currencyCode: varchar("currencyCode", { length: 10 }).default("YER").notNull(),
-  exchangeRate: int("exchangeRate").default(1).notNull(),
-  quantity: int("quantity").default(0).notNull(),
-  unitId: int("unitId"),
+  exchangeRate: numeric("exchangeRate", { precision: 15, scale: 6 }).default("1").notNull(),
+  quantity: integer("quantity").default(0).notNull(),
+  unitId: integer("unitId"),
   description: varchar("description", { length: 200 }),
-  status: mysqlEnum("status", ["draft", "posted", "approved", "void"]).default("draft").notNull(),
-  createdBy: int("createdBy"),
+  status: dailyTxStatusEnum("status").default("draft").notNull(),
+  createdBy: integer("createdBy"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 
+// ─── From AppHusseniya: Financial Transactions ────────────────────
+export const financialTransactions = pgTable("financial_transactions", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  branchId: integer("branchId"),
+  accountId: integer("accountId").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
+  type: varchar("type", { length: 10 }).notNull(), // debit/credit
+  transactionDate: timestamp("transactionDate").notNull(),
+  narration: varchar("narration", { length: 500 }),
+  notes: text("notes"),
+  lifecycleStatus: lifecycleStatusEnum("lifecycleStatus").default("saved").notNull(),
+  isReversed: boolean("isReversed").default(false).notNull(),
+  reversalReason: varchar("reversalReason", { length: 255 }),
+  userId: integer("userId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const openingBalances = pgTable("opening_balances", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  accountId: integer("accountId").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
+  type: varchar("type", { length: 10 }).notNull(),
+  notes: text("notes"),
+  periodName: varchar("periodName", { length: 50 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const budgets = pgTable("budgets", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  periodName: varchar("periodName", { length: 50 }).notNull(),
+  targetRevenue: numeric("targetRevenue", { precision: 15, scale: 2 }).notNull(),
+  targetExpense: numeric("targetExpense", { precision: 15, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  institutionName: varchar("institutionName", { length: 255 }).default("مؤسسة الحسينية لخدمات الأعمال").notNull(),
+  currency: varchar("currency", { length: 50 }).default("ريال يمني (YER)").notNull(),
+  accountingPeriod: varchar("accountingPeriod", { length: 50 }).default("2026").notNull(),
+  managerName: varchar("managerName", { length: 255 }).default("إدارة المؤسسة").notNull(),
+  notes: text("notes"),
+  subscriptionStatus: subscriptionStatusEnum("subscriptionStatus").default("active").notNull(),
+  trialEndsAt: timestamp("trialEndsAt"),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+export const activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  userId: integer("userId"),
+  userName: varchar("userName", { length: 255 }),
+  action: varchar("action", { length: 255 }).notNull(),
+  details: text("details"),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── NEW: Analytics & Intelligence ────────────────────────────────
+export const analyticsSnapshots = pgTable("analytics_snapshots", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  snapshotDate: timestamp("snapshotDate").notNull(),
+  metricType: varchar("metricType", { length: 60 }).notNull(), // revenue, expense, profit, customers, invoices, etc.
+  value: numeric("value", { precision: 18, scale: 4 }).notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const kpiMetrics = pgTable("kpi_metrics", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  periodName: varchar("periodName", { length: 50 }).notNull(),
+  revenueGrowth: numeric("revenueGrowth", { precision: 8, scale: 4 }),
+  expenseGrowth: numeric("expenseGrowth", { precision: 8, scale: 4 }),
+  profitMargin: numeric("profitMargin", { precision: 8, scale: 4 }),
+  customerRetention: numeric("customerRetention", { precision: 8, scale: 4 }),
+  avgInvoiceValue: numeric("avgInvoiceValue", { precision: 15, scale: 2 }),
+  overdueRate: numeric("overdueRate", { precision: 8, scale: 4 }),
+  inventoryTurnover: numeric("inventoryTurnover", { precision: 8, scale: 4 }),
+  cashFlowRatio: numeric("cashFlowRatio", { precision: 8, scale: 4 }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── NEW: Visitor & Interaction Tracking ──────────────────────────
+export const visitorSessions = pgTable("visitor_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: varchar("sessionId", { length: 100 }).notNull().unique(),
+  visitorId: varchar("visitorId", { length: 100 }),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  userAgent: text("userAgent"),
+  referrer: text("referrer"),
+  firstPage: varchar("firstPage", { length: 300 }),
+  country: varchar("country", { length: 100 }),
+  city: varchar("city", { length: 100 }),
+  device: varchar("device", { length: 40 }),
+  browser: varchar("browser", { length: 40 }),
+  os: varchar("os", { length: 40 }),
+  isBot: boolean("isBot").default(false).notNull(),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  endedAt: timestamp("endedAt"),
+  duration: integer("duration"), // seconds
+  pagesViewed: integer("pagesViewed").default(1).notNull(),
+});
+
+export const pageViews = pgTable("page_views", {
+  id: serial("id").primaryKey(),
+  sessionId: varchar("sessionId", { length: 100 }).notNull(),
+  visitorId: varchar("visitorId", { length: 100 }),
+  page: varchar("page", { length: 300 }).notNull(),
+  title: varchar("title", { length: 200 }),
+  timeSpent: integer("timeSpent"), // seconds
+  scrollDepth: integer("scrollDepth"), // percentage
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export const clientInteractions = pgTable("client_interactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId"),
+  visitorId: varchar("visitorId", { length: 100 }),
+  interactionType: varchar("interactionType", { length: 60 }).notNull(), // form_submit, button_click, download, call, whatsapp, email
+  page: varchar("page", { length: 300 }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── NEW: AI Insights ─────────────────────────────────────────────
+export const aiInsights = pgTable("ai_insights", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  insightType: varchar("insightType", { length: 60 }).notNull(), // revenue_forecast, anomaly, recommendation, alert
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  severity: varchar("severity", { length: 20 }).default("info"), // info, warning, critical
+  data: jsonb("data"),
+  isRead: boolean("isRead").default(false).notNull(),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── NEW: Alerts & Notifications ──────────────────────────────────
+export const alerts = pgTable("alerts", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  userId: integer("userId"),
+  alertType: varchar("alertType", { length: 60 }).notNull(), // overdue_invoice, low_stock, appointment_reminder, payment_due
+  title: varchar("title", { length: 200 }).notNull(),
+  message: text("message").notNull(),
+  severity: varchar("severity", { length: 20 }).default("info"),
+  isRead: boolean("isRead").default(false).notNull(),
+  actionUrl: varchar("actionUrl", { length: 300 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── NEW: Testimonials (dynamic) ──────────────────────────────────
+export const testimonials = pgTable("testimonials", {
+  id: serial("id").primaryKey(),
+  clientName: varchar("clientName", { length: 160 }).notNull(),
+  clientTitle: varchar("clientTitle", { length: 160 }),
+  clientCompany: varchar("clientCompany", { length: 160 }),
+  content: text("content").notNull(),
+  rating: integer("rating").default(5),
+  serviceType: varchar("serviceType", { length: 80 }),
+  imageUrl: text("imageUrl"),
+  isFeatured: boolean("isFeatured").default(false).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── NEW: Library Articles ────────────────────────────────────────
+export const articles = pgTable("articles", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 200 }).notNull(),
+  slug: varchar("slug", { length: 200 }).notNull().unique(),
+  excerpt: text("excerpt"),
+  content: text("content").notNull(),
+  category: varchar("category", { length: 80 }),
+  authorName: varchar("authorName", { length: 160 }),
+  imageUrl: text("imageUrl"),
+  readTime: integer("readTime"), // minutes
+  isPublished: boolean("isPublished").default(false).notNull(),
+  viewCount: integer("viewCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+});
+
+// ─── NEW: Student Services ────────────────────────────────────────
+export const studentServices = pgTable("student_services", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 180 }).notNull(),
+  description: text("description").notNull(),
+  icon: varchar("icon", { length: 40 }).default("graduationCap").notNull(),
+  price: numeric("price", { precision: 10, scale: 2 }),
+  originalPrice: numeric("originalPrice", { precision: 10, scale: 2 }),
+  discountPercent: integer("discountPercent"),
+  category: varchar("category", { length: 80 }),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+// ─── Type Exports ─────────────────────────────────────────────────
+export type User = typeof users.$inferSelect;
+export type InsertUser = typeof users.$inferInsert;
+export type Tenant = typeof tenants.$inferSelect;
+export type InsertTenant = typeof tenants.$inferInsert;
+export type ServiceRequest = typeof serviceRequests.$inferSelect;
+export type Appointment = typeof appointments.$inferSelect;
 export type ContactMessage = typeof contactMessages.$inferSelect;
 export type CreditWallet = typeof creditWallets.$inferSelect;
 export type CreditTransaction = typeof creditTransactions.$inferSelect;
@@ -464,3 +756,21 @@ export type Employee = typeof employees.$inferSelect;
 export type JournalEntry = typeof journalEntries.$inferSelect;
 export type JournalEntryLine = typeof journalEntryLines.$inferSelect;
 export type DailyTransaction = typeof dailyTransactions.$inferSelect;
+export type FinancialTransaction = typeof financialTransactions.$inferSelect;
+export type OpeningBalance = typeof openingBalances.$inferSelect;
+export type Budget = typeof budgets.$inferSelect;
+export type Setting = typeof settings.$inferSelect;
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type AnalyticsSnapshot = typeof analyticsSnapshots.$inferSelect;
+export type KpiMetric = typeof kpiMetrics.$inferSelect;
+export type VisitorSession = typeof visitorSessions.$inferSelect;
+export type PageView = typeof pageViews.$inferSelect;
+export type ClientInteraction = typeof clientInteractions.$inferSelect;
+export type AiInsight = typeof aiInsights.$inferSelect;
+export type Alert = typeof alerts.$inferSelect;
+export type Testimonial = typeof testimonials.$inferSelect;
+export type Article = typeof articles.$inferSelect;
+export type StudentService = typeof studentServices.$inferSelect;
+export type UserBranchPermission = typeof userBranchPermissions.$inferSelect;
+export type Account = typeof chartOfAccounts.$inferSelect;
+export type Transaction = typeof financialTransactions.$inferSelect;

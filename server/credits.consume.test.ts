@@ -34,7 +34,7 @@ describe.skipIf(!hasDatabase)("credits.consume integration", () => {
 
     const wallet = (await db!.select().from(creditWallets).where(eq(creditWallets.userId, userId)).limit(1))[0];
     const debits = await db!.select().from(creditTransactions).where(and(eq(creditTransactions.userId, userId), eq(creditTransactions.type, "consume")));
-    expect(wallet?.freeCredits).toBe(0);
+    expect(Number(wallet?.freeCredits)).toBe(0);
     expect(debits).toHaveLength(1);
 
     const repeated = await consumeCredit(userId, "integration-repeat");

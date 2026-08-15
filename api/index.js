@@ -33,70 +33,139 @@ import { parse as parseCookieHeader2 } from "cookie";
 
 // server/db.ts
 import { and, desc, eq, sql } from "drizzle-orm";
-import { drizzle } from "drizzle-orm/mysql2";
+import { Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
 
 // drizzle/schema.ts
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar, json } from "drizzle-orm/mysql-core";
-var users = mysqlTable("users", {
-  id: int("id").autoincrement().primaryKey(),
-  openId: varchar("openId", { length: 64 }).notNull().unique(),
-  name: text("name"),
+import {
+  pgTable,
+  serial,
+  integer,
+  varchar,
+  text,
+  timestamp,
+  numeric,
+  boolean,
+  jsonb,
+  pgEnum,
+  unique
+} from "drizzle-orm/pg-core";
+var userRoleEnum = pgEnum("user_role", ["admin", "auditor", "accountant", "owner", "user"]);
+var serviceCategoryEnum = pgEnum("service_category", ["engineering", "realEstate", "consulting"]);
+var requestStatusEnum = pgEnum("request_status", ["new", "contacted", "closed"]);
+var appointmentStatusEnum = pgEnum("appointment_status", ["new", "confirmed", "completed", "cancelled"]);
+var creditTypeEnum = pgEnum("credit_type", ["grant", "consume", "purchase"]);
+var subscriptionStatusEnum = pgEnum("subscription_status", ["active", "cancelled", "expired", "trial"]);
+var syncOperationEnum = pgEnum("sync_operation", ["create", "update", "delete"]);
+var syncStatusEnum = pgEnum("sync_status", ["pending", "synced", "failed"]);
+var customerTypeEnum = pgEnum("customer_type", ["individual", "company", "government", "student"]);
+var invoiceTypeEnum = pgEnum("invoice_type", ["sales", "purchase"]);
+var invoiceStatusEnum = pgEnum("invoice_status", ["draft", "issued", "paid", "partial", "overdue", "cancelled"]);
+var orderStatusEnum = pgEnum("order_status", ["new", "processing", "shipped", "delivered", "cancelled"]);
+var distributionChannelTypeEnum = pgEnum("distribution_channel_type", ["retail", "wholesale", "online", "agent", "other"]);
+var distributionStatusEnum = pgEnum("distribution_status", ["pending", "shipped", "delivered", "cancelled"]);
+var paymentTypeEnum = pgEnum("payment_type", ["receive", "pay"]);
+var inventoryTypeEnum = pgEnum("inventory_type", ["in", "out", "adjustment"]);
+var accountTypeEnum = pgEnum("account_type", ["asset", "liability", "equity", "revenue", "expense"]);
+var accountCategoryEnum = pgEnum("account_category", ["current", "fixed", "current_liability", "long_term_liability", "capital", "retained_earnings", "sales", "other_income", "operating", "administrative", "financial", "other"]);
+var transactionTypeEnum = pgEnum("transaction_type", ["voucher", "invoice", "request", "order", "receipt", "payment", "transfer", "adjustment", "other"]);
+var journalStatusEnum = pgEnum("journal_status", ["draft", "posted", "void"]);
+var dailyTxStatusEnum = pgEnum("daily_tx_status", ["draft", "posted", "approved", "void"]);
+var lifecycleStatusEnum = pgEnum("lifecycle_status", ["saved", "approved", "sent", "posted", "completed"]);
+var subscriptionPlanEnum = pgEnum("subscription_plan", ["trial", "standard", "premium", "enterprise"]);
+var users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  openId: varchar("openId", { length: 255 }).notNull().unique(),
+  name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 320 }),
   loginMethod: varchar("loginMethod", { length: 64 }),
-  role: mysqlEnum("role", ["user", "admin"]).default("user").notNull(),
+  role: userRoleEnum("role").default("user").notNull(),
+  themePreference: varchar("themePreference", { length: 20 }).default("dark").notNull(),
+  emailNotifications: boolean("emailNotifications").default(true).notNull(),
+  whatsappNotifications: boolean("whatsappNotifications").default(true).notNull(),
+  compactMode: boolean("compactMode").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
 });
-var services = mysqlTable("services", {
-  id: int("id").autoincrement().primaryKey(),
-  category: mysqlEnum("category", ["engineering", "realEstate", "consulting"]).notNull(),
+var tenants = pgTable("tenants", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  code: varchar("code", { length: 50 }).notNull().unique(),
+  ownerUserId: integer("ownerUserId").notNull(),
+  currency: varchar("currency", { length: 20 }).default("YER").notNull(),
+  country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646").notNull(),
+  subscriptionPlan: subscriptionPlanEnum("subscriptionPlan").default("standard").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var userBranchPermissions = pgTable("user_branch_permissions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  branchId: integer("branchId").notNull(),
+  canView: boolean("canView").default(true).notNull(),
+  canInsert: boolean("canInsert").default(true).notNull(),
+  canApprove: boolean("canApprove").default(false).notNull(),
+  canPost: boolean("canPost").default(false).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var services = pgTable("services", {
+  id: serial("id").primaryKey(),
+  category: serviceCategoryEnum("category").notNull(),
   title: varchar("title", { length: 180 }).notNull(),
   description: text("description").notNull(),
   icon: varchar("icon", { length: 40 }).default("sparkles").notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  imageUrl: text("imageUrl"),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var projects = mysqlTable("projects", {
-  id: int("id").autoincrement().primaryKey(),
+var projects = pgTable("projects", {
+  id: serial("id").primaryKey(),
   title: varchar("title", { length: 180 }).notNull(),
   category: varchar("category", { length: 80 }).notNull(),
   location: varchar("location", { length: 160 }),
   description: text("description").notNull(),
   imageUrl: text("imageUrl"),
+  year: integer("year"),
+  clientName: varchar("clientName", { length: 160 }),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var properties = mysqlTable("properties", {
-  id: int("id").autoincrement().primaryKey(),
+var properties = pgTable("properties", {
+  id: serial("id").primaryKey(),
   title: varchar("title", { length: 180 }).notNull(),
   type: varchar("type", { length: 80 }).notNull(),
   location: varchar("location", { length: 160 }).notNull(),
   size: varchar("size", { length: 120 }),
+  price: numeric("price", { precision: 15, scale: 2 }),
   note: text("note").notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var teamMembers = mysqlTable("teamMembers", {
-  id: int("id").autoincrement().primaryKey(),
+var teamMembers = pgTable("teamMembers", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
   title: varchar("title", { length: 180 }).notNull(),
   specialty: varchar("specialty", { length: 180 }).notNull(),
-  experienceYears: int("experienceYears").default(0).notNull(),
+  experienceYears: integer("experienceYears").default(0).notNull(),
   bio: text("bio").notNull(),
+  imageUrl: text("imageUrl"),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var serviceRequests = mysqlTable("serviceRequests", {
-  id: int("id").autoincrement().primaryKey(),
+var serviceRequests = pgTable("serviceRequests", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }).notNull(),
   email: varchar("email", { length: 320 }),
   serviceType: varchar("serviceType", { length: 180 }).notNull(),
   details: text("details").notNull(),
-  status: mysqlEnum("status", ["new", "contacted", "closed"]).default("new").notNull(),
+  status: requestStatusEnum("status").default("new").notNull(),
+  notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var appointments = mysqlTable("appointments", {
-  id: int("id").autoincrement().primaryKey(),
+var appointments = pgTable("appointments", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }).notNull(),
   email: varchar("email", { length: 320 }),
@@ -104,203 +173,205 @@ var appointments = mysqlTable("appointments", {
   appointmentDate: varchar("appointmentDate", { length: 40 }).notNull(),
   appointmentTime: varchar("appointmentTime", { length: 20 }).notNull(),
   notes: text("notes"),
-  status: mysqlEnum("status", ["new", "confirmed", "completed", "cancelled"]).default("new").notNull(),
+  status: appointmentStatusEnum("status").default("new").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var contactMessages = mysqlTable("contactMessages", {
-  id: int("id").autoincrement().primaryKey(),
+var contactMessages = pgTable("contactMessages", {
+  id: serial("id").primaryKey(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }).notNull(),
   email: varchar("email", { length: 320 }),
+  subject: varchar("subject", { length: 200 }),
   message: text("message").notNull(),
+  isRead: boolean("isRead").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var creditWallets = mysqlTable("creditWallets", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique(),
-  freeCredits: int("freeCredits").default(3).notNull(),
-  paidCredits: int("paidCredits").default(0).notNull(),
+var creditWallets = pgTable("creditWallets", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
+  freeCredits: integer("freeCredits").default(3).notNull(),
+  paidCredits: integer("paidCredits").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var creditTransactions = mysqlTable("creditTransactions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  amount: int("amount").notNull(),
-  type: mysqlEnum("type", ["grant", "consume", "purchase"]).notNull(),
+var creditTransactions = pgTable("creditTransactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  amount: integer("amount").notNull(),
+  type: creditTypeEnum("type").notNull(),
   reference: varchar("reference", { length: 160 }),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var subscriptions = mysqlTable("subscriptions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique(),
+var subscriptions = pgTable("subscriptions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
   planId: varchar("planId", { length: 40 }).notNull(),
-  status: mysqlEnum("status", ["active", "cancelled", "expired", "trial"]).default("trial").notNull(),
+  status: subscriptionStatusEnum("status").default("trial").notNull(),
   startedAt: timestamp("startedAt").defaultNow().notNull(),
   expiresAt: timestamp("expiresAt"),
-  autoRenew: int("autoRenew").default(0).notNull(),
+  autoRenew: boolean("autoRenew").default(false).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var devices = mysqlTable("devices", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+var devices = pgTable("devices", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   deviceId: varchar("deviceId", { length: 100 }).notNull(),
   platform: varchar("platform", { length: 40 }).notNull(),
-  // web, desktop, mobile, cloud
   name: varchar("name", { length: 160 }),
   lastSyncAt: timestamp("lastSyncAt").defaultNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
-});
-var syncQueue = mysqlTable("syncQueue", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+}, (t2) => [unique().on(t2.userId, t2.deviceId)]);
+var syncQueue = pgTable("syncQueue", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   deviceId: varchar("deviceId", { length: 100 }).notNull(),
   entityType: varchar("entityType", { length: 40 }).notNull(),
   entityId: varchar("entityId", { length: 100 }),
-  operation: mysqlEnum("operation", ["create", "update", "delete"]).notNull(),
-  payload: json("payload"),
-  status: mysqlEnum("status", ["pending", "synced", "failed"]).default("pending").notNull(),
+  operation: syncOperationEnum("operation").notNull(),
+  payload: jsonb("payload"),
+  status: syncStatusEnum("status").default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   syncedAt: timestamp("syncedAt")
 });
-var customers = mysqlTable("customers", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+var customers = pgTable("customers", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }),
   email: varchar("email", { length: 320 }),
   address: text("address"),
-  type: mysqlEnum("type", ["individual", "company", "government", "student"]).default("individual").notNull(),
-  balance: int("balance").default(0).notNull(),
+  type: customerTypeEnum("type").default("individual").notNull(),
+  balance: numeric("balance", { precision: 15, scale: 2 }).default("0").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var suppliers = mysqlTable("suppliers", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+var suppliers = pgTable("suppliers", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 160 }).notNull(),
   phone: varchar("phone", { length: 40 }),
   email: varchar("email", { length: 320 }),
   address: text("address"),
-  balance: int("balance").default(0).notNull(),
+  balance: numeric("balance", { precision: 15, scale: 2 }).default("0").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var products = mysqlTable("products", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+var products = pgTable("products", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 180 }).notNull(),
   sku: varchar("sku", { length: 60 }),
   category: varchar("category", { length: 80 }),
   unit: varchar("unit", { length: 40 }).default("\u0648\u062D\u062F\u0629").notNull(),
-  costPrice: int("costPrice").default(0).notNull(),
-  sellingPrice: int("sellingPrice").default(0).notNull(),
-  stockQuantity: int("stockQuantity").default(0).notNull(),
-  minStock: int("minStock").default(0).notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  costPrice: numeric("costPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+  sellingPrice: numeric("sellingPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+  stockQuantity: integer("stockQuantity").default(0).notNull(),
+  minStock: integer("minStock").default(0).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var inventoryTransactions = mysqlTable("inventoryTransactions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  productId: int("productId").notNull(),
-  quantity: int("quantity").notNull(),
-  type: mysqlEnum("type", ["in", "out", "adjustment"]).notNull(),
+var inventoryTransactions = pgTable("inventoryTransactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  productId: integer("productId").notNull(),
+  quantity: integer("quantity").notNull(),
+  type: inventoryTypeEnum("type").notNull(),
   reference: varchar("reference", { length: 160 }),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var invoices = mysqlTable("invoices", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+var invoices = pgTable("invoices", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   invoiceNumber: varchar("invoiceNumber", { length: 40 }).notNull(),
-  customerId: int("customerId"),
-  supplierId: int("supplierId"),
-  type: mysqlEnum("type", ["sales", "purchase"]).notNull(),
-  status: mysqlEnum("status", ["draft", "issued", "paid", "partial", "overdue", "cancelled"]).default("draft").notNull(),
-  subtotal: int("subtotal").default(0).notNull(),
-  discount: int("discount").default(0).notNull(),
-  tax: int("tax").default(0).notNull(),
-  total: int("total").default(0).notNull(),
-  paidAmount: int("paidAmount").default(0).notNull(),
+  customerId: integer("customerId"),
+  supplierId: integer("supplierId"),
+  type: invoiceTypeEnum("type").notNull(),
+  status: invoiceStatusEnum("status").default("draft").notNull(),
+  subtotal: numeric("subtotal", { precision: 15, scale: 2 }).default("0").notNull(),
+  discount: numeric("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+  tax: numeric("tax", { precision: 15, scale: 2 }).default("0").notNull(),
+  total: numeric("total", { precision: 15, scale: 2 }).default("0").notNull(),
+  paidAmount: numeric("paidAmount", { precision: 15, scale: 2 }).default("0").notNull(),
   dueDate: timestamp("dueDate"),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var invoiceItems = mysqlTable("invoiceItems", {
-  id: int("id").autoincrement().primaryKey(),
-  invoiceId: int("invoiceId").notNull(),
-  productId: int("productId"),
+var invoiceItems = pgTable("invoiceItems", {
+  id: serial("id").primaryKey(),
+  invoiceId: integer("invoiceId").notNull(),
+  productId: integer("productId"),
   description: varchar("description", { length: 200 }).notNull(),
-  quantity: int("quantity").default(1).notNull(),
-  unitPrice: int("unitPrice").default(0).notNull(),
-  total: int("total").default(0).notNull()
+  quantity: integer("quantity").default(1).notNull(),
+  unitPrice: numeric("unitPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+  total: numeric("total", { precision: 15, scale: 2 }).default("0").notNull()
 });
-var customerOrders = mysqlTable("customerOrders", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+var customerOrders = pgTable("customerOrders", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   orderNumber: varchar("orderNumber", { length: 40 }).notNull(),
-  customerId: int("customerId"),
-  status: mysqlEnum("status", ["new", "processing", "shipped", "delivered", "cancelled"]).default("new").notNull(),
-  total: int("total").default(0).notNull(),
+  customerId: integer("customerId"),
+  status: orderStatusEnum("status").default("new").notNull(),
+  total: numeric("total", { precision: 15, scale: 2 }).default("0").notNull(),
   notes: text("notes"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var orderItems = mysqlTable("orderItems", {
-  id: int("id").autoincrement().primaryKey(),
-  orderId: int("orderId").notNull(),
-  productId: int("productId"),
+var orderItems = pgTable("orderItems", {
+  id: serial("id").primaryKey(),
+  orderId: integer("orderId").notNull(),
+  productId: integer("productId"),
   description: varchar("description", { length: 200 }).notNull(),
-  quantity: int("quantity").default(1).notNull(),
-  unitPrice: int("unitPrice").default(0).notNull(),
-  total: int("total").default(0).notNull()
+  quantity: integer("quantity").default(1).notNull(),
+  unitPrice: numeric("unitPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+  total: numeric("total", { precision: 15, scale: 2 }).default("0").notNull()
 });
-var distributionChannels = mysqlTable("distributionChannels", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+var distributionChannels = pgTable("distributionChannels", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 160 }).notNull(),
-  type: mysqlEnum("type", ["retail", "wholesale", "online", "agent", "other"]).default("other").notNull(),
+  type: distributionChannelTypeEnum("type").default("other").notNull(),
   location: varchar("location", { length: 160 }),
-  balance: int("balance").default(0).notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  balance: numeric("balance", { precision: 15, scale: 2 }).default("0").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var distributions = mysqlTable("distributions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  channelId: int("channelId").notNull(),
-  productId: int("productId").notNull(),
-  quantity: int("quantity").notNull(),
-  status: mysqlEnum("status", ["pending", "shipped", "delivered", "cancelled"]).default("pending").notNull(),
+var distributions = pgTable("distributions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  channelId: integer("channelId").notNull(),
+  productId: integer("productId").notNull(),
+  quantity: integer("quantity").notNull(),
+  status: distributionStatusEnum("status").default("pending").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   deliveredAt: timestamp("deliveredAt")
 });
-var payments = mysqlTable("payments", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  amount: int("amount").notNull(),
-  type: mysqlEnum("type", ["receive", "pay"]).notNull(),
+var payments = pgTable("payments", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
+  type: paymentTypeEnum("type").notNull(),
   method: varchar("method", { length: 60 }).default("\u0646\u0642\u062F\u064A").notNull(),
   reference: varchar("reference", { length: 160 }),
-  invoiceId: int("invoiceId"),
-  customerId: int("customerId"),
-  supplierId: int("supplierId"),
+  invoiceId: integer("invoiceId"),
+  customerId: integer("customerId"),
+  supplierId: integer("supplierId"),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var expenses = mysqlTable("expenses", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  amount: int("amount").notNull(),
+var expenses = pgTable("expenses", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
   category: varchar("category", { length: 80 }).notNull(),
   description: varchar("description", { length: 200 }),
+  accountId: integer("accountId"),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var organizations = mysqlTable("organizations", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull().unique(),
+var organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull().unique(),
   name: varchar("name", { length: 180 }).notNull(),
   commercialName: varchar("commercialName", { length: 180 }),
   legalName: varchar("legalName", { length: 180 }),
@@ -312,114 +383,313 @@ var organizations = mysqlTable("organizations", {
   fiscalYearStart: varchar("fiscalYearStart", { length: 10 }).default("01-01"),
   logo: text("logo"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var branches = mysqlTable("branches", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
+var branches = pgTable("branches", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId"),
+  tenantId: integer("tenantId"),
+  organizationId: integer("organizationId"),
   name: varchar("name", { length: 160 }).notNull(),
   code: varchar("code", { length: 40 }),
+  city: varchar("city", { length: 100 }),
   address: text("address"),
   phone: varchar("phone", { length: 40 }),
-  isActive: int("isActive").default(1).notNull(),
+  isMain: boolean("isMain").default(false).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var chartOfAccounts = mysqlTable("chartOfAccounts", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
+var chartOfAccounts = pgTable("chartOfAccounts", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId").notNull(),
   code: varchar("code", { length: 40 }).notNull(),
   name: varchar("name", { length: 180 }).notNull(),
   nameEn: varchar("nameEn", { length: 180 }),
-  type: mysqlEnum("type", ["asset", "liability", "equity", "revenue", "expense"]).notNull(),
-  category: mysqlEnum("category", ["current", "fixed", "current_liability", "long_term_liability", "capital", "retained_earnings", "sales", "other_income", "operating", "administrative", "financial", "other"]).default("other").notNull(),
-  parentId: int("parentId"),
-  isActive: int("isActive").default(1).notNull(),
-  openingBalance: int("openingBalance").default(0).notNull(),
+  type: accountTypeEnum("type").notNull(),
+  category: accountCategoryEnum("category").default("other").notNull(),
+  parentId: integer("parentId"),
+  isActive: boolean("isActive").default(true).notNull(),
+  isCustom: boolean("isCustom").default(false).notNull(),
+  openingBalance: numeric("openingBalance", { precision: 15, scale: 2 }).default("0").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull()
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
 });
-var currencies = mysqlTable("currencies", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+var currencies = pgTable("currencies", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   code: varchar("code", { length: 10 }).notNull(),
   name: varchar("name", { length: 80 }).notNull(),
   symbol: varchar("symbol", { length: 10 }),
-  exchangeRate: int("exchangeRate").default(1).notNull(),
-  isBase: int("isBase").default(0).notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  exchangeRate: numeric("exchangeRate", { precision: 15, scale: 6 }).default("1").notNull(),
+  isBase: boolean("isBase").default(false).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var unitsOfMeasure = mysqlTable("unitsOfMeasure", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
+var unitsOfMeasure = pgTable("unitsOfMeasure", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
   name: varchar("name", { length: 80 }).notNull(),
   abbreviation: varchar("abbreviation", { length: 20 }),
-  isActive: int("isActive").default(1).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var employees = mysqlTable("employees", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
+var employees = pgTable("employees", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId").notNull(),
   name: varchar("name", { length: 160 }).notNull(),
   role: varchar("role", { length: 80 }).default("employee").notNull(),
   phone: varchar("phone", { length: 40 }),
   email: varchar("email", { length: 320 }),
-  salary: int("salary").default(0).notNull(),
-  isActive: int("isActive").default(1).notNull(),
+  salary: numeric("salary", { precision: 15, scale: 2 }).default("0").notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var journalEntries = mysqlTable("journalEntries", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
-  branchId: int("branchId"),
+var journalEntries = pgTable("journalEntries", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId").notNull(),
+  branchId: integer("branchId"),
   entryNumber: varchar("entryNumber", { length: 40 }).notNull(),
   entryDate: timestamp("entryDate").defaultNow().notNull(),
   description: varchar("description", { length: 200 }),
-  debitTotal: int("debitTotal").default(0).notNull(),
-  creditTotal: int("creditTotal").default(0).notNull(),
+  debitTotal: numeric("debitTotal", { precision: 15, scale: 2 }).default("0").notNull(),
+  creditTotal: numeric("creditTotal", { precision: 15, scale: 2 }).default("0").notNull(),
   currencyCode: varchar("currencyCode", { length: 10 }).default("YER").notNull(),
-  exchangeRate: int("exchangeRate").default(1).notNull(),
-  status: mysqlEnum("status", ["draft", "posted", "void"]).default("draft").notNull(),
-  createdBy: int("createdBy"),
+  exchangeRate: numeric("exchangeRate", { precision: 15, scale: 6 }).default("1").notNull(),
+  status: journalStatusEnum("status").default("draft").notNull(),
+  createdBy: integer("createdBy"),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
-var journalEntryLines = mysqlTable("journalEntryLines", {
-  id: int("id").autoincrement().primaryKey(),
-  entryId: int("entryId").notNull(),
-  accountId: int("accountId").notNull(),
-  debit: int("debit").default(0).notNull(),
-  credit: int("credit").default(0).notNull(),
+var journalEntryLines = pgTable("journalEntryLines", {
+  id: serial("id").primaryKey(),
+  entryId: integer("entryId").notNull(),
+  accountId: integer("accountId").notNull(),
+  debit: numeric("debit", { precision: 15, scale: 2 }).default("0").notNull(),
+  credit: numeric("credit", { precision: 15, scale: 2 }).default("0").notNull(),
   description: varchar("description", { length: 200 }),
   entityType: varchar("entityType", { length: 40 }),
-  entityId: int("entityId")
+  entityId: integer("entityId")
 });
-var dailyTransactions = mysqlTable("dailyTransactions", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  organizationId: int("organizationId").notNull(),
-  branchId: int("branchId"),
+var dailyTransactions = pgTable("dailyTransactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId").notNull(),
+  organizationId: integer("organizationId").notNull(),
+  branchId: integer("branchId"),
   transactionNumber: varchar("transactionNumber", { length: 40 }).notNull(),
-  transactionType: mysqlEnum("transactionType", ["voucher", "invoice", "request", "order", "receipt", "payment", "transfer", "adjustment", "other"]).notNull(),
+  transactionType: transactionTypeEnum("transactionType").notNull(),
   transactionDate: timestamp("transactionDate").defaultNow().notNull(),
-  accountId: int("accountId"),
-  customerId: int("customerId"),
-  supplierId: int("supplierId"),
-  employeeId: int("employeeId"),
-  agentId: int("agentId"),
-  distributorId: int("distributorId"),
-  productId: int("productId"),
-  amount: int("amount").default(0).notNull(),
+  accountId: integer("accountId"),
+  customerId: integer("customerId"),
+  supplierId: integer("supplierId"),
+  employeeId: integer("employeeId"),
+  agentId: integer("agentId"),
+  distributorId: integer("distributorId"),
+  productId: integer("productId"),
+  amount: numeric("amount", { precision: 15, scale: 2 }).default("0").notNull(),
   currencyCode: varchar("currencyCode", { length: 10 }).default("YER").notNull(),
-  exchangeRate: int("exchangeRate").default(1).notNull(),
-  quantity: int("quantity").default(0).notNull(),
-  unitId: int("unitId"),
+  exchangeRate: numeric("exchangeRate", { precision: 15, scale: 6 }).default("1").notNull(),
+  quantity: integer("quantity").default(0).notNull(),
+  unitId: integer("unitId"),
   description: varchar("description", { length: 200 }),
-  status: mysqlEnum("status", ["draft", "posted", "approved", "void"]).default("draft").notNull(),
-  createdBy: int("createdBy"),
+  status: dailyTxStatusEnum("status").default("draft").notNull(),
+  createdBy: integer("createdBy"),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var financialTransactions = pgTable("financial_transactions", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  branchId: integer("branchId"),
+  accountId: integer("accountId").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
+  type: varchar("type", { length: 10 }).notNull(),
+  // debit/credit
+  transactionDate: timestamp("transactionDate").notNull(),
+  narration: varchar("narration", { length: 500 }),
+  notes: text("notes"),
+  lifecycleStatus: lifecycleStatusEnum("lifecycleStatus").default("saved").notNull(),
+  isReversed: boolean("isReversed").default(false).notNull(),
+  reversalReason: varchar("reversalReason", { length: 255 }),
+  userId: integer("userId"),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var openingBalances = pgTable("opening_balances", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  accountId: integer("accountId").notNull(),
+  amount: numeric("amount", { precision: 15, scale: 2 }).notNull(),
+  type: varchar("type", { length: 10 }).notNull(),
+  notes: text("notes"),
+  periodName: varchar("periodName", { length: 50 }).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var budgets = pgTable("budgets", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  periodName: varchar("periodName", { length: 50 }).notNull(),
+  targetRevenue: numeric("targetRevenue", { precision: 15, scale: 2 }).notNull(),
+  targetExpense: numeric("targetExpense", { precision: 15, scale: 2 }).notNull(),
+  notes: text("notes"),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var settings = pgTable("settings", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  institutionName: varchar("institutionName", { length: 255 }).default("\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644").notNull(),
+  currency: varchar("currency", { length: 50 }).default("\u0631\u064A\u0627\u0644 \u064A\u0645\u0646\u064A (YER)").notNull(),
+  accountingPeriod: varchar("accountingPeriod", { length: 50 }).default("2026").notNull(),
+  managerName: varchar("managerName", { length: 255 }).default("\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629").notNull(),
+  notes: text("notes"),
+  subscriptionStatus: subscriptionStatusEnum("subscriptionStatus").default("active").notNull(),
+  trialEndsAt: timestamp("trialEndsAt"),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
+});
+var activityLogs = pgTable("activity_logs", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  userId: integer("userId"),
+  userName: varchar("userName", { length: 255 }),
+  action: varchar("action", { length: 255 }).notNull(),
+  details: text("details"),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var analyticsSnapshots = pgTable("analytics_snapshots", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  snapshotDate: timestamp("snapshotDate").notNull(),
+  metricType: varchar("metricType", { length: 60 }).notNull(),
+  // revenue, expense, profit, customers, invoices, etc.
+  value: numeric("value", { precision: 18, scale: 4 }).notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var kpiMetrics = pgTable("kpi_metrics", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  periodName: varchar("periodName", { length: 50 }).notNull(),
+  revenueGrowth: numeric("revenueGrowth", { precision: 8, scale: 4 }),
+  expenseGrowth: numeric("expenseGrowth", { precision: 8, scale: 4 }),
+  profitMargin: numeric("profitMargin", { precision: 8, scale: 4 }),
+  customerRetention: numeric("customerRetention", { precision: 8, scale: 4 }),
+  avgInvoiceValue: numeric("avgInvoiceValue", { precision: 15, scale: 2 }),
+  overdueRate: numeric("overdueRate", { precision: 8, scale: 4 }),
+  inventoryTurnover: numeric("inventoryTurnover", { precision: 8, scale: 4 }),
+  cashFlowRatio: numeric("cashFlowRatio", { precision: 8, scale: 4 }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var visitorSessions = pgTable("visitor_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: varchar("sessionId", { length: 100 }).notNull().unique(),
+  visitorId: varchar("visitorId", { length: 100 }),
+  ipAddress: varchar("ipAddress", { length: 45 }),
+  userAgent: text("userAgent"),
+  referrer: text("referrer"),
+  firstPage: varchar("firstPage", { length: 300 }),
+  country: varchar("country", { length: 100 }),
+  city: varchar("city", { length: 100 }),
+  device: varchar("device", { length: 40 }),
+  browser: varchar("browser", { length: 40 }),
+  os: varchar("os", { length: 40 }),
+  isBot: boolean("isBot").default(false).notNull(),
+  startedAt: timestamp("startedAt").defaultNow().notNull(),
+  endedAt: timestamp("endedAt"),
+  duration: integer("duration"),
+  // seconds
+  pagesViewed: integer("pagesViewed").default(1).notNull()
+});
+var pageViews = pgTable("page_views", {
+  id: serial("id").primaryKey(),
+  sessionId: varchar("sessionId", { length: 100 }).notNull(),
+  visitorId: varchar("visitorId", { length: 100 }),
+  page: varchar("page", { length: 300 }).notNull(),
+  title: varchar("title", { length: 200 }),
+  timeSpent: integer("timeSpent"),
+  // seconds
+  scrollDepth: integer("scrollDepth"),
+  // percentage
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var clientInteractions = pgTable("client_interactions", {
+  id: serial("id").primaryKey(),
+  userId: integer("userId"),
+  visitorId: varchar("visitorId", { length: 100 }),
+  interactionType: varchar("interactionType", { length: 60 }).notNull(),
+  // form_submit, button_click, download, call, whatsapp, email
+  page: varchar("page", { length: 300 }),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var aiInsights = pgTable("ai_insights", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  insightType: varchar("insightType", { length: 60 }).notNull(),
+  // revenue_forecast, anomaly, recommendation, alert
+  title: varchar("title", { length: 200 }).notNull(),
+  description: text("description").notNull(),
+  severity: varchar("severity", { length: 20 }).default("info"),
+  // info, warning, critical
+  data: jsonb("data"),
+  isRead: boolean("isRead").default(false).notNull(),
+  expiresAt: timestamp("expiresAt"),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var alerts = pgTable("alerts", {
+  id: serial("id").primaryKey(),
+  tenantId: integer("tenantId"),
+  userId: integer("userId"),
+  alertType: varchar("alertType", { length: 60 }).notNull(),
+  // overdue_invoice, low_stock, appointment_reminder, payment_due
+  title: varchar("title", { length: 200 }).notNull(),
+  message: text("message").notNull(),
+  severity: varchar("severity", { length: 20 }).default("info"),
+  isRead: boolean("isRead").default(false).notNull(),
+  actionUrl: varchar("actionUrl", { length: 300 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var testimonials = pgTable("testimonials", {
+  id: serial("id").primaryKey(),
+  clientName: varchar("clientName", { length: 160 }).notNull(),
+  clientTitle: varchar("clientTitle", { length: 160 }),
+  clientCompany: varchar("clientCompany", { length: 160 }),
+  content: text("content").notNull(),
+  rating: integer("rating").default(5),
+  serviceType: varchar("serviceType", { length: 80 }),
+  imageUrl: text("imageUrl"),
+  isFeatured: boolean("isFeatured").default(false).notNull(),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull()
+});
+var articles = pgTable("articles", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 200 }).notNull(),
+  slug: varchar("slug", { length: 200 }).notNull().unique(),
+  excerpt: text("excerpt"),
+  content: text("content").notNull(),
+  category: varchar("category", { length: 80 }),
+  authorName: varchar("authorName", { length: 160 }),
+  imageUrl: text("imageUrl"),
+  readTime: integer("readTime"),
+  // minutes
+  isPublished: boolean("isPublished").default(false).notNull(),
+  viewCount: integer("viewCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().notNull()
+});
+var studentServices = pgTable("student_services", {
+  id: serial("id").primaryKey(),
+  title: varchar("title", { length: 180 }).notNull(),
+  description: text("description").notNull(),
+  icon: varchar("icon", { length: 40 }).default("graduationCap").notNull(),
+  price: numeric("price", { precision: 10, scale: 2 }),
+  originalPrice: numeric("originalPrice", { precision: 10, scale: 2 }),
+  discountPercent: integer("discountPercent"),
+  category: varchar("category", { length: 80 }),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: integer("sortOrder").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull()
 });
 
@@ -470,6 +740,17 @@ var DEFAULT_SITE_CONFIG = {
 
 // server/db.ts
 var _db = null;
+function createDb() {
+  const url = process.env.DATABASE_URL;
+  if (!url) return null;
+  try {
+    const pool = new Pool({ connectionString: url });
+    return drizzle(pool);
+  } catch (error) {
+    console.warn("[Database] Failed to connect:", error);
+    return null;
+  }
+}
 function resolveTrialCredits(value = process.env.TRIAL_CREDITS) {
   const configured = Number(value ?? DEFAULT_SITE_CONFIG.credits.trialAmount);
   return Number.isFinite(configured) && configured >= 0 ? Math.floor(configured) : DEFAULT_SITE_CONFIG.credits.trialAmount;
@@ -484,11 +765,7 @@ function resolveCreditCost(value = process.env.CREDIT_COST_PER_ACTION) {
 }
 async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
-    try {
-      _db = drizzle(process.env.DATABASE_URL);
-    } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
-    }
+    _db = createDb();
   }
   return _db;
 }
@@ -510,7 +787,7 @@ async function upsertUser(user) {
     values.role = user.role ?? "admin";
     updateSet.role = values.role;
   }
-  await db.insert(users).values(values).onDuplicateKeyUpdate({ set: updateSet });
+  await db.insert(users).values(values).onConflictDoUpdate({ target: users.openId, set: updateSet });
 }
 async function getUserByOpenId(openId) {
   const db = await getDb();
@@ -521,15 +798,15 @@ async function getUserByOpenId(openId) {
 async function getProperties() {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(properties).where(eq(properties.isActive, 1)).orderBy(desc(properties.createdAt));
+  return db.select().from(properties).where(eq(properties.isActive, true)).orderBy(desc(properties.createdAt));
 }
 async function getPublicContent() {
   const db = await getDb();
   if (!db) return { services: [], projects: [], team: [] };
   const [serviceRows, projectRows, teamRows] = await Promise.all([
-    db.select().from(services).where(eq(services.isActive, 1)).orderBy(desc(services.createdAt)),
+    db.select().from(services).where(eq(services.isActive, true)).orderBy(desc(services.createdAt)),
     db.select().from(projects).orderBy(desc(projects.createdAt)),
-    db.select().from(teamMembers).orderBy(desc(teamMembers.createdAt))
+    db.select().from(teamMembers).where(eq(teamMembers.isActive, true)).orderBy(desc(teamMembers.createdAt))
   ]);
   return { services: serviceRows, projects: projectRows, team: teamRows };
 }
@@ -588,10 +865,10 @@ async function getAdminInbox() {
 async function getOrCreateCreditWallet(userId) {
   const db = await getDb();
   if (!db) return { freeCredits: 0, paidCredits: 0 };
-  const insertResult = await db.insert(creditWallets).values({ userId }).onDuplicateKeyUpdate({ set: { userId } });
-  if (insertResult[0]?.affectedRows === 1) {
-    await db.insert(creditTransactions).values({ userId, amount: trialCredits, type: "grant", reference: "free-trial" });
-  }
+  const existing = await db.select().from(creditWallets).where(eq(creditWallets.userId, userId)).limit(1);
+  if (existing[0]) return existing[0];
+  await db.insert(creditWallets).values({ userId });
+  await db.insert(creditTransactions).values({ userId, amount: trialCredits, type: "grant", reference: "free-trial" });
   const rows = await db.select().from(creditWallets).where(eq(creditWallets.userId, userId)).limit(1);
   return rows[0] ?? { freeCredits: 0, paidCredits: 0 };
 }
@@ -610,25 +887,26 @@ function calculateCreditUsage(wallet, policy = {}) {
 async function consumeCredit(userId, reference = "service-request") {
   const db = await getDb();
   if (!db) return { success: false, reason: "database-unavailable" };
-  return db.transaction(async (tx) => {
-    await tx.insert(creditWallets).values({ userId }).onDuplicateKeyUpdate({ set: { userId } });
-    const wallet = (await tx.select().from(creditWallets).where(eq(creditWallets.userId, userId)).limit(1))[0];
-    if (!wallet) return { success: false, reason: "insufficient-credits" };
-    const usage = calculateCreditUsage(wallet);
-    if (!usage.success) return usage;
-    const field = usage.bucket === "freeCredits" ? creditWallets.freeCredits : creditWallets.paidCredits;
-    const updated = await tx.update(creditWallets).set({ [usage.bucket]: sql`${field} - ${usage.cost}` }).where(and(eq(creditWallets.userId, userId), sql`${field} >= ${usage.cost}`));
-    if (!updated[0]?.affectedRows) return { success: false, reason: "insufficient-credits" };
-    await tx.insert(creditTransactions).values({ userId, amount: -usage.cost, type: "consume", reference });
-    return { success: true, remainingFree: wallet.freeCredits - (usage.bucket === "freeCredits" ? usage.cost : 0), remainingPaid: wallet.paidCredits - (usage.bucket === "paidCredits" ? usage.cost : 0) };
-  });
+  const existing = await db.select().from(creditWallets).where(eq(creditWallets.userId, userId)).limit(1);
+  if (!existing[0]) {
+    await db.insert(creditWallets).values({ userId });
+  }
+  const wallet = (await db.select().from(creditWallets).where(eq(creditWallets.userId, userId)).limit(1))[0];
+  if (!wallet) return { success: false, reason: "insufficient-credits" };
+  const usage = calculateCreditUsage(wallet);
+  if (!usage.success) return usage;
+  const field = usage.bucket === "freeCredits" ? creditWallets.freeCredits : creditWallets.paidCredits;
+  const updated = await db.update(creditWallets).set({ [usage.bucket]: sql`${field} - ${usage.cost}` }).where(and(eq(creditWallets.userId, userId), sql`${field} >= ${usage.cost}`)).returning();
+  if (!updated.length) return { success: false, reason: "insufficient-credits" };
+  await db.insert(creditTransactions).values({ userId, amount: -usage.cost, type: "consume", reference });
+  return { success: true, remainingFree: wallet.freeCredits - (usage.bucket === "freeCredits" ? usage.cost : 0), remainingPaid: wallet.paidCredits - (usage.bucket === "paidCredits" ? usage.cost : 0) };
 }
 async function getOrCreateSubscription(userId) {
   const db = await getDb();
   if (!db) return null;
   const existing = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
   if (existing[0]) return existing[0];
-  const result = await db.insert(subscriptions).values({ userId, planId: "trial", status: "trial" });
+  await db.insert(subscriptions).values({ userId, planId: "trial", status: "trial" });
   const rows = await db.select().from(subscriptions).where(eq(subscriptions.userId, userId)).limit(1);
   return rows[0] ?? null;
 }
@@ -640,7 +918,7 @@ async function updateSubscription(userId, planId, status) {
 async function registerDevice(userId, deviceId, platform, name) {
   const db = await getDb();
   if (!db) return null;
-  await db.insert(devices).values({ userId, deviceId, platform, name }).onDuplicateKeyUpdate({ set: { lastSyncAt: /* @__PURE__ */ new Date(), name } });
+  await db.insert(devices).values({ userId, deviceId, platform, name }).onConflictDoUpdate({ target: [devices.userId, devices.deviceId], set: { lastSyncAt: /* @__PURE__ */ new Date(), name } });
   return db.select().from(devices).where(and(eq(devices.userId, userId), eq(devices.deviceId, deviceId))).limit(1);
 }
 async function getDevices(userId) {
@@ -688,24 +966,32 @@ async function createSupplier(userId, input) {
 async function getProducts(userId) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(products).where(and(eq(products.userId, userId), eq(products.isActive, 1))).orderBy(desc(products.createdAt));
+  return db.select().from(products).where(and(eq(products.userId, userId), eq(products.isActive, true))).orderBy(desc(products.createdAt));
 }
 async function createProduct(userId, input) {
   const db = await getDb();
   if (!db) return null;
-  return db.insert(products).values({ userId, ...input });
+  return db.insert(products).values({
+    userId,
+    name: input.name,
+    sku: input.sku ?? null,
+    category: input.category ?? null,
+    unit: input.unit ?? void 0,
+    costPrice: String(input.costPrice ?? 0),
+    sellingPrice: String(input.sellingPrice ?? 0),
+    stockQuantity: input.stockQuantity ?? 0,
+    minStock: input.minStock ?? 0
+  });
 }
 async function adjustStock(userId, productId, quantity, type, reference) {
   const db = await getDb();
   if (!db) return null;
-  return db.transaction(async (tx) => {
-    const product = (await tx.select().from(products).where(and(eq(products.id, productId), eq(products.userId, userId))).limit(1))[0];
-    if (!product) return null;
-    const newQty = type === "out" ? product.stockQuantity - quantity : product.stockQuantity + quantity;
-    await tx.update(products).set({ stockQuantity: Math.max(0, newQty) }).where(eq(products.id, productId));
-    await tx.insert(inventoryTransactions).values({ userId, productId, quantity: type === "out" ? -quantity : quantity, type, reference });
-    return { success: true, stockQuantity: Math.max(0, newQty) };
-  });
+  const product = (await db.select().from(products).where(and(eq(products.id, productId), eq(products.userId, userId))).limit(1))[0];
+  if (!product) return null;
+  const newQty = type === "out" ? Number(product.stockQuantity) - quantity : Number(product.stockQuantity) + quantity;
+  await db.update(products).set({ stockQuantity: Math.max(0, newQty) }).where(eq(products.id, productId));
+  await db.insert(inventoryTransactions).values({ userId, productId, quantity: type === "out" ? -quantity : quantity, type, reference });
+  return { success: true, stockQuantity: Math.max(0, newQty) };
 }
 async function getInventoryTransactions(userId) {
   const db = await getDb();
@@ -720,33 +1006,31 @@ async function getInvoices(userId) {
 async function createInvoice(userId, input) {
   const db = await getDb();
   if (!db) return null;
-  return db.transaction(async (tx) => {
-    const subtotal = input.subtotal ?? 0;
-    const discount = input.discount ?? 0;
-    const tax = input.tax ?? 0;
-    const total = input.total ?? subtotal - discount + tax;
-    const result = await tx.insert(invoices).values({
-      userId,
-      invoiceNumber: input.invoiceNumber,
-      type: input.type,
-      customerId: input.customerId ?? null,
-      supplierId: input.supplierId ?? null,
-      status: input.status ?? "draft",
-      subtotal,
-      discount,
-      tax,
-      total,
-      paidAmount: input.paidAmount ?? 0,
-      notes: input.notes ?? null
-    });
-    const invoiceId = Number(result[0].insertId);
-    if (input.items?.length) {
-      for (const item of input.items) {
-        await tx.insert(invoiceItems).values({ invoiceId, description: item.description, quantity: item.quantity, unitPrice: item.unitPrice, total: item.quantity * item.unitPrice });
-      }
+  const subtotal = input.subtotal ?? 0;
+  const discount = input.discount ?? 0;
+  const tax = input.tax ?? 0;
+  const total = input.total ?? subtotal - discount + tax;
+  const result = await db.insert(invoices).values({
+    userId,
+    invoiceNumber: input.invoiceNumber,
+    type: input.type,
+    customerId: input.customerId ?? null,
+    supplierId: input.supplierId ?? null,
+    status: input.status ?? "draft",
+    subtotal: String(subtotal),
+    discount: String(discount),
+    tax: String(tax),
+    total: String(total),
+    paidAmount: String(input.paidAmount ?? 0),
+    notes: input.notes ?? null
+  }).returning();
+  const invoiceId = result[0]?.id;
+  if (invoiceId && input.items?.length) {
+    for (const item of input.items) {
+      await db.insert(invoiceItems).values({ invoiceId, description: item.description, quantity: item.quantity, unitPrice: String(item.unitPrice), total: String(item.quantity * item.unitPrice) });
     }
-    return { id: invoiceId };
-  });
+  }
+  return { id: invoiceId };
 }
 async function getCustomerOrders(userId) {
   const db = await getDb();
@@ -756,29 +1040,27 @@ async function getCustomerOrders(userId) {
 async function createCustomerOrder(userId, input) {
   const db = await getDb();
   if (!db) return null;
-  return db.transaction(async (tx) => {
-    const total = input.total ?? (input.items?.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) ?? 0);
-    const result = await tx.insert(customerOrders).values({
-      userId,
-      orderNumber: input.orderNumber,
-      customerId: input.customerId ?? null,
-      status: input.status ?? "new",
-      total,
-      notes: input.notes ?? null
-    });
-    const orderId = Number(result[0].insertId);
-    if (input.items?.length) {
-      for (const item of input.items) {
-        await tx.insert(orderItems).values({ orderId, description: item.description, quantity: item.quantity, unitPrice: item.unitPrice, total: item.quantity * item.unitPrice });
-      }
+  const total = input.total ?? (input.items?.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0) ?? 0);
+  const result = await db.insert(customerOrders).values({
+    userId,
+    orderNumber: input.orderNumber,
+    customerId: input.customerId ?? null,
+    status: input.status ?? "new",
+    total: String(total),
+    notes: input.notes ?? null
+  }).returning();
+  const orderId = result[0]?.id;
+  if (orderId && input.items?.length) {
+    for (const item of input.items) {
+      await db.insert(orderItems).values({ orderId, description: item.description, quantity: item.quantity, unitPrice: String(item.unitPrice), total: String(item.quantity * item.unitPrice) });
     }
-    return { id: orderId };
-  });
+  }
+  return { id: orderId };
 }
 async function getDistributionChannels(userId) {
   const db = await getDb();
   if (!db) return [];
-  return db.select().from(distributionChannels).where(and(eq(distributionChannels.userId, userId), eq(distributionChannels.isActive, 1))).orderBy(desc(distributionChannels.createdAt));
+  return db.select().from(distributionChannels).where(and(eq(distributionChannels.userId, userId), eq(distributionChannels.isActive, true))).orderBy(desc(distributionChannels.createdAt));
 }
 async function createDistributionChannel(userId, input) {
   const db = await getDb();
@@ -803,7 +1085,7 @@ async function getPayments(userId) {
 async function createPayment(userId, input) {
   const db = await getDb();
   if (!db) return null;
-  return db.insert(payments).values({ userId, ...input, method: input.method ?? "\u0646\u0642\u062F\u064A" });
+  return db.insert(payments).values({ userId, ...input, amount: String(input.amount), method: input.method ?? "\u0646\u0642\u062F\u064A" });
 }
 async function getExpenses(userId) {
   const db = await getDb();
@@ -813,7 +1095,7 @@ async function getExpenses(userId) {
 async function createExpense(userId, input) {
   const db = await getDb();
   if (!db) return null;
-  return db.insert(expenses).values({ userId, ...input });
+  return db.insert(expenses).values({ userId, ...input, amount: String(input.amount) });
 }
 async function getCommerceDashboard(userId) {
   const db = await getDb();
@@ -831,11 +1113,11 @@ async function getCommerceDashboard(userId) {
     customers: customerRows.length,
     suppliers: supplierRows.length,
     products: productRows.length,
-    lowStock: productRows.filter((p) => p.stockQuantity <= p.minStock).length,
+    lowStock: productRows.filter((p) => Number(p.stockQuantity) <= Number(p.minStock)).length,
     invoices: invoiceRows.length,
     orders: orderRows.length,
-    revenue: paymentRows.filter((p) => p.type === "receive").reduce((sum, p) => sum + p.amount, 0),
-    totalExpenses: expenseRows.reduce((sum, e) => sum + e.amount, 0)
+    revenue: paymentRows.filter((p) => p.type === "receive").reduce((sum, p) => sum + Number(p.amount), 0),
+    totalExpenses: expenseRows.reduce((sum, e) => sum + Number(e.amount), 0)
   };
 }
 async function getOrCreateOrganization(userId) {
@@ -843,60 +1125,60 @@ async function getOrCreateOrganization(userId) {
   if (!db) return null;
   const existing = await db.select().from(organizations).where(eq(organizations.userId, userId)).limit(1);
   if (existing[0]) return existing[0];
-  const result = await db.insert(organizations).values({ userId, name: "\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644", commercialName: "ALHUSAINIA", legalName: "\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644" });
-  const orgId = Number(result[0].insertId);
-  await seedDefaultChartOfAccounts(userId, orgId);
+  const result = await db.insert(organizations).values({ userId, name: "\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644", commercialName: "ALHUSAINIA", legalName: "\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644" }).returning();
+  const orgId = result[0]?.id;
+  if (orgId) await seedDefaultChartOfAccounts(userId, orgId);
   return (await db.select().from(organizations).where(eq(organizations.userId, userId)).limit(1))[0] ?? null;
 }
 var DEFAULT_CHART = [
-  { code: "1000", name: "\u0627\u0644\u0623\u0635\u0648\u0644", type: "asset", category: "other", parentId: null },
-  { code: "1100", name: "\u0627\u0644\u0646\u0642\u062F\u064A\u0629 \u0648\u0627\u0644\u0628\u0646\u0648\u0643", type: "asset", category: "current", parentId: null },
-  { code: "1101", name: "\u0627\u0644\u0635\u0646\u062F\u0648\u0642 \u0627\u0644\u0631\u0626\u064A\u0633\u064A", type: "asset", category: "current", parentId: null },
-  { code: "1102", name: "\u0627\u0644\u0628\u0646\u0648\u0643 - \u062D\u0633\u0627\u0628\u0627\u062A \u062C\u0627\u0631\u064A\u0629", type: "asset", category: "current", parentId: null },
-  { code: "1200", name: "\u0627\u0644\u0645\u062F\u064A\u0646\u0648\u0646", type: "asset", category: "current", parentId: null },
-  { code: "1201", name: "\u0639\u0645\u0644\u0627\u0621", type: "asset", category: "current", parentId: null },
-  { code: "1202", name: "\u0623\u0648\u0631\u0627\u0642 \u0642\u0628\u0636", type: "asset", category: "current", parentId: null },
-  { code: "1300", name: "\u0627\u0644\u0645\u062E\u0632\u0648\u0646", type: "asset", category: "current", parentId: null },
-  { code: "1301", name: "\u0645\u062E\u0632\u0648\u0646 \u0628\u0636\u0627\u0639\u0629", type: "asset", category: "current", parentId: null },
-  { code: "1400", name: "\u0627\u0644\u0623\u0635\u0648\u0644 \u0627\u0644\u062B\u0627\u0628\u062A\u0629", type: "asset", category: "fixed", parentId: null },
-  { code: "1401", name: "\u0623\u0631\u0627\u0636\u064D \u0648\u0645\u0628\u0627\u0646\u064D", type: "asset", category: "fixed", parentId: null },
-  { code: "1402", name: "\u0645\u0639\u062F\u0627\u062A \u0648\u0622\u0644\u0627\u062A", type: "asset", category: "fixed", parentId: null },
-  { code: "1403", name: "\u0645\u0631\u0643\u0628\u0627\u062A", type: "asset", category: "fixed", parentId: null },
-  { code: "1404", name: "\u0645\u062C\u0645\u0639 \u0625\u0647\u0644\u0627\u0643 \u0627\u0644\u0623\u0635\u0648\u0644 \u0627\u0644\u062B\u0627\u0628\u062A\u0629", type: "asset", category: "fixed", parentId: null },
-  { code: "2000", name: "\u0627\u0644\u062E\u0635\u0648\u0645", type: "liability", category: "other", parentId: null },
-  { code: "2100", name: "\u0627\u0644\u062F\u0627\u0626\u0646\u0648\u0646", type: "liability", category: "current_liability", parentId: null },
-  { code: "2101", name: "\u0645\u0648\u0631\u062F\u0648\u0646", type: "liability", category: "current_liability", parentId: null },
-  { code: "2102", name: "\u0623\u0648\u0631\u0627\u0642 \u062F\u0641\u0639", type: "liability", category: "current_liability", parentId: null },
-  { code: "2200", name: "\u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0645\u062A\u062F\u0627\u0648\u0644\u0629 \u0623\u062E\u0631\u0649", type: "liability", category: "current_liability", parentId: null },
-  { code: "2201", name: "\u0631\u0648\u0627\u062A\u0628 \u0645\u0633\u062A\u062D\u0642\u0629", type: "liability", category: "current_liability", parentId: null },
-  { code: "2202", name: "\u0636\u0631\u064A\u0628\u0629 \u0645\u0633\u062A\u062D\u0642\u0629", type: "liability", category: "current_liability", parentId: null },
-  { code: "2300", name: "\u0627\u0644\u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0637\u0648\u064A\u0644\u0629 \u0627\u0644\u0623\u062C\u0644", type: "liability", category: "long_term_liability", parentId: null },
-  { code: "2301", name: "\u0642\u0631\u0648\u0636 \u0637\u0648\u064A\u0644\u0629 \u0627\u0644\u0623\u062C\u0644", type: "liability", category: "long_term_liability", parentId: null },
-  { code: "3000", name: "\u062D\u0642\u0648\u0642 \u0627\u0644\u0645\u0644\u0643\u064A\u0629", type: "equity", category: "other", parentId: null },
-  { code: "3100", name: "\u0631\u0623\u0633 \u0627\u0644\u0645\u0627\u0644", type: "equity", category: "capital", parentId: null },
-  { code: "3101", name: "\u0631\u0623\u0633 \u0627\u0644\u0645\u0627\u0644 \u0627\u0644\u0645\u062F\u0641\u0648\u0639", type: "equity", category: "capital", parentId: null },
-  { code: "3200", name: "\u0627\u0644\u0623\u0631\u0628\u0627\u062D \u0627\u0644\u0645\u062D\u062A\u062C\u0632\u0629", type: "equity", category: "retained_earnings", parentId: null },
-  { code: "3201", name: "\u0623\u0631\u0628\u0627\u062D/\u062E\u0633\u0627\u0626\u0631 \u0645\u062A\u0631\u0627\u0643\u0645\u0629", type: "equity", category: "retained_earnings", parentId: null },
-  { code: "4000", name: "\u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A", type: "revenue", category: "other", parentId: null },
-  { code: "4100", name: "\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A", type: "revenue", category: "sales", parentId: null },
-  { code: "4101", name: "\u0645\u0628\u064A\u0639\u0627\u062A \u0628\u0636\u0627\u0639\u0629", type: "revenue", category: "sales", parentId: null },
-  { code: "4102", name: "\u0645\u0628\u064A\u0639\u0627\u062A \u062E\u062F\u0645\u0627\u062A", type: "revenue", category: "sales", parentId: null },
-  { code: "4103", name: "\u0645\u0631\u062F\u0648\u062F\u0627\u062A \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A", type: "revenue", category: "sales", parentId: null },
-  { code: "4200", name: "\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0623\u062E\u0631\u0649", type: "revenue", category: "other_income", parentId: null },
-  { code: "4201", name: "\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0625\u064A\u062C\u0627\u0631", type: "revenue", category: "other_income", parentId: null },
-  { code: "5000", name: "\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A", type: "expense", category: "other", parentId: null },
-  { code: "5100", name: "\u062A\u0643\u0644\u0641\u0629 \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A", type: "expense", category: "operating", parentId: null },
-  { code: "5200", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u062A\u0634\u063A\u064A\u0644\u064A\u0629", type: "expense", category: "operating", parentId: null },
-  { code: "5201", name: "\u0631\u0648\u0627\u062A\u0628 \u0648\u0623\u062C\u0648\u0631", type: "expense", category: "operating", parentId: null },
-  { code: "5202", name: "\u0625\u064A\u062C\u0627\u0631", type: "expense", category: "operating", parentId: null },
-  { code: "5203", name: "\u0645\u0631\u0627\u0641\u0642 (\u0643\u0647\u0631\u0628\u0627\u0621/\u0645\u0627\u0621)", type: "expense", category: "operating", parentId: null },
-  { code: "5300", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0625\u062F\u0627\u0631\u064A\u0629 \u0648\u0639\u0627\u0645\u0629", type: "expense", category: "administrative", parentId: null },
-  { code: "5301", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0645\u0643\u062A\u0628\u064A\u0629", type: "expense", category: "administrative", parentId: null },
-  { code: "5302", name: "\u0627\u062A\u0635\u0627\u0644\u0627\u062A \u0648\u0625\u0646\u062A\u0631\u0646\u062A", type: "expense", category: "administrative", parentId: null },
-  { code: "5303", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u062A\u0633\u0648\u064A\u0642 \u0648\u0625\u0639\u0644\u0627\u0646", type: "expense", category: "administrative", parentId: null },
-  { code: "5400", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0645\u0627\u0644\u064A\u0629", type: "expense", category: "financial", parentId: null },
-  { code: "5401", name: "\u0631\u0633\u0648\u0645 \u0628\u0646\u0643\u064A\u0629", type: "expense", category: "financial", parentId: null },
-  { code: "5500", name: "\u0625\u0647\u0644\u0627\u0643 \u0627\u0644\u0623\u0635\u0648\u0644", type: "expense", category: "other", parentId: null }
+  { code: "1000", name: "\u0627\u0644\u0623\u0635\u0648\u0644", type: "asset", category: "other" },
+  { code: "1100", name: "\u0627\u0644\u0646\u0642\u062F\u064A\u0629 \u0648\u0627\u0644\u0628\u0646\u0648\u0643", type: "asset", category: "current" },
+  { code: "1101", name: "\u0627\u0644\u0635\u0646\u062F\u0648\u0642 \u0627\u0644\u0631\u0626\u064A\u0633\u064A", type: "asset", category: "current" },
+  { code: "1102", name: "\u0627\u0644\u0628\u0646\u0648\u0643 - \u062D\u0633\u0627\u0628\u0627\u062A \u062C\u0627\u0631\u064A\u0629", type: "asset", category: "current" },
+  { code: "1200", name: "\u0627\u0644\u0645\u062F\u064A\u0646\u0648\u0646", type: "asset", category: "current" },
+  { code: "1201", name: "\u0639\u0645\u0644\u0627\u0621", type: "asset", category: "current" },
+  { code: "1202", name: "\u0623\u0648\u0631\u0627\u0642 \u0642\u0628\u0636", type: "asset", category: "current" },
+  { code: "1300", name: "\u0627\u0644\u0645\u062E\u0632\u0648\u0646", type: "asset", category: "current" },
+  { code: "1301", name: "\u0645\u062E\u0632\u0648\u0646 \u0628\u0636\u0627\u0639\u0629", type: "asset", category: "current" },
+  { code: "1400", name: "\u0627\u0644\u0623\u0635\u0648\u0644 \u0627\u0644\u062B\u0627\u0628\u062A\u0629", type: "asset", category: "fixed" },
+  { code: "1401", name: "\u0623\u0631\u0627\u0636\u064D \u0648\u0645\u0628\u0627\u0646\u064D", type: "asset", category: "fixed" },
+  { code: "1402", name: "\u0645\u0639\u062F\u0627\u062A \u0648\u0622\u0644\u0627\u062A", type: "asset", category: "fixed" },
+  { code: "1403", name: "\u0645\u0631\u0643\u0628\u0627\u062A", type: "asset", category: "fixed" },
+  { code: "1404", name: "\u0645\u062C\u0645\u0639 \u0625\u0647\u0644\u0627\u0643 \u0627\u0644\u0623\u0635\u0648\u0644 \u0627\u0644\u062B\u0627\u0628\u062A\u0629", type: "asset", category: "fixed" },
+  { code: "2000", name: "\u0627\u0644\u062E\u0635\u0648\u0645", type: "liability", category: "other" },
+  { code: "2100", name: "\u0627\u0644\u062F\u0627\u0626\u0646\u0648\u0646", type: "liability", category: "current_liability" },
+  { code: "2101", name: "\u0645\u0648\u0631\u062F\u0648\u0646", type: "liability", category: "current_liability" },
+  { code: "2102", name: "\u0623\u0648\u0631\u0627\u0642 \u062F\u0641\u0639", type: "liability", category: "current_liability" },
+  { code: "2200", name: "\u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0645\u062A\u062F\u0627\u0648\u0644\u0629 \u0623\u062E\u0631\u0649", type: "liability", category: "current_liability" },
+  { code: "2201", name: "\u0631\u0648\u0627\u062A\u0628 \u0645\u0633\u062A\u062D\u0642\u0629", type: "liability", category: "current_liability" },
+  { code: "2202", name: "\u0636\u0631\u064A\u0628\u0629 \u0645\u0633\u062A\u062D\u0642\u0629", type: "liability", category: "current_liability" },
+  { code: "2300", name: "\u0627\u0644\u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0637\u0648\u064A\u0644\u0629 \u0627\u0644\u0623\u062C\u0644", type: "liability", category: "long_term_liability" },
+  { code: "2301", name: "\u0642\u0631\u0648\u0636 \u0637\u0648\u064A\u0644\u0629 \u0627\u0644\u0623\u062C\u0644", type: "liability", category: "long_term_liability" },
+  { code: "3000", name: "\u062D\u0642\u0648\u0642 \u0627\u0644\u0645\u0644\u0643\u064A\u0629", type: "equity", category: "other" },
+  { code: "3100", name: "\u0631\u0623\u0633 \u0627\u0644\u0645\u0627\u0644", type: "equity", category: "capital" },
+  { code: "3101", name: "\u0631\u0623\u0633 \u0627\u0644\u0645\u0627\u0644 \u0627\u0644\u0645\u062F\u0641\u0648\u0639", type: "equity", category: "capital" },
+  { code: "3200", name: "\u0627\u0644\u0623\u0631\u0628\u0627\u062D \u0627\u0644\u0645\u062D\u062A\u062C\u0632\u0629", type: "equity", category: "retained_earnings" },
+  { code: "3201", name: "\u0623\u0631\u0628\u0627\u062D/\u062E\u0633\u0627\u0626\u0631 \u0645\u062A\u0631\u0627\u0643\u0645\u0629", type: "equity", category: "retained_earnings" },
+  { code: "4000", name: "\u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A", type: "revenue", category: "other" },
+  { code: "4100", name: "\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A", type: "revenue", category: "sales" },
+  { code: "4101", name: "\u0645\u0628\u064A\u0639\u0627\u062A \u0628\u0636\u0627\u0639\u0629", type: "revenue", category: "sales" },
+  { code: "4102", name: "\u0645\u0628\u064A\u0639\u0627\u062A \u062E\u062F\u0645\u0627\u062A", type: "revenue", category: "sales" },
+  { code: "4103", name: "\u0645\u0631\u062F\u0648\u062F\u0627\u062A \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A", type: "revenue", category: "sales" },
+  { code: "4200", name: "\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0623\u062E\u0631\u0649", type: "revenue", category: "other_income" },
+  { code: "4201", name: "\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0625\u064A\u062C\u0627\u0631", type: "revenue", category: "other_income" },
+  { code: "5000", name: "\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A", type: "expense", category: "other" },
+  { code: "5100", name: "\u062A\u0643\u0644\u0641\u0629 \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A", type: "expense", category: "operating" },
+  { code: "5200", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u062A\u0634\u063A\u064A\u0644\u064A\u0629", type: "expense", category: "operating" },
+  { code: "5201", name: "\u0631\u0648\u0627\u062A\u0628 \u0648\u0623\u062C\u0648\u0631", type: "expense", category: "operating" },
+  { code: "5202", name: "\u0625\u064A\u062C\u0627\u0631", type: "expense", category: "operating" },
+  { code: "5203", name: "\u0645\u0631\u0627\u0641\u0642 (\u0643\u0647\u0631\u0628\u0627\u0621/\u0645\u0627\u0621)", type: "expense", category: "operating" },
+  { code: "5300", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0625\u062F\u0627\u0631\u064A\u0629 \u0648\u0639\u0627\u0645\u0629", type: "expense", category: "administrative" },
+  { code: "5301", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0645\u0643\u062A\u0628\u064A\u0629", type: "expense", category: "administrative" },
+  { code: "5302", name: "\u0627\u062A\u0635\u0627\u0644\u0627\u062A \u0648\u0625\u0646\u062A\u0631\u0646\u062A", type: "expense", category: "administrative" },
+  { code: "5303", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u062A\u0633\u0648\u064A\u0642 \u0648\u0625\u0639\u0644\u0627\u0646", type: "expense", category: "administrative" },
+  { code: "5400", name: "\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0645\u0627\u0644\u064A\u0629", type: "expense", category: "financial" },
+  { code: "5401", name: "\u0631\u0633\u0648\u0645 \u0628\u0646\u0643\u064A\u0629", type: "expense", category: "financial" },
+  { code: "5500", name: "\u0625\u0647\u0644\u0627\u0643 \u0627\u0644\u0623\u0635\u0648\u0644", type: "expense", category: "other" }
 ];
 async function seedDefaultChartOfAccounts(userId, organizationId) {
   const db = await getDb();
@@ -932,7 +1214,7 @@ async function createAccount(userId, input) {
     type: input.type,
     category: input.category ?? "other",
     parentId: input.parentId ?? null,
-    openingBalance: input.openingBalance ?? 0
+    openingBalance: String(input.openingBalance ?? 0)
   });
 }
 async function getBranches(userId) {
@@ -957,16 +1239,16 @@ async function seedDefaultCurrencies(userId) {
   const existing = await db.select().from(currencies).where(eq(currencies.userId, userId)).limit(1);
   if (existing[0]) return;
   const defaults = [
-    { code: "YER", name: "\u0631\u064A\u0627\u0644 \u064A\u0645\u0646\u064A", symbol: "\u0631.\u064A", exchangeRate: 1, isBase: 1 },
-    { code: "SAR", name: "\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A", symbol: "\u0631.\u0633", exchangeRate: 130, isBase: 0 },
-    { code: "USD", name: "\u062F\u0648\u0644\u0627\u0631 \u0623\u0645\u0631\u064A\u0643\u064A", symbol: "$", exchangeRate: 490, isBase: 0 }
+    { code: "YER", name: "\u0631\u064A\u0627\u0644 \u064A\u0645\u0646\u064A", symbol: "\u0631.\u064A", exchangeRate: "1", isBase: true },
+    { code: "SAR", name: "\u0631\u064A\u0627\u0644 \u0633\u0639\u0648\u062F\u064A", symbol: "\u0631.\u0633", exchangeRate: "130", isBase: false },
+    { code: "USD", name: "\u062F\u0648\u0644\u0627\u0631 \u0623\u0645\u0631\u064A\u0643\u064A", symbol: "$", exchangeRate: "490", isBase: false }
   ];
   for (const c of defaults) await db.insert(currencies).values({ userId, ...c });
 }
 async function createCurrency(userId, input) {
   const db = await getDb();
   if (!db) return null;
-  return db.insert(currencies).values({ userId, ...input });
+  return db.insert(currencies).values({ userId, ...input, exchangeRate: String(input.exchangeRate ?? 1), isBase: Boolean(input.isBase) });
 }
 async function getUnitsOfMeasure(userId) {
   const db = await getDb();
@@ -995,7 +1277,7 @@ async function createEmployee(userId, input) {
   const db = await getDb();
   if (!db) return null;
   const org = await getOrCreateOrganization(userId);
-  return db.insert(employees).values({ userId, organizationId: org?.id ?? 0, ...input });
+  return db.insert(employees).values({ userId, organizationId: org?.id ?? 0, ...input, salary: String(input.salary ?? 0) });
 }
 async function getJournalEntries(userId) {
   const db = await getDb();
@@ -1010,26 +1292,26 @@ async function createJournalEntry(userId, input) {
   if (debitTotal !== creditTotal) {
     throw new Error("\u0627\u0644\u0642\u064A\u0640\u062F \u063A\u064A\u0631 \u0645\u062A\u0648\u0627\u0632\u0646: \u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u0645\u062F\u064A\u0646 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0633\u0627\u0648\u064A \u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u062F\u0627\u0626\u0646");
   }
-  return db.transaction(async (tx) => {
-    const org = await getOrCreateOrganization(userId);
-    const result = await tx.insert(journalEntries).values({
-      userId,
-      organizationId: org?.id ?? 0,
-      entryNumber: input.entryNumber,
-      description: input.description ?? null,
-      entryDate: input.entryDate ?? /* @__PURE__ */ new Date(),
-      debitTotal,
-      creditTotal,
-      currencyCode: input.currencyCode ?? "YER",
-      exchangeRate: input.exchangeRate ?? 1,
-      status: "posted"
-    });
-    const entryId = Number(result[0].insertId);
+  const org = await getOrCreateOrganization(userId);
+  const result = await db.insert(journalEntries).values({
+    userId,
+    organizationId: org?.id ?? 0,
+    entryNumber: input.entryNumber,
+    description: input.description ?? null,
+    entryDate: input.entryDate ?? /* @__PURE__ */ new Date(),
+    debitTotal: String(debitTotal),
+    creditTotal: String(creditTotal),
+    currencyCode: input.currencyCode ?? "YER",
+    exchangeRate: String(input.exchangeRate ?? 1),
+    status: "posted"
+  }).returning();
+  const entryId = result[0]?.id;
+  if (entryId) {
     for (const line of input.lines) {
-      await tx.insert(journalEntryLines).values({ entryId, accountId: line.accountId, debit: line.debit || 0, credit: line.credit || 0, description: line.description ?? null });
+      await db.insert(journalEntryLines).values({ entryId, accountId: line.accountId, debit: String(line.debit || 0), credit: String(line.credit || 0), description: line.description ?? null });
     }
-    return { id: entryId, debitTotal, creditTotal };
-  });
+  }
+  return { id: entryId, debitTotal, creditTotal };
 }
 async function getDailyTransactions(userId) {
   const db = await getDb();
@@ -1053,14 +1335,78 @@ async function createDailyTransaction(userId, input) {
     agentId: input.agentId ?? null,
     distributorId: input.distributorId ?? null,
     productId: input.productId ?? null,
-    amount: input.amount ?? 0,
+    amount: String(input.amount ?? 0),
     currencyCode: input.currencyCode ?? "YER",
-    exchangeRate: input.exchangeRate ?? 1,
+    exchangeRate: String(input.exchangeRate ?? 1),
     quantity: input.quantity ?? 0,
     unitId: input.unitId ?? null,
     description: input.description ?? null,
     status: input.status ?? "draft"
   });
+}
+async function recordPageView(sessionId, page, visitorId, title) {
+  const db = await getDb();
+  if (!db) return;
+  return db.insert(pageViews).values({ sessionId, visitorId, page, title });
+}
+async function recordVisitorSession(sessionId, opts) {
+  const db = await getDb();
+  if (!db) return;
+  return db.insert(visitorSessions).values({ sessionId, ...opts }).onConflictDoUpdate({ target: visitorSessions.sessionId, set: { endedAt: /* @__PURE__ */ new Date() } });
+}
+async function recordClientInteraction(interactionType, page, userId, visitorId, metadata) {
+  const db = await getDb();
+  if (!db) return;
+  return db.insert(clientInteractions).values({ userId, visitorId, interactionType, page, metadata });
+}
+async function getAiInsights(tenantId, unreadOnly = false) {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [];
+  if (tenantId !== null) conditions.push(eq(aiInsights.tenantId, tenantId));
+  if (unreadOnly) conditions.push(eq(aiInsights.isRead, false));
+  return conditions.length ? db.select().from(aiInsights).where(and(...conditions)).orderBy(desc(aiInsights.createdAt)) : db.select().from(aiInsights).orderBy(desc(aiInsights.createdAt));
+}
+async function getAlerts(userId) {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(alerts).where(eq(alerts.userId, userId)).orderBy(desc(alerts.createdAt));
+}
+async function getTestimonials() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(testimonials).where(eq(testimonials.isActive, true)).orderBy(testimonials.sortOrder);
+}
+async function createTestimonial(input) {
+  const db = await getDb();
+  if (!db) return null;
+  return db.insert(testimonials).values(input);
+}
+async function getArticles() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(articles).where(eq(articles.isPublished, true)).orderBy(desc(articles.createdAt));
+}
+async function createArticle(input) {
+  const db = await getDb();
+  if (!db) return null;
+  return db.insert(articles).values(input);
+}
+async function getStudentServices() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(studentServices).where(eq(studentServices.isActive, true)).orderBy(studentServices.sortOrder);
+}
+async function createStudentService(input) {
+  const db = await getDb();
+  if (!db) return null;
+  return db.insert(studentServices).values(input);
+}
+async function getActivityLogs(tenantId, limit = 50) {
+  const db = await getDb();
+  if (!db) return [];
+  if (tenantId !== null) return db.select().from(activityLogs).where(eq(activityLogs.tenantId, tenantId)).orderBy(desc(activityLogs.createdAt)).limit(limit);
+  return db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(limit);
 }
 
 // server/_core/cookies.ts
@@ -1342,8 +1688,8 @@ function getQueryParam(req, key) {
   const value = req.query[key];
   return typeof value === "string" ? value : void 0;
 }
-function registerOAuthRoutes(app2) {
-  app2.get("/api/oauth/callback", async (req, res) => {
+function registerOAuthRoutes(app) {
+  app.get("/api/oauth/callback", async (req, res) => {
     const code = getQueryParam(req, "code");
     const state = getQueryParam(req, "state");
     if (!code || !state) {
@@ -1386,8 +1732,8 @@ function registerOAuthRoutes(app2) {
 }
 
 // server/_core/storageProxy.ts
-function registerStorageProxy(app2) {
-  app2.get("/manus-storage/*", async (req, res) => {
+function registerStorageProxy(app) {
+  app.get("/manus-storage/*", async (req, res) => {
     const key = req.params[0];
     if (!key) {
       res.status(400).send("Missing storage key");
@@ -1600,7 +1946,7 @@ var appRouter = router({
   }),
   content: publicProcedure.query(async () => {
     const content = await getPublicContent();
-    return { ...content, properties: await getProperties() };
+    return { ...content, properties: await getProperties(), testimonials: await getTestimonials(), articles: await getArticles(), studentServices: await getStudentServices() };
   }),
   credits: router({
     me: protectedProcedure.query(({ ctx }) => getOrCreateCreditWallet(ctx.user.id)),
@@ -1707,7 +2053,20 @@ var appRouter = router({
     updateAppointmentStatus: adminProcedure.input(z2.object({ id: z2.number(), status: z2.enum(["new", "confirmed", "completed", "cancelled"]) })).mutation(({ input }) => updateAppointmentStatus(input.id, input.status)),
     dashboard: protectedProcedure.query(({ ctx }) => ({ isAdmin: ctx.user.role === "admin" })),
     createService: adminProcedure.input(z2.object({ category: z2.enum(["engineering", "realEstate", "consulting"]), title: z2.string().min(2), description: z2.string().min(5), icon: z2.string().default("sparkles") })).mutation(({ input }) => createService(input)),
-    createProject: adminProcedure.input(z2.object({ title: z2.string().min(2), category: z2.string().min(2), location: z2.string().optional(), description: z2.string().min(5), imageUrl: z2.string().optional() })).mutation(({ input }) => createProject(input))
+    createProject: adminProcedure.input(z2.object({ title: z2.string().min(2), category: z2.string().min(2), location: z2.string().optional(), description: z2.string().min(5), imageUrl: z2.string().optional() })).mutation(({ input }) => createProject(input)),
+    createTestimonial: adminProcedure.input(z2.object({ clientName: z2.string().min(2), clientTitle: z2.string().optional(), clientCompany: z2.string().optional(), content: z2.string().min(10), rating: z2.number().min(1).max(5).optional(), serviceType: z2.string().optional(), imageUrl: z2.string().optional(), isFeatured: z2.boolean().optional() })).mutation(({ input }) => createTestimonial(input)),
+    createArticle: adminProcedure.input(z2.object({ title: z2.string().min(2), slug: z2.string().min(2), excerpt: z2.string().optional(), content: z2.string().min(10), category: z2.string().optional(), authorName: z2.string().optional(), imageUrl: z2.string().optional(), readTime: z2.number().optional() })).mutation(({ input }) => createArticle(input)),
+    createStudentService: adminProcedure.input(z2.object({ title: z2.string().min(2), description: z2.string().min(5), icon: z2.string().optional(), price: z2.number().optional(), originalPrice: z2.number().optional(), discountPercent: z2.number().optional(), category: z2.string().optional() })).mutation(({ input }) => createStudentService({ ...input, price: input.price != null ? String(input.price) : void 0, originalPrice: input.originalPrice != null ? String(input.originalPrice) : void 0 }))
+  }),
+  analytics: router({
+    pageView: publicProcedure.input(z2.object({ sessionId: z2.string().min(1), page: z2.string().min(1), visitorId: z2.string().optional(), title: z2.string().optional() })).mutation(({ input }) => recordPageView(input.sessionId, input.page, input.visitorId, input.title)),
+    visitorSession: publicProcedure.input(z2.object({ sessionId: z2.string().min(1), visitorId: z2.string().optional(), ipAddress: z2.string().optional(), userAgent: z2.string().optional(), referrer: z2.string().optional(), firstPage: z2.string().optional(), device: z2.string().optional(), browser: z2.string().optional(), os: z2.string().optional() })).mutation(({ input }) => recordVisitorSession(input.sessionId, input)),
+    clientInteraction: publicProcedure.input(z2.object({ interactionType: z2.string().min(1), page: z2.string().min(1), visitorId: z2.string().optional(), metadata: z2.any().optional() })).mutation(({ input }) => recordClientInteraction(input.interactionType, input.page, void 0, input.visitorId, input.metadata))
+  }),
+  intelligence: router({
+    alerts: protectedProcedure.query(({ ctx }) => getAlerts(ctx.user.id)),
+    insights: protectedProcedure.query(({ ctx }) => getAiInsights(null, true)),
+    activityLog: protectedProcedure.query(({ ctx }) => getActivityLogs(null))
   })
 });
 
@@ -1731,7 +2090,7 @@ import express from "express";
 import fs from "fs";
 import { nanoid } from "nanoid";
 import path from "path";
-async function setupVite(app2, server) {
+async function setupVite(app, server) {
   const serverOptions = {
     middlewareMode: true,
     hmr: { server },
@@ -1743,8 +2102,8 @@ async function setupVite(app2, server) {
     server: serverOptions,
     appType: "custom"
   });
-  app2.use(vite.middlewares);
-  app2.use("*", async (req, res, next) => {
+  app.use(vite.middlewares);
+  app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
     try {
       const clientTemplate = path.resolve(
@@ -1766,7 +2125,7 @@ async function setupVite(app2, server) {
     }
   });
 }
-function serveStatic(app2) {
+function serveStatic(app) {
   const candidates = [
     process.env.PUBLIC_DIR,
     process.env.NODE_ENV === "development" ? path.resolve(import.meta.dirname, "../..", "dist", "public") : path.resolve(import.meta.dirname, "public"),
@@ -1778,8 +2137,8 @@ function serveStatic(app2) {
       `Could not find the build directory, tried: ${candidates.join(", ")} \u2014 make sure to build the client first`
     );
   } else {
-    app2.use(express.static(distPath));
-    app2.use("*", (_req, res) => {
+    app.use(express.static(distPath));
+    app.use("*", (_req, res) => {
       res.sendFile(path.resolve(distPath, "index.html"));
     });
   }
@@ -1804,27 +2163,27 @@ async function findAvailablePort(startPort = 3e3) {
   throw new Error(`No available port found starting from ${startPort}`);
 }
 function createApp() {
-  const app2 = express2();
-  app2.use(express2.json({ limit: "50mb" }));
-  app2.use(express2.urlencoded({ limit: "50mb", extended: true }));
-  registerStorageProxy(app2);
-  registerOAuthRoutes(app2);
-  app2.use(
+  const app = express2();
+  app.use(express2.json({ limit: "50mb" }));
+  app.use(express2.urlencoded({ limit: "50mb", extended: true }));
+  registerStorageProxy(app);
+  registerOAuthRoutes(app);
+  app.use(
     "/api/trpc",
     createExpressMiddleware({
       router: appRouter,
       createContext
     })
   );
-  return app2;
+  return app;
 }
 async function startServer() {
-  const app2 = createApp();
-  const server = createServer(app2);
+  const app = createApp();
+  const server = createServer(app);
   if (process.env.NODE_ENV === "development") {
-    await setupVite(app2, server);
+    await setupVite(app, server);
   } else {
-    serveStatic(app2);
+    serveStatic(app);
   }
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
@@ -1845,11 +2204,6 @@ var isEntrypoint = (() => {
 if (isEntrypoint) {
   startServer().catch(console.error);
 }
-
-// api/index.ts
-var app = createApp();
-serveStatic(app);
-var index_default = app;
 export {
-  index_default as default
+  createApp
 };
