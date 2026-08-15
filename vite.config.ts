@@ -150,10 +150,12 @@ function vitePluginManusDebugCollector(): Plugin {
   };
 }
 
-const isProd = process.env.NODE_ENV === "production";
-const plugins = isProd
-  ? [react(), tailwindcss(), jsxLocPlugin()]
-  : [react(), tailwindcss(), jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()];
+const plugins = [
+  react(),
+  tailwindcss(),
+  // Dev-only instrumentation — excluded from production builds
+  ...(process.env.NODE_ENV === "production" ? [] : [jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()]),
+];
 
 export default defineConfig({
   plugins,
@@ -170,20 +172,24 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
-    chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom"],
-          "vendor-radix": ["@radix-ui/react-dialog", "@radix-ui/react-dropdown-menu", "@radix-ui/react-tabs", "@radix-ui/react-tooltip"],
-          "vendor-trpc": ["@trpc/client", "@trpc/react-query", "@trpc/server"],
-          "vendor-charts": ["recharts"],
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+          if (id.includes("recharts") || id.includes("/d3-") || id.includes("victory")) return "charts";
+          if (id.includes("react") || id.includes("/scheduler") || id.includes("react-dom")) return "react";
+          if (id.includes("framer-motion")) return "motion";
+          if (id.includes("@radix-ui") || id.includes("cmdk") || id.includes("vaul") || id.includes("input-otp") || id.includes("react-day-picker") || id.includes("sonner") || id.includes("react-resizable-panels") || id.includes("embla-carousel")) return "ui";
+          return "vendor";
         },
       },
     },
   },
   server: {
     host: true,
+    hmr: {
+      clientPort: 443,
+    },
     allowedHosts: [
       ".manuspre.computer",
       ".manus.computer",

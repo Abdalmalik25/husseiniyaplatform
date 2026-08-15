@@ -1,22 +1,54 @@
 {
-  "name": "الحسينية | ALHUSAINIA Business Services Establishment",
   "short_name": "ALHUSAINIA",
-  "description": "منصة خدمات أعمال هندسية وتقنية ورقمية ومكتبية وتصميم وتوريد مع نظام أرصدة واشتراكات ومزامنة متعددة الأجهزة.",
+  "name": "ALHUSAINIA — نظام الحسينية المحاسبي المتقدم",
+  "description": "نظام محاسبي متكامل للمؤسسات والأعمال — إدارة الحسابات، المعاملات، التقارير، والتحليلات المالية. يعمل بدون إنترنت.",
+  "icons": [
+    {
+      "src": "/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "orientation": "any",
+  "theme_color": "#102a2b",
+  "background_color": "#fbf8f2",
   "lang": "ar",
   "dir": "rtl",
-  "start_url": "/",
-  "display": "standalone",
-  "background_color": "#f8f5ef",
-  "theme_color": "#102a2b",
-  "categories": ["business", "productivity", "services"],
-  "icons": [
-    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
-    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
-  ],
+  "categories": ["business", "finance", "productivity"],
+  "prefer_related_applications": false,
   "shortcuts": [
-    { "name": "حسابي", "url": "/account", "description": "إدارة الرصيد والاشتراك والأجهزة" },
-    { "name": "خدمات العملاء", "url": "/clients", "description": "طلب خدمات مكتبية وهندسية وصيانة وتقنية وطلابية" },
-    { "name": "الأرصدة والباقات", "url": "/credits", "description": "استعراض الباقات وشراء الرصيد" },
-    { "name": "النظام التجاري", "url": "/commerce", "description": "إدارة كاملة للعملاء والموردين والمخزون والمبيعات وأرصدة محاسبية" }
+    {
+      "name": "لوحة التحكم",
+      "short_name": "الرئيسية",
+      "url": "/",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "إضافة معاملة",
+      "short_name": "معاملة",
+      "url": "/?tab=entry",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "دليل الحسابات",
+      "short_name": "حسابات",
+      "url": "/?tab=accounts",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
+    }
   ]
 }

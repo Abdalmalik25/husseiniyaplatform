@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="116" fill="#102a2b"/><circle cx="256" cy="256" r="154" fill="none" stroke="#c48a4a" stroke-width="16" opacity=".75"/><text x="256" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="244" font-weight="700" fill="#c48a4a">ح</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#102a2b"/>
+  <text x="256" y="190" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="128" fill="#b87945">ح</text>
+  <text x="256" y="310" text-anchor="middle" font-family="Arial,sans-serif" font-weight="bold" font-size="52" fill="#fbf8f2">ALHUSAINIA</text>
+  <rect x="80" y="370" width="352" height="8" rx="4" fill="#b87945" opacity="0.6"/>
+</svg>

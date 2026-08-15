@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "dcd6ab91-1f96-49d7-8d7b-0db768998859",
-  "prevId": "09034d19-e425-4724-a729-5e26b1c2291f",
+  "id": "501c5f16-9043-4275-9aa5-d6f1899e8a6f",
+  "prevId": "6e9b07e3-f814-4176-bc2e-1e029807f7a5",
   "tables": {
     "accounts": {
       "name": "accounts",
@@ -48,6 +48,14 @@
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
+        },
+        "isActive": {
+          "name": "isActive",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
         },
         "isCustom": {
           "name": "isCustom",
@@ -204,6 +212,21 @@
           "notNull": false,
           "autoincrement": false
         },
+        "subscriptionStatus": {
+          "name": "subscriptionStatus",
+          "type": "enum('trial','active','expired')",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'trial'"
+        },
+        "trialEndsAt": {
+          "name": "trialEndsAt",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "updatedAt": {
           "name": "updatedAt",
           "type": "timestamp",
@@ -280,25 +303,25 @@
           "notNull": false,
           "autoincrement": false
         },
-        "status": {
-          "name": "status",
-          "type": "enum('completed','pending','recurring')",
+        "lifecycleStatus": {
+          "name": "lifecycleStatus",
+          "type": "enum('saved','approved','sent')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
-          "default": "'completed'"
+          "default": "'saved'"
         },
-        "isPeriodic": {
-          "name": "isPeriodic",
+        "isReversed": {
+          "name": "isReversed",
           "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
           "default": 0
         },
-        "periodicFrequency": {
-          "name": "periodicFrequency",
-          "type": "varchar(50)",
+        "reversalReason": {
+          "name": "reversalReason",
+          "type": "text",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
@@ -377,6 +400,38 @@
           "notNull": true,
           "autoincrement": false,
           "default": "'user'"
+        },
+        "themePreference": {
+          "name": "themePreference",
+          "type": "varchar(20)",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "'light'"
+        },
+        "emailNotifications": {
+          "name": "emailNotifications",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "whatsappNotifications": {
+          "name": "whatsappNotifications",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 1
+        },
+        "compactMode": {
+          "name": "compactMode",
+          "type": "int",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
         },
         "createdAt": {
           "name": "createdAt",

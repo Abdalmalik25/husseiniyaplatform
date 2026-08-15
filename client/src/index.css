@@ -1,39 +1,165 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Noto+Kufi+Arabic:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: #fbf8f2;
-  --color-foreground: #102a2b;
-  --color-card: #ffffff;
-  --color-card-foreground: #102a2b;
-  --color-primary: #102a2b;
-  --color-primary-foreground: #ffffff;
-  --color-border: #e6e2da;
-  --color-input: #e6e2da;
-  --color-ring: #b87945;
-  --color-cream: #fbf8f2;
-  --color-ink: #102a2b;
-  --color-copper: #b87945;
-  --color-sand: #eee6d6;
-  --font-sans: 'Cairo', sans-serif;
-  --font-display: 'Noto Kufi Arabic', sans-serif;
-  --radius: 0.75rem;
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
 }
 
-:root { font-family: 'Cairo', sans-serif; color: #102a2b; background: #fbf8f2; font-synthesis: none; text-rendering: optimizeLegibility; }
-* { box-sizing: border-box; }
-html { scroll-behavior: smooth; }
-body { margin: 0; min-width: 320px; background: #fbf8f2; }
-button, a, input, textarea, select { font: inherit; }
-a { color: inherit; text-decoration: none; }
-.container { width: 100%; max-width: 1180px; margin-inline: auto; padding-inline: 1.25rem; }
-.shadow-soft { box-shadow: 0 16px 44px rgba(16, 42, 43, .08); }
-.font-display { font-family: 'Noto Kufi Arabic', 'Cairo', sans-serif; }
-.text-ink { color: #102a2b; }
-.text-copper { color: #b87945; }
-.bg-cream { background: #fbf8f2; }
-.bg-ink { background: #102a2b; }
-.bg-copper { background: #b87945; }
-.bg-sand { background: #eee6d6; }
-::selection { background: #b87945; color: white; }
-@media (max-width: 640px) { .container { padding-inline: 1rem; } }
+:root {
+  --primary: #102a2b;
+  --primary-foreground: #f8f5ef;
+  --sidebar-primary: #102a2b;
+  --sidebar-primary-foreground: #f8f5ef;
+  --chart-1: #b87945;
+  --chart-2: #102a2b;
+  --chart-3: #d4a574;
+  --chart-4: #eee6d6;
+  --chart-5: #8b6b3d;
+  --radius: 0.75rem;
+  --background: #fbf8f2;
+  --foreground: #102a2b;
+  --card: #ffffff;
+  --card-foreground: #102a2b;
+  --popover: #ffffff;
+  --popover-foreground: #102a2b;
+  --secondary: #eee6d6;
+  --secondary-foreground: #102a2b;
+  --muted: #f5f0e8;
+  --muted-foreground: #6b7280;
+  --accent: #eee6d6;
+  --accent-foreground: #102a2b;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+  --border: #e5dfd5;
+  --input: #e5dfd5;
+  --ring: #b87945;
+  --sidebar: #fbf8f2;
+  --sidebar-foreground: #102a2b;
+  --sidebar-accent: #eee6d6;
+  --sidebar-accent-foreground: #102a2b;
+  --sidebar-border: #e5dfd5;
+  --sidebar-ring: #b87945;
+}
+
+.dark {
+  --primary: #b87945;
+  --primary-foreground: #102a2b;
+  --sidebar-primary: #b87945;
+  --sidebar-primary-foreground: #102a2b;
+  --background: #0d1b1c;
+  --foreground: #f0ebe3;
+  --card: #162e30;
+  --card-foreground: #f0ebe3;
+  --popover: #162e30;
+  --popover-foreground: #f0ebe3;
+  --secondary: #1e3a3c;
+  --secondary-foreground: #d4cfc5;
+  --muted: #1e3a3c;
+  --muted-foreground: #9ca3af;
+  --accent: #1e3a3c;
+  --accent-foreground: #f0ebe3;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.12);
+  --ring: #b87945;
+  --chart-1: #b87945;
+  --chart-2: #d4a574;
+  --chart-3: #102a2b;
+  --chart-4: #eee6d6;
+  --chart-5: #8b6b3d;
+  --sidebar: #0d1b1c;
+  --sidebar-foreground: #f0ebe3;
+  --sidebar-accent: #1e3a3c;
+  --sidebar-accent-foreground: #f0ebe3;
+  --sidebar-border: rgba(255, 255, 255, 0.08);
+  --sidebar-ring: #b87945;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Cairo", "Noto Kufi Arabic", system-ui, sans-serif;
+  }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  [type="button"]:not(:disabled),
+  [type="submit"]:not(:disabled),
+  [type="reset"]:not(:disabled),
+  a[href],
+  select:not(:disabled),
+  input[type="checkbox"]:not(:disabled),
+  input[type="radio"]:not(:disabled) {
+    @apply cursor-pointer;
+  }
+}
+
+@layer components {
+  .container {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .flex {
+    min-height: 0;
+    min-width: 0;
+  }
+
+  @media (min-width: 640px) {
+    .container {
+      padding-left: 1.5rem;
+      padding-right: 1.5rem;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .container {
+      padding-left: 2rem;
+      padding-right: 2rem;
+      max-width: 1280px;
+    }
+  }
+}
