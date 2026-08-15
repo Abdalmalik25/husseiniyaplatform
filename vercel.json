@@ -1,7 +1,8 @@
 {
-  "version": 2,
-  "builds": [{ "src": "api/index.js", "use": "@vercel/node", "config": { "includeFiles": ["dist/public/**"] } }],
-  "routes": [{ "src": "/(.*)", "dest": "/api/index.js" }],
+  "buildCommand": "npm install && npm run build",
+  "outputDirectory": "dist/public",
+  "installCommand": "npm install",
+  "framework": null,
   "env": {
     "NODE_ENV": "production"
   }
