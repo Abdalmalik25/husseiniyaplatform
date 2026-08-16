@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -6,21 +6,66 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { OfflineProvider } from "./lib/offline/OfflineContext";
-import Home from "./pages/Home";
-import Download from "./pages/Download";
-import Commercial from "./pages/Commercial";
-import Reports from "./pages/Reports";
+
+const Home = lazy(() => import("@/pages/Home"));
+const Download = lazy(() => import("@/pages/Download"));
+const Commercial = lazy(() => import("@/pages/Commercial"));
+const Reports = lazy(() => import("@/pages/Reports"));
+
+function PageSplash() {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "#0d1b1c",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        fontFamily: "system-ui, -apple-system, 'Segoe UI', sans-serif",
+        color: "#f0ebe3",
+        zIndex: 9999,
+      }}
+    >
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 16,
+          background: "#b87945",
+          color: "#102a2b",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontWeight: 800,
+          fontSize: 24,
+        }}
+      >
+        أ
+      </div>
+      <div style={{ marginTop: 14, fontWeight: 700, fontSize: 15 }}>
+        ALHUSAINIA | نظام الحسابات
+      </div>
+      <div style={{ marginTop: 6, fontSize: 11, color: "#8fa3a4" }}>
+        مؤسسة الحسينية لخدمات الأعمال — جاري تجهيز المنصة…
+      </div>
+    </div>
+  );
+}
 
 function Router() {
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/download"} component={Download} />
-      <Route path={"/commercial"} component={Commercial} />
-      <Route path={"/reports"} component={Reports} />
-      <Route path={"/404"} component={NotFound} />
-      <Route component={NotFound} />
-    </Switch>
+    <Suspense fallback={<PageSplash />}>
+      <Switch>
+        <Route path={"/"} component={Home} />
+        <Route path={"/download"} component={Download} />
+        <Route path={"/commercial"} component={Commercial} />
+        <Route path={"/reports"} component={Reports} />
+        <Route path={"/404"} component={NotFound} />
+        <Route component={NotFound} />
+      </Switch>
+    </Suspense>
   );
 }
 
