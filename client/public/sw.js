@@ -54,9 +54,10 @@ self.addEventListener("fetch", (event) => {
   // Skip tRPC mutations (POST)
   if (request.method === "POST") return;
 
-  // API requests: Network-first with cache fallback
+  // API requests: stale-while-revalidate with a freshness window — return the
+  // cached copy instantly if it is recent, and refresh it in the background.
   if (url.pathname.startsWith("/api/trpc")) {
-    event.respondWith(networkFirstWithCache(request, API_CACHE));
+    event.respondWith(staleWhileRevalidateFresh(request, API_CACHE, 30_000));
     return;
   }
 
@@ -102,6 +103,44 @@ async function cacheFirst(request: Request, cacheName: string): Promise<Response
   } catch {
     return new Response("Offline", { status: 503 });
   }
+}
+
+async function staleWhileRevalidateFresh(request: Request, cacheName: string, freshWindowMs: number): Promise<Response> {
+  const cached = await caches.match(request);
+  const network = fetch(request)
+    .then(async (response) => {
+      if (response.ok) {
+        const cache = await caches.open(cacheName);
+        cache.put(request, response.clone());
+      }
+      return response;
+    })
+    .catch(() => undefined);
+
+  if (cached) {
+    const cachedAt = (new Date(cached.headers.get("date") || Date.now())).getTime() || Date.now();
+    const isFresh = Date.now() - cachedAt < freshWindowMs;
+    if (isFresh) {
+      // Serve instantly and let the network refresh run in the background.
+      network.then((r) => r && cachePutIfOk(request, r, cacheName)).catch(() => {});
+      return cached;
+    }
+  }
+
+  // No cache, or stale cache: wait for the network response (network-first).
+  const fresh = await network;
+  if (fresh) return fresh;
+  if (cached) return cached;
+  return new Response(JSON.stringify({ error: "offline", message: "الجهاز غير متصل بالإنترنت" }), {
+    status: 503,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function cachePutIfOk(request: Request, response: Response, cacheName: string): Promise<void> {
+  if (!response.ok) return;
+  const cache = await caches.open(cacheName);
+  await cache.put(request, response.clone());
 }
 
 async function networkFirstWithCache(request: Request, cacheName: string): Promise<Response> {

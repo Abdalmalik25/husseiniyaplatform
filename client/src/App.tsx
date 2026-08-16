@@ -86,6 +86,21 @@ function App() {
     }
   }, []);
 
+  // Prefetch sibling page chunks after first paint so navigation feels instant.
+  useEffect(() => {
+    const idle =
+      (window as any).requestIdleCallback ??
+      ((cb: () => void) => window.setTimeout(cb, 2000));
+    const t = idle(() => {
+      import("@/pages/Reports").catch(() => {});
+      import("@/pages/Commercial").catch(() => {});
+      import("@/pages/Download").catch(() => {});
+    });
+    return () => {
+      if (typeof t === "number") clearTimeout(t);
+    };
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider defaultTheme="light">

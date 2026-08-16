@@ -1078,26 +1078,49 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
       const db = await getDb();
       if (!db) return { accounts: [], transactions: [], settings: null, budgets: [], openingBalances: [], branches: [], tenants: [], products: [], warehouses: [], inventoryMovements: [], customers: [], suppliers: [], salesInvoices: [], salesInvoiceItems: [], purchaseInvoices: [], purchaseInvoiceItems: [], orders: [], orderItems: [], payments: [], activityLogs: [] };
 
-      const allAccounts = await db.select().from(accounts).orderBy(asc(accounts.code));
-      const allTransactions = await db.select().from(transactions).orderBy(desc(transactions.id)).limit(500);
-      const settingsData = await db.select().from(settings).limit(1);
-      const allBudgets = await db.select().from(budgets).orderBy(desc(budgets.id));
-      const allOpeningBalances = await db.select().from(openingBalances);
-      const allBranches = await db.select().from(branches);
-      const allTenants = await db.select().from(tenants);
-      const allProducts = await db.select().from(products).orderBy(asc(products.code));
-      const allWarehouses = await db.select().from(warehouses);
-      const allInventoryMovements = await db.select().from(inventoryMovements).orderBy(desc(inventoryMovements.createdAt)).limit(500);
-      const allCustomers = await db.select().from(customers).orderBy(asc(customers.code));
-      const allSuppliers = await db.select().from(suppliers).orderBy(asc(suppliers.code));
-      const allSalesInvoices = await db.select().from(salesInvoices).orderBy(desc(salesInvoices.createdAt)).limit(200);
-      const allSalesItems = await db.select().from(salesInvoiceItems);
-      const allPurchaseInvoices = await db.select().from(purchaseInvoices).orderBy(desc(purchaseInvoices.createdAt)).limit(200);
-      const allPurchaseItems = await db.select().from(purchaseInvoiceItems);
-      const allOrders = await db.select().from(orders).orderBy(desc(orders.createdAt)).limit(200);
-      const allOrderItems = await db.select().from(orderItems);
-      const allPayments = await db.select().from(payments).orderBy(desc(payments.createdAt)).limit(500);
-      const allActivityLogs = await db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(200);
+      const [
+        allAccounts,
+        allTransactions,
+        settingsData,
+        allBudgets,
+        allOpeningBalances,
+        allBranches,
+        allTenants,
+        allProducts,
+        allWarehouses,
+        allInventoryMovements,
+        allCustomers,
+        allSuppliers,
+        allSalesInvoices,
+        allSalesItems,
+        allPurchaseInvoices,
+        allPurchaseItems,
+        allOrders,
+        allOrderItems,
+        allPayments,
+        allActivityLogs,
+      ] = await Promise.all([
+        db.select().from(accounts).orderBy(asc(accounts.code)),
+        db.select().from(transactions).orderBy(desc(transactions.id)).limit(500),
+        db.select().from(settings).limit(1),
+        db.select().from(budgets).orderBy(desc(budgets.id)),
+        db.select().from(openingBalances),
+        db.select().from(branches),
+        db.select().from(tenants),
+        db.select().from(products).orderBy(asc(products.code)),
+        db.select().from(warehouses),
+        db.select().from(inventoryMovements).orderBy(desc(inventoryMovements.createdAt)).limit(500),
+        db.select().from(customers).orderBy(asc(customers.code)),
+        db.select().from(suppliers).orderBy(asc(suppliers.code)),
+        db.select().from(salesInvoices).orderBy(desc(salesInvoices.createdAt)).limit(200),
+        db.select().from(salesInvoiceItems),
+        db.select().from(purchaseInvoices).orderBy(desc(purchaseInvoices.createdAt)).limit(200),
+        db.select().from(purchaseInvoiceItems),
+        db.select().from(orders).orderBy(desc(orders.createdAt)).limit(200),
+        db.select().from(orderItems),
+        db.select().from(payments).orderBy(desc(payments.createdAt)).limit(500),
+        db.select().from(activityLogs).orderBy(desc(activityLogs.createdAt)).limit(200),
+      ]);
 
       return {
         accounts: allAccounts,
