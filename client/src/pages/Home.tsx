@@ -95,6 +95,29 @@ export default function Home() {
     }
   }, [settingsData]);
 
+  // Animated count-up for KPI numbers (premium feel, no layout thrash).
+  const [kpiNumbers, setKpiNumbers] = useState<Record<string, number>>({});
+  useEffect(() => {
+    animateNumber("revenue", summaryData?.totalRevenue || 0);
+    animateNumber("expense", summaryData?.totalExpense || 0);
+    animateNumber("net", summaryData?.netIncome || 0);
+    animateNumber("assets", summaryData?.totalAssets || 0);
+  }, [summaryData]);
+  const animateNumber = (key: string, target: number) => {
+    const started = performance.now();
+    const duration = 650;
+    const from = kpiNumbers[key] || 0;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - started) / duration);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setKpiNumbers(prev => ({ ...prev, [key]: Math.round(from + (target - from) * eased) }));
+      if (p < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  };
+  const countUp = (key: string, value: number | undefined | null): string =>
+    (kpiNumbers[key] !== undefined ? kpiNumbers[key] : Number(value || 0)).toLocaleString();
+
   // Mutations
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
     onSuccess: () => {
@@ -380,35 +403,69 @@ export default function Home() {
       </div>
 
       <main className="max-w-7xl mx-auto px-3 mt-3 space-y-4">
-        {/* KPI Summary Cards */}
-        {loadingSummary ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            {[1, 2, 3, 4].map(i => (
-              <Card key={i} className="p-4 bg-white shadow-sm flex items-center justify-center h-20">
-                <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />
-              </Card>
-            ))}
+{/* KPI Summary Cards */}
+      {loadingSummary ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i} className="p-4 bg-white shadow-sm flex items-center justify-center h-20">
+              <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <Card onClick={() => setActiveTab("reports")} className="p-3 bg-emerald-50 border-emerald-200 shadow-sm transition-all hover:shadow cursor-pointer group" title="عرض تقارير الإيرادات">
+            <p className="text-[10px] text-emerald-700 font-bold">إجمالي الإيرادات</p>
+            <p className="text-sm font-bold text-emerald-900 mt-1 font-mono group-hover:underline">{countUp("revenue", summaryData?.totalRevenue)} {currency}</p>
+          </Card>
+          <Card onClick={() => setActiveTab("reports")} className="p-3 bg-rose-50 border-rose-200 shadow-sm transition-all hover:shadow cursor-pointer group" title="عرض تقارير المصروفات">
+            <p className="text-[10px] text-rose-700 font-bold">إجمالي المصروفات</p>
+            <p className="text-sm font-bold text-rose-900 mt-1 font-mono group-hover:underline">{countUp("expense", summaryData?.totalExpense)} {currency}</p>
+          </Card>
+          <Card onClick={() => setActiveTab("analytics")} className="p-3 bg-blue-50 border-blue-200 shadow-sm transition-all hover:shadow cursor-pointer group" title="عرض التحليلات">
+            <p className="text-[10px] text-blue-700 font-bold">صافي الدخل التشغيلي</p>
+            <p className="text-sm font-bold text-blue-900 mt-1 font-mono group-hover:underline">{countUp("net", summaryData?.netIncome)} {currency}</p>
+          </Card>
+          <Card onClick={() => setActiveTab("accounts")} className="p-3 bg-slate-100 border-slate-200 shadow-sm transition-all hover:shadow cursor-pointer group" title="فتح دليل الحسابات">
+            <p className="text-[10px] text-slate-700 font-bold">إجمالي الأصول</p>
+            <p className="text-sm font-bold text-slate-900 mt-1 font-mono group-hover:underline">{countUp("assets", summaryData?.totalAssets)} {currency}</p>
+          </Card>
+        </div>
+      )}
+
+      {/* Onboarding empty state: first-time welcome + guided quick action */}
+      {!loadingSummary && summaryData && summaryData.totalRevenue === 0 && summaryData.totalExpense === 0 && (transactionsData?.length ?? 0) === 0 && (
+        <div className="rounded-2xl border border-[#e8c9a0] bg-gradient-to-l from-[#fbf6ee] to-[#f5ece0] p-4 md:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="bg-[#b87945] text-[#102a2b] w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-[#5c3d1e]">مرحباً بك! منصة الحسينية جاهزة للانطلاق</h3>
+              <p className="text-[11px] text-[#7a5228] mt-0.5">الأصول والدليل المحاسبي (12 حساباً) مُجهّزون. ابدأ بتسجيل أول حركة مالية — سيُترحّل فوراً ويرصد في السجل والتدقيق والتقارير.</p>
+            </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Card className="p-3 bg-emerald-50 border-emerald-200 shadow-sm transition-all hover:shadow">
-              <p className="text-[10px] text-emerald-700 font-bold">إجمالي الإيرادات</p>
-              <p className="text-sm font-bold text-emerald-900 mt-1 font-mono">{summaryData?.totalRevenue?.toLocaleString()} {currency}</p>
-            </Card>
-            <Card className="p-3 bg-rose-50 border-rose-200 shadow-sm transition-all hover:shadow">
-              <p className="text-[10px] text-rose-700 font-bold">إجمالي المصروفات</p>
-              <p className="text-sm font-bold text-rose-900 mt-1 font-mono">{summaryData?.totalExpense?.toLocaleString()} {currency}</p>
-            </Card>
-            <Card className="p-3 bg-blue-50 border-blue-200 shadow-sm transition-all hover:shadow">
-              <p className="text-[10px] text-blue-700 font-bold">صافي الدخل التشغيلي</p>
-              <p className="text-sm font-bold text-blue-900 mt-1 font-mono">{summaryData?.netIncome?.toLocaleString()} {currency}</p>
-            </Card>
-            <Card className="p-3 bg-slate-100 border-slate-200 shadow-sm transition-all hover:shadow">
-              <p className="text-[10px] text-slate-700 font-bold">إجمالي الأصول</p>
-              <p className="text-sm font-bold text-slate-900 mt-1 font-mono">{summaryData?.totalAssets?.toLocaleString()} {currency}</p>
-            </Card>
-          </div>
-        )}
+          <Button size="sm" onClick={() => setActiveTab("entry")} className="bg-[#b87945] hover:bg-[#a06838] text-white text-xs font-bold h-8 px-4 shrink-0">
+            <Plus className="w-3.5 h-3.5 ml-1" /> ابدأ الإدخال السريع
+          </Button>
+        </div>
+      )}
+
+      {/* Quick actions row */}
+      <div className="flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => setActiveTab("entry")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
+          <Plus className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> إدخال سريع
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setActiveTab("reports")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
+          <FileText className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> السجل والتقارير
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => (window.location.href = "/commercial")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
+          <Layers className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> المحاسبة التجارية
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => setActiveTab("analytics")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
+          <BarChart3 className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> التحليلات والمساعد الذكي
+        </Button>
+      </div>
 
         {/* Quick Transaction Entry Widget */}
         <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
