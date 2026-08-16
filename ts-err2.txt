@@ -1,2 +1,0 @@
-server/routers.ts(1186,11): error TS2304: Cannot find name 'ENV'.
-server/routers.ts(1209,17): error TS2304: Cannot find name 'ENV'.
