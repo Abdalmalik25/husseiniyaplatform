@@ -1,8 +1,10 @@
 import "dotenv/config";
 import { createServer } from "http";
 import net from "net";
-import { createApp } from "./app";
-import { serveStatic } from "./static";
+import { createApp } from "./_core/app";
+import { serveStatic } from "./_core/static";
+
+const app = createApp();
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -24,17 +26,7 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 }
 
 async function startServer() {
-  const app = createApp();
   const server = createServer(app);
-
-  // development mode uses Vite, production mode uses static files
-  if (process.env.NODE_ENV === "development") {
-    const { setupVite } = await import("./vite");
-    await setupVite(app, server);
-  } else {
-    serveStatic(app);
-  }
-
   const preferredPort = parseInt(process.env.PORT || "3000");
   const port = await findAvailablePort(preferredPort);
 
@@ -47,9 +39,10 @@ async function startServer() {
   });
 }
 
-// Standalone entrypoint only; on Vercel the app is served via api/[...slug].ts
 if (!process.env.VERCEL) {
+  serveStatic(app);
   startServer().catch(console.error);
 }
 
-export { createApp };
+// Vercel Node runtime requires a default export (function or server/Express app).
+export default app;
