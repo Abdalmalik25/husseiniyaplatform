@@ -6,6 +6,7 @@ import { useOffline } from "@/lib/offline/OfflineContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -14,10 +15,111 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { 
   Building2, Plus, Search, Settings, 
   BookOpen, BarChart3, LogOut, Save, Check, 
-  FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw
+  FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw, Upload, ClipboardCopy
 } from "lucide-react";
 import { toast } from "sonner";
 import BudgetsPanel from "@/components/BudgetsPanel";
+
+type ImportRow = { accountId: number; amount: string; type: "debit" | "credit"; transactionDate: string; narration?: string };
+
+function parseImportCsv(text: string, accountsData: any): { parsed: ImportRow[]; skipped: { line: number; reason: string }[] } {
+  const skipped: { line: number; reason: string }[] = [];
+  const parsed: ImportRow[] = [];
+  const lines = String(text || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (!lines.length) return { parsed, skipped };
+
+  const splitLine = (ln: string) => {
+    const cells: string[] = [];
+    let cur = "", inQ = false;
+    for (const ch of ln) {
+      if (ch === '"') { inQ = !inQ; continue; }
+      if ((ch === "," || ch === ";" || ch === "\t") && !inQ) { cells.push(cur); cur = ""; }
+      else cur += ch;
+    }
+    cells.push(cur);
+    return cells.map((c) => c.trim());
+  };
+
+  const first = splitLine(lines[0]);
+  const hasHeader = first.some((c) => /التاريخ|date|الحساب|القيمة|المبلغ|amount|البيان|narration|الكود|code|النوع/i.test(c));
+  const findCol = (names: string, fallback: number) => {
+    const i = first.findIndex((c) => names.split("|").some((k) => String(c).toLowerCase().includes(k.toLowerCase())));
+    return i >= 0 ? i : fallback;
+  };
+  const ciDate = hasHeader ? findCol("التاريخ|date", 0) : 0;
+  const ciAccount = hasHeader ? findCol("الحساب|account", 1) : 1;
+  const ciCode = hasHeader ? findCol("الكود|code", 2) : 2;
+  const ciAmount = hasHeader ? findCol("المبلغ|القيمة|amount|قيمة", 3) : 3;
+  const ciNarration = hasHeader ? findCol("البيان|narration|الوصف", 4) : 4;
+  const ciType = hasHeader ? findCol("النوع|type", 5) : 5;
+
+  const startIdx = hasHeader ? 1 : 0;
+  const normAr = (s: string) => s.replace(/\s+/g, " ").trim();
+  const acctByCode = new Map<string, any>();
+  for (const a of accountsData || []) acctByCode.set(normAr(String(a.code)), a);
+
+  const parseDate = (raw: string): string | null => {
+    const s = raw.trim();
+    let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
+    m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (m) {
+      const y = m[3].length === 2 ? "20" + m[3] : m[3];
+      return `${y}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
+    }
+    const t = new Date(s);
+    return isNaN(t.getTime()) ? null : t.toISOString().split("T")[0];
+  };
+
+  const parseAmount = (raw: string): { amt: number; negative: boolean } | null => {
+    const s = raw.trim().replace(/,/g, "").replace(/\s+/g, "");
+    if (!s) return null;
+    const v = parseFloat(s);
+    return isNaN(v) ? null : { amt: Math.abs(v), negative: v < 0 };
+  };
+
+  lines.slice(startIdx).forEach((ln, i) => {
+    const lineNo = startIdx + i + 1;
+    const cells = splitLine(ln);
+    if (cells.every((c) => !c)) return;
+
+    const date = parseDate(cells[ciDate] || "");
+    if (!date) { skipped.push({ line: lineNo, reason: "تاريخ غير صالح: " + (cells[ciDate] || "فارغ") }); return; }
+
+    const codeKey = normAr(cells[ciCode] || "");
+    const nameKey = normAr(cells[ciAccount] || "");
+    let acc: any = codeKey ? acctByCode.get(codeKey) : null;
+    if (!acc && codeKey) {
+      const mc = (accountsData || []).filter((a: any) => normAr(String(a.code)) === codeKey);
+      if (mc.length === 1) acc = mc[0];
+      else if (mc.length > 1) { skipped.push({ line: lineNo, reason: "كود الحساب «" + codeKey + "» غير فريد" }); return; }
+    }
+    if (!acc && nameKey && codeKey !== nameKey) {
+      const mn = (accountsData || []).filter((a: any) => normAr(String(a.name)) === nameKey);
+      if (mn.length === 1) acc = mn[0];
+      else if (mn.length > 1) { skipped.push({ line: lineNo, reason: "اسم الحساب «" + nameKey + "» غير فريد" }); return; }
+    }
+    if (!acc) { skipped.push({ line: lineNo, reason: "الحساب غير موجود في الدليل: " + (codeKey || nameKey || "فارغ") }); return; }
+
+    const amtRes = parseAmount(cells[ciAmount] || "");
+    if (!amtRes || amtRes.amt <= 0) { skipped.push({ line: lineNo, reason: "مبلغ غير صالح: " + (cells[ciAmount] || "فارغ") }); return; }
+
+    const typeRaw = String(cells[ciType] || "").trim().toLowerCase();
+    let type: "debit" | "credit" = amtRes.negative ? "credit" : "debit";
+    if (typeRaw.startsWith("c") || typeRaw === "دائن") type = "credit";
+    else if (typeRaw.startsWith("d") || typeRaw === "مدين") type = "debit";
+
+    parsed.push({
+      accountId: acc.id,
+      amount: String(amtRes.amt),
+      type,
+      transactionDate: date,
+      narration: (cells[ciNarration] || "").trim() || undefined,
+    });
+  });
+
+  return { parsed, skipped };
+}
 
 export default function Home() {
   let { user, isAuthenticated, logout, loading: authLoading, refresh } = useAuth();
@@ -29,6 +131,10 @@ export default function Home() {
   // Defer non-critical queries (audit log, branch comparison, AI advisor) so the
   // first paint only waits for the core batch (settings/accounts/tx/summary).
   const [deferHeavyQueries, setDeferHeavyQueries] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importText, setImportText] = useState("");
+  const [importLifecycle, setImportLifecycle] = useState<"saved" | "approved" | "sent">("approved");
+  const [importResult, setImportResult] = useState<{ total: number; imported: number; skipped: { line: number; reason: string }[] } | null>(null);
   useEffect(() => {
     const t = setTimeout(() => setDeferHeavyQueries(true), 700);
     return () => clearTimeout(t);
@@ -278,6 +384,35 @@ export default function Home() {
   const handleExportPDF = () => {
     toast.success("جاري تجهيز تقارير الطباعة والتصدير بصيغة PDF الرسمية");
     window.print();
+  };
+
+  const handleCopyImportTemplate = () => {
+    const tpl = "التاريخ,الحساب,الكود,المبلغ,البيان,النوع\n2026-08-01,الصندوق الرئيسي,1010,5000,مبيعات نقدية,debit\n2026-08-03,البنك الأهلي,1020,2200,سداد فاتورة مورد,credit";
+    navigator.clipboard?.writeText(tpl)
+      .then(() => toast.success("تم نسخ القالب — الصقه ثم عدّل الصفوف"))
+      .catch(() => toast.error("تعذر النسخ التلقائي — انسخ القالب يدوياً من الدليل"));
+  };
+
+  const handleImportFromText = () => {
+    const parsed = parseImportCsv(importText, accountsData);
+    if (!parsed.parsed.length) {
+      setImportResult({ total: parsed.skipped.length, imported: 0, skipped: parsed.skipped });
+      toast.error("لا توجد صفوف صالحة للاستيراد — راجع الأخطاء المبيّنة");
+      return;
+    }
+    addBatchTransactionsMutation.mutate(
+      { lifecycleStatus: importLifecycle, rows: parsed.parsed },
+      {
+        onSuccess: (res: any) => {
+          const imported = res?.count ?? parsed.parsed.length;
+          setImportResult({ total: parsed.parsed.length + parsed.skipped.length, imported, skipped: parsed.skipped });
+          refetchTransactions();
+          refetchSummary();
+          toast.success(`تم استيراد ${imported} حركة بنجاح`);
+        },
+        onError: (e: any) => toast.error("فشل الاستيراد: " + (e?.message || "خطأ غير معروف")),
+      }
+    );
   };
 
   if (!isAuthenticated && !authLoading) {
@@ -923,6 +1058,9 @@ export default function Home() {
                   <Filter className="w-4 h-4 text-[#b87945]" /> تصفية وفرز السجلات المالية والتقارير الرسمية
                 </h2>
                 <div className="flex items-center gap-1.5">
+                  <Button size="sm" onClick={() => setImportOpen(true)} className="h-7 px-2.5 text-xs bg-sky-700 hover:bg-sky-800 text-white font-semibold">
+                    <Upload className="w-3.5 h-3.5 ml-1" /> استيراد
+                  </Button>
                   <Button size="sm" onClick={handleExportExcel} className="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
                     <FileSpreadsheet className="w-3.5 h-3.5 ml-1" /> Excel
                   </Button>
@@ -1161,6 +1299,69 @@ export default function Home() {
           </TabsContent>
         </Tabs>
       </main>
+
+      {/* Bulk CSV Import Dialog */}
+      <Dialog open={importOpen} onOpenChange={(open) => { setImportOpen(open); if (!open) { setImportResult(null); setImportText(""); } }}>
+        <DialogContent className="max-w-lg font-sans" dir="rtl" aria-describedby="import-desc">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <Upload className="w-4 h-4 text-[#b87945]" /> استيراد جماعي للحركات (Excel/CSV)
+            </DialogTitle>
+            <DialogDescription id="import-desc" className="text-xs text-slate-600 pt-2 space-y-2">
+              <p>الصق صفوفاً بصيغة CSV — الأعمدة بالترتيب: <b>التاريخ، الحساب، الكود، المبلغ، البيان، النوع</b> (النوع اختياري). يدعم أيضاً اللصق المباشر من ملف Excel المُصدَّر.</p>
+              <p className="text-[11px] bg-[#fff8ef] border border-[#e8c9a0] rounded-lg p-2.5 text-slate-700 leading-relaxed">
+                <span className="font-bold text-[#b87945]">دليل سريع:</span> التاريخ <b>2026-08-01</b> أو <b>01/08/2026</b> · المبلغ أرقام فقط · النوع <b>debit</b> (مدين) أو <b>credit</b> (دائن) ويُفترض <b>debit</b> إن تُرك فارغاً، والمبلغ السالب يُحول دائناً تلقائياً · يجد النظام الحساب بكوده أو اسمه من الدليل.
+              </p>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <Textarea
+              value={importText}
+              onChange={(e) => setImportText(e.target.value)}
+              placeholder={"التاريخ,الحساب,الكود,المبلغ,البيان,النوع\n2026-08-01,الصندوق الرئيسي,1010,5000,مبيعات نقدية,debit"}
+              className="min-h-[140px] text-xs font-mono dir-ltr text-left rounded-lg border-slate-300"
+            />
+            <div className="flex items-center justify-between gap-2">
+              <Select value={importLifecycle} onValueChange={(v) => setImportLifecycle(v as any)}>
+                <SelectTrigger className="h-8 text-xs bg-slate-50 w-40">
+                  <SelectValue placeholder="حالة الحركات" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="approved">معتمدة</SelectItem>
+                  <SelectItem value="saved">مسودة</SelectItem>
+                  <SelectItem value="sent">مرسلة</SelectItem>
+                </SelectContent>
+              </Select>
+              <span className="text-[11px] text-slate-500">تُطبق الحالة على كل الحركات المستوردة</span>
+            </div>
+            {importResult && (
+              <div className={`rounded-lg border p-2.5 text-xs space-y-1.5 ${importResult.skipped.length ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}>
+                <p className="font-bold text-slate-800">
+                  النتيجة: استُورد {importResult.imported} من {importResult.total} {importResult.skipped.length ? `— ${importResult.skipped.length} صف متخطّى` : "— تم استيراد الكل بنجاح"}
+                </p>
+                {importResult.skipped.slice(0, 6).map((s, i) => (
+                  <p key={i} className="text-[11px] text-slate-600">سطر {s.line}: {s.reason}</p>
+                ))}
+                {importResult.skipped.length > 6 && <p className="text-[11px] text-slate-500">+ {importResult.skipped.length - 6} ملاحظات أخرى…</p>}
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={handleCopyImportTemplate} className="text-xs h-8">
+              <ClipboardCopy className="w-3.5 h-3.5 ml-1" /> نسخ قالب
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleImportFromText}
+              disabled={!importText.trim() || addBatchTransactionsMutation.isPending}
+              className="text-xs h-8 bg-sky-700 hover:bg-sky-800 text-white font-bold"
+            >
+              {addBatchTransactionsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Upload className="w-3 h-3 ml-1" />}
+              استيراد الحركات
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Confirmation Modal for Drag and Drop Move */}
       <Dialog open={!!pendingMove} onOpenChange={(open) => !open && setPendingMove(null)}>
