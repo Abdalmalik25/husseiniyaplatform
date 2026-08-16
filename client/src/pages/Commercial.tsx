@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Package, Users, Truck, ShoppingCart, ShoppingBag, ClipboardList,
   Plus, Search, Edit, Trash2, Barcode, MapPin, Phone, Mail,
-  Wifi, WifiOff, CheckCircle, XCircle, Clock, AlertTriangle, Printer
+  Wifi, WifiOff, CheckCircle, XCircle, Clock, AlertTriangle, Printer, Wallet, Loader2
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -111,6 +111,51 @@ export default function Commercial() {
   });
 
   const utils = trpc.useUtils();
+
+  // Payments (installments & settlements)
+  const createPayment = trpc.payments.create.useMutation({
+    onSuccess: () => {
+      toast.success("تم تسجيل الدفعة بنجاح");
+      setPayTarget(null);
+      setPayAmount("");
+      refetchSales();
+      refetchPurchases();
+      refetchCustomers();
+      refetchSuppliers();
+    },
+    onError: (e) => toast.error(e.message),
+  });
+  const [payTarget, setPayTarget] = useState<{ invoice: any; source: "sales" | "purchases" } | null>(null);
+  const [payAmount, setPayAmount] = useState("");
+  const [payMethod, setPayMethod] = useState<"cash" | "card" | "transfer" | "credit" | "online">("cash");
+  const [payDate, setPayDate] = useState("");
+  const [payNotes, setPayNotes] = useState("");
+
+  const openPayDialog = (invoice: any, source: "sales" | "purchases") => {
+    const remaining = Number(invoice.total ?? 0) - Number(invoice.paidAmount ?? 0);
+    if (remaining <= 0.01) { toast.info("الفاتورة مسددة بالكامل"); return; }
+    setPayTarget({ invoice, source });
+    setPayAmount("");
+    setPayMethod(invoice.paymentMethod === "credit" ? "cash" : invoice.paymentMethod || "cash");
+    setPayDate("");
+    setPayNotes("");
+  };
+
+  const handlePay = () => {
+    if (!payTarget) return;
+    const amt = parseFloat(payAmount);
+    const remaining = Number(payTarget.invoice.total) - Number(payTarget.invoice.paidAmount ?? 0);
+    if (!payAmount || isNaN(amt) || amt <= 0) { toast.error("أدخل مبلغاً موجباً"); return; }
+    if (amt > remaining + 0.01) { toast.error(`المبلغ يتجاوز المتبقي (${remaining.toLocaleString("en-US")})`); return; }
+    createPayment.mutate({
+      source: payTarget.source,
+      invoiceId: payTarget.invoice.id,
+      amount: payAmount,
+      paymentMethod: payMethod,
+      paymentDate: payDate || undefined,
+      notes: payNotes.trim() || undefined,
+    });
+  };
 
   const handlePrintSaleInvoice = async (invId: number) => {
     try {
@@ -439,6 +484,17 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
                       <div className="flex items-center gap-3">
                         <Badge className={`text-[10px] ${statusColors[inv.status] || ""}`}>{statusLabels[inv.status] || inv.status}</Badge>
                         <p className="font-bold text-xs text-green-600">{inv.total} ر.ي</p>
+                        <p className="text-[9px] text-gray-400">المدفوع: {Number(inv.paidAmount || 0).toLocaleString("en-US")} · المتبقي: {Number(inv.total).toLocaleString("en-US")}</p>
+                        {inv.status !== "cancelled" && Number(inv.total) - Number(inv.paidAmount || 0) > 0.01 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[9px] h-6 text-emerald-700 border-emerald-200"
+                            onClick={() => openPayDialog(inv, "sales")}
+                          >
+                            <Wallet className="w-3 h-3" /> دفعة
+                          </Button>
+                        )}
                         {inv.status !== "cancelled" && (
                           <Button
                             size="sm"
@@ -490,6 +546,17 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
                       <div className="flex items-center gap-3">
                         <Badge className={`text-[10px] ${statusColors[inv.status] || ""}`}>{statusLabels[inv.status] || inv.status}</Badge>
                         <p className="font-bold text-xs text-red-600">{inv.total} ر.ي</p>
+                        <p className="text-[9px] text-gray-400">المدفوع: {Number(inv.paidAmount || 0).toLocaleString("en-US")} · المتبقي: {Number(inv.total).toLocaleString("en-US")}</p>
+                        {inv.status !== "cancelled" && Number(inv.total) - Number(inv.paidAmount || 0) > 0.01 && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[9px] h-6 text-emerald-700 border-emerald-200"
+                            onClick={() => openPayDialog(inv, "purchases")}
+                          >
+                            <Wallet className="w-3 h-3" /> دفعة
+                          </Button>
+                        )}
                         {inv.status !== "cancelled" && (
                           <Button
                             size="sm"
@@ -801,6 +868,61 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
               onClick={() => createOrder.mutate({ customerId: orderCustomerId, items: orderItems, deliveryAddress: orderAddress })}
               disabled={orderItems.length === 0 || isCreatingOrder}>
               {isCreatingOrder ? "جاري الإنشاء..." : "إنشاء الطلب"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Dialog (Receipt / Settlement) */}
+      <Dialog open={!!payTarget} onOpenChange={(o) => !o && setPayTarget(null)}>
+        <DialogContent className="max-w-md font-sans" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-[#b87945]" /> تسجيل دفعة / سند قبض
+            </DialogTitle>
+          </DialogHeader>
+          {payTarget && (
+            <div className="space-y-3 pt-2">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs space-y-1">
+                <p className="font-bold text-slate-800">{payTarget.invoice.invoiceNumber}</p>
+                <p className="text-slate-600">
+                  إجمالي الفاتورة: <b>{Number(payTarget.invoice.total).toLocaleString("en-US")}</b> · المدفوع: <b>{Number(payTarget.invoice.paidAmount || 0).toLocaleString("en-US")}</b>
+                </p>
+                <p className="text-emerald-700 font-bold">المتبقي: {Math.max(0, Number(payTarget.invoice.total) - Number(payTarget.invoice.paidAmount || 0)).toLocaleString("en-US")}</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-bold text-slate-700">مبلغ الدفعة</Label>
+                  <Input type="number" min="0" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="0.00" className="h-8 text-xs font-mono bg-slate-50" />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-bold text-slate-700">طريقة الدفع</Label>
+                  <Select value={payMethod} onValueChange={(v) => setPayMethod(v as any)}>
+                    <SelectTrigger className="h-8 text-xs bg-slate-50"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash" className="text-xs">نقدي</SelectItem>
+                      <SelectItem value="transfer" className="text-xs">تحويل بنكي</SelectItem>
+                      <SelectItem value="card" className="text-xs">بطاقة</SelectItem>
+                      <SelectItem value="online" className="text-xs">إلكتروني</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700">تاريخ الدفعة (اختياري)</Label>
+                <Input type="date" value={payDate} onChange={(e) => setPayDate(e.target.value)} className="h-8 text-xs bg-slate-50" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700">ملاحظات (اختياري)</Label>
+                <Input value={payNotes} onChange={(e) => setPayNotes(e.target.value)} placeholder="مثال: دفعة أولى..." className="h-8 text-xs bg-slate-50" />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setPayTarget(null)} className="text-xs h-8">إلغاء</Button>
+            <Button size="sm" onClick={handlePay} disabled={createPayment.isPending} className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
+              {createPayment.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Wallet className="w-3 h-3 ml-1" />}
+              تسجيل الدفعة
             </Button>
           </DialogFooter>
         </DialogContent>
