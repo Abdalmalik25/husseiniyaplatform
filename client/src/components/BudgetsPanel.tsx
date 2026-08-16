@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { put } from "@/lib/offline/db";
+import { useOffline } from "@/lib/offline/OfflineContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -41,6 +43,7 @@ function barColor(pctValue: number, isExpense: boolean): string {
 }
 
 export default function BudgetsPanel({ transactionsData, currency }: Props) {
+  const { isOnline } = useOffline();
   const { data: budgets, refetch, isLoading } = trpc.accounting.getBudgets.useQuery();
   const saveBudgetMutation = trpc.accounting.saveBudget.useMutation({
     onSuccess: () => {
@@ -58,9 +61,28 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
   const actualRevenue = actualFor(transactionsData, "revenue");
   const actualExpense = actualFor(transactionsData, "expense");
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!form.periodName.trim() || !form.targetRevenue || !form.targetExpense) {
       toast.error("الرجاء إدخال اسم الفترة وقيم المستهدف (إيرادات ومصروفات)");
+      return;
+    }
+    if (!isOnline) {
+      try {
+        await put("budgets", {
+          id: -Date.now(),
+          periodName: form.periodName.trim(),
+          targetRevenue: form.targetRevenue,
+          targetExpense: form.targetExpense,
+          notes: form.notes.trim() || null,
+          createdAt: new Date().toISOString(),
+        });
+        toast.success("حُفظت الخطة محلياً (وضع آفلداين) — ستتزامن تلقائياً عند عودة الاتصال");
+        setDialogOpen(false);
+        setForm({ periodName: "", targetRevenue: "", targetExpense: "", notes: "" });
+        refetch();
+      } catch (e: any) {
+        toast.error("فشل الحفظ المحلي: " + (e?.message || "خطأ غير معروف"));
+      }
       return;
     }
     saveBudgetMutation.mutate({

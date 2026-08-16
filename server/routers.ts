@@ -352,6 +352,7 @@ export const appRouter = router({
 
     // Add Transaction
     addTransaction: protectedProcedure.input(z.object({
+      id: z.number().optional(),
       accountId: z.number(),
       amount: z.string().refine(v => {
         const n = parseFloat(v);
@@ -370,7 +371,7 @@ export const appRouter = router({
       const account = await db.select().from(accounts).where(eq(accounts.id, input.accountId)).limit(1);
       if (account.length === 0) throw new Error("الحساب غير موجود");
 
-      await db.insert(transactions).values({
+      const values = {
         accountId: input.accountId,
         amount: input.amount,
         type: input.type,
@@ -380,7 +381,14 @@ export const appRouter = router({
         lifecycleStatus: input.lifecycleStatus,
         isReversed: false,
         userId: ctx.user.id,
-      });
+      };
+
+      if (input.id != null) {
+        await db.insert(transactions).values({ ...values, id: input.id })
+          .onConflictDoUpdate({ target: transactions.id, set: { ...values, id: input.id } });
+      } else {
+        await db.insert(transactions).values(values);
+      }
 
       return { success: true };
     }),
@@ -389,6 +397,7 @@ export const appRouter = router({
     addBatchTransactions: protectedProcedure.input(z.object({
       lifecycleStatus: z.enum(["saved", "approved", "sent"]).default("saved"),
       rows: z.array(z.object({
+        id: z.number().optional(),
         accountId: z.number(),
         amount: z.string(),
         type: z.enum(["debit", "credit"]).default("debit"),
@@ -403,7 +412,7 @@ export const appRouter = router({
       let count = 0;
       for (const item of input.rows) {
         if (!item.amount || parseFloat(item.amount) <= 0) continue;
-        await db.insert(transactions).values({
+        const values = {
           accountId: item.accountId,
           amount: item.amount,
           type: item.type || "debit",
@@ -413,7 +422,13 @@ export const appRouter = router({
           lifecycleStatus: input.lifecycleStatus,
           isReversed: false,
           userId: ctx.user.id,
-        });
+        };
+        if (item.id != null) {
+          await db.insert(transactions).values({ ...values, id: item.id })
+            .onConflictDoUpdate({ target: transactions.id, set: { ...values, id: item.id } });
+        } else {
+          await db.insert(transactions).values(values);
+        }
         count++;
       }
 
@@ -556,6 +571,7 @@ export const appRouter = router({
     }),
 
     saveBudget: protectedProcedure.input(z.object({
+      id: z.number().optional(),
       periodName: z.string(),
       targetRevenue: z.string(),
       targetExpense: z.string(),
@@ -563,7 +579,18 @@ export const appRouter = router({
     })).mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      await db.insert(budgets).values(input);
+      const values = {
+        periodName: input.periodName,
+        targetRevenue: input.targetRevenue,
+        targetExpense: input.targetExpense,
+        notes: input.notes || null,
+      };
+      if (input.id != null) {
+        await db.insert(budgets).values({ ...values, id: input.id })
+          .onConflictDoUpdate({ target: budgets.id, set: { ...values, id: input.id } });
+      } else {
+        await db.insert(budgets).values(values);
+      }
       return { success: true };
     }),
 

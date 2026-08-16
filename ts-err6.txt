@@ -1,0 +1,4 @@
+server/routers.ts(1,1): error TS1490: File appears to be binary.
+server/routers.ts(360,19): error TS1005: ',' expected.
+server/routers.ts(360,22): error TS1005: ',' expected.
+server/routers.ts(2615,1): error TS1005: ')' expected.

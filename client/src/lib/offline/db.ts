@@ -256,6 +256,10 @@ export async function remove(table: TableName, id: string | number): Promise<voi
   }
 }
 
+export async function removeLocalRow(table: TableName, id: string | number): Promise<void> {
+  await runTx("readwrite", table, (store) => (store as IDBObjectStore).delete(id));
+}
+
 export async function clear(table: TableName): Promise<void> {
   await runTx("readwrite", table, (store) => (store as IDBObjectStore).clear());
 }

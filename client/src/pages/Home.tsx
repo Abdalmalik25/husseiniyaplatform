@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import BudgetsPanel from "@/components/BudgetsPanel";
+import { put } from "@/lib/offline/db";
 
 type ImportRow = { accountId: number; amount: string; type: "debit" | "credit"; transactionDate: string; narration?: string };
 
@@ -350,9 +351,30 @@ export default function Home() {
     return filteredRecords.reduce((sum, tx) => sum + parseFloat(String(tx.amount || 0)), 0);
   }, [filteredRecords]);
 
-  const handleQuickEntry = () => {
+  const handleQuickEntry = async () => {
     if (!quickAccountId || !quickAmount) {
       toast.error("الرجاء اختيار الحساب وإدخال القيمة المطلوبة");
+      return;
+    }
+    if (!isOnline) {
+      try {
+        await put("transactions", {
+          id: -Date.now(),
+          accountId: Number(quickAccountId),
+          amount: quickAmount,
+          type: "debit",
+          transactionDate: quickDate || new Date().toISOString().split("T")[0],
+          narration: quickNarration || "حركة إدخال سريع",
+          lifecycleStatus: "approved",
+          isReversed: false,
+          userId: 0,
+        });
+        toast.success("حُفظت محلياً (وضع آفلداين) — ستتزامن تلقائياً عند عودة الاتصال");
+        setQuickAmount("");
+        setQuickNarration("");
+      } catch (e: any) {
+        toast.error("فشل الحفظ المحلي: " + (e?.message || "خطأ غير معروف"));
+      }
       return;
     }
     addBatchTransactionsMutation.mutate({

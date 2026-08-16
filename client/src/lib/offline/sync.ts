@@ -17,6 +17,7 @@ import {
   setSyncMeta,
   getAll,
   bulkPut,
+  removeLocalRow,
   type TableName,
   type SyncQueueEntry,
 } from "./db";
@@ -211,6 +212,9 @@ export async function pushPendingChanges(): Promise<{ pushed: number; failed: nu
 
       await trpcMutate(rpcName, entry.payload);
       await removeSyncEntry(entry.id!);
+      if (entry.operation === "create" && (table === "transactions" || table === "budgets")) {
+        await removeLocalRow(table, (entry.payload as any)?.id ?? entry.recordId);
+      }
       pushed++;
     } catch (error) {
       console.warn(`[Sync] Push failed for entry ${entry.id}:`, error);
