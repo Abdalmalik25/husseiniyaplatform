@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { 
   Building2, Plus, Search, Settings, 
   BookOpen, BarChart3, LogOut, Save, Check, 
-  FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw, Upload, ClipboardCopy, Scale
+  FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw, Upload, ClipboardCopy, Scale, Package, ShoppingCart, Users, AlertTriangle
 } from "lucide-react";
 import { toast } from "sonner";
 import BudgetsPanel from "@/components/BudgetsPanel";
@@ -154,6 +154,10 @@ export default function Home() {
   const { data: accountsData, refetch: refetchAccounts, isLoading: loadingAccounts } = trpc.accounting.getAccounts.useQuery();
   const { data: transactionsData, refetch: refetchTransactions, isLoading: loadingTx } = trpc.accounting.getTransactions.useQuery();
   const { data: summaryData, refetch: refetchSummary, isLoading: loadingSummary } = trpc.accounting.getDashboardSummary.useQuery();
+  const { data: commercialStats, isLoading: commercialLoading } = trpc.commercial.getStats.useQuery();
+  const lowStockAlerts = commercialStats?.lowStock ?? [];
+  const topCustomerDebts = commercialStats?.topCustomers ?? [];
+  const hasCommercialAlerts = lowStockAlerts.length > 0 || topCustomerDebts.length > 0;
   const { data: activityLogsData, refetch: refetchActivityLogs } = trpc.auth.getActivityLogs.useQuery(undefined, { enabled: deferHeavyQueries });
   const { data: branchComparisonData } = trpc.accounting.getBranchPerformanceComparison.useQuery(undefined, { enabled: deferHeavyQueries });
   const { data: aiAdvisorData, refetch: refetchAiAdvisor, isLoading: aiLoading } = trpc.accounting.getAiFinancialAdvisorAnalysis.useQuery(undefined, { enabled: deferHeavyQueries });
@@ -666,7 +670,68 @@ export default function Home() {
         </Button>
       </div>
 
-        {/* Quick Transaction Entry Widget */}
+      {/* Commercial Overview Panel */}
+      <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
+        <CardHeader className="py-2.5 px-4 border-b border-[#f0dfc8] bg-[#f5ece0] flex flex-row items-center justify-between">
+          <CardTitle className="text-xs font-bold text-[#5c3d1e] flex items-center gap-1.5">
+            <Layers className="w-4 h-4 text-[#7a5228]" /> نظرة تجارية سريعة — المخزون والمبيعات والذمم
+          </CardTitle>
+          <Button size="sm" variant="ghost" onClick={() => (window.location.href = "/commercial")} className="h-6 text-[10px] text-[#b87945] font-bold hover:bg-[#f5ece0]">
+            فتح المحاسبة التجارية
+          </Button>
+        </CardHeader>
+        <CardContent className="p-3 space-y-2.5">
+          {commercialLoading ? (
+            <div className="h-16 bg-white/60 rounded-lg animate-pulse" />
+          ) : (
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center" title="مبيعات الشهر الجاري">
+                  <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1"><ShoppingCart className="w-3 h-3 text-emerald-600" /> مبيعات الشهر</p>
+                  <p className="text-xs font-bold text-emerald-800 mt-0.5 font-mono">{(commercialStats?.monthStats?.salesTotal || 0).toLocaleString("en-US")}</p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center" title="مشتريات الشهر الجاري">
+                  <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1"><ShoppingCart className="w-3 h-3 text-rose-600" /> مشتريات الشهر</p>
+                  <p className="text-xs font-bold text-rose-800 mt-0.5 font-mono">{(commercialStats?.monthStats?.purchasesTotal || 0).toLocaleString("en-US")}</p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center" title="المنتجات النشطة في المخزون">
+                  <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1"><Package className="w-3 h-3 text-[#b87945]" /> منتجات نشطة</p>
+                  <p className="text-xs font-bold text-[#5c3d1e] mt-0.5 font-mono">{commercialStats?.counts?.products || 0}</p>
+                </div>
+                <div className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center" title="عدد العملاء النشطين">
+                  <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1"><Users className="w-3 h-3 text-blue-600" /> عملاء نشطون</p>
+                  <p className="text-xs font-bold text-blue-900 mt-0.5 font-mono">{commercialStats?.counts?.customers || 0}</p>
+                </div>
+              </div>
+              {hasCommercialAlerts && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  {lowStockAlerts.length > 0 && (
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+                      <p className="text-[10px] font-bold text-amber-800 mb-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> تنبيه نفاد المخزون ({lowStockAlerts.length})</p>
+                      {lowStockAlerts.slice(0, 4).map((p: any) => (
+                        <p key={p.id} className="text-[10px] text-amber-900 py-0.5">• {p.name} — متبقي <b>{p.currentStock}</b> {p.unit} (الحد الأدنى {p.minStock})</p>
+                      ))}
+                    </div>
+                  )}
+                  {topCustomerDebts.length > 0 && (
+                    <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5">
+                      <p className="text-[10px] font-bold text-rose-800 mb-1">ذمم عملاء غير مسددة ({topCustomerDebts.length})</p>
+                      {topCustomerDebts.slice(0, 4).map((c: any) => (
+                        <p key={c.id} className="text-[10px] text-rose-900 py-0.5">• {c.name} — <b>{Number(c.balance).toLocaleString("en-US")}</b> {currency}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {!hasCommercialAlerts && (
+                <p className="text-[10px] text-slate-400 text-center py-1">لا تنبيهات حالياً — المخزون والذمم في وضع سليم.</p>
+              )}
+            </>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Quick Transaction Entry Widget */}
         <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
           <CardHeader className="py-2.5 px-4 border-b border-[#f0dfc8] bg-[#f5ece0] flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-bold text-[#5c3d1e] flex items-center gap-1.5">
