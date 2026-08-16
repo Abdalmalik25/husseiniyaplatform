@@ -25,15 +25,22 @@ export default function Home() {
 
   const [activeTab, setActiveTab] = useState<"entry" | "accounts" | "reports" | "audit" | "analytics" | "profile">("entry");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  // Defer non-critical queries (audit log, branch comparison, AI advisor) so the
+  // first paint only waits for the core batch (settings/accounts/tx/summary).
+  const [deferHeavyQueries, setDeferHeavyQueries] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setDeferHeavyQueries(true), 700);
+    return () => clearTimeout(t);
+  }, []);
 
   // Queries
   const { data: settingsData } = trpc.accounting.getSettings.useQuery();
   const { data: accountsData, refetch: refetchAccounts, isLoading: loadingAccounts } = trpc.accounting.getAccounts.useQuery();
   const { data: transactionsData, refetch: refetchTransactions, isLoading: loadingTx } = trpc.accounting.getTransactions.useQuery();
   const { data: summaryData, refetch: refetchSummary, isLoading: loadingSummary } = trpc.accounting.getDashboardSummary.useQuery();
-  const { data: activityLogsData, refetch: refetchActivityLogs } = trpc.auth.getActivityLogs.useQuery();
-  const { data: branchComparisonData } = trpc.accounting.getBranchPerformanceComparison.useQuery();
-  const { data: aiAdvisorData, refetch: refetchAiAdvisor, isLoading: aiLoading } = trpc.accounting.getAiFinancialAdvisorAnalysis.useQuery();
+  const { data: activityLogsData, refetch: refetchActivityLogs } = trpc.auth.getActivityLogs.useQuery(undefined, { enabled: deferHeavyQueries });
+  const { data: branchComparisonData } = trpc.accounting.getBranchPerformanceComparison.useQuery(undefined, { enabled: deferHeavyQueries });
+  const { data: aiAdvisorData, refetch: refetchAiAdvisor, isLoading: aiLoading } = trpc.accounting.getAiFinancialAdvisorAnalysis.useQuery(undefined, { enabled: deferHeavyQueries });
 
   // Local States
   const [instName, setInstName] = useState("ALHUSAINIA | مركز العمليات المالية");

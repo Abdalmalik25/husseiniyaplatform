@@ -3271,6 +3271,12 @@ function createApp() {
   });
   registerStorageProxy(app2);
   registerOAuthRoutes(app2);
+  app2.use("/api/trpc", (req, res, next) => {
+    if (req.method === "GET") {
+      res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=90");
+    }
+    next();
+  });
   app2.use(
     "/api/trpc",
     createExpressMiddleware({

@@ -24,6 +24,14 @@ export function createApp(): Express {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
   // tRPC API
+  // GET queries are cacheable at the edge for seconds (single-tenant data set);
+  // mutations (POST/PATCH) are never cached.
+  app.use("/api/trpc", (req, res, next) => {
+    if (req.method === "GET") {
+      res.setHeader("Cache-Control", "public, s-maxage=30, stale-while-revalidate=90");
+    }
+    next();
+  });
   app.use(
     "/api/trpc",
     createExpressMiddleware({
