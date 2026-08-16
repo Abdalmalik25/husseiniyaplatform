@@ -17,6 +17,7 @@ import {
   FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw
 } from "lucide-react";
 import { toast } from "sonner";
+import BudgetsPanel from "@/components/BudgetsPanel";
 
 export default function Home() {
   let { user, isAuthenticated, logout, loading: authLoading, refresh } = useAuth();
@@ -1067,6 +1068,8 @@ export default function Home() {
 
           {/* Tab 5: Analytics & AI Advisor */}
           <TabsContent value="analytics" className="space-y-4">
+            <BudgetsPanel transactionsData={transactionsData as any} currency={currency} />
+
             <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
               <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-[#f0dfc8]">
                 <CardTitle className="flex items-center gap-2 text-[#5c3d1e] text-xs font-bold">
