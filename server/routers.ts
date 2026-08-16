@@ -1,3 +1,4 @@
+import { ENV } from "./_core/env";
 import { COOKIE_NAME } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { invokeLLM } from "./_core/llm";
@@ -1041,33 +1042,174 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
     getAiFinancialAdvisorAnalysis: protectedProcedure.query(async () => {
       const db = await getDb();
       if (!db) return { analysis: "قاعدة البيانات غير متوفرة حالياً", status: "خطأ", timestamp: new Date().toISOString() };
-      const allTx = await db.select().from(transactions).where(eq(transactions.lifecycleStatus, 'approved'));
+
+      const allTx = await db.select({
+        id: transactions.id,
+        amount: transactions.amount,
+        type: transactions.type,
+        accountId: transactions.accountId,
+        accountType: accounts.type,
+        accountName: accounts.name,
+        transactionDate: transactions.transactionDate,
+        narration: transactions.narration,
+        lifecycleStatus: transactions.lifecycleStatus,
+        isReversed: transactions.isReversed,
+      })
+      .from(transactions)
+      .leftJoin(accounts, eq(transactions.accountId, accounts.id))
+      .where(eq(transactions.isReversed, false))
+      .orderBy(desc(transactions.transactionDate), desc(transactions.id));
+
       const allAccts = await db.select().from(accounts);
+      const allBudgets = await db.select().from(budgets).orderBy(desc(budgets.id));
 
-      const prompt = `أنت مساعد مالي ذكي وخبير محاسبي معتمد لنظام AuraLedger. قم بتحليل الأرصدة والحركات المالية الحالية وتقديم:
-1. تقييم تنفيذي للأداء المالي العام.
-2. 3 توصيات ذكية وعميقة وقابلة للتنفيذ لتحسين التدفقات النقدية وخفض المصروفات.
-3. مؤشرات الكفاءة والسيولة.
+      // ── Local statistical analysis (LLM-free, always available) ──
+      const approved = allTx.filter((t) => t.lifecycleStatus === "approved");
+      let totalRevenue = 0;
+      let totalExpense = 0;
+      const byAccount: Record<number, { name: string; code: string; revenue: number; expense: number }> = {};
+      const accountMeta = new Map<number, { name: string; code: string }>();
 
-أجب باللغة العربية بأسلوب مهني واحترافي.`;
-
-      try {
-        const response = await invokeLLM({
-          messages: [{ role: "user", content: prompt }]
-        });
-        const content = response.choices[0]?.message?.content || "الأداء المالي مستقر مع فرصة لتحسين تحصيل الذمم الدائنة والمدينة.";
-        return {
-          analysis: typeof content === 'string' ? content : JSON.stringify(content),
-          status: "مكتمل بدقة عالية",
-          timestamp: new Date().toISOString()
-        };
-      } catch (e) {
-        return {
-          analysis: "يقترح المساعد المالي زيادة نسبة السيولة النقدية في الصندوق الرئيسي بمقدار 15% ومراقبة المصروفات التشغيلية للرواتب والإيجارات.",
-          status: "تحليل افتراضي معتمد",
-          timestamp: new Date().toISOString()
-        };
+      for (const a of allAccts) {
+        accountMeta.set(a.id, { name: a.name, code: a.code });
+        byAccount[a.id] = { name: a.name, code: a.code, revenue: 0, expense: 0 };
       }
+
+      for (const tx of approved) {
+        const amt = parseFloat(tx.amount || "0");
+        const key = tx.accountId ?? -1;
+        if (!byAccount[key]) byAccount[key] = { name: tx.accountName || "حساب غير محدد", code: "", revenue: 0, expense: 0 };
+        if (tx.accountType === "revenue") {
+          totalRevenue += amt;
+          byAccount[key].revenue += amt;
+        } else if (tx.accountType === "expense") {
+          totalExpense += amt;
+          byAccount[key].expense += amt;
+        }
+      }
+
+      const netIncome = totalRevenue - totalExpense;
+      const margin = totalRevenue > 0 ? (netIncome / totalRevenue) * 100 : 0;
+      const expenseRatio = totalRevenue > 0 ? (totalExpense / totalRevenue) * 100 : 0;
+
+      const topRevenue = Object.values(byAccount)
+        .filter((a) => a.revenue > 0)
+        .sort((a, b) => b.revenue - a.revenue)
+        .slice(0, 3);
+      const topExpense = Object.values(byAccount)
+        .filter((a) => a.expense > 0)
+        .sort((a, b) => b.expense - a.expense)
+        .slice(0, 3);
+
+      const cashAccounts = allAccts.filter((a) => a.type === "asset" && (a.code === "1010" || a.code.startsWith("1020")));
+      let cashBalance = 0;
+      for (const tx of approved) {
+        if (!tx.accountId || !tx.accountType || tx.accountType !== "asset") continue;
+        if (!cashAccounts.some((c) => c.id === tx.accountId)) continue;
+        const amt = parseFloat(tx.amount || "0");
+        cashBalance += tx.type === "debit" ? amt : -amt;
+      }
+
+      let budgetLine = "لا توجد خطط ميزانية مضافة بعد — أضف خطة من تبويب التحليلات لمراقبة الأداء مقابل الأهداف.";
+      if (allBudgets.length > 0) {
+        const latest = allBudgets[0];
+        const revTarget = parseFloat(String(latest.targetRevenue || "0"));
+        const expTarget = parseFloat(String(latest.targetExpense || "0"));
+        const revPct = revTarget > 0 ? Math.round((totalRevenue / revTarget) * 100) : 0;
+        const expPct = expTarget > 0 ? Math.round((totalExpense / expTarget) * 100) : 0;
+        budgetLine = `خطة «${latest.periodName}»: تحقق الإيرادات ${revPct}% من المستهدف، والمصروفات ${expPct}% من السقف المخصص.`;
+      }
+
+      const fmt = (n: number) => n.toLocaleString("en-US");
+      const topRevenueLine = topRevenue.length
+        ? topRevenue.map((a) => `• ${a.code} ${a.name}: ${fmt(a.revenue)}`).join("\n")
+        : "لا توجد إيرادات معتمدة مسجلة بعد.";
+      const topExpenseLine = topExpense.length
+        ? topExpense.map((a) => `• ${a.code} ${a.name}: ${fmt(a.expense)}`).join("\n")
+        : "لا توجد مصروفات معتمدة مسجلة بعد.";
+
+      const recommendations: string[] = [];
+      if (totalRevenue === 0 && totalExpense === 0) {
+        recommendations.push(
+          "ابدأ بتسجيل أول حركة مالية معتمدة (إيرادات أو مصروفات) عبر أداة الإدخال السريع — التحليل الكامل يبدأ تلقائياً عند توفر البيانات."
+        );
+      } else {
+        if (cashBalance < totalExpense * 0.15 && totalExpense > 0) {
+          recommendations.push(
+            `السيولة النقدية (${fmt(cashBalance)}) أقل من 15% من إجمالي المصروفات — عجّل تحصيل الذمم وحدّ من السحوبات غير المخطط لها لتغطية الالتزامات القادمة.`
+          );
+        } else if (totalExpense > 0) {
+          recommendations.push(
+            `السيولة النقدية الحالية (${fmt(cashBalance)}) تغطي التزامات التشغيل — حافظ على هامش احتياطي لا يقل عن شهر مصروفات.`
+          );
+        }
+        if (expenseRatio > 70) {
+          recommendations.push(
+            `نسبة المصروفات إلى الإيرادات ${expenseRatio.toFixed(0)}% تتجاوز الحد الصحي (70%) — راجع بنود المصروفات الكبرى التالية لإعادة التفاوض أو الترشيد: ${topExpense.map((a) => a.name).join("، ")}.`
+          );
+        } else if (margin > 15) {
+          recommendations.push(
+            `هامش الربح التشغيلي ${margin.toFixed(1)}% قوي — وجّه الفائض نحو حساب نقدي/استثماري منفصل أو تخفيض تكلفة التمويل إذا وُجد قرض.`
+          );
+        } else {
+          recommendations.push(
+            `هامش الربح ${margin.toFixed(1)}% مقبول — ركّز على نمو الإيرادات عبر أكبر 3 مصادر حالياً ثم على تثبيت تكلفة التشغيل عند مستواها الحالي.`
+          );
+        }
+        if (topExpense.length > 0) {
+          recommendations.push(
+            `تابع شهرياً البنود الثلاثة الأكبر (${topExpense.map((a) => a.name).join("، ")}) — خفض 5% منها يوفّر ${fmt(totalExpense * 0.05)} سنوياً تقريباً.`
+          );
+        }
+      }
+
+      const analysisText = [
+        "━━─ التقييم التنفيذي ─━━",
+        totalRevenue === 0 && totalExpense === 0
+          ? "المنصة جاهزة والأداء المالي بانتظار أول حركة معتمدة."
+          : `إجمالي الإيرادات المعتمدة: ${fmt(totalRevenue)}\nإجمالي المصروفات المعتمدة: ${fmt(totalExpense)}\nصافي الدخل التشغيلي: ${fmt(netIncome)} (هامش ${margin.toFixed(1)}%)\nنسبة المصروفات إلى الإيرادات: ${expenseRatio.toFixed(0)}%`,
+        "",
+        "━━─ مصادر التدفق الرئيسية ─━━",
+        topRevenueLine,
+        "",
+        "━━─ أكبر بنود المصروفات ─━━",
+        topExpenseLine,
+        "",
+        "━━─ السيولة والكفاءة ─━━",
+        `الرصيد النقدي (الصندوق + البنوك): ${fmt(cashBalance)}`,
+        budgetLine,
+        "",
+        "━━─ التوصيات الذكية (3) ─━━",
+        recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n"),
+      ].join("\n");
+
+      // ── LLM enhancement (only when Forge/OpenAI key is configured) ──
+      if (ENV.forgeApiKey) {
+        try {
+          const response = await invokeLLM({
+            messages: [
+              {
+                role: "user",
+                content: `أنت مساعد مالي خبير لنظام ALHUSAINIA المحاسبي. إليك بيانات مالية محسوبة بدقة تشغيلية، فقدم تحليلاً أعمق مبنياً عليها حصراً (بالعربية، أسلوب مهني):
+${analysisText}
+ملاحظة: لا تختلق أرقاماً؛ اعتمد على ما ورد فقط.`,
+              },
+            ],
+          });
+          const content = response.choices[0]?.message?.content;
+          if (typeof content === "string" && content.trim().length > 20) {
+            return { analysis: content, status: "تحليل بالذكاء الاصطناعي (Forge LLM)", timestamp: new Date().toISOString() };
+          }
+        } catch {
+          // fall through to the local statistical analysis
+        }
+      }
+
+      return {
+        analysis: analysisText,
+        status: ENV.forgeApiKey ? "تحليل إحصائي محلي (تعذر الاتصال بـ LLM)" : "تحليل إحصائي محلي معتمد",
+        timestamp: new Date().toISOString(),
+      };
     }),
   }),
 

@@ -2041,31 +2041,144 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
     getAiFinancialAdvisorAnalysis: protectedProcedure.query(async () => {
       const db = await getDb();
       if (!db) return { analysis: "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u063A\u064A\u0631 \u0645\u062A\u0648\u0641\u0631\u0629 \u062D\u0627\u0644\u064A\u0627\u064B", status: "\u062E\u0637\u0623", timestamp: (/* @__PURE__ */ new Date()).toISOString() };
-      const allTx = await db.select().from(transactions).where(eq2(transactions.lifecycleStatus, "approved"));
+      const allTx = await db.select({
+        id: transactions.id,
+        amount: transactions.amount,
+        type: transactions.type,
+        accountId: transactions.accountId,
+        accountType: accounts.type,
+        accountName: accounts.name,
+        transactionDate: transactions.transactionDate,
+        narration: transactions.narration,
+        lifecycleStatus: transactions.lifecycleStatus,
+        isReversed: transactions.isReversed
+      }).from(transactions).leftJoin(accounts, eq2(transactions.accountId, accounts.id)).where(eq2(transactions.isReversed, false)).orderBy(desc(transactions.transactionDate), desc(transactions.id));
       const allAccts = await db.select().from(accounts);
-      const prompt = `\u0623\u0646\u062A \u0645\u0633\u0627\u0639\u062F \u0645\u0627\u0644\u064A \u0630\u0643\u064A \u0648\u062E\u0628\u064A\u0631 \u0645\u062D\u0627\u0633\u0628\u064A \u0645\u0639\u062A\u0645\u062F \u0644\u0646\u0638\u0627\u0645 AuraLedger. \u0642\u0645 \u0628\u062A\u062D\u0644\u064A\u0644 \u0627\u0644\u0623\u0631\u0635\u062F\u0629 \u0648\u0627\u0644\u062D\u0631\u0643\u0627\u062A \u0627\u0644\u0645\u0627\u0644\u064A\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 \u0648\u062A\u0642\u062F\u064A\u0645:
-1. \u062A\u0642\u064A\u064A\u0645 \u062A\u0646\u0641\u064A\u0630\u064A \u0644\u0644\u0623\u062F\u0627\u0621 \u0627\u0644\u0645\u0627\u0644\u064A \u0627\u0644\u0639\u0627\u0645.
-2. 3 \u062A\u0648\u0635\u064A\u0627\u062A \u0630\u0643\u064A\u0629 \u0648\u0639\u0645\u064A\u0642\u0629 \u0648\u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u062A\u0646\u0641\u064A\u0630 \u0644\u062A\u062D\u0633\u064A\u0646 \u0627\u0644\u062A\u062F\u0641\u0642\u0627\u062A \u0627\u0644\u0646\u0642\u062F\u064A\u0629 \u0648\u062E\u0641\u0636 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A.
-3. \u0645\u0624\u0634\u0631\u0627\u062A \u0627\u0644\u0643\u0641\u0627\u0621\u0629 \u0648\u0627\u0644\u0633\u064A\u0648\u0644\u0629.
-
-\u0623\u062C\u0628 \u0628\u0627\u0644\u0644\u063A\u0629 \u0627\u0644\u0639\u0631\u0628\u064A\u0629 \u0628\u0623\u0633\u0644\u0648\u0628 \u0645\u0647\u0646\u064A \u0648\u0627\u062D\u062A\u0631\u0627\u0641\u064A.`;
-      try {
-        const response = await invokeLLM({
-          messages: [{ role: "user", content: prompt }]
-        });
-        const content = response.choices[0]?.message?.content || "\u0627\u0644\u0623\u062F\u0627\u0621 \u0627\u0644\u0645\u0627\u0644\u064A \u0645\u0633\u062A\u0642\u0631 \u0645\u0639 \u0641\u0631\u0635\u0629 \u0644\u062A\u062D\u0633\u064A\u0646 \u062A\u062D\u0635\u064A\u0644 \u0627\u0644\u0630\u0645\u0645 \u0627\u0644\u062F\u0627\u0626\u0646\u0629 \u0648\u0627\u0644\u0645\u062F\u064A\u0646\u0629.";
-        return {
-          analysis: typeof content === "string" ? content : JSON.stringify(content),
-          status: "\u0645\u0643\u062A\u0645\u0644 \u0628\u062F\u0642\u0629 \u0639\u0627\u0644\u064A\u0629",
-          timestamp: (/* @__PURE__ */ new Date()).toISOString()
-        };
-      } catch (e) {
-        return {
-          analysis: "\u064A\u0642\u062A\u0631\u062D \u0627\u0644\u0645\u0633\u0627\u0639\u062F \u0627\u0644\u0645\u0627\u0644\u064A \u0632\u064A\u0627\u062F\u0629 \u0646\u0633\u0628\u0629 \u0627\u0644\u0633\u064A\u0648\u0644\u0629 \u0627\u0644\u0646\u0642\u062F\u064A\u0629 \u0641\u064A \u0627\u0644\u0635\u0646\u062F\u0648\u0642 \u0627\u0644\u0631\u0626\u064A\u0633\u064A \u0628\u0645\u0642\u062F\u0627\u0631 15% \u0648\u0645\u0631\u0627\u0642\u0628\u0629 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0627\u0644\u062A\u0634\u063A\u064A\u0644\u064A\u0629 \u0644\u0644\u0631\u0648\u0627\u062A\u0628 \u0648\u0627\u0644\u0625\u064A\u062C\u0627\u0631\u0627\u062A.",
-          status: "\u062A\u062D\u0644\u064A\u0644 \u0627\u0641\u062A\u0631\u0627\u0636\u064A \u0645\u0639\u062A\u0645\u062F",
-          timestamp: (/* @__PURE__ */ new Date()).toISOString()
-        };
+      const allBudgets = await db.select().from(budgets).orderBy(desc(budgets.id));
+      const approved = allTx.filter((t2) => t2.lifecycleStatus === "approved");
+      let totalRevenue = 0;
+      let totalExpense = 0;
+      const byAccount = {};
+      const accountMeta = /* @__PURE__ */ new Map();
+      for (const a of allAccts) {
+        accountMeta.set(a.id, { name: a.name, code: a.code });
+        byAccount[a.id] = { name: a.name, code: a.code, revenue: 0, expense: 0 };
       }
+      for (const tx of approved) {
+        const amt = parseFloat(tx.amount || "0");
+        const key = tx.accountId ?? -1;
+        if (!byAccount[key]) byAccount[key] = { name: tx.accountName || "\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u062D\u062F\u062F", code: "", revenue: 0, expense: 0 };
+        if (tx.accountType === "revenue") {
+          totalRevenue += amt;
+          byAccount[key].revenue += amt;
+        } else if (tx.accountType === "expense") {
+          totalExpense += amt;
+          byAccount[key].expense += amt;
+        }
+      }
+      const netIncome = totalRevenue - totalExpense;
+      const margin = totalRevenue > 0 ? netIncome / totalRevenue * 100 : 0;
+      const expenseRatio = totalRevenue > 0 ? totalExpense / totalRevenue * 100 : 0;
+      const topRevenue = Object.values(byAccount).filter((a) => a.revenue > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 3);
+      const topExpense = Object.values(byAccount).filter((a) => a.expense > 0).sort((a, b) => b.expense - a.expense).slice(0, 3);
+      const cashAccounts = allAccts.filter((a) => a.type === "asset" && (a.code === "1010" || a.code.startsWith("1020")));
+      let cashBalance = 0;
+      for (const tx of approved) {
+        if (!tx.accountId || !tx.accountType || tx.accountType !== "asset") continue;
+        if (!cashAccounts.some((c) => c.id === tx.accountId)) continue;
+        const amt = parseFloat(tx.amount || "0");
+        cashBalance += tx.type === "debit" ? amt : -amt;
+      }
+      let budgetLine = "\u0644\u0627 \u062A\u0648\u062C\u062F \u062E\u0637\u0637 \u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0645\u0636\u0627\u0641\u0629 \u0628\u0639\u062F \u2014 \u0623\u0636\u0641 \u062E\u0637\u0629 \u0645\u0646 \u062A\u0628\u0648\u064A\u0628 \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A \u0644\u0645\u0631\u0627\u0642\u0628\u0629 \u0627\u0644\u0623\u062F\u0627\u0621 \u0645\u0642\u0627\u0628\u0644 \u0627\u0644\u0623\u0647\u062F\u0627\u0641.";
+      if (allBudgets.length > 0) {
+        const latest = allBudgets[0];
+        const revTarget = parseFloat(String(latest.targetRevenue || "0"));
+        const expTarget = parseFloat(String(latest.targetExpense || "0"));
+        const revPct = revTarget > 0 ? Math.round(totalRevenue / revTarget * 100) : 0;
+        const expPct = expTarget > 0 ? Math.round(totalExpense / expTarget * 100) : 0;
+        budgetLine = `\u062E\u0637\u0629 \xAB${latest.periodName}\xBB: \u062A\u062D\u0642\u0642 \u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A ${revPct}% \u0645\u0646 \u0627\u0644\u0645\u0633\u062A\u0647\u062F\u0641\u060C \u0648\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A ${expPct}% \u0645\u0646 \u0627\u0644\u0633\u0642\u0641 \u0627\u0644\u0645\u062E\u0635\u0635.`;
+      }
+      const fmt = (n) => n.toLocaleString("en-US");
+      const topRevenueLine = topRevenue.length ? topRevenue.map((a) => `\u2022 ${a.code} ${a.name}: ${fmt(a.revenue)}`).join("\n") : "\u0644\u0627 \u062A\u0648\u062C\u062F \u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0645\u0639\u062A\u0645\u062F\u0629 \u0645\u0633\u062C\u0644\u0629 \u0628\u0639\u062F.";
+      const topExpenseLine = topExpense.length ? topExpense.map((a) => `\u2022 ${a.code} ${a.name}: ${fmt(a.expense)}`).join("\n") : "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0645\u0639\u062A\u0645\u062F\u0629 \u0645\u0633\u062C\u0644\u0629 \u0628\u0639\u062F.";
+      const recommendations = [];
+      if (totalRevenue === 0 && totalExpense === 0) {
+        recommendations.push(
+          "\u0627\u0628\u062F\u0623 \u0628\u062A\u0633\u062C\u064A\u0644 \u0623\u0648\u0644 \u062D\u0631\u0643\u0629 \u0645\u0627\u0644\u064A\u0629 \u0645\u0639\u062A\u0645\u062F\u0629 (\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0623\u0648 \u0645\u0635\u0631\u0648\u0641\u0627\u062A) \u0639\u0628\u0631 \u0623\u062F\u0627\u0629 \u0627\u0644\u0625\u062F\u062E\u0627\u0644 \u0627\u0644\u0633\u0631\u064A\u0639 \u2014 \u0627\u0644\u062A\u062D\u0644\u064A\u0644 \u0627\u0644\u0643\u0627\u0645\u0644 \u064A\u0628\u062F\u0623 \u062A\u0644\u0642\u0627\u0626\u064A\u0627\u064B \u0639\u0646\u062F \u062A\u0648\u0641\u0631 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A."
+        );
+      } else {
+        if (cashBalance < totalExpense * 0.15 && totalExpense > 0) {
+          recommendations.push(
+            `\u0627\u0644\u0633\u064A\u0648\u0644\u0629 \u0627\u0644\u0646\u0642\u062F\u064A\u0629 (${fmt(cashBalance)}) \u0623\u0642\u0644 \u0645\u0646 15% \u0645\u0646 \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u2014 \u0639\u062C\u0651\u0644 \u062A\u062D\u0635\u064A\u0644 \u0627\u0644\u0630\u0645\u0645 \u0648\u062D\u062F\u0651 \u0645\u0646 \u0627\u0644\u0633\u062D\u0648\u0628\u0627\u062A \u063A\u064A\u0631 \u0627\u0644\u0645\u062E\u0637\u0637 \u0644\u0647\u0627 \u0644\u062A\u063A\u0637\u064A\u0629 \u0627\u0644\u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0627\u0644\u0642\u0627\u062F\u0645\u0629.`
+          );
+        } else if (totalExpense > 0) {
+          recommendations.push(
+            `\u0627\u0644\u0633\u064A\u0648\u0644\u0629 \u0627\u0644\u0646\u0642\u062F\u064A\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 (${fmt(cashBalance)}) \u062A\u063A\u0637\u064A \u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u2014 \u062D\u0627\u0641\u0638 \u0639\u0644\u0649 \u0647\u0627\u0645\u0634 \u0627\u062D\u062A\u064A\u0627\u0637\u064A \u0644\u0627 \u064A\u0642\u0644 \u0639\u0646 \u0634\u0647\u0631 \u0645\u0635\u0631\u0648\u0641\u0627\u062A.`
+          );
+        }
+        if (expenseRatio > 70) {
+          recommendations.push(
+            `\u0646\u0633\u0628\u0629 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0625\u0644\u0649 \u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A ${expenseRatio.toFixed(0)}% \u062A\u062A\u062C\u0627\u0648\u0632 \u0627\u0644\u062D\u062F \u0627\u0644\u0635\u062D\u064A (70%) \u2014 \u0631\u0627\u062C\u0639 \u0628\u0646\u0648\u062F \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0627\u0644\u0643\u0628\u0631\u0649 \u0627\u0644\u062A\u0627\u0644\u064A\u0629 \u0644\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0641\u0627\u0648\u0636 \u0623\u0648 \u0627\u0644\u062A\u0631\u0634\u064A\u062F: ${topExpense.map((a) => a.name).join("\u060C ")}.`
+          );
+        } else if (margin > 15) {
+          recommendations.push(
+            `\u0647\u0627\u0645\u0634 \u0627\u0644\u0631\u0628\u062D \u0627\u0644\u062A\u0634\u063A\u064A\u0644\u064A ${margin.toFixed(1)}% \u0642\u0648\u064A \u2014 \u0648\u062C\u0651\u0647 \u0627\u0644\u0641\u0627\u0626\u0636 \u0646\u062D\u0648 \u062D\u0633\u0627\u0628 \u0646\u0642\u062F\u064A/\u0627\u0633\u062A\u062B\u0645\u0627\u0631\u064A \u0645\u0646\u0641\u0635\u0644 \u0623\u0648 \u062A\u062E\u0641\u064A\u0636 \u062A\u0643\u0644\u0641\u0629 \u0627\u0644\u062A\u0645\u0648\u064A\u0644 \u0625\u0630\u0627 \u0648\u064F\u062C\u062F \u0642\u0631\u0636.`
+          );
+        } else {
+          recommendations.push(
+            `\u0647\u0627\u0645\u0634 \u0627\u0644\u0631\u0628\u062D ${margin.toFixed(1)}% \u0645\u0642\u0628\u0648\u0644 \u2014 \u0631\u0643\u0651\u0632 \u0639\u0644\u0649 \u0646\u0645\u0648 \u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0639\u0628\u0631 \u0623\u0643\u0628\u0631 3 \u0645\u0635\u0627\u062F\u0631 \u062D\u0627\u0644\u064A\u0627\u064B \u062B\u0645 \u0639\u0644\u0649 \u062A\u062B\u0628\u064A\u062A \u062A\u0643\u0644\u0641\u0629 \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0639\u0646\u062F \u0645\u0633\u062A\u0648\u0627\u0647\u0627 \u0627\u0644\u062D\u0627\u0644\u064A.`
+          );
+        }
+        if (topExpense.length > 0) {
+          recommendations.push(
+            `\u062A\u0627\u0628\u0639 \u0634\u0647\u0631\u064A\u0627\u064B \u0627\u0644\u0628\u0646\u0648\u062F \u0627\u0644\u062B\u0644\u0627\u062B\u0629 \u0627\u0644\u0623\u0643\u0628\u0631 (${topExpense.map((a) => a.name).join("\u060C ")}) \u2014 \u062E\u0641\u0636 5% \u0645\u0646\u0647\u0627 \u064A\u0648\u0641\u0651\u0631 ${fmt(totalExpense * 0.05)} \u0633\u0646\u0648\u064A\u0627\u064B \u062A\u0642\u0631\u064A\u0628\u0627\u064B.`
+          );
+        }
+      }
+      const analysisText = [
+        "\u2501\u2501\u2500 \u0627\u0644\u062A\u0642\u064A\u064A\u0645 \u0627\u0644\u062A\u0646\u0641\u064A\u0630\u064A \u2500\u2501\u2501",
+        totalRevenue === 0 && totalExpense === 0 ? "\u0627\u0644\u0645\u0646\u0635\u0629 \u062C\u0627\u0647\u0632\u0629 \u0648\u0627\u0644\u0623\u062F\u0627\u0621 \u0627\u0644\u0645\u0627\u0644\u064A \u0628\u0627\u0646\u062A\u0638\u0627\u0631 \u0623\u0648\u0644 \u062D\u0631\u0643\u0629 \u0645\u0639\u062A\u0645\u062F\u0629." : `\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0627\u0644\u0645\u0639\u062A\u0645\u062F\u0629: ${fmt(totalRevenue)}
+\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0627\u0644\u0645\u0639\u062A\u0645\u062F\u0629: ${fmt(totalExpense)}
+\u0635\u0627\u0641\u064A \u0627\u0644\u062F\u062E\u0644 \u0627\u0644\u062A\u0634\u063A\u064A\u0644\u064A: ${fmt(netIncome)} (\u0647\u0627\u0645\u0634 ${margin.toFixed(1)}%)
+\u0646\u0633\u0628\u0629 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0625\u0644\u0649 \u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A: ${expenseRatio.toFixed(0)}%`,
+        "",
+        "\u2501\u2501\u2500 \u0645\u0635\u0627\u062F\u0631 \u0627\u0644\u062A\u062F\u0641\u0642 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629 \u2500\u2501\u2501",
+        topRevenueLine,
+        "",
+        "\u2501\u2501\u2500 \u0623\u0643\u0628\u0631 \u0628\u0646\u0648\u062F \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u2500\u2501\u2501",
+        topExpenseLine,
+        "",
+        "\u2501\u2501\u2500 \u0627\u0644\u0633\u064A\u0648\u0644\u0629 \u0648\u0627\u0644\u0643\u0641\u0627\u0621\u0629 \u2500\u2501\u2501",
+        `\u0627\u0644\u0631\u0635\u064A\u062F \u0627\u0644\u0646\u0642\u062F\u064A (\u0627\u0644\u0635\u0646\u062F\u0648\u0642 + \u0627\u0644\u0628\u0646\u0648\u0643): ${fmt(cashBalance)}`,
+        budgetLine,
+        "",
+        "\u2501\u2501\u2500 \u0627\u0644\u062A\u0648\u0635\u064A\u0627\u062A \u0627\u0644\u0630\u0643\u064A\u0629 (3) \u2500\u2501\u2501",
+        recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")
+      ].join("\n");
+      if (ENV.forgeApiKey) {
+        try {
+          const response = await invokeLLM({
+            messages: [
+              {
+                role: "user",
+                content: `\u0623\u0646\u062A \u0645\u0633\u0627\u0639\u062F \u0645\u0627\u0644\u064A \u062E\u0628\u064A\u0631 \u0644\u0646\u0638\u0627\u0645 ALHUSAINIA \u0627\u0644\u0645\u062D\u0627\u0633\u0628\u064A. \u0625\u0644\u064A\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0645\u0627\u0644\u064A\u0629 \u0645\u062D\u0633\u0648\u0628\u0629 \u0628\u062F\u0642\u0629 \u062A\u0634\u063A\u064A\u0644\u064A\u0629\u060C \u0641\u0642\u062F\u0645 \u062A\u062D\u0644\u064A\u0644\u0627\u064B \u0623\u0639\u0645\u0642 \u0645\u0628\u0646\u064A\u0627\u064B \u0639\u0644\u064A\u0647\u0627 \u062D\u0635\u0631\u0627\u064B (\u0628\u0627\u0644\u0639\u0631\u0628\u064A\u0629\u060C \u0623\u0633\u0644\u0648\u0628 \u0645\u0647\u0646\u064A):
+${analysisText}
+\u0645\u0644\u0627\u062D\u0638\u0629: \u0644\u0627 \u062A\u062E\u062A\u0644\u0642 \u0623\u0631\u0642\u0627\u0645\u0627\u064B\u061B \u0627\u0639\u062A\u0645\u062F \u0639\u0644\u0649 \u0645\u0627 \u0648\u0631\u062F \u0641\u0642\u0637.`
+              }
+            ]
+          });
+          const content = response.choices[0]?.message?.content;
+          if (typeof content === "string" && content.trim().length > 20) {
+            return { analysis: content, status: "\u062A\u062D\u0644\u064A\u0644 \u0628\u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A (Forge LLM)", timestamp: (/* @__PURE__ */ new Date()).toISOString() };
+          }
+        } catch {
+        }
+      }
+      return {
+        analysis: analysisText,
+        status: ENV.forgeApiKey ? "\u062A\u062D\u0644\u064A\u0644 \u0625\u062D\u0635\u0627\u0626\u064A \u0645\u062D\u0644\u064A (\u062A\u0639\u0630\u0631 \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0640 LLM)" : "\u062A\u062D\u0644\u064A\u0644 \u0625\u062D\u0635\u0627\u0626\u064A \u0645\u062D\u0644\u064A \u0645\u0639\u062A\u0645\u062F",
+        timestamp: (/* @__PURE__ */ new Date()).toISOString()
+      };
     })
   }),
   // ─── Offline-First Sync Router ──────────────────────────────────
