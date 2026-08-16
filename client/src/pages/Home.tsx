@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { 
   Building2, Plus, Search, Settings, 
   BookOpen, BarChart3, LogOut, Save, Check, 
-  FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw, Upload, ClipboardCopy
+  FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw, Upload, ClipboardCopy, Scale
 } from "lucide-react";
 import { toast } from "sonner";
 import BudgetsPanel from "@/components/BudgetsPanel";
@@ -136,6 +136,14 @@ export default function Home() {
   const [importText, setImportText] = useState("");
   const [importLifecycle, setImportLifecycle] = useState<"saved" | "approved" | "sent">("approved");
   const [importResult, setImportResult] = useState<{ total: number; imported: number; skipped: { line: number; reason: string }[] } | null>(null);
+  const [obOpen, setObOpen] = useState(false);
+  const [obPeriod, setObPeriod] = useState("");
+  const [obRows, setObRows] = useState<{ accountId: number; code: string; name: string; amount: string; type: string }[]>([]);
+  const [obLoading, setObLoading] = useState(false);
+  const saveOpeningBalancesMutation = trpc.accounting.saveOpeningBalances.useMutation({
+    onSuccess: () => { toast.success("تم حفظ الأرصدة الافتتاحية بنجاح"); setObOpen(false); },
+    onError: (e: any) => toast.error("فشل الحفظ: " + (e?.message || "خطأ غير معروف")),
+  });
   useEffect(() => {
     const t = setTimeout(() => setDeferHeavyQueries(true), 700);
     return () => clearTimeout(t);
@@ -406,6 +414,39 @@ export default function Home() {
   const handleExportPDF = () => {
     toast.success("جاري تجهيز تقارير الطباعة والتصدير بصيغة PDF الرسمية");
     window.print();
+  };
+
+  const updateObRow = (accountId: number, field: "amount" | "type", value: string) => {
+    setObRows((prev) => prev.map((r) => (r.accountId === accountId ? { ...r, [field]: value } : r)));
+  };
+
+  const openOpeningBalances = async () => {
+    setObOpen(true);
+    const period = settingsData?.accountingPeriod || "السنة المالية 2026";
+    setObPeriod(period);
+    const financial = (accountsData || []).filter((a: any) => ["asset", "liability", "equity"].includes(a.type));
+    setObRows(financial.map((a: any) => ({ accountId: a.id, code: a.code, name: a.name, amount: "", type: "debit" })));
+    try {
+      setObLoading(true);
+      const existing = await utils.accounting.getOpeningBalances.fetch({ periodName: period });
+      if (existing?.length) {
+        setObRows((prev) => prev.map((r) => {
+          const ex = existing.find((e: any) => e.accountId === r.accountId);
+          return ex ? { ...r, amount: String(ex.amount ?? ""), type: ex.type || "debit" } : r;
+        }));
+      }
+    } catch { /* ignore load errors */ }
+    finally { setObLoading(false); }
+  };
+
+  const handleObSave = () => {
+    const balances = obRows.filter((r) => parseFloat(r.amount || "0") > 0).map((r) => ({
+      accountId: r.accountId,
+      amount: r.amount,
+      type: r.type as "debit" | "credit",
+    }));
+    if (!balances.length) { toast.error("أدخل مبلغاً واحداً على الأقل لحفظ الأرصدة"); return; }
+    saveOpeningBalancesMutation.mutate({ periodName: obPeriod.trim(), balances });
   };
 
   const handleCopyImportTemplate = () => {
@@ -798,6 +839,22 @@ export default function Home() {
 
           {/* Tab 2: Chart of Accounts with Drag and Drop Tree View & Advanced Search */}
           <TabsContent value="accounts" className="space-y-4">
+            {/* Opening Balances Banner */}
+            <Card className="p-4 bg-white shadow-sm border-slate-200">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Scale className="w-4 h-4 text-[#b87945]" />
+                  <h3 className="text-xs font-bold text-slate-800">الأرصدة الافتتاحية للفترة — ترحيل أرصدة بداية السنة</h3>
+                </div>
+                <Button size="sm" onClick={openOpeningBalances} className="h-7 px-2.5 text-xs bg-[#b87945] hover:bg-[#a06838] text-white font-semibold">
+                  <Scale className="w-3.5 h-3.5 ml-1" /> إدارة الأرصدة
+                </Button>
+              </div>
+              <p className="text-[11px] text-slate-500 mt-2">
+                أدخل أرصدة بداية الفترة لحسابات الميزانية (أصول / خصوم / حقوق ملكية) — تُرحّل تلقائياً إلى ميزان المراجعة والميزانية العمومية. حسابات الإيرادات والمصروفات تبدأ من صفر.
+              </p>
+            </Card>
+
             {/* Add New Account Card */}
             <Card className="p-4 bg-white shadow-sm border-slate-200">
               <h3 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5">
@@ -1380,6 +1437,59 @@ export default function Home() {
             >
               {addBatchTransactionsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Upload className="w-3 h-3 ml-1" />}
               استيراد الحركات
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Opening Balances Dialog */}
+      <Dialog open={obOpen} onOpenChange={setObOpen}>
+        <DialogContent className="max-w-lg font-sans" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <Scale className="w-4 h-4 text-[#b87945]" /> الأرصدة الافتتاحية
+            </DialogTitle>
+            <DialogDescription className="text-xs text-slate-600 pt-2">
+              أدخل أرصدة بداية الفترة لحسابات الميزانية — الإيرادات والمصروفات تبدأ من صفر.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div className="flex items-center gap-2">
+              <Label className="text-xs font-bold whitespace-nowrap text-slate-700">الفترة:</Label>
+              <Input value={obPeriod} onChange={(e) => setObPeriod(e.target.value)} className="h-8 text-xs bg-slate-50" />
+            </div>
+            <div className="max-h-[44vh] overflow-y-auto space-y-1.5 border border-slate-200 rounded-lg p-2 bg-slate-50/50">
+              {obLoading && <p className="text-xs text-slate-500 py-4 text-center">جاري تحميل الأرصدة…</p>}
+              {!obLoading && obRows.length === 0 && <p className="text-xs text-slate-500 py-4 text-center">لا توجد حسابات ميزانية (أصول/خصوم/حقوق ملكية) — أضفها أولاً من دليل الحسابات.</p>}
+              {!obLoading && obRows.map((r) => (
+                <div key={r.accountId} className="flex items-center gap-2 text-xs py-1.5 border-b border-dashed border-slate-200 last:border-0">
+                  <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-[10px] text-slate-700">{r.code}</span>
+                  <span className="flex-1 truncate text-slate-800">{r.name}</span>
+                  <Select value={r.type} onValueChange={(v) => updateObRow(r.accountId, "type", v)}>
+                    <SelectTrigger className="h-7 w-20 text-[11px] bg-white">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="debit" className="text-xs">مدين</SelectItem>
+                      <SelectItem value="credit" className="text-xs">دائن</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    type="number" min="0" placeholder="0"
+                    value={r.amount}
+                    onChange={(e) => updateObRow(r.accountId, "amount", e.target.value)}
+                    className="h-7 w-28 text-xs font-mono text-left bg-white"
+                  />
+                </div>
+              ))}
+            </div>
+            <p className="text-[11px] text-slate-500">الأرصدة تدخل مباشرة في ميزان المراجعة والميزانية العمومية لنفس الفترة.</p>
+          </div>
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setObOpen(false)} className="text-xs h-8">إلغاء</Button>
+            <Button size="sm" onClick={handleObSave} disabled={saveOpeningBalancesMutation.isPending} className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-white font-bold">
+              {saveOpeningBalancesMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Save className="w-3 h-3 ml-1" />}
+              حفظ الأرصدة
             </Button>
           </DialogFooter>
         </DialogContent>

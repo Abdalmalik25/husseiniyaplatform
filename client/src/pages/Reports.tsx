@@ -13,6 +13,12 @@ export default function Reports() {
   const { data: accountsData, isLoading: loadingAccounts } = trpc.accounting.getAccounts.useQuery();
   const { data: transactionsData, isLoading: loadingTx } = trpc.accounting.getTransactions.useQuery();
   const { data: summaryData } = trpc.accounting.getDashboardSummary.useQuery();
+  const { data: settingsData } = trpc.accounting.getSettings.useQuery();
+  const { data: openingBalancesData } = trpc.accounting.getOpeningBalances.useQuery(
+    { periodName: settingsData?.accountingPeriod || "السنة المالية 2026" },
+    { enabled: !!settingsData }
+  );
+  const obMap = useMemo(() => new Map((openingBalancesData || []).map((ob: any) => [ob.accountId, ob])), [openingBalancesData]);
 
   const isLoading = loadingAccounts || loadingTx;
 
@@ -22,6 +28,14 @@ export default function Reports() {
       const accTxs = transactionsData.filter(t => t.accountId === acc.id && !t.isReversed);
       let debit = 0;
       let credit = 0;
+      const ob = obMap.get(acc.id);
+      if (ob) {
+        const oa = parseFloat(String(ob.amount ?? "0"));
+        if (!isNaN(oa) && oa > 0) {
+          if (ob.type === "debit") debit += oa;
+          else credit += oa;
+        }
+      }
       for (const tx of accTxs) {
         const amt = parseFloat(tx.amount || "0");
         if (tx.type === "debit") debit += amt;
@@ -29,7 +43,7 @@ export default function Reports() {
       }
       return { ...acc, debit, credit, balance: debit - credit };
     }).filter(a => a.debit !== 0 || a.credit !== 0);
-  }, [accountsData, transactionsData]);
+  }, [accountsData, transactionsData, obMap]);
 
   const trialBalance = useMemo(() => {
     const totalDebits = accountBalances.filter(a => a.balance > 0).reduce((s, a) => s + a.balance, 0);
