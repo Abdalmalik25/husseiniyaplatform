@@ -130,5 +130,25 @@ export async function placePublicOrder(db: Db, input: PlaceOrderInput) {
     }
     return { orderId: order.id, orderNumber };
   });
+
+  if (process.env.ORDER_WEBHOOK_URL) {
+    const payload = {
+      event: "order.created",
+      orderNumber,
+      customerName: input.customerName,
+      customerPhone: phone || null,
+      deliveryAddress: input.deliveryAddress || null,
+      notes: input.notes || null,
+      total: total.toFixed(2),
+      items: itemValues.map(it => ({ name: it.productName, quantity: it.quantity, unitPrice: it.unitPrice, total: it.total })),
+      timestamp: new Date().toISOString(),
+    };
+    fetch(process.env.ORDER_WEBHOOK_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  }
+
   return result;
 }

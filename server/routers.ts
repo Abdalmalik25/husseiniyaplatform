@@ -2631,12 +2631,102 @@ ${analysisText}
         throw new Error("Ø§Ù„Ø·Ù„Ø¨ Ù…ÙÙ„ØºÙ‰ ÙˆÙ„Ø§ ÙŠÙ…ÙƒÙ† Ø¥Ø¹Ø§Ø¯Ø© ØªÙØ¹ÙŠÙ„Ù‡");
       }
 
-      await db.update(orders).set({ status: input.status, updatedAt: new Date() }).where(eq(orders.id, input.id));
+await db.update(orders).set({ status: input.status, updatedAt: new Date() }).where(eq(orders.id, input.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ #${input.id} Ù…Ù† "${currentStatus}" Ø¥Ù„Ù‰ "${input.status}"`,
+        action: `تحديث حالة الطلب #${input.id} من "${currentStatus}" إلى "${input.status}"`,
       });
       return { success: true };
+    }),
+
+    // Convert a (web/store) order into an official sales invoice + auto-posting GL entries
+    // Stock was already reserved at order time — no second deduction happens here.
+    createSaleInvoice: protectedProcedure.input(z.object({
+      orderId: z.number(),
+      paymentMethod: z.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
+      paidAmount: z.string().default("0"),
+    })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await seedDefaultAccountsIfNeeded();
+
+      const [order] = await db.select().from(orders).where(eq(orders.id, input.orderId)).limit(1);
+      if (!order) throw new Error("الطلب غير موجود");
+      if (order.status === "cancelled") throw new Error("الطلب مُلغى ولا يمكن تحويله");
+
+      const prior = await db.select().from(salesInvoices)
+        .where(ilike(salesInvoices.notes, `%${order.orderNumber}%`)).limit(1);
+      if (prior.length > 0) throw new Error(`تم تحويل الطلب مسبقاً إلى فاتورة ${prior[0].invoiceNumber}`);
+
+      const items = await db.select().from(orderItems).where(eq(orderItems.orderId, order.id));
+      if (items.length === 0) throw new Error("الطلب لا يحتوي أصنافاً");
+
+      const subtotal = items.reduce((s, it) => s + parseFloat(it.unitPrice || "0") * it.quantity, 0);
+      const total = subtotal;
+      const paidAmount = Math.max(0, Math.min(parseFloat(input.paidAmount || "0"), total));
+      const status = paidAmount >= total - 0.01 ? "paid" : paidAmount > 0 ? "partial" : "confirmed";
+
+      const now = new Date();
+      const datePart = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
+      const randPart = Math.random().toString(36).substring(2, 7).toUpperCase();
+      const invoiceNumber = `SI-${datePart}-${randPart}`;
+
+      const result = await (db as any).transaction(async (tx: any) => {
+        const [invoice] = await tx.insert(salesInvoices).values({
+          invoiceNumber,
+          customerId: order.customerId || null,
+          status,
+          subtotal: subtotal.toFixed(2),
+          discount: "0",
+          taxRate: "0",
+          taxAmount: "0",
+          total: total.toFixed(2),
+          paidAmount: paidAmount.toFixed(2),
+          paymentMethod: input.paymentMethod,
+          notes: `تحويل من طلب المتجر: ${order.orderNumber}`,
+          userId: ctx.user.id,
+        }).returning();
+
+        const itemValues = items.map(it => ({
+          invoiceId: invoice.id,
+          productId: it.productId,
+          productName: it.productName,
+          quantity: it.quantity,
+          unitPrice: it.unitPrice,
+          discount: "0",
+          total: (parseFloat(it.unitPrice || "0") * it.quantity).toFixed(2),
+        }));
+        await tx.insert(salesInvoiceItems).values(itemValues);
+
+        const unpaid = total - paidAmount;
+        if (order.customerId && unpaid > 0.009) {
+          await tx.update(customers)
+            .set({ balance: sql`${customers.balance} + ${unpaid}` })
+            .where(eq(customers.id, order.customerId));
+        }
+
+        await postInvoiceGlEntries(tx, {
+          kind: "sale",
+          invoiceId: invoice.id,
+          invoiceNumber,
+          total,
+          paidAmount,
+          branchId: null,
+          userId: ctx.user.id,
+        });
+
+        await tx.update(orders).set({ status: "confirmed", updatedAt: new Date() }).where(eq(orders.id, order.id));
+
+        await tx.insert(activityLogs).values({
+          userId: ctx.user.id,
+          action: `تحويل الطلب ${order.orderNumber} إلى فاتورة مبيعات ${invoiceNumber}`,
+          details: `الإجمالي: ${total.toFixed(2)} — المدفوع: ${paidAmount.toFixed(2)} (المخزون محجوز من وقت الطلب)`,
+        });
+
+        return { invoiceId: invoice.id, invoiceNumber };
+      });
+
+      return { success: true, ...result };
     }),
 
     getItems: publicProcedure.input(z.object({

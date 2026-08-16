@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Package, Users, Truck, ShoppingCart, ShoppingBag, ClipboardList,
   Plus, Search, Edit, Trash2, Barcode, MapPin, Phone, Mail, User, PackagePlus,
-  Wifi, WifiOff, CheckCircle, XCircle, Clock, AlertTriangle, Printer, Wallet, Loader2, Upload, Download
+  Wifi, WifiOff, CheckCircle, XCircle, Clock, AlertTriangle, Printer, Wallet, Loader2, Upload, Download, ReceiptText
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -178,6 +178,14 @@ export default function Commercial() {
     reader.readAsText(file, "utf-8");
   };
 
+  // Order → Sales Invoice conversion (web orders)
+  const [convertOrder, setConvertOrder] = useState<any>(null);
+  const [convertForm, setConvertForm] = useState({ paymentMethod: "cash", paidAmount: "0" });
+  const convertToInvoice = trpc.orders.createSaleInvoice.useMutation({
+    onSuccess: (r) => { toast.success(`تم إنشاء فاتورة المبيعات ${r.invoiceNumber}`); setConvertOrder(null); refetchSales(); refetchOrders(); },
+    onError: (e) => toast.error(String(e.message || "فشل تحويل الطلب إلى فاتورة"))
+  });
+
   // Customers
   const { data: customersResponse, refetch: refetchCustomers, isLoading: loadingCustomers } = trpc.customers.list.useQuery({ search: debouncedSearch || undefined }, { staleTime: 60_000, refetchOnWindowFocus: false });
   const customersData = customersResponse?.items ?? [];
@@ -228,6 +236,7 @@ export default function Commercial() {
   // Orders
   const { data: ordersResponse, refetch: refetchOrders, isLoading: loadingOrders } = trpc.orders.list.useQuery({});
   const ordersData = ordersResponse?.items ?? [];
+  const pendingWebOrders = ordersData.filter(o => isWebOrder(o) && o.status === "pending").length;
   const [showOrderDialog, setShowOrderDialog] = useState(false);
   const [orderItems, setOrderItems] = useState<{ productId: number; productName: string; quantity: number; unitPrice: string }[]>([]);
   const [orderCustomerId, setOrderCustomerId] = useState<number | undefined>();
@@ -825,7 +834,9 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
           <TabsContent value="orders">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">طلبات التوزيع</CardTitle>
+                <CardTitle className="text-sm font-bold text-[#102a2b]">طلبات التوزيع
+                  {pendingWebOrders > 0 && <Badge className="mr-2 text-[9px] bg-purple-100 text-purple-700">طلبات المتجر المعلقة: {pendingWebOrders}</Badge>}
+                </CardTitle>
                 <Button size="sm" className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8" onClick={() => setShowOrderDialog(true)}>
                   <Plus className="w-3 h-3 ml-1" />طلب جديد
                 </Button>
@@ -857,6 +868,16 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
                           </SelectContent>
                         </Select>
                         <p className="font-bold text-xs text-[#102a2b]">{o.total} ر.ي</p>
+                        {isWebOrder(o) && o.status !== "cancelled" && o.status !== "delivered" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[9px] h-6 text-[#102a2b] border-[#b87945]/40 hover:bg-[#f5ece0]"
+                            onClick={() => { setConvertForm({ paymentMethod: "cash", paidAmount: "0" }); setConvertOrder(o); }}
+                          >
+                            <ReceiptText className="w-3 h-3" /> فاتورة مبيعات
+                          </Button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -1263,6 +1284,59 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
             <Button size="sm" onClick={() => adjustStock.mutate({ productId: adjustProduct.id, quantity: adjustForm.quantity, type: adjustForm.type, notes: adjustForm.notes || undefined })} disabled={adjustStock.isPending} className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold">
               {adjustStock.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <CheckCircle className="w-3 h-3 ml-1" />}
               تنفيذ العملية
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Convert Order to Invoice Dialog */}
+      <Dialog open={!!convertOrder} onOpenChange={(o) => !o && setConvertOrder(null)}>
+        <DialogContent className="max-w-md font-sans" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <ReceiptText className="w-4 h-4 text-[#b87945]" /> تحويل الطلب إلى فاتورة مبيعات
+            </DialogTitle>
+          </DialogHeader>
+          {convertOrder && (
+            <div className="space-y-3 pt-2">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs space-y-1">
+                <p className="font-bold text-slate-800 flex items-center gap-2">
+                  {convertOrder.orderNumber}
+                  {isWebOrder(convertOrder) && <Badge className="text-[9px] bg-purple-100 text-purple-700">متجر إلكتروني</Badge>}
+                </p>
+                <p className="text-slate-500">الإجمالي: <b className="text-slate-800 font-mono">{Number(convertOrder.total).toLocaleString("en-US")} ر.ي</b></p>
+                <p className="text-[10px] text-slate-400">المخزون محجوز منذ وقت الطلب — لن يُخصم مرة أخرى عند إنشاء الفاتورة</p>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-bold text-slate-700">طريقة الدفع</Label>
+                  <Select value={convertForm.paymentMethod} onValueChange={(v) => setConvertForm({ ...convertForm, paymentMethod: v })}>
+                    <SelectTrigger className="h-8 text-xs bg-slate-50"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cash" className="text-xs">نقدي عند التوصيل</SelectItem>
+                      <SelectItem value="card" className="text-xs">بطاقة</SelectItem>
+                      <SelectItem value="transfer" className="text-xs">تحويل بنكي</SelectItem>
+                      <SelectItem value="online" className="text-xs">إلكتروني</SelectItem>
+                      <SelectItem value="credit" className="text-xs">آجل (أجل)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-[11px] font-bold text-slate-700">المبلغ المدفوع الآن</Label>
+                  <Input type="number" min="0" max={Number(convertOrder.total)} value={convertForm.paidAmount}
+                    onChange={(e) => setConvertForm({ ...convertForm, paidAmount: e.target.value })} className="h-8 text-xs font-mono bg-slate-50" />
+                </div>
+              </div>
+              <p className="text-[10px] text-slate-400">
+                المدفوع = الإجمالي → فاتورة «مدفوعة» • أقل من الإجمالي → «مدفوعة جزئياً» والرصيد يتراكم على العميل • صفر → «مؤكدة» (آجل)
+              </p>
+            </div>
+          )}
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setConvertOrder(null)} className="text-xs h-8">إلغاء</Button>
+            <Button size="sm" disabled={convertToInvoice.isPending} onClick={() => convertToInvoice.mutate({ orderId: convertOrder.id, paymentMethod: convertForm.paymentMethod as any, paidAmount: convertForm.paidAmount || "0" })} className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold">
+              {convertToInvoice.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <ReceiptText className="w-3 h-3 ml-1" />}
+              إنشاء الفاتورة والقيود
             </Button>
           </DialogFooter>
         </DialogContent>
