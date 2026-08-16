@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { 
   Building2, Plus, Search, Settings, 
   BookOpen, BarChart3, LogOut, Save, Check, 
-  FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw, Upload, ClipboardCopy, Scale, Package, ShoppingCart, Users, AlertTriangle
+  FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw, Upload, ClipboardCopy, Scale, Package, ShoppingCart, Users, AlertTriangle, Lock
 } from "lucide-react";
 import { toast } from "sonner";
 import BudgetsPanel from "@/components/BudgetsPanel";
@@ -152,9 +152,9 @@ export default function Home() {
   // Queries
   const { data: settingsData } = trpc.accounting.getSettings.useQuery();
   const { data: accountsData, refetch: refetchAccounts, isLoading: loadingAccounts } = trpc.accounting.getAccounts.useQuery();
-  const { data: transactionsData, refetch: refetchTransactions, isLoading: loadingTx } = trpc.accounting.getTransactions.useQuery();
-  const { data: summaryData, refetch: refetchSummary, isLoading: loadingSummary } = trpc.accounting.getDashboardSummary.useQuery();
-  const { data: commercialStats, isLoading: commercialLoading } = trpc.commercial.getStats.useQuery();
+  const { data: transactionsData, refetch: refetchTransactions, isLoading: loadingTx } = trpc.accounting.getTransactions.useQuery(undefined, { staleTime: 60_000 });
+  const { data: summaryData, refetch: refetchSummary, isLoading: loadingSummary } = trpc.accounting.getDashboardSummary.useQuery(undefined, { staleTime: 60_000 });
+  const { data: commercialStats, isLoading: commercialLoading } = trpc.commercial.getStats.useQuery(undefined, { staleTime: 60_000 });
   const lowStockAlerts = commercialStats?.lowStock ?? [];
   const topCustomerDebts = commercialStats?.topCustomers ?? [];
   const hasCommercialAlerts = lowStockAlerts.length > 0 || topCustomerDebts.length > 0;
@@ -190,6 +190,22 @@ export default function Home() {
   const [quickAmount, setQuickAmount] = useState("");
   const [quickNarration, setQuickNarration] = useState("");
   const [quickDate, setQuickDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  // Period Closing State
+  const [closingPeriod, setClosingPeriod] = useState("السنة المالية 2026");
+  const [closingDate, setClosingDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [closingPreviewParams, setClosingPreviewParams] = useState<{ periodName: string; asOfDate?: string } | null>(null);
+  const closingPreview = trpc.accounting.closing.preview.useQuery(
+    { periodName: closingPreviewParams?.periodName ?? "السنة المالية 2026", asOfDate: closingPreviewParams?.asOfDate },
+    { enabled: !!closingPreviewParams }
+  );
+  const executeClosing = trpc.accounting.closing.execute.useMutation({
+    onSuccess: (r) => {
+      toast.success(`تم إقفال الدورة بنجاح — ${r.entries} حساباً بإجمالي ${Number(r.total).toLocaleString("en-US")} YER`);
+      setClosingPreviewParams(null);
+    },
+    onError: (e) => toast.error(String(e.message || "فشل الإقفال"))
+  });
 
   // Profile Form States
   const [profileName, setProfileName] = useState("");
@@ -664,6 +680,9 @@ export default function Home() {
         </Button>
         <Button size="sm" variant="outline" onClick={() => (window.location.href = "/commercial")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
           <Layers className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> المحاسبة التجارية
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => (window.location.href = "/store")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
+          <ShoppingCart className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> المتجر الإلكتروني
         </Button>
         <Button size="sm" variant="outline" onClick={() => setActiveTab("analytics")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
           <BarChart3 className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> التحليلات والمساعد الذكي
@@ -1191,6 +1210,99 @@ export default function Home() {
                   ))}
                 </div>
               )}
+            </Card>
+
+            {/* Period Closing Card */}
+            <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
+              <CardHeader className="bg-slate-50 border-b py-2.5 px-4">
+                <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                  <Lock className="w-3.5 h-3.5 text-[#b87945]" /> إقفال الدورة المحاسبية
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-3 space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-600">اسم الدورة / الفترة</Label>
+                    <Input value={closingPeriod} onChange={(e) => setClosingPeriod(e.target.value)} className="h-8 text-xs" placeholder="مثال: السنة المالية 2026" />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-[11px] font-bold text-slate-600">إقفال حتى تاريخ</Label>
+                    <Input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} className="h-8 text-xs" />
+                  </div>
+                </div>
+
+                <Button
+                  className="w-full h-8 text-xs bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold"
+                  onClick={() => setClosingPreviewParams({ periodName: closingPeriod.trim() || "السنة المالية 2026", asOfDate: closingDate || undefined })}
+                >
+                  <Scale className="w-3.5 h-3.5 ml-1" /> معاينة الأرصدة قبل الإقفال
+                </Button>
+
+                {closingPreview.isLoading && (
+                  <div className="py-6 flex items-center justify-center gap-2 text-slate-500 text-xs">
+                    <Loader2 className="w-4 h-4 animate-spin text-[#b87945]" /> جاري حساب أرصدة الدورة...
+                  </div>
+                )}
+
+                {closingPreview.data && closingPreview.data.rows.length === 0 && (
+                  <p className="text-center text-slate-400 text-xs py-4">لا توجد أرصدة إيرادات/مصروفات مُقفلة في هذه الدورة</p>
+                )}
+
+                {closingPreview.data && closingPreview.data.rows.length > 0 && (
+                  <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200">
+                    <table className="w-full text-right text-[11px] border-collapse">
+                      <thead className="bg-slate-100 text-slate-600 font-bold sticky top-0">
+                        <tr>
+                          <th className="py-2 px-3">الكود</th>
+                          <th className="py-2 px-3">الحساب</th>
+                          <th className="py-2 px-3">النوع</th>
+                          <th className="py-2 px-3 text-left">الرصيد</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100">
+                        {closingPreview.data.rows.map((r: any) => (
+                          <tr key={r.accountId} className="bg-white">
+                            <td className="py-1.5 px-3 font-mono text-slate-500">{r.code}</td>
+                            <td className="py-1.5 px-3 font-bold text-slate-800">{r.name}</td>
+                            <td className="py-1.5 px-3">
+                              <Badge variant="outline" className={`text-[9px] ${r.side === "debit" ? "text-rose-600 border-rose-200" : "text-emerald-600 border-emerald-200"}`}>
+                                {r.type === "revenue" ? "إيراد" : r.type === "expense" ? "مصروف" : r.type}
+                              </Badge>
+                            </td>
+                            <td className="py-1.5 px-3 text-left font-mono font-bold text-slate-800">{Number(r.balance).toLocaleString("en-US")} {r.side === "debit" ? "مدين" : "دائن"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {closingPreview.data && (
+                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs space-y-1">
+                    <p className="flex justify-between"><span className="text-slate-500">إجمالي الإيرادات</span><b className="text-emerald-700">{Number(closingPreview.data.revenueTotal).toLocaleString("en-US")} YER</b></p>
+                    <p className="flex justify-between"><span className="text-slate-500">إجمالي المصروفات</span><b className="text-rose-700">{Number(closingPreview.data.expenseTotal).toLocaleString("en-US")} YER</b></p>
+                    <p className="flex justify-between border-t border-slate-200 pt-1.5">
+                      <span className="font-bold text-slate-700">صافي النتيجة (أرباح/خسائر)</span>
+                      <b className={closingPreview.data.netProfit >= 0 ? "text-emerald-700" : "text-rose-700"}>
+                        {Number(closingPreview.data.netProfit).toLocaleString("en-US")} YER
+                      </b>
+                    </p>
+                  </div>
+                )}
+
+                <Button
+                  className="w-full h-9 text-xs bg-[#102a2b] hover:bg-[#1d3f40] text-white font-bold"
+                  disabled={!closingPreview.data || closingPreview.data.rows.length === 0 || executeClosing.isPending}
+                  onClick={() => {
+                    if (!confirm(`تنفيذ الإقفال لـ "${closingPeriod}"؟ ستُنشأ قيود إقفال نهائية ولا يمكن تكرارها.`)) return;
+                    executeClosing.mutate({ periodName: closingPeriod.trim() || "السنة المالية 2026", asOfDate: closingDate || undefined });
+                  }}
+                >
+                  {executeClosing.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-1" /> : <Lock className="w-3.5 h-3.5 ml-1" />}
+                  تنفيذ الإقفال وإنشاء قيود الإقفال
+                </Button>
+                <p className="text-[10px] text-slate-400 text-center">تُنقل أرصدة الإيرادات والمصروفات إلى حساب النتائج (رأس المال 3010) كقيود مرجعية، ولا يمكن تكرارها</p>
+              </CardContent>
             </Card>
           </TabsContent>
 

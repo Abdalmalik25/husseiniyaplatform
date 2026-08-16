@@ -11,8 +11,8 @@ type ReportType = "trialBalance" | "incomeStatement" | "balanceSheet";
 export default function Reports() {
   const [activeReport, setActiveReport] = useState<ReportType>("trialBalance");
   const { data: accountsData, isLoading: loadingAccounts } = trpc.accounting.getAccounts.useQuery();
-  const { data: transactionsData, isLoading: loadingTx } = trpc.accounting.getTransactions.useQuery();
-  const { data: summaryData } = trpc.accounting.getDashboardSummary.useQuery();
+  const { data: transactionsData, isLoading: loadingTx } = trpc.accounting.getTransactions.useQuery(undefined, { staleTime: 60_000 });
+  const { data: summaryData } = trpc.accounting.getDashboardSummary.useQuery(undefined, { staleTime: 60_000 });
   const { data: settingsData } = trpc.accounting.getSettings.useQuery();
   const { data: openingBalancesData } = trpc.accounting.getOpeningBalances.useQuery(
     { periodName: settingsData?.accountingPeriod || "السنة المالية 2026" },

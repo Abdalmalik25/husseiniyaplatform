@@ -11,6 +11,7 @@ const Home = lazy(() => import("@/pages/Home"));
 const Download = lazy(() => import("@/pages/Download"));
 const Commercial = lazy(() => import("@/pages/Commercial"));
 const Reports = lazy(() => import("@/pages/Reports"));
+const Store = lazy(() => import("@/pages/Store"));
 
 function PageSplash() {
   return (
@@ -60,6 +61,7 @@ function Router() {
       <Switch>
         <Route path={"/"} component={Home} />
         <Route path={"/download"} component={Download} />
+        <Route path={"/store"} component={Store} />
         <Route path={"/commercial"} component={Commercial} />
         <Route path={"/reports"} component={Reports} />
         <Route path={"/404"} component={NotFound} />

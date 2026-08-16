@@ -13,8 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Package, Users, Truck, ShoppingCart, ShoppingBag, ClipboardList,
-  Plus, Search, Edit, Trash2, Barcode, MapPin, Phone, Mail,
-  Wifi, WifiOff, CheckCircle, XCircle, Clock, AlertTriangle, Printer, Wallet, Loader2
+  Plus, Search, Edit, Trash2, Barcode, MapPin, Phone, Mail, User, PackagePlus,
+  Wifi, WifiOff, CheckCircle, XCircle, Clock, AlertTriangle, Printer, Wallet, Loader2, Upload, Download
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -28,7 +28,7 @@ export default function Commercial() {
   const debouncedSearch = useDebounce(searchQuery, 300);
 
   // Products
-  const { data: productsResponse, refetch: refetchProducts, isLoading: loadingProducts } = trpc.products.list.useQuery({ search: debouncedSearch || undefined });
+  const { data: productsResponse, refetch: refetchProducts, isLoading: loadingProducts } = trpc.products.list.useQuery({ search: debouncedSearch || undefined }, { staleTime: 60_000, refetchOnWindowFocus: false });
   const productsData = productsResponse?.items ?? [];
   const [showProductDialog, setShowProductDialog] = useState(false);
   const [productForm, setProductForm] = useState({ code: "", name: "", category: "", unit: "قطعة", purchasePrice: "0", salePrice: "0", minStock: 0, barcode: "" });
@@ -38,8 +38,148 @@ export default function Commercial() {
   });
   const isCreatingProduct = createProduct.isPending;
 
+  const [editProduct, setEditProduct] = useState<any>(null);
+  const [editProductForm, setEditProductForm] = useState({ id: 0, name: "", salePrice: "", purchasePrice: "", minStock: 0, barcode: "" });
+  const updateProduct = trpc.products.update.useMutation({
+    onSuccess: () => { toast.success("تم تحديث المنتج"); setEditProduct(null); refetchProducts(); },
+    onError: (e) => toast.error(e.message)
+  });
+
+  const [adjustProduct, setAdjustProduct] = useState<any>(null);
+  const [adjustForm, setAdjustForm] = useState({ quantity: 1, type: "in" as "in" | "out" | "adjustment", notes: "" });
+  const adjustStock = trpc.products.adjustStock.useMutation({
+    onSuccess: () => { toast.success("تم تعديل المخزون"); setAdjustProduct(null); refetchProducts(); },
+    onError: (e) => toast.error(e.message)
+  });
+
+  const customerNameOf = (id: number | null | undefined) => {
+    if (!id) return "عميل نقدي";
+    return customersData.find(c => c.id === id)?.name ?? `عميل رقم ${id}`;
+  };
+  const supplierNameOf = (id: number | null | undefined) => {
+    if (!id) return "مورد نقدي";
+    return suppliersData.find(s => s.id === id)?.name ?? `مورد رقم ${id}`;
+  };
+  const isWebOrder = (o: any) => String(o.orderNumber || "").startsWith("WEB-");
+
+  // CSV Import/Export (الأصناف والخدمات)
+  const PRODUCT_CSV_HEADER = "code,name,type,category,unit,purchasePrice,salePrice,wholesalePrice,minStock,currentStock,barcode";
+  const PRODUCT_CSV_ALIASES: Record<string, string> = {
+    "رمز": "code", "الكود": "code", "كود": "code",
+    "اسم": "name", "الاسم": "name",
+    "نوع": "type", "النوع": "type",
+    "فئة": "category", "الفئة": "category",
+    "وحدة": "unit", "الوحدة": "unit",
+    "سعر الشراء": "purchasePrice", "شراء": "purchasePrice",
+    "سعر البيع": "salePrice", "بيع": "salePrice",
+    "سعر الجملة": "wholesalePrice", "جملة": "wholesalePrice",
+    "حد الإنذار": "minStock", "حد التنبيه": "minStock",
+    "الرصيد": "currentStock", "المخزون": "currentStock",
+    "باركود": "barcode", "الباركود": "barcode",
+  };
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [importRows, setImportRows] = useState<any[] | null>(null);
+  const [importFileName, setImportFileName] = useState("");
+  const importCsv = trpc.products.importCsv.useMutation({
+    onSuccess: (r) => {
+      toast.success(`أُضيف ${r.created} وحُدّث ${r.updated}${r.errors.length ? ` — أخطاء: ${r.errors.length}` : ""}`);
+      setShowImportDialog(false);
+      setImportRows(null);
+      refetchProducts();
+    },
+    onError: (e) => toast.error(String(e.message || "فشل الاستيراد"))
+  });
+
+  const exportProductsCsv = () => {
+    const esc = (v: any) => { const s = String(v ?? ""); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const lines = [PRODUCT_CSV_HEADER];
+    for (const p of filteredProducts) {
+      lines.push([
+        esc(p.code), esc(p.name), p.type || "goods", esc(p.category), esc(p.unit),
+        p.purchasePrice, p.salePrice, p.wholesalePrice ?? p.salePrice,
+        p.minStock, p.currentStock, esc(p.barcode)
+      ].join(","));
+    }
+    const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `products_export_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+    toast.success(`تم تصدير ${filteredProducts.length} صنفاً/خدمة`);
+  };
+
+  const downloadProductTemplate = () => {
+    const esc = (v: any) => { const s = String(v ?? ""); return /[",\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+    const sample = [
+      ["P001", "دجاج بلدي", "goods", "مواد غذائية", "كيلو", "1800", "2200", "2000", "5", "50", ""],
+      ["S001", "خدمة توصيل", "service", "خدمات", "رحلة", "0", "500", "0", "0", "0", ""],
+    ].map(row => row.map(esc).join(",")).join("\n");
+    const blob = new Blob(["\uFEFF" + PRODUCT_CSV_HEADER + "\n" + sample], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "products_template.csv";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+
+  const parseProductCsv = (text: string) => {
+    const rows: any[] = [];
+    const errors: string[] = [];
+    const lines = String(text || "").replace(/^\uFEFF/, "").split(/\r?\n/).filter(l => l.trim());
+    if (lines.length < 2) { toast.error("الملف فارغ أو لا يحتوي صفوفاً"); return; }
+    const splitLine = (ln: string) => {
+      const cells: string[] = [];
+      let cur = "", inQ = false;
+      for (const ch of ln) {
+        if (ch === '"') { inQ = !inQ; continue; }
+        if (ch === "," && !inQ) { cells.push(cur.trim()); cur = ""; continue; }
+        cur += ch;
+      }
+      cells.push(cur.trim());
+      return cells;
+    };
+    const headerCells = splitLine(lines[0]);
+    const colMap: string[] = headerCells.map(h => {
+      const key = h.trim().toLowerCase();
+      return PRODUCT_CSV_ALIASES[h.trim()] || PRODUCT_CSV_ALIASES[key] || key;
+    });
+    for (let i = 1; i < lines.length; i++) {
+      const cells = splitLine(lines[i]);
+      const obj: Record<string, any> = {};
+      colMap.forEach((col, ci) => { if (col) obj[col] = cells[ci]; });
+      if (!obj.code || !obj.name) { errors.push(`سطر ${i + 1}: الرمز والاسم إلزاميان`); continue; }
+      const type = String(obj.type || "goods").trim();
+      rows.push({
+        code: String(obj.code).trim(),
+        name: String(obj.name).trim(),
+        type: type === "خدمة" || type === "service" ? "service" as const : "goods" as const,
+        category: obj.category ? String(obj.category).trim() : undefined,
+        unit: obj.unit ? String(obj.unit).trim() : "قطعة",
+        purchasePrice: String(obj.purchasePrice ?? obj["سعر الشراء"] ?? "0").trim() || "0",
+        salePrice: String(obj.salePrice ?? obj["سعر البيع"] ?? "0").trim() || "0",
+        wholesalePrice: String(obj.wholesalePrice ?? obj["سعر الجملة"] ?? "0").trim() || "0",
+        minStock: Math.max(0, parseInt(String(obj.minStock ?? "0")) || 0),
+        currentStock: Math.max(0, parseInt(String(obj.currentStock ?? "0")) || 0),
+        barcode: obj.barcode ? String(obj.barcode).trim() : undefined,
+      });
+    }
+    setImportRows(rows);
+    if (errors.length) toast.warning(`${errors.length} سطراً تم تجاهله: ${errors.slice(0, 3).join("، ") || ""}`);
+    if (rows.length === 0) toast.error("لا توجد صفوف صالحة للاستيراد");
+    else toast.success(`تم قراءة ${rows.length} صفاً صالحاً`);
+  };
+
+  const onImportFile = (file: File | null) => {
+    if (!file) return;
+    setImportFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = () => parseProductCsv(String(reader.result || ""));
+    reader.readAsText(file, "utf-8");
+  };
+
   // Customers
-  const { data: customersResponse, refetch: refetchCustomers, isLoading: loadingCustomers } = trpc.customers.list.useQuery({ search: debouncedSearch || undefined });
+  const { data: customersResponse, refetch: refetchCustomers, isLoading: loadingCustomers } = trpc.customers.list.useQuery({ search: debouncedSearch || undefined }, { staleTime: 60_000, refetchOnWindowFocus: false });
   const customersData = customersResponse?.items ?? [];
   const [showCustomerDialog, setShowCustomerDialog] = useState(false);
   const [customerForm, setCustomerForm] = useState({ code: "", name: "", phone: "", email: "", address: "", city: "" });
@@ -50,7 +190,7 @@ export default function Commercial() {
   const isCreatingCustomer = createCustomer.isPending;
 
   // Suppliers
-  const { data: suppliersResponse, refetch: refetchSuppliers, isLoading: loadingSuppliers } = trpc.suppliers.list.useQuery({ search: debouncedSearch || undefined });
+  const { data: suppliersResponse, refetch: refetchSuppliers, isLoading: loadingSuppliers } = trpc.suppliers.list.useQuery({ search: debouncedSearch || undefined }, { staleTime: 60_000, refetchOnWindowFocus: false });
   const suppliersData = suppliersResponse?.items ?? [];
   const [showSupplierDialog, setShowSupplierDialog] = useState(false);
   const [supplierForm, setSupplierForm] = useState({ code: "", name: "", phone: "", email: "", address: "", city: "" });
@@ -61,7 +201,7 @@ export default function Commercial() {
   const isCreatingSupplier = createSupplier.isPending;
 
   // Sales
-  const { data: salesResponse, refetch: refetchSales, isLoading: loadingSales } = trpc.sales.list.useQuery({});
+  const { data: salesResponse, refetch: refetchSales, isLoading: loadingSales } = trpc.sales.list.useQuery({}, { staleTime: 60_000, refetchOnWindowFocus: false });
   const salesData = salesResponse?.items ?? [];
   const [showSaleDialog, setShowSaleDialog] = useState(false);
   const [saleItems, setSaleItems] = useState<{ productId: number; productName: string; quantity: number; unitPrice: string }[]>([]);
@@ -74,7 +214,7 @@ export default function Commercial() {
   const isCreatingSale = createSale.isPending;
 
   // Purchases
-  const { data: purchasesResponse, refetch: refetchPurchases, isLoading: loadingPurchases } = trpc.purchases.list.useQuery({});
+  const { data: purchasesResponse, refetch: refetchPurchases, isLoading: loadingPurchases } = trpc.purchases.list.useQuery({}, { staleTime: 60_000, refetchOnWindowFocus: false });
   const purchasesData = purchasesResponse?.items ?? [];
   const [showPurchaseDialog, setShowPurchaseDialog] = useState(false);
   const [purchaseItems, setPurchaseItems] = useState<{ productId: number; productName: string; quantity: number; unitPrice: string }[]>([]);
@@ -430,9 +570,17 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center justify-between p-3">
                 <CardTitle className="text-sm font-bold text-[#102a2b]">المنتجات والمخازن</CardTitle>
-                <Button size="sm" className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8" onClick={() => setShowProductDialog(true)}>
-                  <Plus className="w-3 h-3 ml-1" />منتج جديد
-                </Button>
+                <div className="flex items-center gap-1.5">
+                  <Button size="sm" variant="outline" className="text-xs h-8 border-gray-200" onClick={exportProductsCsv} title="تصدير الأصناف الحالية إلى CSV">
+                    <Download className="w-3 h-3 ml-1" />تصدير CSV
+                  </Button>
+                  <Button size="sm" variant="outline" className="text-xs h-8 border-gray-200" onClick={() => setShowImportDialog(true)} title="استيراد أصناف/خدمات من ملف CSV">
+                    <Upload className="w-3 h-3 ml-1" />استيراد CSV
+                  </Button>
+                  <Button size="sm" className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8" onClick={() => setShowProductDialog(true)}>
+                    <Plus className="w-3 h-3 ml-1" />منتج جديد
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="p-3">
                 <div className="space-y-2">
@@ -462,6 +610,16 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
                           <p className="font-bold text-green-600">{p.salePrice}</p>
                         </div>
                         {p.barcode && <Barcode className="w-4 h-4 text-gray-400" />}
+                        <div className="flex items-center gap-1">
+                          <Button size="icon" variant="outline" className="w-6 h-6 text-[10px]" title="تعديل المنتج"
+                            onClick={() => { setEditProductForm({ id: p.id, name: p.name, salePrice: p.salePrice, purchasePrice: p.purchasePrice, minStock: p.minStock, barcode: p.barcode || "" }); setEditProduct(p); }}>
+                            <Edit className="w-3 h-3" />
+                          </Button>
+                          <Button size="icon" variant="outline" className="w-6 h-6 text-[10px]" title="تعديل المخزون"
+                            onClick={() => { setAdjustForm({ quantity: 1, type: "in", notes: "" }); setAdjustProduct(p); }}>
+                            <PackagePlus className="w-3 h-3" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -563,7 +721,8 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
                     <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
                       <div>
                         <p className="font-bold text-xs text-[#102a2b]">{inv.invoiceNumber}</p>
-                        <p className="text-[10px] text-gray-500">{new Date(inv.invoiceDate).toLocaleDateString("ar-EG")}</p>
+                        <p className="text-[10px] text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />{customerNameOf(inv.customerId)}</p>
+                        <p className="text-[10px] text-gray-400">{new Date(inv.invoiceDate).toLocaleDateString("ar-EG")}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge className={`text-[10px] ${statusColors[inv.status] || ""}`}>{statusLabels[inv.status] || inv.status}</Badge>
@@ -625,7 +784,8 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
                     <div key={inv.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
                       <div>
                         <p className="font-bold text-xs text-[#102a2b]">{inv.invoiceNumber}</p>
-                        <p className="text-[10px] text-gray-500">{new Date(inv.invoiceDate).toLocaleDateString("ar-EG")}</p>
+                        <p className="text-[10px] text-gray-500 flex items-center gap-1"><Truck className="w-3 h-3" />{supplierNameOf(inv.supplierId)}</p>
+                        <p className="text-[10px] text-gray-400">{new Date(inv.invoiceDate).toLocaleDateString("ar-EG")}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Badge className={`text-[10px] ${statusColors[inv.status] || ""}`}>{statusLabels[inv.status] || inv.status}</Badge>
@@ -676,8 +836,11 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
                   {!loadingOrders && ordersData?.map((o) => (
                     <div key={o.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border">
                       <div>
-                        <p className="font-bold text-xs text-[#102a2b]">{o.orderNumber}</p>
-                        <p className="text-[10px] text-gray-500">{o.deliveryAddress || "بدون عنوان"} • {o.assignedTo || "غير مُعيّن"}</p>
+                        <p className="font-bold text-xs text-[#102a2b] flex items-center gap-2">
+                          {o.orderNumber}
+                          {isWebOrder(o) && <Badge className="text-[9px] bg-purple-100 text-purple-700">متجر إلكتروني</Badge>}
+                        </p>
+                        <p className="text-[10px] text-gray-500 flex items-center gap-1"><User className="w-3 h-3" />{customerNameOf(o.customerId)} • {o.deliveryAddress || "بدون عنوان"}</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Select value={o.status} onValueChange={(v) => updateOrderStatus.mutate({ id: o.id, status: v as any })}>
@@ -1011,6 +1174,133 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
             <Button size="sm" onClick={handlePay} disabled={createPayment.isPending} className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
               {createPayment.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Wallet className="w-3 h-3 ml-1" />}
               تسجيل الدفعة
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Product Dialog */}
+      <Dialog open={!!editProduct} onOpenChange={(o) => !o && setEditProduct(null)}>
+        <DialogContent className="max-w-md font-sans" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <Edit className="w-4 h-4 text-[#b87945]" /> تعديل منتج: {editProduct?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <div className="space-y-1">
+              <Label className="text-[11px] font-bold text-slate-700">اسم المنتج</Label>
+              <Input value={editProductForm.name} onChange={(e) => setEditProductForm({ ...editProductForm, name: e.target.value })} className="h-8 text-xs" />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700">سعر البيع</Label>
+                <Input value={editProductForm.salePrice} onChange={(e) => setEditProductForm({ ...editProductForm, salePrice: e.target.value })} className="h-8 text-xs font-mono" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700">سعر الشراء</Label>
+                <Input value={editProductForm.purchasePrice} onChange={(e) => setEditProductForm({ ...editProductForm, purchasePrice: e.target.value })} className="h-8 text-xs font-mono" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700">حد الإنذار (minStock)</Label>
+                <Input type="number" min="0" value={editProductForm.minStock} onChange={(e) => setEditProductForm({ ...editProductForm, minStock: Number(e.target.value) })} className="h-8 text-xs font-mono" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700">الباركود</Label>
+                <Input value={editProductForm.barcode} onChange={(e) => setEditProductForm({ ...editProductForm, barcode: e.target.value })} className="h-8 text-xs font-mono" dir="ltr" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setEditProduct(null)} className="text-xs h-8">إلغاء</Button>
+            <Button size="sm" onClick={() => updateProduct.mutate({ id: editProductForm.id, name: editProductForm.name, salePrice: editProductForm.salePrice, purchasePrice: editProductForm.purchasePrice, minStock: editProductForm.minStock, barcode: editProductForm.barcode || undefined })} disabled={updateProduct.isPending} className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold">
+              {updateProduct.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <CheckCircle className="w-3 h-3 ml-1" />}
+              حفظ التعديلات
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Adjust Stock Dialog */}
+      <Dialog open={!!adjustProduct} onOpenChange={(o) => !o && setAdjustProduct(null)}>
+        <DialogContent className="max-w-md font-sans" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <PackagePlus className="w-4 h-4 text-[#b87945]" /> تعديل المخزون: {adjustProduct?.name}
+            </DialogTitle>
+          </DialogHeader>
+          {adjustProduct && (
+            <div className="space-y-3 pt-2">
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs">
+                <p className="text-slate-600">المخزون الحالي: <b className={adjustProduct.currentStock <= adjustProduct.minStock ? "text-red-600" : "text-slate-800"}>{adjustProduct.currentStock}</b> {adjustProduct.unit}</p>
+                <p className="text-slate-500 text-[10px]">حد الإنذار: {adjustProduct.minStock} {adjustProduct.unit}</p>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700">نوع العملية</Label>
+                <Select value={adjustForm.type} onValueChange={(v) => setAdjustForm({ ...adjustForm, type: v as any })}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="in" className="text-xs">تزويد المخزون (+)</SelectItem>
+                    <SelectItem value="out" className="text-xs">صرف من المخزون (−)</SelectItem>
+                    <SelectItem value="adjustment" className="text-xs">تسوية / جرد</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700">الكمية</Label>
+                <Input type="number" min="1" value={adjustForm.quantity} onChange={(e) => setAdjustForm({ ...adjustForm, quantity: Math.max(1, Number(e.target.value)) })} className="h-8 text-xs font-mono" />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold text-slate-700">سبب العملية (اختياري)</Label>
+                <Input value={adjustForm.notes} onChange={(e) => setAdjustForm({ ...adjustForm, notes: e.target.value })} placeholder="مثال: جرد شهري، تالف..." className="h-8 text-xs" />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setAdjustProduct(null)} className="text-xs h-8">إلغاء</Button>
+            <Button size="sm" onClick={() => adjustStock.mutate({ productId: adjustProduct.id, quantity: adjustForm.quantity, type: adjustForm.type, notes: adjustForm.notes || undefined })} disabled={adjustStock.isPending} className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold">
+              {adjustStock.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <CheckCircle className="w-3 h-3 ml-1" />}
+              تنفيذ العملية
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Import CSV Dialog */}
+      <Dialog open={showImportDialog} onOpenChange={(o) => { setShowImportDialog(o); if (!o) { setImportRows(null); setImportFileName(""); } }}>
+        <DialogContent className="max-w-md font-sans" dir="rtl">
+          <DialogHeader>
+            <DialogTitle className="text-sm font-bold flex items-center gap-2">
+              <Upload className="w-4 h-4 text-[#b87945]" /> استيراد الأصناف والخدمات (CSV)
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 pt-2">
+            <p className="text-[11px] text-slate-500 leading-relaxed">
+              الأعمدة: <code className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded" dir="ltr">code,name,type,category,unit,purchasePrice,salePrice,wholesalePrice,minStock,currentStock,barcode</code>
+              <br />تُقبل أيضاً رؤوس عربية (الرمز، الاسم، النوع: صنف/خدمة...). الأصناف الموجودة تُحدَّث، والجديدة تُضاف، والمخزون يعدَّل بفارق الرصيد مع تسجيل حركة جرد.
+            </p>
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#e8c9a0] rounded-lg p-5 cursor-pointer bg-[#faf5ed] hover:bg-[#f5ece0] transition-colors">
+              <Upload className="w-5 h-5 text-[#b87945]" />
+              <span className="text-xs font-bold text-[#5c3d1e]">{importFileName || "اختر ملف CSV"}</span>
+              <input type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => onImportFile(e.target.files?.[0] ?? null)} />
+            </label>
+            <Button variant="outline" size="sm" className="w-full h-8 text-xs" onClick={downloadProductTemplate}>
+              <Download className="w-3 h-3 ml-1" /> تنزيل نموذج جاهز (Template)
+            </Button>
+            {importRows && (
+              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs space-y-1">
+                <p className="font-bold text-slate-700">جاهز للاستيراد: {importRows.length} صفاً</p>
+                <p className="text-slate-500 text-[10px]">سيتم التحديث حسب الرمز (code) — الأسعار والرصيد وحد الإنذار ستُحدَّث للقائم منها</p>
+              </div>
+            )}
+          </div>
+          <DialogFooter className="flex gap-2 pt-2">
+            <Button variant="outline" size="sm" onClick={() => setShowImportDialog(false)} className="text-xs h-8">إلغاء</Button>
+            <Button size="sm" onClick={() => importRows && importCsv.mutate({ rows: importRows })} disabled={!importRows || importRows.length === 0 || importCsv.isPending} className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold">
+              {importCsv.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Upload className="w-3 h-3 ml-1" />}
+              تنفيذ الاستيراد
             </Button>
           </DialogFooter>
         </DialogContent>

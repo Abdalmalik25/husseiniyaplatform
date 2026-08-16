@@ -1,10 +1,11 @@
-import { ENV } from "./_core/env";
+﻿import { ENV } from "./_core/env";
 import { COOKIE_NAME } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { invokeLLM } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
+import { getCatalog, placePublicOrder, placeOrderInputSchema } from "./webStore";
 import { users, accounts, transactions, settings, budgets, activityLogs, openingBalances, tenants, branches, userBranchPermissions, products, warehouses, inventoryMovements, customers, suppliers, salesInvoices, salesInvoiceItems, purchaseInvoices, purchaseInvoiceItems, orders, orderItems, payments } from "../drizzle/schema";
 import { eq, desc, sql, asc, and, or, gte, lte, ilike, inArray, ne } from "drizzle-orm";
 import { z } from "zod";
@@ -17,18 +18,18 @@ async function seedDefaultAccountsIfNeeded() {
   if (!db) return;
   try {
     const defaultAccounts = [
-      { code: "1010", name: "الصندوق الرئيسي (الخزينة)", type: "asset" as const, category: "الأصول المتداولة", description: "صندوق النقدية الرئيسي للمؤسسة" },
-      { code: "1020", name: "البنك التجاري / الإسلامي", type: "asset" as const, category: "الأصول المتداولة", description: "الحساب البنكي الجاري لمؤسسة الحسينية" },
-      { code: "1030", name: "حساب العُملاء والمدينون", type: "asset" as const, category: "الأصول المتداولة", description: "مستحقات المؤسسة لدى العملاء مقابل الخدمات" },
-      { code: "2010", name: "الدائنون والموردون", type: "liability" as const, category: "الخصوم المتداولة", description: "التزامات المؤسسة تجاه مزودي الخدمة والموردين" },
-      { code: "3010", name: "رأس المال", type: "equity" as const, category: "حقوق الملكية", description: "رأس مال مؤسسة الحسينية لخدمات الأعمال" },
-      { code: "4010", name: "إيرادات خدمات الأعمال والمعاملات", type: "revenue" as const, category: "الإيرادات التشغيلية", description: "إيرادات تخليص المعاملات والاستشارات الإدارية والمالية" },
-      { code: "4020", name: "إيرادات متنوعة", type: "revenue" as const, category: "إيرادات أخرى", description: "إيرادات تشغيلية أخرى" },
-      { code: "5010", name: "مصروفات الرواتب والأجور", type: "expense" as const, category: "المصروفات التشغيلية", description: "رواتب ومستحقات موظفي المؤسسة" },
-      { code: "5020", name: "مصروفات الإيجار والخدمات (كهرباء، ماء، إنترنت)", type: "expense" as const, category: "المصروفات التشغيلية", description: "إيجار المقر وفواتير الخدمات الأساسية" },
-      { code: "5030", name: "مصروفات حكومية ورسوم تخليص", type: "expense" as const, category: "المصروفات التشغيلية", description: "الرسوم الحكومية المتعلقة بالمعاملات" },
-      { code: "5040", name: "مصروفات متنوعة وعمومية", type: "expense" as const, category: "المصروفات الإدارية", description: "ضيافة، أدوات مكتبية، ومصروفات نثرية" },
-      { code: "5050", name: "تكلفة البضاعة المشتراة (المشتريات التجارية)", type: "expense" as const, category: "تكلفة المبيعات", description: "تكلفة شراء البضائع والمخزون المباع" }
+      { code: "1010", name: "Ø§Ù„ØµÙ†Ø¯ÙˆÙ‚ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ (Ø§Ù„Ø®Ø²ÙŠÙ†Ø©)", type: "asset" as const, category: "Ø§Ù„Ø£ØµÙˆÙ„ Ø§Ù„Ù…ØªØ¯Ø§ÙˆÙ„Ø©", description: "ØµÙ†Ø¯ÙˆÙ‚ Ø§Ù„Ù†Ù‚Ø¯ÙŠØ© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ Ù„Ù„Ù…Ø¤Ø³Ø³Ø©" },
+      { code: "1020", name: "Ø§Ù„Ø¨Ù†Ùƒ Ø§Ù„ØªØ¬Ø§Ø±ÙŠ / Ø§Ù„Ø¥Ø³Ù„Ø§Ù…ÙŠ", type: "asset" as const, category: "Ø§Ù„Ø£ØµÙˆÙ„ Ø§Ù„Ù…ØªØ¯Ø§ÙˆÙ„Ø©", description: "Ø§Ù„Ø­Ø³Ø§Ø¨ Ø§Ù„Ø¨Ù†ÙƒÙŠ Ø§Ù„Ø¬Ø§Ø±ÙŠ Ù„Ù…Ø¤Ø³Ø³Ø© Ø§Ù„Ø­Ø³ÙŠÙ†ÙŠØ©" },
+      { code: "1030", name: "Ø­Ø³Ø§Ø¨ Ø§Ù„Ø¹ÙÙ…Ù„Ø§Ø¡ ÙˆØ§Ù„Ù…Ø¯ÙŠÙ†ÙˆÙ†", type: "asset" as const, category: "Ø§Ù„Ø£ØµÙˆÙ„ Ø§Ù„Ù…ØªØ¯Ø§ÙˆÙ„Ø©", description: "Ù…Ø³ØªØ­Ù‚Ø§Øª Ø§Ù„Ù…Ø¤Ø³Ø³Ø© Ù„Ø¯Ù‰ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ Ù…Ù‚Ø§Ø¨Ù„ Ø§Ù„Ø®Ø¯Ù…Ø§Øª" },
+      { code: "2010", name: "Ø§Ù„Ø¯Ø§Ø¦Ù†ÙˆÙ† ÙˆØ§Ù„Ù…ÙˆØ±Ø¯ÙˆÙ†", type: "liability" as const, category: "Ø§Ù„Ø®ØµÙˆÙ… Ø§Ù„Ù…ØªØ¯Ø§ÙˆÙ„Ø©", description: "Ø§Ù„ØªØ²Ø§Ù…Ø§Øª Ø§Ù„Ù…Ø¤Ø³Ø³Ø© ØªØ¬Ø§Ù‡ Ù…Ø²ÙˆØ¯ÙŠ Ø§Ù„Ø®Ø¯Ù…Ø© ÙˆØ§Ù„Ù…ÙˆØ±Ø¯ÙŠÙ†" },
+      { code: "3010", name: "Ø±Ø£Ø³ Ø§Ù„Ù…Ø§Ù„", type: "equity" as const, category: "Ø­Ù‚ÙˆÙ‚ Ø§Ù„Ù…Ù„ÙƒÙŠØ©", description: "Ø±Ø£Ø³ Ù…Ø§Ù„ Ù…Ø¤Ø³Ø³Ø© Ø§Ù„Ø­Ø³ÙŠÙ†ÙŠØ© Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø¹Ù…Ø§Ù„" },
+      { code: "4010", name: "Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø¹Ù…Ø§Ù„ ÙˆØ§Ù„Ù…Ø¹Ø§Ù…Ù„Ø§Øª", type: "revenue" as const, category: "Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠØ©", description: "Ø¥ÙŠØ±Ø§Ø¯Ø§Øª ØªØ®Ù„ÙŠØµ Ø§Ù„Ù…Ø¹Ø§Ù…Ù„Ø§Øª ÙˆØ§Ù„Ø§Ø³ØªØ´Ø§Ø±Ø§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ© ÙˆØ§Ù„Ù…Ø§Ù„ÙŠØ©" },
+      { code: "4020", name: "Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ù…ØªÙ†ÙˆØ¹Ø©", type: "revenue" as const, category: "Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ø£Ø®Ø±Ù‰", description: "Ø¥ÙŠØ±Ø§Ø¯Ø§Øª ØªØ´ØºÙŠÙ„ÙŠØ© Ø£Ø®Ø±Ù‰" },
+      { code: "5010", name: "Ù…ØµØ±ÙˆÙØ§Øª Ø§Ù„Ø±ÙˆØ§ØªØ¨ ÙˆØ§Ù„Ø£Ø¬ÙˆØ±", type: "expense" as const, category: "Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠØ©", description: "Ø±ÙˆØ§ØªØ¨ ÙˆÙ…Ø³ØªØ­Ù‚Ø§Øª Ù…ÙˆØ¸ÙÙŠ Ø§Ù„Ù…Ø¤Ø³Ø³Ø©" },
+      { code: "5020", name: "Ù…ØµØ±ÙˆÙØ§Øª Ø§Ù„Ø¥ÙŠØ¬Ø§Ø± ÙˆØ§Ù„Ø®Ø¯Ù…Ø§Øª (ÙƒÙ‡Ø±Ø¨Ø§Ø¡ØŒ Ù…Ø§Ø¡ØŒ Ø¥Ù†ØªØ±Ù†Øª)", type: "expense" as const, category: "Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠØ©", description: "Ø¥ÙŠØ¬Ø§Ø± Ø§Ù„Ù…Ù‚Ø± ÙˆÙÙˆØ§ØªÙŠØ± Ø§Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø³Ø§Ø³ÙŠØ©" },
+      { code: "5030", name: "Ù…ØµØ±ÙˆÙØ§Øª Ø­ÙƒÙˆÙ…ÙŠØ© ÙˆØ±Ø³ÙˆÙ… ØªØ®Ù„ÙŠØµ", type: "expense" as const, category: "Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠØ©", description: "Ø§Ù„Ø±Ø³ÙˆÙ… Ø§Ù„Ø­ÙƒÙˆÙ…ÙŠØ© Ø§Ù„Ù…ØªØ¹Ù„Ù‚Ø© Ø¨Ø§Ù„Ù…Ø¹Ø§Ù…Ù„Ø§Øª" },
+      { code: "5040", name: "Ù…ØµØ±ÙˆÙØ§Øª Ù…ØªÙ†ÙˆØ¹Ø© ÙˆØ¹Ù…ÙˆÙ…ÙŠØ©", type: "expense" as const, category: "Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø§Ù„Ø¥Ø¯Ø§Ø±ÙŠØ©", description: "Ø¶ÙŠØ§ÙØ©ØŒ Ø£Ø¯ÙˆØ§Øª Ù…ÙƒØªØ¨ÙŠØ©ØŒ ÙˆÙ…ØµØ±ÙˆÙØ§Øª Ù†Ø«Ø±ÙŠØ©" },
+      { code: "5050", name: "ØªÙƒÙ„ÙØ© Ø§Ù„Ø¨Ø¶Ø§Ø¹Ø© Ø§Ù„Ù…Ø´ØªØ±Ø§Ø© (Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª Ø§Ù„ØªØ¬Ø§Ø±ÙŠØ©)", type: "expense" as const, category: "ØªÙƒÙ„ÙØ© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª", description: "ØªÙƒÙ„ÙØ© Ø´Ø±Ø§Ø¡ Ø§Ù„Ø¨Ø¶Ø§Ø¦Ø¹ ÙˆØ§Ù„Ù…Ø®Ø²ÙˆÙ† Ø§Ù„Ù…Ø¨Ø§Ø¹" }
     ];
     for (const acc of defaultAccounts) {
       await db.insert(accounts).values(acc).onConflictDoUpdate({ target: accounts.code, set: { name: acc.name, type: acc.type, category: acc.category, description: acc.description } });
@@ -36,11 +37,11 @@ async function seedDefaultAccountsIfNeeded() {
     const existingSettings = await db.select().from(settings).limit(1);
     if (existingSettings.length === 0) {
       await db.insert(settings).values({
-        institutionName: "مؤسسة الحسينية لخدمات الأعمال",
-        currency: "ريال يمني (YER)",
-        accountingPeriod: "السنة المالية 2026",
-        managerName: "إدارة المؤسسة",
-        notes: "النظام المحاسبي المعتمد لمؤسسة الحسينية لخدمات الأعمال - مرن ودقيق."
+        institutionName: "Ù…Ø¤Ø³Ø³Ø© Ø§Ù„Ø­Ø³ÙŠÙ†ÙŠØ© Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø¹Ù…Ø§Ù„",
+        currency: "Ø±ÙŠØ§Ù„ ÙŠÙ…Ù†ÙŠ (YER)",
+        accountingPeriod: "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ù…Ø§Ù„ÙŠØ© 2026",
+        managerName: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø¤Ø³Ø³Ø©",
+        notes: "Ø§Ù„Ù†Ø¸Ø§Ù… Ø§Ù„Ù…Ø­Ø§Ø³Ø¨ÙŠ Ø§Ù„Ù…Ø¹ØªÙ…Ø¯ Ù„Ù…Ø¤Ø³Ø³Ø© Ø§Ù„Ø­Ø³ÙŠÙ†ÙŠØ© Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø¹Ù…Ø§Ù„ - Ù…Ø±Ù† ÙˆØ¯Ù‚ÙŠÙ‚."
       });
     }
     _seeded = true;
@@ -49,10 +50,10 @@ async function seedDefaultAccountsIfNeeded() {
   }
 }
 
-// ─── Auto-Posting: Double-Entry GL entries for invoices ──────────
+// â”€â”€â”€ Auto-Posting: Double-Entry GL entries for invoices â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 // Creates balanced journal entries for sales/purchase invoices.
-// Cash leg → 1010, Receivables → 1030, Payables → 2010,
-// Sales revenue → 4010, Purchases cost → 5050.
+// Cash leg â†’ 1010, Receivables â†’ 1030, Payables â†’ 2010,
+// Sales revenue â†’ 4010, Purchases cost â†’ 5050.
 async function postInvoiceGlEntries(
   tx: any,
   opts: {
@@ -89,27 +90,27 @@ async function postInvoiceGlEntries(
 
   if (opts.kind === "sale") {
     const revenueAcc = await findAccount("4010");
-    if (!revenueAcc) return; // chart not seeded yet — skip auto-posting
+    if (!revenueAcc) return; // chart not seeded yet â€” skip auto-posting
     if (paid > 0) {
       const cashAcc = await findAccount("1010");
-      if (cashAcc) await entry(cashAcc.id, "debit", paid, `تحصيل نقدي — فاتورة مبيعات ${opts.invoiceNumber}`);
+      if (cashAcc) await entry(cashAcc.id, "debit", paid, `ØªØ­ØµÙŠÙ„ Ù†Ù‚Ø¯ÙŠ â€” ÙØ§ØªÙˆØ±Ø© Ù…Ø¨ÙŠØ¹Ø§Øª ${opts.invoiceNumber}`);
     }
     if (unpaid > 0) {
       const receivablesAcc = await findAccount("1030");
-      if (receivablesAcc) await entry(receivablesAcc.id, "debit", unpaid, `ذمم عملاء — فاتورة مبيعات ${opts.invoiceNumber}`);
+      if (receivablesAcc) await entry(receivablesAcc.id, "debit", unpaid, `Ø°Ù…Ù… Ø¹Ù…Ù„Ø§Ø¡ â€” ÙØ§ØªÙˆØ±Ø© Ù…Ø¨ÙŠØ¹Ø§Øª ${opts.invoiceNumber}`);
     }
-    await entry(revenueAcc.id, "credit", opts.total, `إيراد مبيعات — فاتورة ${opts.invoiceNumber}`);
+    await entry(revenueAcc.id, "credit", opts.total, `Ø¥ÙŠØ±Ø§Ø¯ Ù…Ø¨ÙŠØ¹Ø§Øª â€” ÙØ§ØªÙˆØ±Ø© ${opts.invoiceNumber}`);
   } else {
     const costAcc = await findAccount("5050");
     if (!costAcc) return;
-    await entry(costAcc.id, "debit", opts.total, `تكلفة مشتريات — فاتورة ${opts.invoiceNumber}`);
+    await entry(costAcc.id, "debit", opts.total, `ØªÙƒÙ„ÙØ© Ù…Ø´ØªØ±ÙŠØ§Øª â€” ÙØ§ØªÙˆØ±Ø© ${opts.invoiceNumber}`);
     if (paid > 0) {
       const cashAcc = await findAccount("1010");
-      if (cashAcc) await entry(cashAcc.id, "credit", paid, `دفع نقدي — فاتورة مشتريات ${opts.invoiceNumber}`);
+      if (cashAcc) await entry(cashAcc.id, "credit", paid, `Ø¯ÙØ¹ Ù†Ù‚Ø¯ÙŠ â€” ÙØ§ØªÙˆØ±Ø© Ù…Ø´ØªØ±ÙŠØ§Øª ${opts.invoiceNumber}`);
     }
     if (unpaid > 0) {
       const payablesAcc = await findAccount("2010");
-      if (payablesAcc) await entry(payablesAcc.id, "credit", unpaid, `ذمم موردين — فاتورة مشتريات ${opts.invoiceNumber}`);
+      if (payablesAcc) await entry(payablesAcc.id, "credit", unpaid, `Ø°Ù…Ù… Ù…ÙˆØ±Ø¯ÙŠÙ† â€” ÙØ§ØªÙˆØ±Ø© Ù…Ø´ØªØ±ÙŠØ§Øª ${opts.invoiceNumber}`);
     }
   }
 }
@@ -145,8 +146,8 @@ export const appRouter = router({
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         userName: input.name,
-        action: "تحديث الملف الشخصي",
-        details: `تم تحديث تفضيلات العرض والملف الشخصي بواسطة ${input.name}`,
+        action: "ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ",
+        details: `ØªÙ… ØªØ­Ø¯ÙŠØ« ØªÙØ¶ÙŠÙ„Ø§Øª Ø§Ù„Ø¹Ø±Ø¶ ÙˆØ§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ Ø¨ÙˆØ§Ø³Ø·Ø© ${input.name}`,
       });
 
       return { success: true };
@@ -166,9 +167,9 @@ export const appRouter = router({
     getSettings: publicProcedure.query(async () => {
       await seedDefaultAccountsIfNeeded();
       const db = await getDb();
-      if (!db) return { institutionName: "مؤسسة الحسينية لخدمات الأعمال", currency: "ريال يمني (YER)", accountingPeriod: "السنة المالية 2026", managerName: "إدارة المؤسسة", subscriptionStatus: "active" };
+      if (!db) return { institutionName: "Ù…Ø¤Ø³Ø³Ø© Ø§Ù„Ø­Ø³ÙŠÙ†ÙŠØ© Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø¹Ù…Ø§Ù„", currency: "Ø±ÙŠØ§Ù„ ÙŠÙ…Ù†ÙŠ (YER)", accountingPeriod: "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ù…Ø§Ù„ÙŠØ© 2026", managerName: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø¤Ø³Ø³Ø©", subscriptionStatus: "active" };
       const res = await db.select().from(settings).limit(1);
-      return res[0] || { institutionName: "مؤسسة الحسينية لخدمات الأعمال", currency: "ريال يمني (YER)", accountingPeriod: "السنة المالية 2026", managerName: "إدارة المؤسسة", subscriptionStatus: "active" };
+      return res[0] || { institutionName: "Ù…Ø¤Ø³Ø³Ø© Ø§Ù„Ø­Ø³ÙŠÙ†ÙŠØ© Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø¹Ù…Ø§Ù„", currency: "Ø±ÙŠØ§Ù„ ÙŠÙ…Ù†ÙŠ (YER)", accountingPeriod: "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ù…Ø§Ù„ÙŠØ© 2026", managerName: "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ù…Ø¤Ø³Ø³Ø©", subscriptionStatus: "active" };
     }),
 
     // Upgrade or manage subscription (simulate payment & unlock advanced features)
@@ -251,8 +252,8 @@ export const appRouter = router({
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         userName: ctx.user.name,
-        action: `تعديل أو إعادة ترتيب الحساب: ${input.name} (${input.code})`,
-        details: `تم تحديث الحساب وتعديل التبعية الشجرية بنجاح`,
+        action: `ØªØ¹Ø¯ÙŠÙ„ Ø£Ùˆ Ø¥Ø¹Ø§Ø¯Ø© ØªØ±ØªÙŠØ¨ Ø§Ù„Ø­Ø³Ø§Ø¨: ${input.name} (${input.code})`,
+        details: `ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø­Ø³Ø§Ø¨ ÙˆØªØ¹Ø¯ÙŠÙ„ Ø§Ù„ØªØ¨Ø¹ÙŠØ© Ø§Ù„Ø´Ø¬Ø±ÙŠØ© Ø¨Ù†Ø¬Ø§Ø­`,
       });
 
       return { success: true };
@@ -267,7 +268,7 @@ export const appRouter = router({
       if (!db) throw new Error("Database not available");
       
       if (input.accountId === input.newParentAccountId) {
-        throw new Error("لا يمكن جعل الحساب تابعاً لنفسه");
+        throw new Error("Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø¬Ø¹Ù„ Ø§Ù„Ø­Ø³Ø§Ø¨ ØªØ§Ø¨Ø¹Ø§Ù‹ Ù„Ù†ÙØ³Ù‡");
       }
 
       await db.update(accounts).set({
@@ -277,8 +278,8 @@ export const appRouter = router({
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         userName: ctx.user.name,
-        action: `إعادة ترتيب الدليل (سحب وإفلات)`,
-        details: `تم نقل الحساب رقم ${input.accountId} ليكون تحت الحساب الرئيسي رقم ${input.newParentAccountId || 'جذر رئيسي'}`,
+        action: `Ø¥Ø¹Ø§Ø¯Ø© ØªØ±ØªÙŠØ¨ Ø§Ù„Ø¯Ù„ÙŠÙ„ (Ø³Ø­Ø¨ ÙˆØ¥ÙÙ„Ø§Øª)`,
+        details: `ØªÙ… Ù†Ù‚Ù„ Ø§Ù„Ø­Ø³Ø§Ø¨ Ø±Ù‚Ù… ${input.accountId} Ù„ÙŠÙƒÙˆÙ† ØªØ­Øª Ø§Ù„Ø­Ø³Ø§Ø¨ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ Ø±Ù‚Ù… ${input.newParentAccountId || 'Ø¬Ø°Ø± Ø±Ø¦ÙŠØ³ÙŠ'}`,
       });
 
       return { success: true };
@@ -357,9 +358,9 @@ export const appRouter = router({
       amount: z.string().refine(v => {
         const n = parseFloat(v);
         return !isNaN(n) && n > 0 && n < 1_000_000_000;
-      }, "المبلغ يجب أن يكون رقماً موجباً وأقل من مليار"),
+      }, "Ø§Ù„Ù…Ø¨Ù„Øº ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø±Ù‚Ù…Ø§Ù‹ Ù…ÙˆØ¬Ø¨Ø§Ù‹ ÙˆØ£Ù‚Ù„ Ù…Ù† Ù…Ù„ÙŠØ§Ø±"),
       type: z.enum(["debit", "credit"]),
-      transactionDate: z.string().refine(v => !isNaN(Date.parse(v)), "تاريخ غير صحيح"),
+      transactionDate: z.string().refine(v => !isNaN(Date.parse(v)), "ØªØ§Ø±ÙŠØ® ØºÙŠØ± ØµØ­ÙŠØ­"),
       narration: z.string().max(500).optional(),
       notes: z.string().optional(),
       lifecycleStatus: z.enum(["saved", "approved", "sent"]).default("saved"),
@@ -369,7 +370,7 @@ export const appRouter = router({
 
       // Verify account exists
       const account = await db.select().from(accounts).where(eq(accounts.id, input.accountId)).limit(1);
-      if (account.length === 0) throw new Error("الحساب غير موجود");
+      if (account.length === 0) throw new Error("Ø§Ù„Ø­Ø³Ø§Ø¨ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯");
 
       const values = {
         accountId: input.accountId,
@@ -445,11 +446,11 @@ export const appRouter = router({
       if (!db) throw new Error("Database not available");
       
       const existing = await db.select().from(transactions).where(eq(transactions.id, input.id)).limit(1);
-      if (existing.length === 0) throw new Error("الحركة غير موجودة");
+      if (existing.length === 0) throw new Error("Ø§Ù„Ø­Ø±ÙƒØ© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©");
       
-      // Prevent editing if already posted (ترحيل)
+      // Prevent editing if already posted (ØªØ±Ø­ÙŠÙ„)
       if (existing[0]?.lifecycleStatus === 'posted' && input.lifecycleStatus !== 'posted') {
-        throw new Error("لا يمكن تعديل أو إلغاء حركة مرحلة نهائياً. التعديل يتم عبر حركة عكسية مستقلة.");
+        throw new Error("Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„ Ø£Ùˆ Ø¥Ù„ØºØ§Ø¡ Ø­Ø±ÙƒØ© Ù…Ø±Ø­Ù„Ø© Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹. Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ ÙŠØªÙ… Ø¹Ø¨Ø± Ø­Ø±ÙƒØ© Ø¹ÙƒØ³ÙŠØ© Ù…Ø³ØªÙ‚Ù„Ø©.");
       }
 
       await db.update(transactions)
@@ -462,8 +463,8 @@ export const appRouter = router({
       // Log activity
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `تحديث حالة الحركة #${input.id} إلى: ${input.lifecycleStatus}`,
-        details: input.reversalReason ? `سبب العكس: ${input.reversalReason}` : 'تغيير حالة دورة الحركة المالية',
+        action: `ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø­Ø±ÙƒØ© #${input.id} Ø¥Ù„Ù‰: ${input.lifecycleStatus}`,
+        details: input.reversalReason ? `Ø³Ø¨Ø¨ Ø§Ù„Ø¹ÙƒØ³: ${input.reversalReason}` : 'ØªØºÙŠÙŠØ± Ø­Ø§Ù„Ø© Ø¯ÙˆØ±Ø© Ø§Ù„Ø­Ø±ÙƒØ© Ø§Ù„Ù…Ø§Ù„ÙŠØ©',
       });
 
       return { success: true };
@@ -480,9 +481,9 @@ export const appRouter = router({
       if (!db) throw new Error("Database not available");
 
       const existing = await db.select().from(transactions).where(eq(transactions.id, input.id)).limit(1);
-      if (existing.length === 0) throw new Error("الحركة غير موجودة");
+      if (existing.length === 0) throw new Error("Ø§Ù„Ø­Ø±ÙƒØ© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©");
       if (existing[0]?.lifecycleStatus !== 'saved') {
-        throw new Error("لا يمكن تعديل الحركة لأنها معتمدة أو مرسلة ومؤمنة تماماً");
+        throw new Error("Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø­Ø±ÙƒØ© Ù„Ø£Ù†Ù‡Ø§ Ù…Ø¹ØªÙ…Ø¯Ø© Ø£Ùˆ Ù…Ø±Ø³Ù„Ø© ÙˆÙ…Ø¤Ù…Ù†Ø© ØªÙ…Ø§Ù…Ø§Ù‹");
       }
 
       await db.update(transactions)
@@ -503,15 +504,15 @@ export const appRouter = router({
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(transactions).where(eq(transactions.id, input.id)).limit(1);
-      if (existing.length === 0) throw new Error("الحركة غير موجودة");
+      if (existing.length === 0) throw new Error("Ø§Ù„Ø­Ø±ÙƒØ© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©");
       if (existing[0].lifecycleStatus !== "saved") {
-        throw new Error("لا يمكن حذف حركة معتمدة أو مرسلة — استخدم الإلغاء العكسي");
+        throw new Error("Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø­Ø°Ù Ø­Ø±ÙƒØ© Ù…Ø¹ØªÙ…Ø¯Ø© Ø£Ùˆ Ù…Ø±Ø³Ù„Ø© â€” Ø§Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø¥Ù„ØºØ§Ø¡ Ø§Ù„Ø¹ÙƒØ³ÙŠ");
       }
       await db.delete(transactions).where(eq(transactions.id, input.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `حذف حركة مالية #${input.id}`,
-        details: `الحساب: ${existing[0].accountId} — المبلغ: ${existing[0].amount}`,
+        action: `Ø­Ø°Ù Ø­Ø±ÙƒØ© Ù…Ø§Ù„ÙŠØ© #${input.id}`,
+        details: `Ø§Ù„Ø­Ø³Ø§Ø¨: ${existing[0].accountId} â€” Ø§Ù„Ù…Ø¨Ù„Øº: ${existing[0].amount}`,
       });
       return { success: true };
     }),
@@ -519,7 +520,7 @@ export const appRouter = router({
     // Smart Suggestions Engine: recommends accounts & standard amounts based on history & operation type
     getSmartSuggestions: publicProcedure.input(z.object({
       query: z.string().optional(),
-      operationType: z.string().optional(), // e.g. "إيراد", "مصروف", "سداد", "عميل"
+      operationType: z.string().optional(), // e.g. "Ø¥ÙŠØ±Ø§Ø¯", "Ù…ØµØ±ÙˆÙ", "Ø³Ø¯Ø§Ø¯", "Ø¹Ù…ÙŠÙ„"
     })).query(async ({ input }) => {
       const db = await getDb();
       if (!db) return { suggestedAccounts: [], recentNarrations: [], insights: [] };
@@ -540,9 +541,9 @@ export const appRouter = router({
       let matchedAccounts = allAccounts;
       if (input.operationType) {
         const typeKeyword = input.operationType.toLowerCase();
-        if (typeKeyword.includes("إيراد") || typeKeyword.includes("تحصيل")) {
+        if (typeKeyword.includes("Ø¥ÙŠØ±Ø§Ø¯") || typeKeyword.includes("ØªØ­ØµÙŠÙ„")) {
           matchedAccounts = allAccounts.filter(a => a.type === 'revenue' || a.type === 'asset');
-        } else if (typeKeyword.includes("مصروف") || typeKeyword.includes("دفع") || typeKeyword.includes("سداد")) {
+        } else if (typeKeyword.includes("Ù…ØµØ±ÙˆÙ") || typeKeyword.includes("Ø¯ÙØ¹") || typeKeyword.includes("Ø³Ø¯Ø§Ø¯")) {
           matchedAccounts = allAccounts.filter(a => a.type === 'expense' || a.type === 'liability');
         }
       }
@@ -551,9 +552,9 @@ export const appRouter = router({
 
       // Generate deep professional insights for Al-Husainia Business Services
       const insights = [
-        "تحليل العمليات: يوصى بمراجعة حسابات العملاء بانتظام لضمان تحصيل الإيرادات في مواقيتها بمؤسسة الحسينية.",
-        "الرقابة المالية: العمليات ذات التواريخ السابقة تتطلب تدوين ملاحظات مبررة في عمود الملاحظات.",
-        "الكفاءة التشغيلية: تسجيل العمليات الدورية (مثل الإيجار والرواتب) يساعد في استقرار التدفقات النقدية."
+        "ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª: ÙŠÙˆØµÙ‰ Ø¨Ù…Ø±Ø§Ø¬Ø¹Ø© Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ Ø¨Ø§Ù†ØªØ¸Ø§Ù… Ù„Ø¶Ù…Ø§Ù† ØªØ­ØµÙŠÙ„ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯Ø§Øª ÙÙŠ Ù…ÙˆØ§Ù‚ÙŠØªÙ‡Ø§ Ø¨Ù…Ø¤Ø³Ø³Ø© Ø§Ù„Ø­Ø³ÙŠÙ†ÙŠØ©.",
+        "Ø§Ù„Ø±Ù‚Ø§Ø¨Ø© Ø§Ù„Ù…Ø§Ù„ÙŠØ©: Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª Ø°Ø§Øª Ø§Ù„ØªÙˆØ§Ø±ÙŠØ® Ø§Ù„Ø³Ø§Ø¨Ù‚Ø© ØªØªØ·Ù„Ø¨ ØªØ¯ÙˆÙŠÙ† Ù…Ù„Ø§Ø­Ø¸Ø§Øª Ù…Ø¨Ø±Ø±Ø© ÙÙŠ Ø¹Ù…ÙˆØ¯ Ø§Ù„Ù…Ù„Ø§Ø­Ø¸Ø§Øª.",
+        "Ø§Ù„ÙƒÙØ§Ø¡Ø© Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠØ©: ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¹Ù…Ù„ÙŠØ§Øª Ø§Ù„Ø¯ÙˆØ±ÙŠØ© (Ù…Ø«Ù„ Ø§Ù„Ø¥ÙŠØ¬Ø§Ø± ÙˆØ§Ù„Ø±ÙˆØ§ØªØ¨) ÙŠØ³Ø§Ø¹Ø¯ ÙÙŠ Ø§Ø³ØªÙ‚Ø±Ø§Ø± Ø§Ù„ØªØ¯ÙÙ‚Ø§Øª Ø§Ù„Ù†Ù‚Ø¯ÙŠØ©."
       ];
 
       return {
@@ -724,7 +725,7 @@ export const appRouter = router({
     })).query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
-      const period = input.periodName || "السنة المالية 2026";
+      const period = input.periodName || "Ø§Ù„Ø³Ù†Ø© Ø§Ù„Ù…Ø§Ù„ÙŠØ© 2026";
       return await db.select().from(openingBalances).where(eq(openingBalances.periodName, period));
     }),
 
@@ -765,14 +766,144 @@ export const appRouter = router({
 
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `تحديث الأرصدة الافتتاحية للفترة: ${input.periodName}`,
-        details: `تم حفظ الأرصدة الافتتاحية لعدد ${input.balances.length} حساب`,
+        action: `ØªØ­Ø¯ÙŠØ« Ø§Ù„Ø£Ø±ØµØ¯Ø© Ø§Ù„Ø§ÙØªØªØ§Ø­ÙŠØ© Ù„Ù„ÙØªØ±Ø©: ${input.periodName}`,
+        details: `ØªÙ… Ø­ÙØ¸ Ø§Ù„Ø£Ø±ØµØ¯Ø© Ø§Ù„Ø§ÙØªØªØ§Ø­ÙŠØ© Ù„Ø¹Ø¯Ø¯ ${input.balances.length} Ø­Ø³Ø§Ø¨`,
       });
 
       return { success: true };
     }),
 
-    // Chartered Auditor & Financial Analyst Review
+    // Period Closing (إقفال الدورة) — preview balances then post closing entries
+    closing: router({
+      preview: protectedProcedure.input(z.object({
+        periodName: z.string().default("السنة المالية 2026"),
+        asOfDate: z.string().optional(),
+      })).query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return { rows: [], revenueTotal: 0, expenseTotal: 0, netProfit: 0 };
+        const asOf = input.asOfDate ? new Date(input.asOfDate) : new Date();
+
+        const allAccounts = await db.select().from(accounts).where(eq(accounts.isActive, true));
+        const opening = await db.select().from(openingBalances)
+          .where(and(eq(openingBalances.periodName, input.periodName), lte(openingBalances.createdAt, asOf)));
+        const txns = await db.select().from(transactions)
+          .where(and(lte(transactions.transactionDate, asOf), eq(transactions.isReversed, false), ne(transactions.referenceType || "", "closing")));
+
+        const balanceOf = new Map<number, number>(); // net = debit - credit
+        for (const ob of opening) {
+          const cur = balanceOf.get(ob.accountId) ?? 0;
+          balanceOf.set(ob.accountId, cur + (ob.type === "debit" ? parseFloat(ob.amount) : -parseFloat(ob.amount)));
+        }
+        for (const t of txns) {
+          const v = parseFloat(t.amount || "0");
+          const cur = balanceOf.get(t.accountId) ?? 0;
+          balanceOf.set(t.accountId, cur + (t.type === "debit" ? v : -v));
+        }
+
+        const rows = allAccounts
+          .filter(a => Math.abs(balanceOf.get(a.id) ?? 0) > 0.009)
+          .map(a => ({
+            accountId: a.id,
+            code: a.code,
+            name: a.name,
+            type: a.type,
+            balance: Math.abs(balanceOf.get(a.id)!),
+            side: (balanceOf.get(a.id)! > 0 ? "debit" : "credit") as "debit" | "credit",
+          }))
+          .sort((x, y) => x.code.localeCompare(y.code));
+
+        const revenueTotal = rows.filter(r => r.type === "revenue").reduce((s, r) => s + r.balance, 0);
+        const expenseTotal = rows.filter(r => r.type === "expense").reduce((s, r) => s + r.balance, 0);
+        return { rows, revenueTotal, expenseTotal, netProfit: revenueTotal - expenseTotal };
+      }),
+
+      execute: protectedProcedure.input(z.object({
+        periodName: z.string().default("السنة المالية 2026"),
+        asOfDate: z.string().optional(),
+        retainedAccountId: z.number().optional(),
+      })).mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const asOf = input.asOfDate ? new Date(input.asOfDate) : new Date();
+
+        const already = await db.select().from(transactions)
+          .where(and(eq(transactions.referenceType, "closing"), ilike(transactions.narration, `%${input.periodName}%`)))
+          .limit(1);
+        if (already.length > 0) throw new Error(`تم إقفال الدورة "${input.periodName}" مسبقاً — القيود لا يمكن تكرارها`);
+
+        let retainedId = input.retainedAccountId;
+        if (!retainedId) {
+          const eq3010 = await db.select().from(accounts).where(and(eq(accounts.code, "3010"), eq(accounts.type, "equity"))).limit(1);
+          const fallback = eq3010.length > 0 ? eq3010[0].id : (await db.select().from(accounts).where(eq(accounts.type, "equity")).limit(1))[0]?.id;
+          if (!fallback) throw new Error("لا يوجد حساب رأس مال/نتائج — أنشئ حساباً من نوع رأس المال أولاً");
+          retainedId = fallback;
+        }
+
+        const allAccounts = await db.select().from(accounts);
+        const opening = await db.select().from(openingBalances).where(eq(openingBalances.periodName, input.periodName));
+        const txns = await db.select().from(transactions)
+          .where(and(lte(transactions.transactionDate, asOf), eq(transactions.isReversed, false)));
+
+        const balanceOf = new Map<number, number>();
+        for (const ob of opening) {
+          balanceOf.set(ob.accountId, (balanceOf.get(ob.accountId) ?? 0) + (ob.type === "debit" ? parseFloat(ob.amount) : -parseFloat(ob.amount)));
+        }
+        for (const t of txns) {
+          if (t.referenceType === "closing") continue;
+          const v = parseFloat(t.amount || "0");
+          balanceOf.set(t.accountId, (balanceOf.get(t.accountId) ?? 0) + (t.type === "debit" ? v : -v));
+        }
+
+        const acctMap = new Map(allAccounts.map(a => [a.id, a]));
+        const closingRows = allAccounts
+          .filter(a => (a.type === "revenue" || a.type === "expense") && Math.abs(balanceOf.get(a.id) ?? 0) > 0.009)
+          .map(a => ({ account: a, balance: Math.abs(balanceOf.get(a.id)!), side: (balanceOf.get(a.id)! > 0 ? "debit" : "credit") as "debit" | "credit" }));
+
+        if (closingRows.length === 0) throw new Error("لا توجد أرصدة إيرادات أو مصروفات لإقفالها في هذه الدورة");
+
+        let debitTotal = 0;
+        let creditTotal = 0;
+        const entries: { accountId: number; amount: string; type: "debit" | "credit"; narration: string }[] = [];
+
+        for (const row of closingRows) {
+          if (row.side === "credit") {
+            // مصروف له رصيد دائن؟ عكسه نظرياً — نعامل حسب طبيعة الحساب
+            if (row.account.type === "expense") continue;
+            entries.push({ accountId: row.account.id, amount: row.balance.toFixed(2), type: "debit", narration: `إقفال ${row.account.name}` });
+            entries.push({ accountId: retainedId, amount: row.balance.toFixed(2), type: "credit", narration: `إقفال ${row.account.name}` });
+            debitTotal += row.balance; creditTotal += row.balance;
+          } else {
+            if (row.account.type === "revenue") continue;
+            entries.push({ accountId: row.account.id, amount: row.balance.toFixed(2), type: "credit", narration: `إقفال ${row.account.name}` });
+            entries.push({ accountId: retainedId, amount: row.balance.toFixed(2), type: "debit", narration: `إقفال ${row.account.name}` });
+            debitTotal += row.balance; creditTotal += row.balance;
+          }
+        }
+
+        if (Math.abs(debitTotal - creditTotal) > 0.01) throw new Error("عدم توازن القيود — راجع الأرصدة قبل الإقفال");
+
+        const narration = `إقفال الدورة: ${input.periodName}`;
+        const result = await (db as any).transaction(async (tx: any) => {
+          for (const e of entries) {
+            await tx.insert(transactions).values({
+              accountId: e.accountId,
+              amount: e.amount,
+              type: e.type,
+              transactionDate: asOf,
+              narration: `${narration} — ${e.narration}`,
+              referenceType: "closing",
+              lifecycleStatus: "approved",
+            });
+          }
+          await tx.insert(activityLogs).values({
+            userId: ctx.user.id,
+            action: `${narration} (${entries.length / 2} حساباً، الإجمالي ${debitTotal.toFixed(2)})`,
+          });
+          return { entries: entries.length / 2, total: debitTotal, retainedAccountId: retainedId };
+        });
+        return result;
+      }),
+    }),
     runAuditorReview: protectedProcedure.query(async () => {
       const db = await getDb();
       if (!db) return { status: "OK", score: 100, warnings: [], recommendations: [] };
@@ -805,24 +936,24 @@ export const appRouter = router({
       let score = 95;
 
       if (Math.abs(totalDebits - totalCredits) > 0.01) {
-        warnings.push("تحذير محاسبي: إجمالي الأطراف المدين والدائن في الحركات المعتمدة غير متطابق تماماً.");
+        warnings.push("ØªØ­Ø°ÙŠØ± Ù…Ø­Ø§Ø³Ø¨ÙŠ: Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø£Ø·Ø±Ø§Ù Ø§Ù„Ù…Ø¯ÙŠÙ† ÙˆØ§Ù„Ø¯Ø§Ø¦Ù† ÙÙŠ Ø§Ù„Ø­Ø±ÙƒØ§Øª Ø§Ù„Ù…Ø¹ØªÙ…Ø¯Ø© ØºÙŠØ± Ù…ØªØ·Ø§Ø¨Ù‚ ØªÙ…Ø§Ù…Ø§Ù‹.");
         score -= 20;
       } else {
-        recommendations.push("توازن القيود المحاسبية سليم ومعتمد وفق المعايير المزدوجة.");
+        recommendations.push("ØªÙˆØ§Ø²Ù† Ø§Ù„Ù‚ÙŠÙˆØ¯ Ø§Ù„Ù…Ø­Ø§Ø³Ø¨ÙŠØ© Ø³Ù„ÙŠÙ… ÙˆÙ…Ø¹ØªÙ…Ø¯ ÙˆÙÙ‚ Ø§Ù„Ù…Ø¹Ø§ÙŠÙŠØ± Ø§Ù„Ù…Ø²Ø¯ÙˆØ¬Ø©.");
       }
 
       if (assetTotal < liabilityTotal) {
-        warnings.push("تنبيه المراجع القانوني: إجمالي الخصوم يتجاوز إجمالي الأصول، مما يشير لمخاطر رأس مال عامل.");
+        warnings.push("ØªÙ†Ø¨ÙŠÙ‡ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹ Ø§Ù„Ù‚Ø§Ù†ÙˆÙ†ÙŠ: Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø®ØµÙˆÙ… ÙŠØªØ¬Ø§ÙˆØ² Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø£ØµÙˆÙ„ØŒ Ù…Ù…Ø§ ÙŠØ´ÙŠØ± Ù„Ù…Ø®Ø§Ø·Ø± Ø±Ø£Ø³ Ù…Ø§Ù„ Ø¹Ø§Ù…Ù„.");
         score -= 15;
       } else {
-        recommendations.push("نسبة الأصول إلى الخصوم ضمن الحدود الآمنة لتغطية الالتزامات.");
+        recommendations.push("Ù†Ø³Ø¨Ø© Ø§Ù„Ø£ØµÙˆÙ„ Ø¥Ù„Ù‰ Ø§Ù„Ø®ØµÙˆÙ… Ø¶Ù…Ù† Ø§Ù„Ø­Ø¯ÙˆØ¯ Ø§Ù„Ø¢Ù…Ù†Ø© Ù„ØªØºØ·ÙŠØ© Ø§Ù„Ø§Ù„ØªØ²Ø§Ù…Ø§Øª.");
       }
 
-      recommendations.push("يوصى بإجراء مطابقة شهرية للخزينة والبنك لضمان عدم وجود فروقات نقدية.");
-      recommendations.push("تم اعتماد سجل التدقيق بنجاح وتأمين الحركات ضد أي تعديل غير مبرر.");
+      recommendations.push("ÙŠÙˆØµÙ‰ Ø¨Ø¥Ø¬Ø±Ø§Ø¡ Ù…Ø·Ø§Ø¨Ù‚Ø© Ø´Ù‡Ø±ÙŠØ© Ù„Ù„Ø®Ø²ÙŠÙ†Ø© ÙˆØ§Ù„Ø¨Ù†Ùƒ Ù„Ø¶Ù…Ø§Ù† Ø¹Ø¯Ù… ÙˆØ¬ÙˆØ¯ ÙØ±ÙˆÙ‚Ø§Øª Ù†Ù‚Ø¯ÙŠØ©.");
+      recommendations.push("ØªÙ… Ø§Ø¹ØªÙ…Ø§Ø¯ Ø³Ø¬Ù„ Ø§Ù„ØªØ¯Ù‚ÙŠÙ‚ Ø¨Ù†Ø¬Ø§Ø­ ÙˆØªØ£Ù…ÙŠÙ† Ø§Ù„Ø­Ø±ÙƒØ§Øª Ø¶Ø¯ Ø£ÙŠ ØªØ¹Ø¯ÙŠÙ„ ØºÙŠØ± Ù…Ø¨Ø±Ø±.");
 
       return {
-        status: warnings.length > 0 ? "تتطلب مراجعة" : "مستوفية ومعيارية",
+        status: warnings.length > 0 ? "ØªØªØ·Ù„Ø¨ Ù…Ø±Ø§Ø¬Ø¹Ø©" : "Ù…Ø³ØªÙˆÙÙŠØ© ÙˆÙ…Ø¹ÙŠØ§Ø±ÙŠØ©",
         score,
         warnings,
         recommendations,
@@ -841,18 +972,18 @@ export const appRouter = router({
       rawText: z.string().optional(),
     })).mutation(async ({ input }) => {
       const allAccounts = await (await getDb())?.select().from(accounts) || [];
-      const prompt = `أنت محاسب قانوني ومراجع مالي خبير. قم بتحليل النص أو المستند المرفق بدقة متناهية واستخرج الحركات المالية أو الأرصدة الافتتاحية بدقة عالية. 
-الحسابات المتاحة في النظام حالياً هي:
-${allAccounts.map((a: any) => `- كود ${a.code}: ${a.name} (نوع ${a.type})`).join('\n')}
+      const prompt = `Ø£Ù†Øª Ù…Ø­Ø§Ø³Ø¨ Ù‚Ø§Ù†ÙˆÙ†ÙŠ ÙˆÙ…Ø±Ø§Ø¬Ø¹ Ù…Ø§Ù„ÙŠ Ø®Ø¨ÙŠØ±. Ù‚Ù… Ø¨ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù†Øµ Ø£Ùˆ Ø§Ù„Ù…Ø³ØªÙ†Ø¯ Ø§Ù„Ù…Ø±ÙÙ‚ Ø¨Ø¯Ù‚Ø© Ù…ØªÙ†Ø§Ù‡ÙŠØ© ÙˆØ§Ø³ØªØ®Ø±Ø¬ Ø§Ù„Ø­Ø±ÙƒØ§Øª Ø§Ù„Ù…Ø§Ù„ÙŠØ© Ø£Ùˆ Ø§Ù„Ø£Ø±ØµØ¯Ø© Ø§Ù„Ø§ÙØªØªØ§Ø­ÙŠØ© Ø¨Ø¯Ù‚Ø© Ø¹Ø§Ù„ÙŠØ©. 
+Ø§Ù„Ø­Ø³Ø§Ø¨Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø© ÙÙŠ Ø§Ù„Ù†Ø¸Ø§Ù… Ø­Ø§Ù„ÙŠØ§Ù‹ Ù‡ÙŠ:
+${allAccounts.map((a: any) => `- ÙƒÙˆØ¯ ${a.code}: ${a.name} (Ù†ÙˆØ¹ ${a.type})`).join('\n')}
 
-المحتوى المدخل أو المستخرج:
-${input.rawText || input.fileUrl || "لا يوجد نص"}
+Ø§Ù„Ù…Ø­ØªÙˆÙ‰ Ø§Ù„Ù…Ø¯Ø®Ù„ Ø£Ùˆ Ø§Ù„Ù…Ø³ØªØ®Ø±Ø¬:
+${input.rawText || input.fileUrl || "Ù„Ø§ ÙŠÙˆØ¬Ø¯ Ù†Øµ"}
 
-قم بإرجاع النتيجة بصيغة JSON حصراً تتضمن مصفوفة items تحتوي على:
-- accountCode (كود الحساب المطابق بدقة)
-- amount (القيمة الرقمية)
-- type (debit أو credit)
-- narration (وصف الحركة أو بيانها)`;
+Ù‚Ù… Ø¨Ø¥Ø±Ø¬Ø§Ø¹ Ø§Ù„Ù†ØªÙŠØ¬Ø© Ø¨ØµÙŠØºØ© JSON Ø­ØµØ±Ø§Ù‹ ØªØªØ¶Ù…Ù† Ù…ØµÙÙˆÙØ© items ØªØ­ØªÙˆÙŠ Ø¹Ù„Ù‰:
+- accountCode (ÙƒÙˆØ¯ Ø§Ù„Ø­Ø³Ø§Ø¨ Ø§Ù„Ù…Ø·Ø§Ø¨Ù‚ Ø¨Ø¯Ù‚Ø©)
+- amount (Ø§Ù„Ù‚ÙŠÙ…Ø© Ø§Ù„Ø±Ù‚Ù…ÙŠØ©)
+- type (debit Ø£Ùˆ credit)
+- narration (ÙˆØµÙ Ø§Ù„Ø­Ø±ÙƒØ© Ø£Ùˆ Ø¨ÙŠØ§Ù†Ù‡Ø§)`;
 
       try {
         const response = await invokeLLM({
@@ -886,15 +1017,15 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
         const parsed = JSON.parse(contentStr);
         const items = Array.isArray(parsed?.items) ? parsed.items : [];
         if (items.length === 0) {
-          return { success: false, message: "تعذر استخراج بنود مالية من المستند", items: [] };
+          return { success: false, message: "ØªØ¹Ø°Ø± Ø§Ø³ØªØ®Ø±Ø§Ø¬ Ø¨Ù†ÙˆØ¯ Ù…Ø§Ù„ÙŠØ© Ù…Ù† Ø§Ù„Ù…Ø³ØªÙ†Ø¯", items: [] };
         }
         return { success: true, items };
       } catch (e) {
-        // Never invent financial data — surface the failure for manual review
+        // Never invent financial data â€” surface the failure for manual review
         console.warn("[smartParse] Parsing failed:", e);
         return {
           success: false,
-          message: "تعذر تحليل المستند — يرجى إدخال البيانات يدوياً",
+          message: "ØªØ¹Ø°Ø± ØªØ­Ù„ÙŠÙ„ Ø§Ù„Ù…Ø³ØªÙ†Ø¯ â€” ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª ÙŠØ¯ÙˆÙŠØ§Ù‹",
           items: [],
         };
       }
@@ -909,20 +1040,20 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
       if (allTenants.length === 0) {
         // Seed default ALHUSAINIA tenant
         await db.insert(tenants).values({
-          name: "مؤسسة الحسينية لخدمات الأعمال",
+          name: "Ù…Ø¤Ø³Ø³Ø© Ø§Ù„Ø­Ø³ÙŠÙ†ÙŠØ© Ù„Ø®Ø¯Ù…Ø§Øª Ø§Ù„Ø£Ø¹Ù…Ø§Ù„",
           code: "ALH-HQ",
           ownerUserId: ctx.user.id,
           currency: "YER",
-          country: "اليمن",
+          country: "Ø§Ù„ÙŠÙ…Ù†",
           subscriptionPlan: "standard",
         });
         const createdT = await db.select().from(tenants).limit(1);
         if (createdT.length > 0) {
           await db.insert(branches).values({
             tenantId: createdT[0].id,
-            name: "الفرع الرئيسي",
+            name: "Ø§Ù„ÙØ±Ø¹ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠ",
             code: "HQ-01",
-            city: "صنعاء",
+            city: "ØµÙ†Ø¹Ø§Ø¡",
             isMain: true,
           });
         }
@@ -950,8 +1081,8 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
       });
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `إضافة فرع جديد: ${input.name} (${input.code})`,
-        details: `تم إنشاء الفرع تحت المؤسسة رقم ${input.tenantId}`,
+        action: `Ø¥Ø¶Ø§ÙØ© ÙØ±Ø¹ Ø¬Ø¯ÙŠØ¯: ${input.name} (${input.code})`,
+        details: `ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„ÙØ±Ø¹ ØªØ­Øª Ø§Ù„Ù…Ø¤Ø³Ø³Ø© Ø±Ù‚Ù… ${input.tenantId}`,
       });
       return { success: true };
     }),
@@ -1000,8 +1131,8 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
 
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `تحديث صلاحيات المستخدم رقم ${input.userId} للفرع ${input.branchId}`,
-        details: `عرض: ${input.canView}, إدخال: ${input.canInsert}, اعتماد: ${input.canApprove}, ترحيل: ${input.canPost}`,
+        action: `ØªØ­Ø¯ÙŠØ« ØµÙ„Ø§Ø­ÙŠØ§Øª Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø±Ù‚Ù… ${input.userId} Ù„Ù„ÙØ±Ø¹ ${input.branchId}`,
+        details: `Ø¹Ø±Ø¶: ${input.canView}, Ø¥Ø¯Ø®Ø§Ù„: ${input.canInsert}, Ø§Ø¹ØªÙ…Ø§Ø¯: ${input.canApprove}, ØªØ±Ø­ÙŠÙ„: ${input.canPost}`,
       });
 
       return { success: true };
@@ -1052,7 +1183,7 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
           id: b.id,
           name: b.name,
           code: b.code,
-          city: b.city || "غير محدد",
+          city: b.city || "ØºÙŠØ± Ù…Ø­Ø¯Ø¯",
           isMain: b.isMain,
           revenue: stats.revenue,
           expenses: stats.expenses,
@@ -1068,7 +1199,7 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
     // AI Financial Advisor & Deep Recommendations
     getAiFinancialAdvisorAnalysis: protectedProcedure.query(async () => {
       const db = await getDb();
-      if (!db) return { analysis: "قاعدة البيانات غير متوفرة حالياً", status: "خطأ", timestamp: new Date().toISOString() };
+      if (!db) return { analysis: "Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª ØºÙŠØ± Ù…ØªÙˆÙØ±Ø© Ø­Ø§Ù„ÙŠØ§Ù‹", status: "Ø®Ø·Ø£", timestamp: new Date().toISOString() };
 
       const allTx = await db.select({
         id: transactions.id,
@@ -1090,7 +1221,7 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
       const allAccts = await db.select().from(accounts);
       const allBudgets = await db.select().from(budgets).orderBy(desc(budgets.id));
 
-      // ── Local statistical analysis (LLM-free, always available) ──
+      // â”€â”€ Local statistical analysis (LLM-free, always available) â”€â”€
       const approved = allTx.filter((t) => t.lifecycleStatus === "approved");
       let totalRevenue = 0;
       let totalExpense = 0;
@@ -1105,7 +1236,7 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
       for (const tx of approved) {
         const amt = parseFloat(tx.amount || "0");
         const key = tx.accountId ?? -1;
-        if (!byAccount[key]) byAccount[key] = { name: tx.accountName || "حساب غير محدد", code: "", revenue: 0, expense: 0 };
+        if (!byAccount[key]) byAccount[key] = { name: tx.accountName || "Ø­Ø³Ø§Ø¨ ØºÙŠØ± Ù…Ø­Ø¯Ø¯", code: "", revenue: 0, expense: 0 };
         if (tx.accountType === "revenue") {
           totalRevenue += amt;
           byAccount[key].revenue += amt;
@@ -1137,95 +1268,95 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
         cashBalance += tx.type === "debit" ? amt : -amt;
       }
 
-      let budgetLine = "لا توجد خطط ميزانية مضافة بعد — أضف خطة من تبويب التحليلات لمراقبة الأداء مقابل الأهداف.";
+      let budgetLine = "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø®Ø·Ø· Ù…ÙŠØ²Ø§Ù†ÙŠØ© Ù…Ø¶Ø§ÙØ© Ø¨Ø¹Ø¯ â€” Ø£Ø¶Ù Ø®Ø·Ø© Ù…Ù† ØªØ¨ÙˆÙŠØ¨ Ø§Ù„ØªØ­Ù„ÙŠÙ„Ø§Øª Ù„Ù…Ø±Ø§Ù‚Ø¨Ø© Ø§Ù„Ø£Ø¯Ø§Ø¡ Ù…Ù‚Ø§Ø¨Ù„ Ø§Ù„Ø£Ù‡Ø¯Ø§Ù.";
       if (allBudgets.length > 0) {
         const latest = allBudgets[0];
         const revTarget = parseFloat(String(latest.targetRevenue || "0"));
         const expTarget = parseFloat(String(latest.targetExpense || "0"));
         const revPct = revTarget > 0 ? Math.round((totalRevenue / revTarget) * 100) : 0;
         const expPct = expTarget > 0 ? Math.round((totalExpense / expTarget) * 100) : 0;
-        budgetLine = `خطة «${latest.periodName}»: تحقق الإيرادات ${revPct}% من المستهدف، والمصروفات ${expPct}% من السقف المخصص.`;
+        budgetLine = `Ø®Ø·Ø© Â«${latest.periodName}Â»: ØªØ­Ù‚Ù‚ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯Ø§Øª ${revPct}% Ù…Ù† Ø§Ù„Ù…Ø³ØªÙ‡Ø¯ÙØŒ ÙˆØ§Ù„Ù…ØµØ±ÙˆÙØ§Øª ${expPct}% Ù…Ù† Ø§Ù„Ø³Ù‚Ù Ø§Ù„Ù…Ø®ØµØµ.`;
       }
 
       const fmt = (n: number) => n.toLocaleString("en-US");
       const topRevenueLine = topRevenue.length
-        ? topRevenue.map((a) => `• ${a.code} ${a.name}: ${fmt(a.revenue)}`).join("\n")
-        : "لا توجد إيرادات معتمدة مسجلة بعد.";
+        ? topRevenue.map((a) => `â€¢ ${a.code} ${a.name}: ${fmt(a.revenue)}`).join("\n")
+        : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ù…Ø¹ØªÙ…Ø¯Ø© Ù…Ø³Ø¬Ù„Ø© Ø¨Ø¹Ø¯.";
       const topExpenseLine = topExpense.length
-        ? topExpense.map((a) => `• ${a.code} ${a.name}: ${fmt(a.expense)}`).join("\n")
-        : "لا توجد مصروفات معتمدة مسجلة بعد.";
+        ? topExpense.map((a) => `â€¢ ${a.code} ${a.name}: ${fmt(a.expense)}`).join("\n")
+        : "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù…ØµØ±ÙˆÙØ§Øª Ù…Ø¹ØªÙ…Ø¯Ø© Ù…Ø³Ø¬Ù„Ø© Ø¨Ø¹Ø¯.";
 
       const recommendations: string[] = [];
       if (totalRevenue === 0 && totalExpense === 0) {
         recommendations.push(
-          "ابدأ بتسجيل أول حركة مالية معتمدة (إيرادات أو مصروفات) عبر أداة الإدخال السريع — التحليل الكامل يبدأ تلقائياً عند توفر البيانات."
+          "Ø§Ø¨Ø¯Ø£ Ø¨ØªØ³Ø¬ÙŠÙ„ Ø£ÙˆÙ„ Ø­Ø±ÙƒØ© Ù…Ø§Ù„ÙŠØ© Ù…Ø¹ØªÙ…Ø¯Ø© (Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ø£Ùˆ Ù…ØµØ±ÙˆÙØ§Øª) Ø¹Ø¨Ø± Ø£Ø¯Ø§Ø© Ø§Ù„Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ø³Ø±ÙŠØ¹ â€” Ø§Ù„ØªØ­Ù„ÙŠÙ„ Ø§Ù„ÙƒØ§Ù…Ù„ ÙŠØ¨Ø¯Ø£ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¹Ù†Ø¯ ØªÙˆÙØ± Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª."
         );
       } else {
         if (cashBalance < totalExpense * 0.15 && totalExpense > 0) {
           recommendations.push(
-            `السيولة النقدية (${fmt(cashBalance)}) أقل من 15% من إجمالي المصروفات — عجّل تحصيل الذمم وحدّ من السحوبات غير المخطط لها لتغطية الالتزامات القادمة.`
+            `Ø§Ù„Ø³ÙŠÙˆÙ„Ø© Ø§Ù„Ù†Ù‚Ø¯ÙŠØ© (${fmt(cashBalance)}) Ø£Ù‚Ù„ Ù…Ù† 15% Ù…Ù† Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª â€” Ø¹Ø¬Ù‘Ù„ ØªØ­ØµÙŠÙ„ Ø§Ù„Ø°Ù…Ù… ÙˆØ­Ø¯Ù‘ Ù…Ù† Ø§Ù„Ø³Ø­ÙˆØ¨Ø§Øª ØºÙŠØ± Ø§Ù„Ù…Ø®Ø·Ø· Ù„Ù‡Ø§ Ù„ØªØºØ·ÙŠØ© Ø§Ù„Ø§Ù„ØªØ²Ø§Ù…Ø§Øª Ø§Ù„Ù‚Ø§Ø¯Ù…Ø©.`
           );
         } else if (totalExpense > 0) {
           recommendations.push(
-            `السيولة النقدية الحالية (${fmt(cashBalance)}) تغطي التزامات التشغيل — حافظ على هامش احتياطي لا يقل عن شهر مصروفات.`
+            `Ø§Ù„Ø³ÙŠÙˆÙ„Ø© Ø§Ù„Ù†Ù‚Ø¯ÙŠØ© Ø§Ù„Ø­Ø§Ù„ÙŠØ© (${fmt(cashBalance)}) ØªØºØ·ÙŠ Ø§Ù„ØªØ²Ø§Ù…Ø§Øª Ø§Ù„ØªØ´ØºÙŠÙ„ â€” Ø­Ø§ÙØ¸ Ø¹Ù„Ù‰ Ù‡Ø§Ù…Ø´ Ø§Ø­ØªÙŠØ§Ø·ÙŠ Ù„Ø§ ÙŠÙ‚Ù„ Ø¹Ù† Ø´Ù‡Ø± Ù…ØµØ±ÙˆÙØ§Øª.`
           );
         }
         if (expenseRatio > 70) {
           recommendations.push(
-            `نسبة المصروفات إلى الإيرادات ${expenseRatio.toFixed(0)}% تتجاوز الحد الصحي (70%) — راجع بنود المصروفات الكبرى التالية لإعادة التفاوض أو الترشيد: ${topExpense.map((a) => a.name).join("، ")}.`
+            `Ù†Ø³Ø¨Ø© Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø¥Ù„Ù‰ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯Ø§Øª ${expenseRatio.toFixed(0)}% ØªØªØ¬Ø§ÙˆØ² Ø§Ù„Ø­Ø¯ Ø§Ù„ØµØ­ÙŠ (70%) â€” Ø±Ø§Ø¬Ø¹ Ø¨Ù†ÙˆØ¯ Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø§Ù„ÙƒØ¨Ø±Ù‰ Ø§Ù„ØªØ§Ù„ÙŠØ© Ù„Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„ØªÙØ§ÙˆØ¶ Ø£Ùˆ Ø§Ù„ØªØ±Ø´ÙŠØ¯: ${topExpense.map((a) => a.name).join("ØŒ ")}.`
           );
         } else if (margin > 15) {
           recommendations.push(
-            `هامش الربح التشغيلي ${margin.toFixed(1)}% قوي — وجّه الفائض نحو حساب نقدي/استثماري منفصل أو تخفيض تكلفة التمويل إذا وُجد قرض.`
+            `Ù‡Ø§Ù…Ø´ Ø§Ù„Ø±Ø¨Ø­ Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠ ${margin.toFixed(1)}% Ù‚ÙˆÙŠ â€” ÙˆØ¬Ù‘Ù‡ Ø§Ù„ÙØ§Ø¦Ø¶ Ù†Ø­Ùˆ Ø­Ø³Ø§Ø¨ Ù†Ù‚Ø¯ÙŠ/Ø§Ø³ØªØ«Ù…Ø§Ø±ÙŠ Ù…Ù†ÙØµÙ„ Ø£Ùˆ ØªØ®ÙÙŠØ¶ ØªÙƒÙ„ÙØ© Ø§Ù„ØªÙ…ÙˆÙŠÙ„ Ø¥Ø°Ø§ ÙˆÙØ¬Ø¯ Ù‚Ø±Ø¶.`
           );
         } else {
           recommendations.push(
-            `هامش الربح ${margin.toFixed(1)}% مقبول — ركّز على نمو الإيرادات عبر أكبر 3 مصادر حالياً ثم على تثبيت تكلفة التشغيل عند مستواها الحالي.`
+            `Ù‡Ø§Ù…Ø´ Ø§Ù„Ø±Ø¨Ø­ ${margin.toFixed(1)}% Ù…Ù‚Ø¨ÙˆÙ„ â€” Ø±ÙƒÙ‘Ø² Ø¹Ù„Ù‰ Ù†Ù…Ùˆ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ø¹Ø¨Ø± Ø£ÙƒØ¨Ø± 3 Ù…ØµØ§Ø¯Ø± Ø­Ø§Ù„ÙŠØ§Ù‹ Ø«Ù… Ø¹Ù„Ù‰ ØªØ«Ø¨ÙŠØª ØªÙƒÙ„ÙØ© Ø§Ù„ØªØ´ØºÙŠÙ„ Ø¹Ù†Ø¯ Ù…Ø³ØªÙˆØ§Ù‡Ø§ Ø§Ù„Ø­Ø§Ù„ÙŠ.`
           );
         }
         if (topExpense.length > 0) {
           recommendations.push(
-            `تابع شهرياً البنود الثلاثة الأكبر (${topExpense.map((a) => a.name).join("، ")}) — خفض 5% منها يوفّر ${fmt(totalExpense * 0.05)} سنوياً تقريباً.`
+            `ØªØ§Ø¨Ø¹ Ø´Ù‡Ø±ÙŠØ§Ù‹ Ø§Ù„Ø¨Ù†ÙˆØ¯ Ø§Ù„Ø«Ù„Ø§Ø«Ø© Ø§Ù„Ø£ÙƒØ¨Ø± (${topExpense.map((a) => a.name).join("ØŒ ")}) â€” Ø®ÙØ¶ 5% Ù…Ù†Ù‡Ø§ ÙŠÙˆÙÙ‘Ø± ${fmt(totalExpense * 0.05)} Ø³Ù†ÙˆÙŠØ§Ù‹ ØªÙ‚Ø±ÙŠØ¨Ø§Ù‹.`
           );
         }
       }
 
       const analysisText = [
-        "━━─ التقييم التنفيذي ─━━",
+        "â”â”â”€ Ø§Ù„ØªÙ‚ÙŠÙŠÙ… Ø§Ù„ØªÙ†ÙÙŠØ°ÙŠ â”€â”â”",
         totalRevenue === 0 && totalExpense === 0
-          ? "المنصة جاهزة والأداء المالي بانتظار أول حركة معتمدة."
-          : `إجمالي الإيرادات المعتمدة: ${fmt(totalRevenue)}\nإجمالي المصروفات المعتمدة: ${fmt(totalExpense)}\nصافي الدخل التشغيلي: ${fmt(netIncome)} (هامش ${margin.toFixed(1)}%)\nنسبة المصروفات إلى الإيرادات: ${expenseRatio.toFixed(0)}%`,
+          ? "Ø§Ù„Ù…Ù†ØµØ© Ø¬Ø§Ù‡Ø²Ø© ÙˆØ§Ù„Ø£Ø¯Ø§Ø¡ Ø§Ù„Ù…Ø§Ù„ÙŠ Ø¨Ø§Ù†ØªØ¸Ø§Ø± Ø£ÙˆÙ„ Ø­Ø±ÙƒØ© Ù…Ø¹ØªÙ…Ø¯Ø©."
+          : `Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯Ø§Øª Ø§Ù„Ù…Ø¹ØªÙ…Ø¯Ø©: ${fmt(totalRevenue)}\nØ¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø§Ù„Ù…Ø¹ØªÙ…Ø¯Ø©: ${fmt(totalExpense)}\nØµØ§ÙÙŠ Ø§Ù„Ø¯Ø®Ù„ Ø§Ù„ØªØ´ØºÙŠÙ„ÙŠ: ${fmt(netIncome)} (Ù‡Ø§Ù…Ø´ ${margin.toFixed(1)}%)\nÙ†Ø³Ø¨Ø© Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª Ø¥Ù„Ù‰ Ø§Ù„Ø¥ÙŠØ±Ø§Ø¯Ø§Øª: ${expenseRatio.toFixed(0)}%`,
         "",
-        "━━─ مصادر التدفق الرئيسية ─━━",
+        "â”â”â”€ Ù…ØµØ§Ø¯Ø± Ø§Ù„ØªØ¯ÙÙ‚ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© â”€â”â”",
         topRevenueLine,
         "",
-        "━━─ أكبر بنود المصروفات ─━━",
+        "â”â”â”€ Ø£ÙƒØ¨Ø± Ø¨Ù†ÙˆØ¯ Ø§Ù„Ù…ØµØ±ÙˆÙØ§Øª â”€â”â”",
         topExpenseLine,
         "",
-        "━━─ السيولة والكفاءة ─━━",
-        `الرصيد النقدي (الصندوق + البنوك): ${fmt(cashBalance)}`,
+        "â”â”â”€ Ø§Ù„Ø³ÙŠÙˆÙ„Ø© ÙˆØ§Ù„ÙƒÙØ§Ø¡Ø© â”€â”â”",
+        `Ø§Ù„Ø±ØµÙŠØ¯ Ø§Ù„Ù†Ù‚Ø¯ÙŠ (Ø§Ù„ØµÙ†Ø¯ÙˆÙ‚ + Ø§Ù„Ø¨Ù†ÙˆÙƒ): ${fmt(cashBalance)}`,
         budgetLine,
         "",
-        "━━─ التوصيات الذكية (3) ─━━",
+        "â”â”â”€ Ø§Ù„ØªÙˆØµÙŠØ§Øª Ø§Ù„Ø°ÙƒÙŠØ© (3) â”€â”â”",
         recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n"),
       ].join("\n");
 
-      // ── LLM enhancement (only when Forge/OpenAI key is configured) ──
+      // â”€â”€ LLM enhancement (only when Forge/OpenAI key is configured) â”€â”€
       if (ENV.forgeApiKey) {
         try {
           const response = await invokeLLM({
             messages: [
               {
                 role: "user",
-                content: `أنت مساعد مالي خبير لنظام ALHUSAINIA المحاسبي. إليك بيانات مالية محسوبة بدقة تشغيلية، فقدم تحليلاً أعمق مبنياً عليها حصراً (بالعربية، أسلوب مهني):
+                content: `Ø£Ù†Øª Ù…Ø³Ø§Ø¹Ø¯ Ù…Ø§Ù„ÙŠ Ø®Ø¨ÙŠØ± Ù„Ù†Ø¸Ø§Ù… ALHUSAINIA Ø§Ù„Ù…Ø­Ø§Ø³Ø¨ÙŠ. Ø¥Ù„ÙŠÙƒ Ø¨ÙŠØ§Ù†Ø§Øª Ù…Ø§Ù„ÙŠØ© Ù…Ø­Ø³ÙˆØ¨Ø© Ø¨Ø¯Ù‚Ø© ØªØ´ØºÙŠÙ„ÙŠØ©ØŒ ÙÙ‚Ø¯Ù… ØªØ­Ù„ÙŠÙ„Ø§Ù‹ Ø£Ø¹Ù…Ù‚ Ù…Ø¨Ù†ÙŠØ§Ù‹ Ø¹Ù„ÙŠÙ‡Ø§ Ø­ØµØ±Ø§Ù‹ (Ø¨Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©ØŒ Ø£Ø³Ù„ÙˆØ¨ Ù…Ù‡Ù†ÙŠ):
 ${analysisText}
-ملاحظة: لا تختلق أرقاماً؛ اعتمد على ما ورد فقط.`,
+Ù…Ù„Ø§Ø­Ø¸Ø©: Ù„Ø§ ØªØ®ØªÙ„Ù‚ Ø£Ø±Ù‚Ø§Ù…Ø§Ù‹Ø› Ø§Ø¹ØªÙ…Ø¯ Ø¹Ù„Ù‰ Ù…Ø§ ÙˆØ±Ø¯ ÙÙ‚Ø·.`,
               },
             ],
           });
           const content = response.choices[0]?.message?.content;
           if (typeof content === "string" && content.trim().length > 20) {
-            return { analysis: content, status: "تحليل بالذكاء الاصطناعي (Forge LLM)", timestamp: new Date().toISOString() };
+            return { analysis: content, status: "ØªØ­Ù„ÙŠÙ„ Ø¨Ø§Ù„Ø°ÙƒØ§Ø¡ Ø§Ù„Ø§ØµØ·Ù†Ø§Ø¹ÙŠ (Forge LLM)", timestamp: new Date().toISOString() };
           }
         } catch {
           // fall through to the local statistical analysis
@@ -1234,13 +1365,13 @@ ${analysisText}
 
       return {
         analysis: analysisText,
-        status: ENV.forgeApiKey ? "تحليل إحصائي محلي (تعذر الاتصال بـ LLM)" : "تحليل إحصائي محلي معتمد",
+        status: ENV.forgeApiKey ? "ØªØ­Ù„ÙŠÙ„ Ø¥Ø­ØµØ§Ø¦ÙŠ Ù…Ø­Ù„ÙŠ (ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ù€ LLM)" : "ØªØ­Ù„ÙŠÙ„ Ø¥Ø­ØµØ§Ø¦ÙŠ Ù…Ø­Ù„ÙŠ Ù…Ø¹ØªÙ…Ø¯",
         timestamp: new Date().toISOString(),
       };
     }),
   }),
 
-  // ─── Offline-First Sync Router ──────────────────────────────────
+  // â”€â”€â”€ Offline-First Sync Router â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   sync: router({
     // Get all data for offline cache (full snapshot)
     getFullSnapshot: protectedProcedure.query(async ({ ctx }) => {
@@ -1507,7 +1638,7 @@ ${analysisText}
           await db.insert(activityLogs).values({
             userId: ctx.user.id,
             userName: ctx.user.name,
-            action: `مزامنة (${mutation.operation}) - ${mutation.table}`,
+            action: `Ù…Ø²Ø§Ù…Ù†Ø© (${mutation.operation}) - ${mutation.table}`,
             details: `Device: ${mutation.deviceId} | Record: ${mutation.recordId}`,
           });
         } catch (error: any) {
@@ -1624,7 +1755,7 @@ ${analysisText}
           const [r] = await db.select({ count: sql<number>`count(*)::int` }).from(transactions).limit(1);
           serverTxnCount = r?.count ?? 0;
         } catch {
-          // count unavailable — treat as 0
+          // count unavailable â€” treat as 0
         }
       }
       return {
@@ -1638,7 +1769,7 @@ ${analysisText}
     }),
   }),
 
-  // ─── Products & Inventory ──────────────────────────────────────
+  // â”€â”€â”€ Products & Inventory â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   products: router({
     list: publicProcedure.input(z.object({
       limit: z.number().min(1).max(100).default(50),
@@ -1671,7 +1802,7 @@ ${analysisText}
       nameAr: z.string().optional(),
       type: z.enum(["goods", "service"]).default("goods"),
       category: z.string().optional(),
-      unit: z.string().default("قطعة"),
+      unit: z.string().default("Ù‚Ø·Ø¹Ø©"),
       purchasePrice: z.string().default("0"),
       salePrice: z.string().default("0"),
       minStock: z.number().default(0),
@@ -1683,7 +1814,7 @@ ${analysisText}
       await db.insert(products).values({ ...input, currentStock: 0 });
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `إضافة منتج جديد: ${input.name} (${input.code})`,
+        action: `Ø¥Ø¶Ø§ÙØ© Ù…Ù†ØªØ¬ Ø¬Ø¯ÙŠØ¯: ${input.name} (${input.code})`,
       });
       return { success: true };
     }),
@@ -1705,7 +1836,7 @@ ${analysisText}
 
     adjustStock: protectedProcedure.input(z.object({
       productId: z.number(),
-      quantity: z.number().int().min(1, "الكمية يجب أن تكون على الأقل 1"),
+      quantity: z.number().int().min(1, "Ø§Ù„ÙƒÙ…ÙŠØ© ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„ 1"),
       type: z.enum(["in", "out", "adjustment"]),
       notes: z.string().optional(),
     })).mutation(async ({ input, ctx }) => {
@@ -1713,7 +1844,7 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
 
       const product = await db.select().from(products).where(eq(products.id, input.productId)).limit(1);
-      if (product.length === 0) throw new Error("المنتج غير موجود");
+      if (product.length === 0) throw new Error("Ø§Ù„Ù…Ù†ØªØ¬ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯");
 
       const currentStock = product[0].currentStock || 0;
       let newStock = currentStock;
@@ -1721,7 +1852,7 @@ ${analysisText}
         newStock = currentStock + input.quantity;
       } else if (input.type === "out") {
         if (currentStock < input.quantity) {
-          throw new Error(`المخزون غير كافٍ — المتوفر: ${currentStock}, المطلوب: ${input.quantity}`);
+          throw new Error(`Ø§Ù„Ù…Ø®Ø²ÙˆÙ† ØºÙŠØ± ÙƒØ§ÙÙ â€” Ø§Ù„Ù…ØªÙˆÙØ±: ${currentStock}, Ø§Ù„Ù…Ø·Ù„ÙˆØ¨: ${input.quantity}`);
         }
         newStock = currentStock - input.quantity;
       } else {
@@ -1745,8 +1876,8 @@ ${analysisText}
       });
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `تعديل مخزون: ${product[0].name} (${input.type === "in" ? "إدخال" : input.type === "out" ? "إخراج" : "تسوية"}: ${input.quantity})`,
-        details: `المخزون السابق: ${currentStock} — الجديد: ${newStock}`,
+        action: `ØªØ¹Ø¯ÙŠÙ„ Ù…Ø®Ø²ÙˆÙ†: ${product[0].name} (${input.type === "in" ? "Ø¥Ø¯Ø®Ø§Ù„" : input.type === "out" ? "Ø¥Ø®Ø±Ø§Ø¬" : "ØªØ³ÙˆÙŠØ©"}: ${input.quantity})`,
+        details: `Ø§Ù„Ù…Ø®Ø²ÙˆÙ† Ø§Ù„Ø³Ø§Ø¨Ù‚: ${currentStock} â€” Ø§Ù„Ø¬Ø¯ÙŠØ¯: ${newStock}`,
       });
       return { success: true, previousStock: currentStock, newStock };
     }),
@@ -1761,9 +1892,81 @@ ${analysisText}
       }
       return await db.select().from(inventoryMovements).orderBy(desc(inventoryMovements.createdAt));
     }),
+
+    importCsv: protectedProcedure.input(z.object({
+      rows: z.array(z.object({
+        code: z.string().min(1),
+        name: z.string().min(1),
+        type: z.enum(["goods", "service"]).default("goods"),
+        category: z.string().optional(),
+        unit: z.string().default("قطعة"),
+        purchasePrice: z.string().default("0"),
+        salePrice: z.string().default("0"),
+        wholesalePrice: z.string().default("0"),
+        minStock: z.number().int().min(0).default(0),
+        currentStock: z.number().int().min(0).default(0),
+        barcode: z.string().optional(),
+      })).min(1).max(500),
+      mode: z.enum(["update", "skip"]).default("update"),
+    })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      const seen = new Set<string>();
+      const errors: { row: number; message: string }[] = [];
+      let created = 0;
+      let updated = 0;
+
+      for (let i = 0; i < input.rows.length; i++) {
+        const r = input.rows[i];
+        const rowNo = i + 2;
+        if (seen.has(r.code)) { errors.push({ row: rowNo, message: `رمز مكرر داخل الملف: ${r.code}` }); continue; }
+        seen.add(r.code);
+        try {
+          const existing = await db.select().from(products).where(eq(products.code, r.code)).limit(1);
+          const values = {
+            name: r.name,
+            type: r.type,
+            category: r.category || null,
+            unit: r.unit || "قطعة",
+            purchasePrice: r.purchasePrice || "0",
+            salePrice: r.salePrice || "0",
+            wholesalePrice: r.wholesalePrice || "0",
+            minStock: r.minStock || 0,
+            barcode: r.barcode || null,
+            isActive: true,
+          };
+          if (existing.length > 0) {
+            await db.update(products).set(values).where(eq(products.id, existing[0].id));
+            const stockDelta = r.currentStock - (existing[0].currentStock || 0);
+            if (stockDelta !== 0) {
+              await db.update(products).set({ currentStock: existing[0].currentStock + stockDelta }).where(eq(products.id, existing[0].id));
+              await db.insert(inventoryMovements).values({
+                productId: existing[0].id,
+                type: "adjustment",
+                quantity: Math.abs(stockDelta),
+                notes: `${stockDelta > 0 ? "تزويد" : "صرف"} عبر استيراد CSV (الرصيد الجديد ${r.currentStock})`,
+              });
+            }
+            updated++;
+          } else {
+            await db.insert(products).values({ ...values, code: r.code, currentStock: r.currentStock || 0 });
+            created++;
+          }
+        } catch (e: any) {
+          errors.push({ row: rowNo, message: String(e?.message || e) });
+        }
+      }
+
+      await db.insert(activityLogs).values({
+        userId: ctx.user.id,
+        action: `استيراد أصناف CSV: ${created} جديد، ${updated} تحديث، ${errors.length} خطأ`,
+      });
+      return { created, updated, errors };
+    }),
   }),
 
-  // ─── Customers ──────────────────────────────────────────────────
+  // â”€â”€â”€ Customers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   customers: router({
     list: publicProcedure.input(z.object({
       limit: z.number().min(1).max(100).default(50),
@@ -1804,7 +2007,7 @@ ${analysisText}
       await db.insert(customers).values({ ...input, balance: "0" });
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `إضافة عميل جديد: ${input.name} (${input.code})`,
+        action: `Ø¥Ø¶Ø§ÙØ© Ø¹Ù…ÙŠÙ„ Ø¬Ø¯ÙŠØ¯: ${input.name} (${input.code})`,
       });
       return { success: true };
     }),
@@ -1824,7 +2027,7 @@ ${analysisText}
     }),
   }),
 
-  // ─── Suppliers ──────────────────────────────────────────────────
+  // â”€â”€â”€ Suppliers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   suppliers: router({
     list: publicProcedure.input(z.object({
       limit: z.number().min(1).max(100).default(50),
@@ -1864,7 +2067,7 @@ ${analysisText}
       await db.insert(suppliers).values({ ...input, balance: "0" });
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `إضافة مورد جديد: ${input.name} (${input.code})`,
+        action: `Ø¥Ø¶Ø§ÙØ© Ù…ÙˆØ±Ø¯ Ø¬Ø¯ÙŠØ¯: ${input.name} (${input.code})`,
       });
       return { success: true };
     }),
@@ -1883,7 +2086,7 @@ ${analysisText}
     }),
   }),
 
-  // ─── Sales & POS ────────────────────────────────────────────────
+  // â”€â”€â”€ Sales & POS â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   sales: router({
     list: publicProcedure.input(z.object({
       limit: z.number().min(1).max(100).default(50),
@@ -1922,9 +2125,9 @@ ${analysisText}
         productId: z.number(),
         productName: z.string().min(1),
         quantity: z.number().int().min(1),
-        unitPrice: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, "السعر يجب أن يكون رقماً موجباً"),
+        unitPrice: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, "Ø§Ù„Ø³Ø¹Ø± ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø±Ù‚Ù…Ø§Ù‹ Ù…ÙˆØ¬Ø¨Ø§Ù‹"),
         discount: z.string().default("0"),
-      })).min(1, "يجب إضافة صنف واحد على الأقل"),
+      })).min(1, "ÙŠØ¬Ø¨ Ø¥Ø¶Ø§ÙØ© ØµÙ†Ù ÙˆØ§Ø­Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„"),
       discount: z.string().default("0"),
       taxRate: z.string().default("0"),
       paymentMethod: z.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
@@ -1938,8 +2141,8 @@ ${analysisText}
       // Validate amounts
       const discount = parseFloat(input.discount);
       const taxRate = parseFloat(input.taxRate);
-      if (isNaN(discount) || discount < 0) throw new Error("الخصم غير صحيح");
-      if (isNaN(taxRate) || taxRate < 0 || taxRate > 100) throw new Error("نسبة الضريبة غير صحيحة");
+      if (isNaN(discount) || discount < 0) throw new Error("Ø§Ù„Ø®ØµÙ… ØºÙŠØ± ØµØ­ÙŠØ­");
+      if (isNaN(taxRate) || taxRate < 0 || taxRate > 100) throw new Error("Ù†Ø³Ø¨Ø© Ø§Ù„Ø¶Ø±ÙŠØ¨Ø© ØºÙŠØ± ØµØ­ÙŠØ­Ø©");
 
       // Generate unique invoice number with date prefix + random suffix
       const now = new Date();
@@ -1955,9 +2158,9 @@ ${analysisText}
       // Validate stock for all items before any write
       for (const item of input.items) {
         const prod = productMap.get(item.productId);
-        if (!prod) throw new Error(`المنتج رقم ${item.productId} غير موجود`);
+        if (!prod) throw new Error(`Ø§Ù„Ù…Ù†ØªØ¬ Ø±Ù‚Ù… ${item.productId} ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯`);
         if (prod.currentStock < item.quantity) {
-          throw new Error(`المخزون غير كافٍ للمنتج "${prod.name}" — المتوفر: ${prod.currentStock}, المطلوب: ${item.quantity}`);
+          throw new Error(`Ø§Ù„Ù…Ø®Ø²ÙˆÙ† ØºÙŠØ± ÙƒØ§ÙÙ Ù„Ù„Ù…Ù†ØªØ¬ "${prod.name}" â€” Ø§Ù„Ù…ØªÙˆÙØ±: ${prod.currentStock}, Ø§Ù„Ù…Ø·Ù„ÙˆØ¨: ${item.quantity}`);
         }
       }
 
@@ -1966,8 +2169,8 @@ ${analysisText}
       const taxAmount = (subtotal - discount) * taxRate / 100;
       const total = subtotal - discount + taxAmount;
       const paidAmount = parseFloat(input.paidAmount);
-      if (isNaN(paidAmount) || paidAmount < 0) throw new Error("المبلغ المدفوع غير صحيح");
-      if (paidAmount > total + 0.01) throw new Error("المبلغ المدفوع يتجاوز إجمالي الفاتورة");
+      if (isNaN(paidAmount) || paidAmount < 0) throw new Error("Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¯ÙÙˆØ¹ ØºÙŠØ± ØµØ­ÙŠØ­");
+      if (paidAmount > total + 0.01) throw new Error("Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¯ÙÙˆØ¹ ÙŠØªØ¬Ø§ÙˆØ² Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ÙØ§ØªÙˆØ±Ø©");
       // Derive initial status from payment: fully paid / partial / unpaid
       const initialStatus = paidAmount >= total - 0.01 ? "paid" : paidAmount > 0 ? "partial" : "draft";
 
@@ -2013,7 +2216,7 @@ ${analysisText}
             quantity: item.quantity,
             referenceId: invoice.id,
             referenceType: "sale",
-            notes: `فاتورة ${invoiceNumber}`,
+            notes: `ÙØ§ØªÙˆØ±Ø© ${invoiceNumber}`,
           });
         }
 
@@ -2041,8 +2244,8 @@ ${analysisText}
         // Audit log
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
-          action: `إنشاء فاتورة مبيعات: ${invoiceNumber}`,
-          details: `الإجمالي: ${total} — طريقة الدفع: ${input.paymentMethod}`,
+          action: `Ø¥Ù†Ø´Ø§Ø¡ ÙØ§ØªÙˆØ±Ø© Ù…Ø¨ÙŠØ¹Ø§Øª: ${invoiceNumber}`,
+          details: `Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ: ${total} â€” Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹: ${input.paymentMethod}`,
         });
 
         return { invoiceId: invoice.id, invoiceNumber };
@@ -2059,10 +2262,10 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
 
       const existing = await db.select().from(salesInvoices).where(eq(salesInvoices.id, input.id)).limit(1);
-      if (existing.length === 0) throw new Error("الفاتورة غير موجودة");
+      if (existing.length === 0) throw new Error("Ø§Ù„ÙØ§ØªÙˆØ±Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©");
       const inv = existing[0];
       if (inv.status === "cancelled" && input.status !== "cancelled") {
-        throw new Error("الفاتورة ملغاة ولا يمكن إعادة تفعيلها");
+        throw new Error("Ø§Ù„ÙØ§ØªÙˆØ±Ø© Ù…Ù„ØºØ§Ø© ÙˆÙ„Ø§ ÙŠÙ…ÙƒÙ† Ø¥Ø¹Ø§Ø¯Ø© ØªÙØ¹ÙŠÙ„Ù‡Ø§");
       }
       if (inv.status === input.status) return { success: true, unchanged: true };
 
@@ -2084,7 +2287,7 @@ ${analysisText}
               quantity: item.quantity,
               referenceId: inv.id,
               referenceType: "sale-cancel",
-              notes: `إلغاء فاتورة ${inv.invoiceNumber}`,
+              notes: `Ø¥Ù„ØºØ§Ø¡ ÙØ§ØªÙˆØ±Ø© ${inv.invoiceNumber}`,
             });
           }
           if (inv.customerId) {
@@ -2096,12 +2299,12 @@ ${analysisText}
             }
           }
           for (const p of itemPayments) {
-            await tx.update(payments).set({ notes: `مستردة — إلغاء فاتورة ${inv.invoiceNumber}` }).where(eq(payments.id, p.id));
+            await tx.update(payments).set({ notes: `Ù…Ø³ØªØ±Ø¯Ø© â€” Ø¥Ù„ØºØ§Ø¡ ÙØ§ØªÙˆØ±Ø© ${inv.invoiceNumber}` }).where(eq(payments.id, p.id));
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
-            action: `إلغاء فاتورة مبيعات: ${inv.invoiceNumber}`,
-            details: `تم عكس المخزون والأرصدة المرتبطة بالفاتورة`,
+            action: `Ø¥Ù„ØºØ§Ø¡ ÙØ§ØªÙˆØ±Ø© Ù…Ø¨ÙŠØ¹Ø§Øª: ${inv.invoiceNumber}`,
+            details: `ØªÙ… Ø¹ÙƒØ³ Ø§Ù„Ù…Ø®Ø²ÙˆÙ† ÙˆØ§Ù„Ø£Ø±ØµØ¯Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„ÙØ§ØªÙˆØ±Ø©`,
           });
         });
       }
@@ -2109,7 +2312,7 @@ ${analysisText}
       await db.update(salesInvoices).set({ status: input.status, updatedAt: new Date() }).where(eq(salesInvoices.id, inv.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `تحديث حالة فاتورة المبيعات ${inv.invoiceNumber} إلى "${input.status}"`,
+        action: `ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© ÙØ§ØªÙˆØ±Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª ${inv.invoiceNumber} Ø¥Ù„Ù‰ "${input.status}"`,
       });
       return { success: true };
     }),
@@ -2123,7 +2326,7 @@ ${analysisText}
     }),
   }),
 
-  // ─── Purchases ──────────────────────────────────────────────────
+  // â”€â”€â”€ Purchases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   purchases: router({
     list: publicProcedure.input(z.object({
       limit: z.number().min(1).max(100).default(50),
@@ -2150,9 +2353,9 @@ ${analysisText}
         productId: z.number(),
         productName: z.string().min(1),
         quantity: z.number().int().min(1),
-        unitPrice: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, "السعر يجب أن يكون رقماً موجباً"),
+        unitPrice: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, "Ø§Ù„Ø³Ø¹Ø± ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø±Ù‚Ù…Ø§Ù‹ Ù…ÙˆØ¬Ø¨Ø§Ù‹"),
         discount: z.string().default("0"),
-      })).min(1, "يجب إضافة صنف واحد على الأقل"),
+      })).min(1, "ÙŠØ¬Ø¨ Ø¥Ø¶Ø§ÙØ© ØµÙ†Ù ÙˆØ§Ø­Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„"),
       discount: z.string().default("0"),
       taxRate: z.string().default("0"),
       paymentMethod: z.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
@@ -2165,8 +2368,8 @@ ${analysisText}
 
       const discount = parseFloat(input.discount);
       const taxRate = parseFloat(input.taxRate);
-      if (isNaN(discount) || discount < 0) throw new Error("الخصم غير صحيح");
-      if (isNaN(taxRate) || taxRate < 0 || taxRate > 100) throw new Error("نسبة الضريبة غير صحيحة");
+      if (isNaN(discount) || discount < 0) throw new Error("Ø§Ù„Ø®ØµÙ… ØºÙŠØ± ØµØ­ÙŠØ­");
+      if (isNaN(taxRate) || taxRate < 0 || taxRate > 100) throw new Error("Ù†Ø³Ø¨Ø© Ø§Ù„Ø¶Ø±ÙŠØ¨Ø© ØºÙŠØ± ØµØ­ÙŠØ­Ø©");
 
       const now = new Date();
       const datePart = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}`;
@@ -2180,15 +2383,15 @@ ${analysisText}
 
       // Validate all products exist
       for (const item of input.items) {
-        if (!productMap.has(item.productId)) throw new Error(`المنتج رقم ${item.productId} غير موجود`);
+        if (!productMap.has(item.productId)) throw new Error(`Ø§Ù„Ù…Ù†ØªØ¬ Ø±Ù‚Ù… ${item.productId} ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯`);
       }
 
       const subtotal = input.items.reduce((sum, item) => sum + parseFloat(item.unitPrice) * item.quantity, 0);
       const taxAmount = (subtotal - discount) * taxRate / 100;
       const total = subtotal - discount + taxAmount;
       const paidAmount = parseFloat(input.paidAmount);
-      if (isNaN(paidAmount) || paidAmount < 0) throw new Error("المبلغ المدفوع غير صحيح");
-      if (paidAmount > total + 0.01) throw new Error("المبلغ المدفوع يتجاوز إجمالي الفاتورة");
+      if (isNaN(paidAmount) || paidAmount < 0) throw new Error("Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¯ÙÙˆØ¹ ØºÙŠØ± ØµØ­ÙŠØ­");
+      if (paidAmount > total + 0.01) throw new Error("Ø§Ù„Ù…Ø¨Ù„Øº Ø§Ù„Ù…Ø¯ÙÙˆØ¹ ÙŠØªØ¬Ø§ÙˆØ² Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ÙØ§ØªÙˆØ±Ø©");
       const initialStatus = paidAmount >= total - 0.01 ? "paid" : paidAmount > 0 ? "partial" : "draft";
 
       const result = await (db as any).transaction(async (tx: any) => {
@@ -2229,7 +2432,7 @@ ${analysisText}
             quantity: item.quantity,
             referenceId: invoice.id,
             referenceType: "purchase",
-            notes: `فاتورة شراء ${invoiceNumber}`,
+            notes: `ÙØ§ØªÙˆØ±Ø© Ø´Ø±Ø§Ø¡ ${invoiceNumber}`,
           });
         }
 
@@ -2256,8 +2459,8 @@ ${analysisText}
 
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
-          action: `إنشاء فاتورة مشتريات: ${invoiceNumber}`,
-          details: `الإجمالي: ${total} — طريقة الدفع: ${input.paymentMethod}`,
+          action: `Ø¥Ù†Ø´Ø§Ø¡ ÙØ§ØªÙˆØ±Ø© Ù…Ø´ØªØ±ÙŠØ§Øª: ${invoiceNumber}`,
+          details: `Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ: ${total} â€” Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„Ø¯ÙØ¹: ${input.paymentMethod}`,
         });
 
         return { invoiceId: invoice.id, invoiceNumber };
@@ -2274,10 +2477,10 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
 
       const existing = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, input.id)).limit(1);
-      if (existing.length === 0) throw new Error("الفاتورة غير موجودة");
+      if (existing.length === 0) throw new Error("Ø§Ù„ÙØ§ØªÙˆØ±Ø© ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©");
       const inv = existing[0];
       if (inv.status === "cancelled" && input.status !== "cancelled") {
-        throw new Error("الفاتورة ملغاة ولا يمكن إعادة تفعيلها");
+        throw new Error("Ø§Ù„ÙØ§ØªÙˆØ±Ø© Ù…Ù„ØºØ§Ø© ÙˆÙ„Ø§ ÙŠÙ…ÙƒÙ† Ø¥Ø¹Ø§Ø¯Ø© ØªÙØ¹ÙŠÙ„Ù‡Ø§");
       }
       if (inv.status === input.status) return { success: true, unchanged: true };
 
@@ -2296,7 +2499,7 @@ ${analysisText}
               quantity: item.quantity,
               referenceId: inv.id,
               referenceType: "purchase-cancel",
-              notes: `إلغاء فاتورة شراء ${inv.invoiceNumber}`,
+              notes: `Ø¥Ù„ØºØ§Ø¡ ÙØ§ØªÙˆØ±Ø© Ø´Ø±Ø§Ø¡ ${inv.invoiceNumber}`,
             });
           }
           if (inv.supplierId) {
@@ -2309,8 +2512,8 @@ ${analysisText}
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
-            action: `إلغاء فاتورة مشتريات: ${inv.invoiceNumber}`,
-            details: `تم عكس المخزون والأرصدة المرتبطة بالفاتورة`,
+            action: `Ø¥Ù„ØºØ§Ø¡ ÙØ§ØªÙˆØ±Ø© Ù…Ø´ØªØ±ÙŠØ§Øª: ${inv.invoiceNumber}`,
+            details: `ØªÙ… Ø¹ÙƒØ³ Ø§Ù„Ù…Ø®Ø²ÙˆÙ† ÙˆØ§Ù„Ø£Ø±ØµØ¯Ø© Ø§Ù„Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„ÙØ§ØªÙˆØ±Ø©`,
           });
         });
       }
@@ -2318,7 +2521,7 @@ ${analysisText}
       await db.update(purchaseInvoices).set({ status: input.status, updatedAt: new Date() }).where(eq(purchaseInvoices.id, inv.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `تحديث حالة فاتورة المشتريات ${inv.invoiceNumber} إلى "${input.status}"`,
+        action: `ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© ÙØ§ØªÙˆØ±Ø© Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª ${inv.invoiceNumber} Ø¥Ù„Ù‰ "${input.status}"`,
       });
       return { success: true };
     }),
@@ -2332,7 +2535,7 @@ ${analysisText}
     }),
   }),
 
-  // ─── Orders & Distribution ──────────────────────────────────────
+  // â”€â”€â”€ Orders & Distribution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   orders: router({
     list: publicProcedure.input(z.object({
       limit: z.number().min(1).max(100).default(50),
@@ -2355,8 +2558,8 @@ ${analysisText}
         productId: z.number(),
         productName: z.string().min(1),
         quantity: z.number().int().min(1),
-        unitPrice: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, "السعر يجب أن يكون رقماً موجباً"),
-      })).min(1, "يجب إضافة صنف واحد على الأقل"),
+        unitPrice: z.string().refine(v => !isNaN(parseFloat(v)) && parseFloat(v) >= 0, "Ø§Ù„Ø³Ø¹Ø± ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø±Ù‚Ù…Ø§Ù‹ Ù…ÙˆØ¬Ø¨Ø§Ù‹"),
+      })).min(1, "ÙŠØ¬Ø¨ Ø¥Ø¶Ø§ÙØ© ØµÙ†Ù ÙˆØ§Ø­Ø¯ Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„"),
       deliveryAddress: z.string().optional(),
       deliveryDate: z.string().optional(),
       deliveryNotes: z.string().optional(),
@@ -2368,7 +2571,7 @@ ${analysisText}
       // Validate products exist
       const productIds = input.items.map(i => i.productId);
       const productRows = await db.select().from(products).where(inArray(products.id, productIds));
-      if (productRows.length !== productIds.length) throw new Error("واحد أو أكثر من المنتجات غير موجودة");
+      if (productRows.length !== productIds.length) throw new Error("ÙˆØ§Ø­Ø¯ Ø£Ùˆ Ø£ÙƒØ«Ø± Ù…Ù† Ø§Ù„Ù…Ù†ØªØ¬Ø§Øª ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©");
 
       const total = input.items.reduce((sum, item) => sum + parseFloat(item.unitPrice) * item.quantity, 0);
       const now = new Date();
@@ -2400,8 +2603,8 @@ ${analysisText}
 
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
-          action: `إنشاء طلب توزيع: ${orderNumber}`,
-          details: `الإجمالي: ${total}`,
+          action: `Ø¥Ù†Ø´Ø§Ø¡ Ø·Ù„Ø¨ ØªÙˆØ²ÙŠØ¹: ${orderNumber}`,
+          details: `Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠ: ${total}`,
         });
 
         return { orderId: order.id, orderNumber };
@@ -2419,19 +2622,19 @@ ${analysisText}
 
       // Validate current status allows this transition
       const existing = await db.select().from(orders).where(eq(orders.id, input.id)).limit(1);
-      if (existing.length === 0) throw new Error("الطلب غير موجود");
+      if (existing.length === 0) throw new Error("Ø§Ù„Ø·Ù„Ø¨ ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯");
       const currentStatus = existing[0].status;
       if (currentStatus === "delivered") {
-        throw new Error("لا يمكن تغيير حالة طلب مُسلّم أو مُلغى");
+        throw new Error("Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØºÙŠÙŠØ± Ø­Ø§Ù„Ø© Ø·Ù„Ø¨ Ù…ÙØ³Ù„Ù‘Ù… Ø£Ùˆ Ù…ÙÙ„ØºÙ‰");
       }
       if (currentStatus === "cancelled" && input.status !== "cancelled") {
-        throw new Error("الطلب مُلغى ولا يمكن إعادة تفعيله");
+        throw new Error("Ø§Ù„Ø·Ù„Ø¨ Ù…ÙÙ„ØºÙ‰ ÙˆÙ„Ø§ ÙŠÙ…ÙƒÙ† Ø¥Ø¹Ø§Ø¯Ø© ØªÙØ¹ÙŠÙ„Ù‡");
       }
 
       await db.update(orders).set({ status: input.status, updatedAt: new Date() }).where(eq(orders.id, input.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
-        action: `تحديث حالة الطلب #${input.id} من "${currentStatus}" إلى "${input.status}"`,
+        action: `ØªØ­Ø¯ÙŠØ« Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ù„Ø¨ #${input.id} Ù…Ù† "${currentStatus}" Ø¥Ù„Ù‰ "${input.status}"`,
       });
       return { success: true };
     }),
@@ -2445,7 +2648,7 @@ ${analysisText}
     }),
   }),
 
-  // ─── Commercial Dashboard Stats ────────────────────────────────
+  // â”€â”€â”€ Commercial Dashboard Stats â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   commercial: router({
     getStats: publicProcedure.query(async () => {
       const db = await getDb();
@@ -2501,7 +2704,30 @@ ${analysisText}
     }),
   }),
 
-  // ─── Payments (Installments & Settlements) ─────────────────────
+  // â”€â”€â”€ Payments (Installments & Settlements) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // â”€â”€â”€ Public Storefront (website integration) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  store: router({
+    catalog: publicProcedure.input(z.object({
+      search: z.string().optional(),
+      category: z.string().optional(),
+    }).optional()).query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return { items: [], categories: [] };
+      const data = await getCatalog(db, {
+        search: input?.search,
+        category: input?.category,
+      });
+      return { items: data.items.slice(0, 200), categories: data.categories };
+    }),
+
+    placeOrder: publicProcedure.input(placeOrderInputSchema).mutation(async ({ input }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      const result = await placePublicOrder(db, input);
+      return result;
+    }),
+  }),
+
   payments: router({
     list: publicProcedure.input(z.object({
       source: z.enum(["sales", "purchases"]),
@@ -2520,7 +2746,7 @@ ${analysisText}
       amount: z.string().refine(v => {
         const n = parseFloat(v);
         return !isNaN(n) && n > 0 && n < 1_000_000_000;
-      }, "المبلغ يجب أن يكون رقماً موجباً"),
+      }, "Ø§Ù„Ù…Ø¨Ù„Øº ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø±Ù‚Ù…Ø§Ù‹ Ù…ÙˆØ¬Ø¨Ø§Ù‹"),
       paymentMethod: z.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
       paymentDate: z.string().optional(),
       notes: z.string().optional(),
@@ -2532,11 +2758,11 @@ ${analysisText}
 
       if (input.source === "sales") {
         const invoices = await db.select().from(salesInvoices).where(eq(salesInvoices.id, input.invoiceId)).limit(1);
-        if (invoices.length === 0) throw new Error("فاتورة المبيعات غير موجودة");
+        if (invoices.length === 0) throw new Error("ÙØ§ØªÙˆØ±Ø© Ø§Ù„Ù…Ø¨ÙŠØ¹Ø§Øª ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©");
         const inv = invoices[0];
-        if (inv.status === "cancelled") throw new Error("لا يمكن تحصيل فاتورة ملغاة");
+        if (inv.status === "cancelled") throw new Error("Ù„Ø§ ÙŠÙ…ÙƒÙ† ØªØ­ØµÙŠÙ„ ÙØ§ØªÙˆØ±Ø© Ù…Ù„ØºØ§Ø©");
         const remaining = parseFloat(inv.total) - parseFloat(inv.paidAmount);
-        if (paymentAmount > remaining + 0.01) throw new Error(`المبلغ يتجاوز المتبقي على الفاتورة (${remaining})`);
+        if (paymentAmount > remaining + 0.01) throw new Error(`Ø§Ù„Ù…Ø¨Ù„Øº ÙŠØªØ¬Ø§ÙˆØ² Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ Ø¹Ù„Ù‰ Ø§Ù„ÙØ§ØªÙˆØ±Ø© (${remaining})`);
 
         await (db as any).transaction(async (tx: any) => {
           const [pay] = await tx.insert(payments).values({
@@ -2562,18 +2788,18 @@ ${analysisText}
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
-            action: `تحصيل دفعة من فاتورة مبيعات ${inv.invoiceNumber}`,
-            details: `المبلغ: ${input.amount} — الطريقة: ${input.paymentMethod}`,
+            action: `ØªØ­ØµÙŠÙ„ Ø¯ÙØ¹Ø© Ù…Ù† ÙØ§ØªÙˆØ±Ø© Ù…Ø¨ÙŠØ¹Ø§Øª ${inv.invoiceNumber}`,
+            details: `Ø§Ù„Ù…Ø¨Ù„Øº: ${input.amount} â€” Ø§Ù„Ø·Ø±ÙŠÙ‚Ø©: ${input.paymentMethod}`,
           });
           return { paymentId: pay.id };
         });
       } else {
         const invoices = await db.select().from(purchaseInvoices).where(eq(purchaseInvoices.id, input.invoiceId)).limit(1);
-        if (invoices.length === 0) throw new Error("فاتورة المشتريات غير موجودة");
+        if (invoices.length === 0) throw new Error("ÙØ§ØªÙˆØ±Ø© Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯Ø©");
         const inv = invoices[0];
-        if (inv.status === "cancelled") throw new Error("لا يمكن سداد فاتورة ملغاة");
+        if (inv.status === "cancelled") throw new Error("Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø³Ø¯Ø§Ø¯ ÙØ§ØªÙˆØ±Ø© Ù…Ù„ØºØ§Ø©");
         const remaining = parseFloat(inv.total) - parseFloat(inv.paidAmount);
-        if (paymentAmount > remaining + 0.01) throw new Error(`المبلغ يتجاوز المتبقي على الفاتورة (${remaining})`);
+        if (paymentAmount > remaining + 0.01) throw new Error(`Ø§Ù„Ù…Ø¨Ù„Øº ÙŠØªØ¬Ø§ÙˆØ² Ø§Ù„Ù…ØªØ¨Ù‚ÙŠ Ø¹Ù„Ù‰ Ø§Ù„ÙØ§ØªÙˆØ±Ø© (${remaining})`);
 
         await (db as any).transaction(async (tx: any) => {
           const [pay] = await tx.insert(payments).values({
@@ -2599,8 +2825,8 @@ ${analysisText}
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
-            action: `تسجيل دفعة سداد على فاتورة مشتريات ${inv.invoiceNumber}`,
-            details: `المبلغ: ${input.amount} — الطريقة: ${input.paymentMethod}`,
+            action: `ØªØ³Ø¬ÙŠÙ„ Ø¯ÙØ¹Ø© Ø³Ø¯Ø§Ø¯ Ø¹Ù„Ù‰ ÙØ§ØªÙˆØ±Ø© Ù…Ø´ØªØ±ÙŠØ§Øª ${inv.invoiceNumber}`,
+            details: `Ø§Ù„Ù…Ø¨Ù„Øº: ${input.amount} â€” Ø§Ù„Ø·Ø±ÙŠÙ‚Ø©: ${input.paymentMethod}`,
           });
           return { paymentId: pay.id };
         });

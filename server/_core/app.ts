@@ -3,6 +3,7 @@ import express, { type Express } from "express";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
+import { registerWebApi } from "./webApi";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 
@@ -17,12 +18,13 @@ export function createApp(): Express {
     res.status(200).json({
       ok: true,
       service: "alhusainia-accounting",
-      version: "1.1.0",
+      version: "1.2.0",
       time: new Date().toISOString(),
     });
   });
   registerStorageProxy(app);
   registerOAuthRoutes(app);
+  registerWebApi(app);
   // tRPC API
   // GET queries are cacheable at the edge for seconds (single-tenant data set);
   // mutations (POST/PATCH) are never cached.
