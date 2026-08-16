@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { useOffline } from "@/lib/offline/OfflineContext";
@@ -113,6 +113,9 @@ export default function Commercial() {
   const utils = trpc.useUtils();
 
   // Payments (installments & settlements)
+  const printAfterSaveRef = useRef(false);
+  const pendingReceiptRef = useRef<{ invoice: any; amount: string; method: string; date: string; source: "sales" | "purchases" } | null>(null);
+  const [printAfterSave, setPrintAfterSave] = useState(true);
   const createPayment = trpc.payments.create.useMutation({
     onSuccess: () => {
       toast.success("تم تسجيل الدفعة بنجاح");
@@ -122,6 +125,12 @@ export default function Commercial() {
       refetchPurchases();
       refetchCustomers();
       refetchSuppliers();
+      if (printAfterSaveRef.current && pendingReceiptRef.current) {
+        const r = pendingReceiptRef.current;
+        pendingReceiptRef.current = null;
+        printAfterSaveRef.current = false;
+        printPaymentReceipt(r);
+      }
     },
     onError: (e) => toast.error(e.message),
   });
@@ -147,6 +156,10 @@ export default function Commercial() {
     const remaining = Number(payTarget.invoice.total) - Number(payTarget.invoice.paidAmount ?? 0);
     if (!payAmount || isNaN(amt) || amt <= 0) { toast.error("أدخل مبلغاً موجباً"); return; }
     if (amt > remaining + 0.01) { toast.error(`المبلغ يتجاوز المتبقي (${remaining.toLocaleString("en-US")})`); return; }
+    printAfterSaveRef.current = printAfterSave;
+    pendingReceiptRef.current = printAfterSave
+      ? { invoice: payTarget.invoice, amount: payAmount, method: payMethod, date: payDate, source: payTarget.source }
+      : null;
     createPayment.mutate({
       source: payTarget.source,
       invoiceId: payTarget.invoice.id,
@@ -155,6 +168,77 @@ export default function Commercial() {
       paymentDate: payDate || undefined,
       notes: payNotes.trim() || undefined,
     });
+  };
+
+  const printPaymentReceipt = async (data: { invoice: any; amount: string; method: string; date: string; source: "sales" | "purchases" }) => {
+    try {
+      const settings = await utils.accounting.getSettings.fetch().catch(() => null);
+      const institutionName = settings?.institutionName ?? "مؤسسة الحسينية لخدمات الأعمال";
+      const managerName = settings?.managerName ?? "";
+      const currency = settings?.currency ?? "ريال يمني (YER)";
+      const esc = (v: any) => String(v ?? "").replace(/[&<>"']/g, (m) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[m] as string));
+      const amt = (v: any) => Number(v ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const d = (v: any) => (v ? new Date(v).toLocaleDateString("ar-EG") : "—");
+      const isReceipt = data.source === "sales";
+      const payLabel: Record<string, string> = { cash: "نقدي", card: "بطاقة", transfer: "تحويل بنكي", credit: "آجل", online: "إلكتروني" };
+      const remaining = Math.max(0, Number(data.invoice.total) - Number(data.invoice.paidAmount ?? 0) - Number(data.amount));
+      const payDateStr = data.date ? d(data.date) : d(new Date());
+
+      const html = `<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"/><title>${isReceipt ? "سند قبض" : "سند صرف"} ${esc(data.invoice.invoiceNumber)}</title>
+<style>
+*{box-sizing:border-box}body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;direction:rtl;margin:0;padding:26px;color:#17211f;background:#fff}
+.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #b87945;padding-bottom:14px}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:46px;height:46px;border-radius:12px;background:#102a2b;color:#d4a574;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px}
+.brand .b1{font-weight:900;font-size:16px;color:#102a2b}.brand .b2{font-size:11px;color:#7a6a52;margin-top:2px}
+.meta{text-align:left}.meta h1{margin:0 0 4px;font-size:20px;color:#102a2b}.meta .m{font-size:11px;color:#555;margin:2px 0}
+.amount-box{margin:26px auto;padding:22px;border:2px dashed #b87945;border-radius:14px;text-align:center;max-width:420px;background:#fdf9f2}
+.amount-box .lbl{font-size:12px;color:#8a6a4a}.amount-box .val{font-size:30px;font-weight:900;color:#102a2b;margin-top:6px;letter-spacing:1px}
+.serial{display:inline-block;margin-top:8px;padding:3px 12px;border-radius:999px;background:#efefe9;color:#555;font-size:10px;font-family:monospace}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;font-size:12px}
+.box{border:1px solid #ddd;border-radius:10px;padding:12px}.box h3{margin:0 0 8px;font-size:12px;color:#b87945}.box p{margin:3px 0;color:#333}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}th,td{border:1px solid #ddd;padding:8px 10px;text-align:right}th{background:#102a2b;color:#fff;font-size:11px}td.c{text-align:center}
+.footer{margin-top:52px;display:flex;justify-content:space-between;font-size:11px;color:#777}
+.sign{width:38%;text-align:center}.sign .line{border-top:1px dashed #999;padding-top:6px;margin-top:58px}
+.note{margin-top:18px;font-size:10px;color:#999;text-align:center}
+@media print{body{padding:10px}}
+</style></head><body>
+<div class="head">
+  <div class="brand"><div class="logo">ح</div><div><div class="b1">${esc(institutionName)}</div><div class="b2">نظام الحسابات ALHUSAINIA — إدارة مالية متكاملة</div></div></div>
+  <div class="meta"><h1>${isReceipt ? "سند قبض" : "سند صرف"}</h1><div class="m">رقم السند: <b>${isReceipt ? "RC" : "PY"}-${String(Date.now()).slice(-8)}</b></div><div class="m">التاريخ: ${payDateStr}</div><div class="m">فاتورة: <b>${esc(data.invoice.invoiceNumber)}</b></div></div>
+</div>
+<div class="amount-box"><div class="lbl">${isReceipt ? "المبلغ المقبوض" : "المبلغ المدفوع"}</div><div class="val">${amt(data.amount)} ${esc(currency)}</div><div class="serial"># ${esc(data.invoice.invoiceNumber)}</div></div>
+<div class="grid">
+  <div class="box"><h3>بيانات السند</h3>
+    <p>طريقة الدفع: <b>${payLabel[data.method] || data.method}</b></p>
+    <p>تاريخ الدفعة: ${payDateStr}</p>
+    <p>نوع السند: <b>${isReceipt ? "تحصيل من عميل" : "سداد لمورد"}</b></p>
+  </div>
+  <div class="box"><h3>حساب الفاتورة</h3>
+    <p>إجمالي الفاتورة: <b>${amt(data.invoice.total)}</b></p>
+    <p>المدفوع سابقاً: <b>${amt(data.invoice.paidAmount)}</b></p>
+    <p>المتبقي بعد هذه الدفعة: <b>${amt(remaining)}</b></p>
+  </div>
+</div>
+<div class="footer">
+  <div class="sign"><div class="line">توقيع المستلم</div></div>
+  <div>${esc(institutionName)}<br/>${managerName ? "أمين الصندوق: " + esc(managerName) : ""}</div>
+  <div class="sign"><div class="line">توقيع أمين الصندوق</div></div>
+</div>
+<div class="note">صدر بواسطة نظام ALHUSAINIA — ${new Date().toLocaleDateString("ar-EG")} — سند صادر بموجب النظام، يُحفظ في ملف السندات.</div>
+</body></html>`;
+
+      const win = window.open("", "_blank", "width=880,height=720");
+      if (!win) { toast.error("الرجاء السماح بالنوافذ المنبثقة لطباعة السند"); return; }
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      const doPrint = () => { win.focus(); setTimeout(() => win.print(), 400); };
+      if (win.document.readyState === "complete") doPrint();
+      else win.onload = doPrint;
+    } catch (e: any) {
+      toast.error("فشل تجهيز السند: " + (e?.message || ""));
+    }
   };
 
   const handlePrintSaleInvoice = async (invId: number) => {
@@ -919,6 +1003,10 @@ ${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes
             </div>
           )}
           <DialogFooter className="flex gap-2 pt-2">
+            <label className="flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer select-none">
+              <input type="checkbox" checked={printAfterSave} onChange={(e) => setPrintAfterSave(e.target.checked)} className="accent-[#b87945]" />
+              اطبع سند {payTarget?.source === "purchases" ? "صرف" : "قبض"} بعد الحفظ
+            </label>
             <Button variant="outline" size="sm" onClick={() => setPayTarget(null)} className="text-xs h-8">إلغاء</Button>
             <Button size="sm" onClick={handlePay} disabled={createPayment.isPending} className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold">
               {createPayment.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Wallet className="w-3 h-3 ml-1" />}
