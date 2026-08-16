@@ -2813,6 +2813,15 @@ ${analysisText}
       const items = await db.select().from(salesInvoices).where(where).orderBy(desc(salesInvoices.createdAt)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
+    getInvoiceDetails: publicProcedure.input(z2.object({ id: z2.number() })).query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [invoice] = await db.select().from(salesInvoices).where(eq2(salesInvoices.id, input.id)).limit(1);
+      if (!invoice) return null;
+      const customer = invoice.customerId ? (await db.select().from(customers).where(eq2(customers.id, invoice.customerId)).limit(1))[0] ?? null : null;
+      const items = await db.select().from(salesInvoiceItems).where(eq2(salesInvoiceItems.invoiceId, invoice.id)).orderBy(asc(salesInvoiceItems.id));
+      return { invoice, customer, items };
+    }),
     create: protectedProcedure.input(z2.object({
       customerId: z2.number().optional(),
       items: z2.array(z2.object({

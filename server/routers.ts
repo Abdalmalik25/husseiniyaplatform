@@ -1877,6 +1877,18 @@ ${analysisText}
       return { items, total: countResult?.count ?? 0 };
     }),
 
+    getInvoiceDetails: publicProcedure.input(z.object({ id: z.number() })).query(async ({ input }) => {
+      const db = await getDb();
+      if (!db) return null;
+      const [invoice] = await db.select().from(salesInvoices).where(eq(salesInvoices.id, input.id)).limit(1);
+      if (!invoice) return null;
+      const customer = invoice.customerId
+        ? (await db.select().from(customers).where(eq(customers.id, invoice.customerId)).limit(1))[0] ?? null
+        : null;
+      const items = await db.select().from(salesInvoiceItems).where(eq(salesInvoiceItems.invoiceId, invoice.id)).orderBy(asc(salesInvoiceItems.id));
+      return { invoice, customer, items };
+    }),
+
     create: protectedProcedure.input(z.object({
       customerId: z.number().optional(),
       items: z.array(z.object({

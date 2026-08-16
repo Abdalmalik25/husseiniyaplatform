@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Package, Users, Truck, ShoppingCart, ShoppingBag, ClipboardList,
   Plus, Search, Edit, Trash2, Barcode, MapPin, Phone, Mail,
-  Wifi, WifiOff, CheckCircle, XCircle, Clock, AlertTriangle
+  Wifi, WifiOff, CheckCircle, XCircle, Clock, AlertTriangle, Printer
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -109,6 +109,94 @@ export default function Commercial() {
     onSuccess: () => { toast.success("تم تحديث حالة الفاتورة"); refetchPurchases(); refetchProducts(); },
     onError: (e) => toast.error(e.message)
   });
+
+  const utils = trpc.useUtils();
+
+  const handlePrintSaleInvoice = async (invId: number) => {
+    try {
+      const [detail, settings] = await Promise.all([
+        utils.sales.getInvoiceDetails.fetch({ id: invId }),
+        utils.accounting.getSettings.fetch().catch(() => null),
+      ]);
+      if (!detail?.invoice) { toast.error("تعذر تحميل تفاصيل الفاتورة"); return; }
+      const { invoice, customer, items } = detail as any;
+      const institutionName = settings?.institutionName ?? "مؤسسة الحسينية لخدمات الأعمال";
+      const managerName = settings?.managerName ?? "";
+      const currency = settings?.currency ?? "ريال يمني (YER)";
+      const esc = (v: any) => String(v ?? "").replace(/[&<>"']/g, (m) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[m] as string));
+      const amt = (v: any) => Number(v ?? 0).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const d = (v: any) => (v ? new Date(v).toLocaleDateString("ar-EG") : "—");
+      const statusLabel: Record<string, string> = { draft: "مسودة", confirmed: "مؤكدة", paid: "مدفوعة", partial: "مدفوعة جزئياً", cancelled: "ملغاة" };
+      const payLabel: Record<string, string> = { cash: "نقدي", card: "بطاقة", transfer: "تحويل", credit: "آجل", online: "إلكتروني" };
+      const remaining = Number(invoice.total ?? 0) - Number(invoice.paidAmount ?? 0);
+      const itemsRows = (items || []).map((it: any, i: number) => `
+      <tr><td class="c">${i + 1}</td><td>${esc(it.productName)}</td><td class="c">${it.quantity}</td><td class="c">${amt(it.unitPrice)}</td><td class="c">${amt(it.discount)}</td><td class="c">${amt(it.total)}</td></tr>`).join("");
+
+      const html = `<!DOCTYPE html>
+<html lang="ar" dir="rtl"><head><meta charset="utf-8"/><title>فاتورة ${esc(invoice.invoiceNumber)}</title>
+<style>
+*{box-sizing:border-box}body{font-family:"Segoe UI",Tahoma,Arial,sans-serif;direction:rtl;margin:0;padding:26px;color:#17211f;background:#fff}
+.head{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #b87945;padding-bottom:14px}
+.brand{display:flex;align-items:center;gap:10px}.logo{width:46px;height:46px;border-radius:12px;background:#102a2b;color:#d4a574;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:18px}
+.brand .b1{font-weight:900;font-size:16px;color:#102a2b}.brand .b2{font-size:11px;color:#7a6a52;margin-top:2px}
+.meta{text-align:left}.meta h1{margin:0 0 4px;font-size:20px;color:#102a2b}.meta .m{font-size:11px;color:#555;margin:2px 0}
+.badge{display:inline-block;margin-top:6px;padding:3px 12px;border-radius:999px;background:#f5e9d8;color:#8a5a1e;font-size:11px;font-weight:700}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:16px}
+.box{border:1px solid #ddd;border-radius:10px;padding:12px;font-size:12px}.box h3{margin:0 0 8px;font-size:13px;color:#b87945}.box p{margin:3px 0;color:#333}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:12px}
+th,td{border:1px solid #ddd;padding:8px 10px;text-align:right}th{background:#102a2b;color:#fff;font-size:11px}
+td.c{text-align:center}tr:nth-child(even) td{background:#faf6ef}
+.totals{display:flex;justify-content:flex-end;margin-top:12px}.totals table{width:320px;margin:0}
+.totals td{border:none;padding:5px 10px}.totals tr.total td{font-weight:900;font-size:14px;color:#102a2b;border-top:2px solid #b87945}
+.notes{margin-top:14px;font-size:11px;color:#555;border-top:1px dashed #ccc;padding-top:10px}
+.footer{margin-top:46px;display:flex;justify-content:space-between;font-size:11px;color:#777}
+.sign{width:38%;text-align:center}.sign .line{border-top:1px dashed #999;padding-top:6px;margin-top:58px}
+@media print{body{padding:10px}}
+</style></head><body>
+<div class="head">
+  <div class="brand"><div class="logo">ح</div><div><div class="b1">${esc(institutionName)}</div><div class="b2">نظام الحسابات ALHUSAINIA — إدارة مالية متكاملة</div></div></div>
+  <div class="meta"><h1>فاتورة مبيعات</h1><div class="m">رقم الفاتورة: <b>${esc(invoice.invoiceNumber)}</b></div><div class="m">التاريخ: ${d(invoice.invoiceDate)}</div><div class="m">تاريخ الاستحقاق: ${d(invoice.dueDate)}</div><span class="badge">${statusLabel[invoice.status] || invoice.status}</span></div>
+</div>
+<div class="grid2">
+  <div class="box"><h3>بيانات العميل</h3>
+    <p><b>${esc(customer?.name || "عميل نقدي")}</b></p>
+    ${customer?.phone ? `<p>هاتف: ${esc(customer.phone)}</p>` : ""}
+    ${customer?.address ? `<p>العنوان: ${esc(customer.address)}</p>` : ""}
+    ${customer?.taxNumber ? `<p>الرقم الضريبي: ${esc(customer.taxNumber)}</p>` : ""}
+  </div>
+  <div class="box"><h3>بيانات الدفع</h3>
+    <p>طريقة الدفع: <b>${payLabel[invoice.paymentMethod] || invoice.paymentMethod}</b></p>
+    <p>المدفوع: <b>${amt(invoice.paidAmount)} ${esc(currency)}</b></p>
+    <p>المتبقي: <b>${amt(remaining)} ${esc(currency)}</b></p>
+  </div>
+</div>
+<table><thead><tr><th class="c">#</th><th>الصنف</th><th class="c">الكمية</th><th class="c">سعر الوحدة</th><th class="c">الخصم</th><th class="c">الإجمالي</th></tr></thead><tbody>${itemsRows || '<tr><td colspan="6" class="c">لا توجد أصناف</td></tr>'}</tbody></table>
+<div class="totals"><table>
+  <tr><td>المجموع الفرعي</td><td class="c">${amt(invoice.subtotal)}</td></tr>
+  ${Number(invoice.discount) > 0 ? `<tr><td>الخصم</td><td class="c">-${amt(invoice.discount)}</td></tr>` : ""}
+  ${Number(invoice.taxRate) > 0 ? `<tr><td>الضريبة (${invoice.taxRate}%)</td><td class="c">${amt(invoice.taxAmount)}</td></tr>` : ""}
+  <tr class="total"><td>الإجمالي النهائي</td><td class="c">${amt(invoice.total)} ${esc(currency)}</td></tr>
+</table></div>
+${invoice.notes ? `<div class="notes"><b>ملاحظات: </b>${esc(invoice.notes)}</div>` : ""}
+<div class="footer">
+  <div class="sign"><div class="line">توقيع المستلم</div></div>
+  <div>${esc(institutionName)}<br/>${managerName ? "المدير: " + esc(managerName) : ""}<br/>صدر بواسطة نظام ALHUSAINIA — ${new Date().toLocaleDateString("ar-EG")}</div>
+  <div class="sign"><div class="line">توقيع البائع</div></div>
+</div>
+</body></html>`;
+
+      const win = window.open("", "_blank", "width=920,height=760");
+      if (!win) { toast.error("الرجاء السماح بالنوافذ المنبثقة لطباعة الفاتورة"); return; }
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      const doPrint = () => { win.focus(); setTimeout(() => win.print(), 400); };
+      if (win.document.readyState === "complete") doPrint();
+      else win.onload = doPrint;
+    } catch (e: any) {
+      toast.error("فشل تجهيز الفاتورة: " + (e?.message || ""));
+    }
+  };
 
   const filteredProducts = useMemo(() => {
     return productsData;
@@ -351,6 +439,16 @@ export default function Commercial() {
                       <div className="flex items-center gap-3">
                         <Badge className={`text-[10px] ${statusColors[inv.status] || ""}`}>{statusLabels[inv.status] || inv.status}</Badge>
                         <p className="font-bold text-xs text-green-600">{inv.total} ر.ي</p>
+                        {inv.status !== "cancelled" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[9px] h-6 text-sky-700 border-sky-200"
+                            onClick={() => handlePrintSaleInvoice(inv.id)}
+                          >
+                            <Printer className="w-3 h-3" /> طباعة
+                          </Button>
+                        )}
                         {inv.status !== "cancelled" && (
                           <Button
                             size="sm"
