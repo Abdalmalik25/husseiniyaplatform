@@ -84,14 +84,29 @@ function resolveConflict(
 
 // ─── Pull (Server → Client) ───────────────────────────────────────
 
-export async function pullFromServer(tableName: TableName): Promise<{
+/**
+ * Pulls a single table from the server snapshot.
+ *
+ * PERFORMANCE: The snapshot is fetched ONCE per full sync cycle and passed in
+ * via the `snapshot` parameter. Previously, each of the 20 tables triggered its
+ * own identical `getFullSnapshot` API call (N+1 problem), causing 20x the
+ * network round-trips and server load. Now `performFullSync` fetches the
+ * snapshot once and reuses it for every table.
+ */
+export async function pullFromServer(
+  tableName: TableName,
+  snapshot?: any
+): Promise<{
   pulled: number;
   conflicts: Array<{ tableName: string; recordId: string; resolution: string }>;
 }> {
   const meta = await getSyncMeta(tableName);
   try {
-    // Use the full snapshot endpoint: covers every table in one request
-    const snapshot = await trpcQuery<any>("sync.getFullSnapshot");
+    // Use the full snapshot endpoint: covers every table in one request.
+    // If a snapshot was already fetched by performFullSync, reuse it.
+    if (!snapshot) {
+      snapshot = await trpcQuery<any>("sync.getFullSnapshot");
+    }
     if (!snapshot || typeof snapshot !== "object")
       return { pulled: 0, conflicts: [] };
 
@@ -279,6 +294,12 @@ export interface SyncResult {
   timestamp: number;
 }
 
+/**
+ * Performs a full sync cycle: push pending changes, then pull all tables.
+ *
+ * PERFORMANCE: Fetches the server snapshot ONCE and reuses it for all 20
+ * tables, instead of making 20 identical API calls.
+ */
 export async function performFullSync(): Promise<SyncResult> {
   const pushResult = await pushPendingChanges();
 
@@ -305,11 +326,19 @@ export async function performFullSync(): Promise<SyncResult> {
     "payments",
   ];
 
+  // Fetch the full snapshot ONCE — reused for every table below.
+  let snapshot: any = null;
+  try {
+    snapshot = await trpcQuery<any>("sync.getFullSnapshot");
+  } catch (error) {
+    console.warn("[Sync] Failed to fetch full snapshot:", error);
+  }
+
   let totalPulled = 0;
   const allConflicts: SyncResult["conflicts"] = [];
 
   for (const table of tables) {
-    const result = await pullFromServer(table);
+    const result = await pullFromServer(table, snapshot);
     totalPulled += result.pulled;
     allConflicts.push(...result.conflicts);
   }

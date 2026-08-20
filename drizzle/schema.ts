@@ -48,26 +48,33 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
 
 // ─── Users table for multi-tenant SaaS ────────────────────────────
 
-export const users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  openId: varchar("openId", { length: 255 }).notNull().unique(),
-  tenantId: integer("tenantId"),
-  name: varchar("name", { length: 255 }),
-  email: varchar("email", { length: 255 }),
-  loginMethod: varchar("loginMethod", { length: 50 }),
-  role: userRoleEnum("role").default("user").notNull(),
-  themePreference: varchar("themePreference", { length: 20 })
-    .default("dark")
-    .notNull(),
-  emailNotifications: boolean("emailNotifications").default(true).notNull(),
-  whatsappNotifications: boolean("whatsappNotifications")
-    .default(true)
-    .notNull(),
-  compactMode: boolean("compactMode").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-});
+export const users = pgTable(
+  "users",
+  {
+    id: serial("id").primaryKey(),
+    openId: varchar("openId", { length: 255 }).notNull().unique(),
+    tenantId: integer("tenantId"),
+    name: varchar("name", { length: 255 }),
+    email: varchar("email", { length: 255 }),
+    loginMethod: varchar("loginMethod", { length: 50 }),
+    role: userRoleEnum("role").default("user").notNull(),
+    themePreference: varchar("themePreference", { length: 20 })
+      .default("dark")
+      .notNull(),
+    emailNotifications: boolean("emailNotifications").default(true).notNull(),
+    whatsappNotifications: boolean("whatsappNotifications")
+      .default(true)
+      .notNull(),
+    compactMode: boolean("compactMode").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+  },
+  t => [
+    // PERFORMANCE: Index for tenant-scoped user lookups
+    index("idx_users_tenant").on(t.tenantId),
+  ]
+);
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
@@ -180,6 +187,10 @@ export const transactions = pgTable(
     index("idx_transactions_date").on(t.transactionDate),
     index("idx_transactions_branch").on(t.branchId),
     index("idx_transactions_reference").on(t.referenceType, t.referenceId),
+    // PERFORMANCE: Composite indexes for frequently filtered queries
+    index("idx_transactions_tenant_status").on(t.tenantId, t.lifecycleStatus),
+    index("idx_transactions_tenant_reversed").on(t.tenantId, t.isReversed),
+    index("idx_transactions_tenant_date").on(t.tenantId, t.transactionDate),
   ]
 );
 

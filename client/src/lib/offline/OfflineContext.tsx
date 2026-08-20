@@ -65,8 +65,6 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    getOfflineStats().then(setOfflineStats);
-
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);

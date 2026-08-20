@@ -10,7 +10,7 @@
  */
 
 const DB_NAME = "alhusainia-accounting";
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 export type SyncStatus = "synced" | "pending" | "conflict";
 
@@ -164,6 +164,44 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains("syncMeta")) {
         db.createObjectStore("syncMeta", { keyPath: "tableName" });
       }
+
+      // PERFORMANCE: Add _status index to all data stores for fast stats queries.
+      // This index is used by getOfflineStats() to count pending/synced records
+      // without loading all records into memory.
+      const dataStores = [
+        "accounts",
+        "transactions",
+        "settings",
+        "budgets",
+        "openingBalances",
+        "branches",
+        "tenants",
+        "activityLogs",
+        "users",
+        "branchPermissions",
+        "products",
+        "warehouses",
+        "inventoryMovements",
+        "customers",
+        "suppliers",
+        "salesInvoices",
+        "salesInvoiceItems",
+        "purchaseInvoices",
+        "purchaseInvoiceItems",
+        "orders",
+        "orderItems",
+        "payments",
+      ];
+      for (const storeName of dataStores) {
+        if (db.objectStoreNames.contains(storeName)) {
+          const store = request.result
+            .transaction(storeName)
+            .objectStore(storeName);
+          if (!store.indexNames.contains("_status")) {
+            store.createIndex("_status", "_status", { unique: false });
+          }
+        }
+      }
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => {
@@ -272,6 +310,17 @@ export async function getByIndex<T>(
 
 export async function count(table: TableName): Promise<number> {
   return runTx("readonly", table, store => (store as IDBObjectStore).count());
+}
+
+export async function countByIndex(
+  table: TableName,
+  indexName: string,
+  value: IDBValidKey
+): Promise<number> {
+  return runTx("readonly", table, store => {
+    const index = (store as IDBObjectStore).index(indexName);
+    return index.count(value);
+  });
 }
 
 export async function put<T extends { id?: string | number }>(
@@ -459,12 +508,15 @@ export async function getOfflineStats(): Promise<
     { total: number; pending: number; synced: number }
   > = {};
   for (const table of tables) {
-    const all = await getAll(table);
-    stats[table] = {
-      total: all.length,
-      pending: all.filter(r => r._status === "pending").length,
-      synced: all.filter(r => r._status === "synced").length,
-    };
+    // PERFORMANCE: Use count() and index.count() instead of getAll() to avoid
+    // loading all records into memory. The _status index (added in DB v3)
+    // allows counting pending/synced records via an indexed lookup.
+    const [total, pending, synced] = await Promise.all([
+      count(table),
+      countByIndex(table, "_status", "pending"),
+      countByIndex(table, "_status", "synced"),
+    ]);
+    stats[table] = { total, pending, synced };
   }
   return stats as Record<
     TableName,

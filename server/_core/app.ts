@@ -2,6 +2,7 @@ import "dotenv/config";
 import express, { type Express } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import compression from "compression";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
 import { registerStorageProxy } from "./storageProxy";
@@ -40,16 +41,10 @@ export function createApp(): Express {
     })
   );
 
-  // Rate limiting - general
-  const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 200, // 200 requests per window
-    message: {
-      error: "تم تجاوز الحد المسموح من الطلبات. يرجى المحاولة لاحقاً.",
-    },
-    standardHeaders: true,
-    legacyHeaders: false,
-  });
+  // PERFORMANCE: Enable gzip/brotli compression for all responses.
+  // This significantly reduces payload sizes for JSON API responses and
+  // static assets, improving load times especially on slower connections.
+  app.use(compression());
 
   // Rate limiting - API endpoints (stricter)
   const apiLimiter = rateLimit({
@@ -68,9 +63,6 @@ export function createApp(): Express {
     standardHeaders: true,
     legacyHeaders: false,
   });
-
-  // Apply general rate limiting
-  app.use(generalLimiter);
 
   // Configure body parser with reasonable size limit
   app.use(express.json({ limit: "10mb" }));
@@ -110,6 +102,13 @@ export function createApp(): Express {
     });
   });
   registerStorageProxy(app);
+
+  // SECURITY: Throttle the unauthenticated surfaces explicitly.
+  // - /api/oauth performs token exchange, so it gets the strict auth limiter.
+  // - /api/web is the public storefront (including place-order writes).
+  app.use("/api/oauth", authLimiter);
+  app.use("/api/web", apiLimiter);
+
   registerOAuthRoutes(app);
   registerWebApi(app);
   // tRPC API

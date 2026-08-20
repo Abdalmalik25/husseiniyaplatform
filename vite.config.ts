@@ -183,57 +183,71 @@ export default defineConfig({
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
 
-          // React core - cache indefinitely
+          // Normalise Windows separators so the package matchers below work
+          // identically on every platform (and with pnpm's nested layout).
+          const pkgPath = id.replace(/\\/g, "/");
+
+          // PERFORMANCE: Match React core by exact package directory.
+          // A loose `id.includes("react")` also captured react-hook-form,
+          // @radix-ui/react-*, react-day-picker, react-resizable-panels, etc.,
+          // inflating the "react" chunk to ~594 kB and forcing every visitor to
+          // download UI/form code before first paint.
           if (
-            id.includes("react") ||
-            id.includes("/scheduler") ||
-            id.includes("react-dom")
+            /node_modules\/(react|react-dom|react-is|scheduler)\//.test(
+              pkgPath
+            )
           )
             return "react";
 
           // Recharts + d3 - large charting library
           if (
-            id.includes("recharts") ||
-            id.includes("/d3-") ||
-            id.includes("victory")
+            pkgPath.includes("recharts") ||
+            pkgPath.includes("/d3-") ||
+            pkgPath.includes("victory")
           )
             return "charts";
 
           // Framer Motion - animations
-          if (id.includes("framer-motion")) return "motion";
+          if (pkgPath.includes("framer-motion")) return "motion";
 
           // tRPC + TanStack Query - API layer
-          if (id.includes("@trpc") || id.includes("@tanstack/react-query"))
+          if (
+            pkgPath.includes("@trpc") ||
+            pkgPath.includes("@tanstack/react-query")
+          )
             return "trpc";
 
           // Form handling
-          if (id.includes("react-hook-form") || id.includes("@hookform"))
+          if (
+            pkgPath.includes("react-hook-form") ||
+            pkgPath.includes("@hookform")
+          )
             return "forms";
 
           // Radix UI + shadcn components
           if (
-            id.includes("@radix-ui") ||
-            id.includes("cmdk") ||
-            id.includes("vaul") ||
-            id.includes("input-otp") ||
-            id.includes("react-day-picker") ||
-            id.includes("sonner") ||
-            id.includes("react-resizable-panels") ||
-            id.includes("embla-carousel")
+            pkgPath.includes("@radix-ui") ||
+            pkgPath.includes("cmdk") ||
+            pkgPath.includes("vaul") ||
+            pkgPath.includes("input-otp") ||
+            pkgPath.includes("react-day-picker") ||
+            pkgPath.includes("sonner") ||
+            pkgPath.includes("react-resizable-panels") ||
+            pkgPath.includes("embla-carousel")
           )
             return "ui";
 
           // Utilities - small, stable libraries
           if (
-            id.includes("zod") ||
-            id.includes("superjson") ||
-            id.includes("date-fns") ||
-            id.includes("clsx") ||
-            id.includes("tailwind-merge") ||
-            id.includes("class-variance-authority") ||
-            id.includes("nanoid") ||
-            id.includes("wouter") ||
-            id.includes("next-themes")
+            pkgPath.includes("zod") ||
+            pkgPath.includes("superjson") ||
+            pkgPath.includes("date-fns") ||
+            pkgPath.includes("clsx") ||
+            pkgPath.includes("tailwind-merge") ||
+            pkgPath.includes("class-variance-authority") ||
+            pkgPath.includes("nanoid") ||
+            pkgPath.includes("wouter") ||
+            pkgPath.includes("next-themes")
           )
             return "utils";
 

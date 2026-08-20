@@ -70,7 +70,7 @@ function App() {
         .register("/sw.js")
         .then(reg => {
           console.log("[SW] Registered:", reg.scope);
-          updateInterval = setInterval(() => reg.update(), 60_000);
+          updateInterval = setInterval(() => reg.update(), 300_000);
         })
         .catch(err => console.warn("[SW] Registration failed:", err));
       return () => {

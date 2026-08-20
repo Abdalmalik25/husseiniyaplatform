@@ -8,6 +8,7 @@ import "dotenv/config";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
+import compression from "compression";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 
 // shared/const.ts
@@ -86,22 +87,29 @@ var subscriptionStatusEnum = pgEnum("subscription_status", [
   "active",
   "expired"
 ]);
-var users = pgTable("users", {
-  id: serial("id").primaryKey(),
-  openId: varchar("openId", { length: 255 }).notNull().unique(),
-  tenantId: integer("tenantId"),
-  name: varchar("name", { length: 255 }),
-  email: varchar("email", { length: 255 }),
-  loginMethod: varchar("loginMethod", { length: 50 }),
-  role: userRoleEnum("role").default("user").notNull(),
-  themePreference: varchar("themePreference", { length: 20 }).default("dark").notNull(),
-  emailNotifications: boolean("emailNotifications").default(true).notNull(),
-  whatsappNotifications: boolean("whatsappNotifications").default(true).notNull(),
-  compactMode: boolean("compactMode").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
-});
+var users = pgTable(
+  "users",
+  {
+    id: serial("id").primaryKey(),
+    openId: varchar("openId", { length: 255 }).notNull().unique(),
+    tenantId: integer("tenantId"),
+    name: varchar("name", { length: 255 }),
+    email: varchar("email", { length: 255 }),
+    loginMethod: varchar("loginMethod", { length: 50 }),
+    role: userRoleEnum("role").default("user").notNull(),
+    themePreference: varchar("themePreference", { length: 20 }).default("dark").notNull(),
+    emailNotifications: boolean("emailNotifications").default(true).notNull(),
+    whatsappNotifications: boolean("whatsappNotifications").default(true).notNull(),
+    compactMode: boolean("compactMode").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull()
+  },
+  (t2) => [
+    // PERFORMANCE: Index for tenant-scoped user lookups
+    index("idx_users_tenant").on(t2.tenantId)
+  ]
+);
 var tenants = pgTable("tenants", {
   id: serial("id").primaryKey(),
   name: varchar("name", { length: 255 }).notNull(),
@@ -178,7 +186,11 @@ var transactions = pgTable(
     index("idx_transactions_account").on(t2.accountId),
     index("idx_transactions_date").on(t2.transactionDate),
     index("idx_transactions_branch").on(t2.branchId),
-    index("idx_transactions_reference").on(t2.referenceType, t2.referenceId)
+    index("idx_transactions_reference").on(t2.referenceType, t2.referenceId),
+    // PERFORMANCE: Composite indexes for frequently filtered queries
+    index("idx_transactions_tenant_status").on(t2.tenantId, t2.lifecycleStatus),
+    index("idx_transactions_tenant_reversed").on(t2.tenantId, t2.isReversed),
+    index("idx_transactions_tenant_date").on(t2.tenantId, t2.transactionDate)
   ]
 );
 var openingBalances = pgTable("opening_balances", {
@@ -1439,10 +1451,14 @@ var SDKServer = class {
     if (!user) {
       throw ForbiddenError("User not found");
     }
-    await upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt
-    });
+    const lastSignIn = user.lastSignedIn;
+    const shouldUpdateSignIn = !lastSignIn || Date.now() - new Date(lastSignIn).getTime() > 60 * 60 * 1e3;
+    if (shouldUpdateSignIn) {
+      await upsertUser({
+        openId: user.openId,
+        lastSignedIn: signedInAt
+      });
+    }
     return user;
   }
 };
@@ -6433,17 +6449,7 @@ function createApp() {
       referrerPolicy: { policy: "strict-origin-when-cross-origin" }
     })
   );
-  const generalLimiter = rateLimit({
-    windowMs: 15 * 60 * 1e3,
-    // 15 minutes
-    max: 200,
-    // 200 requests per window
-    message: {
-      error: "\u062A\u0645 \u062A\u062C\u0627\u0648\u0632 \u0627\u0644\u062D\u062F \u0627\u0644\u0645\u0633\u0645\u0648\u062D \u0645\u0646 \u0627\u0644\u0637\u0644\u0628\u0627\u062A. \u064A\u0631\u062C\u0649 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629 \u0644\u0627\u062D\u0642\u0627\u064B."
-    },
-    standardHeaders: true,
-    legacyHeaders: false
-  });
+  app2.use(compression());
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1e3,
     // 15 minutes
@@ -6462,7 +6468,6 @@ function createApp() {
     standardHeaders: true,
     legacyHeaders: false
   });
-  app2.use(generalLimiter);
   app2.use(express.json({ limit: "10mb" }));
   app2.use(express.urlencoded({ limit: "10mb", extended: true }));
   app2.use(
@@ -6487,6 +6492,8 @@ function createApp() {
     });
   });
   registerStorageProxy(app2);
+  app2.use("/api/oauth", authLimiter);
+  app2.use("/api/web", apiLimiter);
   registerOAuthRoutes(app2);
   registerWebApi(app2);
   app2.use("/api/trpc", apiLimiter);

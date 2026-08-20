@@ -316,10 +316,18 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
-    await db.upsertUser({
-      openId: user.openId,
-      lastSignedIn: signedInAt,
-    });
+    // PERFORMANCE: Only update lastSignedIn once per hour to avoid a DB write
+    // on every authenticated request (critical for serverless cold starts).
+    const lastSignIn = user.lastSignedIn;
+    const shouldUpdateSignIn =
+      !lastSignIn ||
+      Date.now() - new Date(lastSignIn).getTime() > 60 * 60 * 1000;
+    if (shouldUpdateSignIn) {
+      await db.upsertUser({
+        openId: user.openId,
+        lastSignedIn: signedInAt,
+      });
+    }
 
     return user;
   }
