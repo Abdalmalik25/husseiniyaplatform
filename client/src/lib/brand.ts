@@ -26,11 +26,38 @@ export const brand = {
   promise:
     "محاسبة متقدمة، استشارات هندسية، وخدمات مكتبية وطلابية — في منصة سحابية واحدة متعددة المؤسسات والفروع والعملات.",
 
+  /** Modern, consultative marketing messaging — global & progressive. */
+  valueProps: [
+    {
+      en: "One platform. Every department. Zero fragmentation.",
+      ar: "منصة واحدة. كل إدارة. لا تشتت.",
+      icon: "Zap",
+    },
+    {
+      en: "Offline-first architecture — work anywhere, sync everywhere.",
+      ar: "بنية لاسلكية أولاً — اعمل في أي مكان، وزّع البيانات للجميع.",
+      icon: "Wifi",
+    },
+    {
+      en: "Enterprise-grade security with JWT + ISO-compliant controls.",
+      ar: "أمان مستوى المؤسسات مع JWT وضوابط مطابقة ISO.",
+      icon: "ShieldCheck",
+    },
+    {
+      en: "Multi-tenant, multi-currency, multi-branch from day one.",
+      ar: "متعدد المؤسسات والعملات والفروع من اليوم الأول.",
+      icon: "Layers",
+    },
+  ],
+
   /** Brand voice used in CTAs and microcopy. */
   voice: {
     primaryCta: "ابدأ الآن مجاناً",
+    primaryCtaEn: "Start Free Trial",
     secondaryCta: "استكشف المنظومة",
+    secondaryCtaEn: "Explore the Platform",
     trialNote: "تجربة مجانية 14 يوماً — بدون بطاقة ائتمان",
+    trialNoteEn: "14-day free trial — no credit card required",
   },
 
   /** Canonical contact & social (edit once, used everywhere). */

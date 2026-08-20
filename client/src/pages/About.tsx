@@ -68,6 +68,8 @@ import {
 import { toast } from "sonner";
 import { SiteFooter } from "@/components/SiteFooter";
 import { brand, whatsappLink } from "@/lib/brand";
+import { HeroBackground } from "@/components/ModernBackground";
+import { Globe, TrendingUp, BarChart3 } from "lucide-react";
 
 export default function About() {
   const [, setLocation] = useLocation();
@@ -358,9 +360,10 @@ export default function About() {
       {/* Header Navbar */}
       <HeaderNavbar />
 
-      {/* Hero Banner */}
-      <section className="relative bg-[#102a2b] text-white py-16 px-4 overflow-hidden border-b border-[#1e3a3c]">
-        <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#b87945_1px,transparent_1px)] [background-size:16px_16px]"></div>
+      {/* Hero Banner — Modern animated background */}
+      <section className="relative text-white py-16 px-4 overflow-hidden border-b border-[#1e3a3c]">
+        <HeroBackground />
+
         <div className="max-w-6xl mx-auto text-center relative z-10 space-y-5">
           <div className="inline-flex items-center gap-2 bg-[#1e3a3c] border border-[#b87945]/40 text-[#d4a574] px-3.5 py-1.5 rounded-full text-xs font-semibold shadow">
             <HardHat className="w-3.5 h-3.5 text-[#b87945]" />
@@ -373,9 +376,7 @@ export default function About() {
           </h1>
 
           <p className="max-w-3xl mx-auto text-xs sm:text-base text-slate-300 leading-relaxed font-light">
-            حلول هندسية متقدمة للمقاولين وأصحاب الأراضي والعقارات (مخططات، رفع
-            مساحي، جداول كميات BOQ، حفر وردم، وتثمين) إلى جانب الاستشارات
-            المؤسسية والخدمات الطلابية والمكتبية والصيانة.
+            {brand.promise}
           </p>
 
           <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
@@ -403,38 +404,19 @@ export default function About() {
 
           {/* Quick Stats Banner */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto pt-10 text-right">
-            <div className="bg-[#162e30]/80 border border-[#1e3a3c] p-3.5 rounded-xl text-center">
-              <div className="text-xl font-bold text-[#d4a574] font-mono">
-                +1,200
+            {brand.stats.map((stat, i) => (
+              <div
+                key={i}
+                className="bg-[#162e30]/80 border border-[#1e3a3c] p-3.5 rounded-xl text-center"
+              >
+                <div className="text-xl font-bold text-[#d4a574] font-mono">
+                  {stat.value}
+                </div>
+                <div className="text-[11px] text-slate-300 mt-0.5">
+                  {stat.label}
+                </div>
               </div>
-              <div className="text-[11px] text-slate-300 mt-0.5">
-                رفع مساحي ومخطط عقاري
-              </div>
-            </div>
-            <div className="bg-[#162e30]/80 border border-[#1e3a3c] p-3.5 rounded-xl text-center">
-              <div className="text-xl font-bold text-[#d4a574] font-mono">
-                +450
-              </div>
-              <div className="text-[11px] text-slate-300 mt-0.5">
-                جدول كميات (BOQ) ومخطط تنفيذي
-              </div>
-            </div>
-            <div className="bg-[#162e30]/80 border border-[#1e3a3c] p-3.5 rounded-xl text-center">
-              <div className="text-xl font-bold text-[#d4a574] font-mono">
-                +12,000
-              </div>
-              <div className="text-[11px] text-slate-300 mt-0.5">
-                خدمة طلابية ومكتبية متميزة
-              </div>
-            </div>
-            <div className="bg-[#162e30]/80 border border-[#1e3a3c] p-3.5 rounded-xl text-center">
-              <div className="text-xl font-bold text-[#d4a574] font-mono">
-                %99.6
-              </div>
-              <div className="text-[11px] text-slate-300 mt-0.5">
-                رضا المقاولين والعملاء المعتمد
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </section>

@@ -1,7 +1,9 @@
-import React from "react";
+import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { BrandLogo } from "@/components/BrandLogo";
 import { brand, whatsappLink } from "@/lib/brand";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Building2,
   HardHat,
@@ -15,7 +17,10 @@ import {
   Globe,
   ShieldCheck,
   Layers,
+  Send,
+  ArrowUp,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const footerNav = [
   {
@@ -149,8 +154,51 @@ export function SiteFooter() {
         </div>
       </div>
 
-      {/* Trust strip */}
+      {/* Newsletter Signup */}
       <div className="max-w-7xl mx-auto px-4 mt-10">
+        <div className="border-t border-white/10 pt-8">
+          <div className="max-w-2xl mx-auto text-center space-y-3">
+            <h3 className="text-lg font-bold font-display text-white">
+              احصل على آخر المستجدات والعروض
+            </h3>
+            <p className="text-xs text-white/50">
+              اشترك في النشرة البريدية لتصلك جديد المنصة والخدمات أولاً.
+            </p>
+            <form
+              onSubmit={e => {
+                e.preventDefault();
+                const email = (
+                  e.currentTarget.elements.namedItem("email") as HTMLInputElement
+                ).value;
+                if (email && email.includes("@")) {
+                  toast.success("تم الاشتراك بنجاح! شكراً لك.");
+                  (e.currentTarget as HTMLFormElement).reset();
+                }
+              }}
+              className="flex flex-col sm:flex-row gap-2 justify-center"
+            >
+              <Input
+                name="email"
+                type="email"
+                placeholder="example@company.com"
+                className="bg-white/5 border-white/15 text-white placeholder:text-white/40 text-xs h-9 max-w-xs"
+                dir="ltr"
+              />
+              <Button
+                type="submit"
+                size="sm"
+                className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-9 px-4 rounded-lg flex items-center gap-1.5"
+              >
+                <Send className="w-3.5 h-3.5" />
+                الاشتراك
+              </Button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      {/* Trust strip */}
+      <div className="max-w-7xl mx-auto px-4 mt-8">
         <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 border-t border-white/10 pt-5 text-[11px] text-white/50">
           {brand.trustBadges.map(b => (
             <span key={b} className="flex items-center gap-1.5">
@@ -168,10 +216,19 @@ export function SiteFooter() {
           محفوظة
         </p>
         <p>
-          منظومة سحابية متعددة المؤسسات والفروع والعملات — مبنية ومُنشورة عبر
-          GitHub &amp; Vercel.
+          منظومة سحابية متعددة المؤسسات والفروع والعملات — مبنية ومُنشرة عبر
+          GitHub & Vercel.
         </p>
       </div>
+
+      {/* Back to Top Button */}
+      <button
+        onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        className="fixed bottom-6 left-6 z-40 w-10 h-10 rounded-full bg-brand/10 border border-brand/30 text-brand hover:bg-brand hover:text-ink transition-all hover:scale-110 shadow-lg flex items-center justify-center group"
+        aria-label="الصعود للأعلى"
+      >
+        <ArrowUp className="w-4 h-4 group-hover:animate-bounce" />
+      </button>
     </footer>
   );
 }

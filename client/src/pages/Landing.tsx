@@ -68,6 +68,10 @@ import {
   Zap,
   Shield,
   ArrowUpRight,
+  Globe,
+  TrendingUp,
+  BarChart3,
+  Wifi,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -75,6 +79,7 @@ import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { SiteFooter } from "@/components/SiteFooter";
 import { brand } from "@/lib/brand";
+import { HeroBackground } from "@/components/ModernBackground";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -123,8 +128,8 @@ export default function Landing() {
       <HeaderNavbar />
 
       {/* 🚀 HERO SECTION: التسويق العالمي والتعريفي */}
-      <section className="relative brand-gradient text-white py-20 px-4 overflow-hidden border-b border-white/10">
-        <div className="absolute inset-0 opacity-10 brand-dotgrid"></div>
+      <section className="relative text-white py-20 px-4 overflow-hidden border-b border-white/10">
+        <HeroBackground />
 
         <div className="max-w-6xl mx-auto text-center relative z-10 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur border border-brand/50 text-brand-300 px-4 py-1.5 rounded-full text-xs font-bold shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-700">
@@ -188,39 +193,64 @@ export default function Landing() {
 
           {/* KPI Numbers Banner */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto pt-10 text-right">
-            <div className="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl text-center shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="text-2xl font-black text-brand-300 font-mono">
-                +1,200
+            {brand.stats.map((stat, i) => (
+              <div
+                key={i}
+                className="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl text-center shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="text-2xl font-black text-brand-300 font-mono">
+                  {stat.value}
+                </div>
+                <div className="text-xs text-white/70 mt-1">{stat.label}</div>
               </div>
-              <div className="text-xs text-white/70 mt-1">
-                مشروع وتثبيت أرض مساحي
-              </div>
-            </div>
-            <div className="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl text-center shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="text-2xl font-black text-brand-300 font-mono">
-                +450
-              </div>
-              <div className="text-xs text-white/70 mt-1">
-                جدول كميات (BOQ) ومخطط تنفيذي
-              </div>
-            </div>
-            <div className="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl text-center shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="text-2xl font-black text-brand-300 font-mono">
-                +15,000
-              </div>
-              <div className="text-xs text-white/70 mt-1">
-                معاملة مالية ومخدمية منجزة
-              </div>
-            </div>
-            <div className="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl text-center shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="text-2xl font-black text-brand-300 font-mono">
-                %99.6
-              </div>
-              <div className="text-xs text-white/70 mt-1">
-                نسبة رضا العملاء والمقاولين
-              </div>
-            </div>
+            ))}
           </div>
+        </div>
+      </section>
+
+      {/* 💎 VALUE PROPOSITIONS: Modern consultative messaging */}
+      <section className="max-w-7xl mx-auto px-4 py-16">
+        <div className="text-center space-y-3 max-w-3xl mx-auto mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
+            لماذا تختار الحسينية؟
+          </Badge>
+          <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground">
+            منصة متكاملة تُعيد تعريف إدارة المؤسسات
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            نجمع بين الذكاء الاصطناعي، الأمان المؤسسي، والبنية اللاسلكية الأولى
+            لضمان إنتاجية لا تُضاهى.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {brand.valueProps.map((vp, i) => {
+            const IconMap: Record<string, React.ComponentType<any>> = {
+              Zap: Zap,
+              Wifi: Wifi,
+              ShieldCheck: ShieldCheck,
+              Layers: Layers,
+            };
+            const Icon = IconMap[vp.icon] || Zap;
+            return (
+              <Card
+                key={i}
+                className="surface p-6 rounded-2xl text-center hover:-translate-y-1 hover:shadow-xl transition-all animate-in fade-in slide-in-from-bottom-4 duration-700"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center mx-auto mb-4">
+                  <Icon className="w-6 h-6 text-brand" />
+                </div>
+                <h3 className="text-sm font-bold font-display text-foreground mb-2">
+                  {vp.ar}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {vp.en}
+                </p>
+              </Card>
+            );
+          })}
         </div>
       </section>
 

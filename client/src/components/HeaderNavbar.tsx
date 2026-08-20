@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,6 +11,7 @@ import {
   Search,
   Menu,
   X,
+  Globe,
 } from "lucide-react";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -125,6 +126,23 @@ export function HeaderNavbar({
             </kbd>
           </button>
 
+          {/* Language Toggle (Global Identity) */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              const current = document.documentElement.lang || "ar";
+              const next = current === "ar" ? "en" : "ar";
+              document.documentElement.lang = next;
+              document.documentElement.dir = next === "ar" ? "rtl" : "ltr";
+            }}
+            className="text-white/70 hover:text-white hover:bg-white/5 h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium"
+            aria-label="تبديل اللغة"
+          >
+            <Globe className="w-3.5 h-3.5 text-brand-300" />
+            <span>العربية / EN</span>
+          </Button>
+
           {/* Role & Language Selector Badge */}
           <Button
             variant="outline"
@@ -202,6 +220,19 @@ export function HeaderNavbar({
               <span>إعدادات المؤسسة</span>
             </button>
           )}
+          <button
+            onClick={() => {
+              const current = document.documentElement.lang || "ar";
+              const next = current === "ar" ? "en" : "ar";
+              document.documentElement.lang = next;
+              document.documentElement.dir = next === "ar" ? "rtl" : "ltr";
+              setMobileOpen(false);
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/5"
+          >
+            <Globe className="w-4 h-4 text-brand-300" />
+            <span>العربية / English</span>
+          </button>
         </div>
       )}
     </header>
