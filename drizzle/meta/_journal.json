@@ -1,82 +1,12 @@
 {
   "version": "7",
-  "dialect": "mysql",
+  "dialect": "postgresql",
   "entries": [
     {
       "idx": 0,
-      "version": "5",
-      "when": 1786460716186,
-      "tag": "0000_steady_legion",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "5",
-      "when": 1786460999536,
-      "tag": "0001_organic_onslaught",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "5",
-      "when": 1786461292974,
-      "tag": "0002_far_cargill",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "5",
-      "when": 1786463447515,
-      "tag": "0003_military_peter_quill",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "5",
-      "when": 1786472285550,
-      "tag": "0004_opposite_miss_america",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "5",
-      "when": 1786472482166,
-      "tag": "0005_stiff_garia",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "5",
-      "when": 1786473411481,
-      "tag": "0006_useful_reavers",
-      "breakpoints": true
-    },
-    {
-      "idx": 7,
-      "version": "5",
-      "when": 1786478324320,
-      "tag": "0007_tiny_marvex",
-      "breakpoints": true
-    },
-    {
-      "idx": 8,
-      "version": "5",
-      "when": 1786478731440,
-      "tag": "0008_brief_killer_shrike",
-      "breakpoints": true
-    },
-    {
-      "idx": 9,
-      "version": "5",
-      "when": 1786479303415,
-      "tag": "0009_omniscient_mikhail_rasputin",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "5",
-      "when": 1786479691189,
-      "tag": "0010_omniscient_roxanne_simpson",
+      "version": "7",
+      "when": 1787239022659,
+      "tag": "0000_whole_wild_pack",
       "breakpoints": true
     }
   ]

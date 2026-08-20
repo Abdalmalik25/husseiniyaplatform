@@ -1,7 +1,7 @@
 {
   "short_name": "ALHUSAINIA",
-  "name": "ALHUSAINIA — نظام الحسينية المحاسبي المتقدم",
-  "description": "نظام محاسبي متكامل للمؤسسات والأعمال — إدارة الحسابات، المعاملات، التقارير، والتحليلات المالية. يعمل بدون إنترنت.",
+  "name": "ALHUSAINIA — منظومة الحسينية الموحّدة للأعمال",
+  "description": "منظومة سحابية متعددة المؤسسات والفروع: محاسبة متقدمة، استشارات هندسية، مبيعات ومخازن، وخدمات مكتبية وطلابية — في منصة واحدة.",
   "icons": [
     {
       "src": "/icon-192.svg",
@@ -25,30 +25,17 @@
   "display": "standalone",
   "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
   "orientation": "any",
-  "theme_color": "#102a2b",
+  "theme_color": "#0e2a2b",
   "background_color": "#fbf8f2",
   "lang": "ar",
   "dir": "rtl",
   "categories": ["business", "finance", "productivity"],
   "prefer_related_applications": false,
   "shortcuts": [
-    {
-      "name": "لوحة التحكم",
-      "short_name": "الرئيسية",
-      "url": "/",
-      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
-    },
-    {
-      "name": "إضافة معاملة",
-      "short_name": "معاملة",
-      "url": "/?tab=entry",
-      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
-    },
-    {
-      "name": "دليل الحسابات",
-      "short_name": "حسابات",
-      "url": "/?tab=accounts",
-      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }]
-    }
+    { "name": "لوحة المحاسبة", "short_name": "الرئيسية", "url": "/", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "التعريف والمؤسسة", "short_name": "عن المنصة", "url": "/about", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "المتجر الإلكتروني", "short_name": "المتجر", "url": "/store", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "العمليات التجارية", "short_name": "التجاري", "url": "/commercial", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
+    { "name": "مركز التكامل", "short_name": "التكامل", "url": "/integrate", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] }
   ]
 }

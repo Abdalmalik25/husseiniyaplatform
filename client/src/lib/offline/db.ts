@@ -41,7 +41,7 @@ function openDB(): Promise<IDBDatabase> {
   if (_dbPromise) return _dbPromise;
   _dbPromise = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (event) => {
+    request.onupgradeneeded = event => {
       const db = (event.target as IDBOpenDBRequest).result;
       if (!db.objectStoreNames.contains("accounts")) {
         const store = db.createObjectStore("accounts", { keyPath: "id" });
@@ -52,7 +52,9 @@ function openDB(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains("transactions")) {
         const store = db.createObjectStore("transactions", { keyPath: "id" });
         store.createIndex("accountId", "accountId", { unique: false });
-        store.createIndex("transactionDate", "transactionDate", { unique: false });
+        store.createIndex("transactionDate", "transactionDate", {
+          unique: false,
+        });
         store.createIndex("_syncId", "_syncId", { unique: true });
       }
       if (!db.objectStoreNames.contains("settings")) {
@@ -62,7 +64,9 @@ function openDB(): Promise<IDBDatabase> {
         db.createObjectStore("budgets", { keyPath: "id" });
       }
       if (!db.objectStoreNames.contains("openingBalances")) {
-        const store = db.createObjectStore("openingBalances", { keyPath: "id" });
+        const store = db.createObjectStore("openingBalances", {
+          keyPath: "id",
+        });
         store.createIndex("accountId", "accountId", { unique: false });
       }
       if (!db.objectStoreNames.contains("branches")) {
@@ -80,7 +84,9 @@ function openDB(): Promise<IDBDatabase> {
         store.createIndex("openId", "openId", { unique: true });
       }
       if (!db.objectStoreNames.contains("branchPermissions")) {
-        const store = db.createObjectStore("branchPermissions", { keyPath: "id" });
+        const store = db.createObjectStore("branchPermissions", {
+          keyPath: "id",
+        });
         store.createIndex("userId", "userId", { unique: false });
         store.createIndex("branchId", "branchId", { unique: false });
       }
@@ -95,7 +101,9 @@ function openDB(): Promise<IDBDatabase> {
         store.createIndex("code", "code", { unique: true });
       }
       if (!db.objectStoreNames.contains("inventoryMovements")) {
-        const store = db.createObjectStore("inventoryMovements", { keyPath: "id" });
+        const store = db.createObjectStore("inventoryMovements", {
+          keyPath: "id",
+        });
         store.createIndex("productId", "productId", { unique: false });
       }
       if (!db.objectStoreNames.contains("customers")) {
@@ -113,16 +121,22 @@ function openDB(): Promise<IDBDatabase> {
         store.createIndex("customerId", "customerId", { unique: false });
       }
       if (!db.objectStoreNames.contains("salesInvoiceItems")) {
-        const store = db.createObjectStore("salesInvoiceItems", { keyPath: "id" });
+        const store = db.createObjectStore("salesInvoiceItems", {
+          keyPath: "id",
+        });
         store.createIndex("invoiceId", "invoiceId", { unique: false });
       }
       if (!db.objectStoreNames.contains("purchaseInvoices")) {
-        const store = db.createObjectStore("purchaseInvoices", { keyPath: "id" });
+        const store = db.createObjectStore("purchaseInvoices", {
+          keyPath: "id",
+        });
         store.createIndex("invoiceNumber", "invoiceNumber", { unique: true });
         store.createIndex("supplierId", "supplierId", { unique: false });
       }
       if (!db.objectStoreNames.contains("purchaseInvoiceItems")) {
-        const store = db.createObjectStore("purchaseInvoiceItems", { keyPath: "id" });
+        const store = db.createObjectStore("purchaseInvoiceItems", {
+          keyPath: "id",
+        });
         store.createIndex("invoiceId", "invoiceId", { unique: false });
       }
       if (!db.objectStoreNames.contains("orders")) {
@@ -140,7 +154,10 @@ function openDB(): Promise<IDBDatabase> {
         store.createIndex("invoiceId", "invoiceId", { unique: false });
       }
       if (!db.objectStoreNames.contains("syncQueue")) {
-        const store = db.createObjectStore("syncQueue", { keyPath: "id", autoIncrement: true });
+        const store = db.createObjectStore("syncQueue", {
+          keyPath: "id",
+          autoIncrement: true,
+        });
         store.createIndex("tableName", "tableName", { unique: false });
         store.createIndex("timestamp", "timestamp", { unique: false });
       }
@@ -205,27 +222,56 @@ async function runTx<T>(
 
 // ─── Generic CRUD Operations ──────────────────────────────────────
 
-export type TableName = "accounts" | "transactions" | "settings" | "budgets" | "openingBalances" | "branches" | "tenants" | "activityLogs" | "users" | "branchPermissions" | "products" | "warehouses" | "inventoryMovements" | "customers" | "suppliers" | "salesInvoices" | "salesInvoiceItems" | "purchaseInvoices" | "purchaseInvoiceItems" | "orders" | "orderItems" | "payments";
+export type TableName =
+  | "accounts"
+  | "transactions"
+  | "settings"
+  | "budgets"
+  | "openingBalances"
+  | "branches"
+  | "tenants"
+  | "activityLogs"
+  | "users"
+  | "branchPermissions"
+  | "products"
+  | "warehouses"
+  | "inventoryMovements"
+  | "customers"
+  | "suppliers"
+  | "salesInvoices"
+  | "salesInvoiceItems"
+  | "purchaseInvoices"
+  | "purchaseInvoiceItems"
+  | "orders"
+  | "orderItems"
+  | "payments";
 
 type WithSync<T> = T & SyncMeta;
 
 export async function getAll<T>(table: TableName): Promise<WithSync<T>[]> {
-  return runTx("readonly", table, (store) => (store as IDBObjectStore).getAll());
+  return runTx("readonly", table, store => (store as IDBObjectStore).getAll());
 }
 
-export async function getById<T>(table: TableName, id: string | number): Promise<WithSync<T> | undefined> {
-  return runTx("readonly", table, (store) => (store as IDBObjectStore).get(id));
+export async function getById<T>(
+  table: TableName,
+  id: string | number
+): Promise<WithSync<T> | undefined> {
+  return runTx("readonly", table, store => (store as IDBObjectStore).get(id));
 }
 
-export async function getByIndex<T>(table: TableName, indexName: string, value: IDBValidKey): Promise<WithSync<T>[]> {
-  return runTx("readonly", table, (store) => {
+export async function getByIndex<T>(
+  table: TableName,
+  indexName: string,
+  value: IDBValidKey
+): Promise<WithSync<T>[]> {
+  return runTx("readonly", table, store => {
     const index = (store as IDBObjectStore).index(indexName);
     return index.getAll(value);
   });
 }
 
 export async function count(table: TableName): Promise<number> {
-  return runTx("readonly", table, (store) => (store as IDBObjectStore).count());
+  return runTx("readonly", table, store => (store as IDBObjectStore).count());
 }
 
 export async function put<T extends { id?: string | number }>(
@@ -233,7 +279,9 @@ export async function put<T extends { id?: string | number }>(
   record: T & Partial<SyncMeta>,
   forceOperation?: "create" | "update"
 ): Promise<void> {
-  const existingRecord = record.id ? await getById(table, record.id) : undefined;
+  const existingRecord = record.id
+    ? await getById(table, record.id)
+    : undefined;
   const operation = forceOperation || (existingRecord ? "update" : "create");
 
   const enriched = {
@@ -244,30 +292,50 @@ export async function put<T extends { id?: string | number }>(
     _status: "pending" as SyncStatus,
     _deviceId: getDeviceId(),
   };
-  await runTx("readwrite", table, (store) => (store as IDBObjectStore).put(enriched));
-  await enqueueSync(table, String(enriched.id || enriched._syncId), operation, enriched);
+  await runTx("readwrite", table, store =>
+    (store as IDBObjectStore).put(enriched)
+  );
+  await enqueueSync(
+    table,
+    String(enriched.id || enriched._syncId),
+    operation,
+    enriched
+  );
 }
 
-export async function remove(table: TableName, id: string | number): Promise<void> {
+export async function remove(
+  table: TableName,
+  id: string | number
+): Promise<void> {
   const existing = await getById(table, id);
   if (existing) {
-    await runTx("readwrite", table, (store) => (store as IDBObjectStore).delete(id));
+    await runTx("readwrite", table, store =>
+      (store as IDBObjectStore).delete(id)
+    );
     await enqueueSync(table, String(id), "delete", { id });
   }
 }
 
-export async function removeLocalRow(table: TableName, id: string | number): Promise<void> {
-  await runTx("readwrite", table, (store) => (store as IDBObjectStore).delete(id));
+export async function removeLocalRow(
+  table: TableName,
+  id: string | number
+): Promise<void> {
+  await runTx("readwrite", table, store =>
+    (store as IDBObjectStore).delete(id)
+  );
 }
 
 export async function clear(table: TableName): Promise<void> {
-  await runTx("readwrite", table, (store) => (store as IDBObjectStore).clear());
+  await runTx("readwrite", table, store => (store as IDBObjectStore).clear());
 }
 
 // ─── Bulk Operations ──────────────────────────────────────────────
 
-export async function bulkPut<T>(table: TableName, records: T[]): Promise<void> {
-  return runTx("readwrite", table, async (store) => {
+export async function bulkPut<T>(
+  table: TableName,
+  records: T[]
+): Promise<void> {
+  return runTx("readwrite", table, async store => {
     const s = store as IDBObjectStore;
     for (const record of records) {
       const enriched = {
@@ -289,7 +357,12 @@ export async function bulkGet<T>(table: TableName): Promise<WithSync<T>[]> {
 
 // ─── Sync Queue ───────────────────────────────────────────────────
 
-async function enqueueSync(tableName: string, recordId: string, operation: "create" | "update" | "delete", payload: unknown): Promise<void> {
+async function enqueueSync(
+  tableName: string,
+  recordId: string,
+  operation: "create" | "update" | "delete",
+  payload: unknown
+): Promise<void> {
   const entry: Omit<SyncQueueEntry, "id"> = {
     tableName,
     recordId,
@@ -299,22 +372,28 @@ async function enqueueSync(tableName: string, recordId: string, operation: "crea
     deviceId: getDeviceId(),
     retries: 0,
   };
-  await runTx("readwrite", "syncQueue", (store) => (store as IDBObjectStore).put(entry));
+  await runTx("readwrite", "syncQueue", store =>
+    (store as IDBObjectStore).put(entry)
+  );
 }
 
 export async function getPendingSyncs(): Promise<SyncQueueEntry[]> {
-  return runTx("readonly", "syncQueue", (store) => (store as IDBObjectStore).getAll());
+  return runTx("readonly", "syncQueue", store =>
+    (store as IDBObjectStore).getAll()
+  );
 }
 
 export async function removeSyncEntry(id: number): Promise<void> {
-  await runTx("readwrite", "syncQueue", (store) => (store as IDBObjectStore).delete(id));
+  await runTx("readwrite", "syncQueue", store =>
+    (store as IDBObjectStore).delete(id)
+  );
 }
 
 export async function incrementRetry(id: number): Promise<void> {
-  await runTx("readwrite", "syncQueue", (store) => {
+  await runTx("readwrite", "syncQueue", store => {
     const s = store as IDBObjectStore;
     const req = s.get(id);
-    return reqToPromise(req).then((entry) => {
+    return reqToPromise(req).then(entry => {
       if (entry) {
         entry.retries = (entry.retries || 0) + 1;
         s.put(entry);
@@ -323,23 +402,62 @@ export async function incrementRetry(id: number): Promise<void> {
   });
 }
 
-export async function getSyncMeta(tableName: string): Promise<{ tableName: string; lastSyncVersion: number; lastSyncAt: number } | undefined> {
-  return runTx("readonly", "syncMeta", (store) => (store as IDBObjectStore).get(tableName));
+export async function getSyncMeta(
+  tableName: string
+): Promise<
+  { tableName: string; lastSyncVersion: number; lastSyncAt: number } | undefined
+> {
+  return runTx("readonly", "syncMeta", store =>
+    (store as IDBObjectStore).get(tableName)
+  );
 }
 
-export async function setSyncMeta(tableName: string, lastSyncVersion: number): Promise<void> {
-  await runTx("readwrite", "syncMeta", (store) => (store as IDBObjectStore).put({
-    tableName,
-    lastSyncVersion,
-    lastSyncAt: Date.now(),
-  }));
+export async function setSyncMeta(
+  tableName: string,
+  lastSyncVersion: number
+): Promise<void> {
+  await runTx("readwrite", "syncMeta", store =>
+    (store as IDBObjectStore).put({
+      tableName,
+      lastSyncVersion,
+      lastSyncAt: Date.now(),
+    })
+  );
 }
 
 // ─── Statistics ───────────────────────────────────────────────────
 
-export async function getOfflineStats(): Promise<Record<TableName, { total: number; pending: number; synced: number }>> {
-  const tables: TableName[] = ["accounts", "transactions", "settings", "budgets", "openingBalances", "branches", "tenants", "activityLogs", "users", "branchPermissions", "products", "warehouses", "inventoryMovements", "customers", "suppliers", "salesInvoices", "salesInvoiceItems", "purchaseInvoices", "purchaseInvoiceItems", "orders", "orderItems", "payments"];
-  const stats: Record<string, { total: number; pending: number; synced: number }> = {};
+export async function getOfflineStats(): Promise<
+  Record<TableName, { total: number; pending: number; synced: number }>
+> {
+  const tables: TableName[] = [
+    "accounts",
+    "transactions",
+    "settings",
+    "budgets",
+    "openingBalances",
+    "branches",
+    "tenants",
+    "activityLogs",
+    "users",
+    "branchPermissions",
+    "products",
+    "warehouses",
+    "inventoryMovements",
+    "customers",
+    "suppliers",
+    "salesInvoices",
+    "salesInvoiceItems",
+    "purchaseInvoices",
+    "purchaseInvoiceItems",
+    "orders",
+    "orderItems",
+    "payments",
+  ];
+  const stats: Record<
+    string,
+    { total: number; pending: number; synced: number }
+  > = {};
   for (const table of tables) {
     const all = await getAll(table);
     stats[table] = {
@@ -348,29 +466,128 @@ export async function getOfflineStats(): Promise<Record<TableName, { total: numb
       synced: all.filter(r => r._status === "synced").length,
     };
   }
-  return stats as Record<TableName, { total: number; pending: number; synced: number }>;
+  return stats as Record<
+    TableName,
+    { total: number; pending: number; synced: number }
+  >;
 }
 
 // ─── Default Account Chart (aligned with server seed: 1010–5050) ──
 
 const DEFAULT_ACCOUNTS = [
   // الأصول
-  { id: "1", code: "1010", name: "الصندوق الرئيسي (الخزينة)", type: "asset", category: "الأصول المتداولة", balance: 0, isActive: true },
-  { id: "2", code: "1020", name: "البنك التجاري / الإسلامي", type: "asset", category: "الأصول المتداولة", balance: 0, isActive: true },
-  { id: "3", code: "1030", name: "حساب العُملاء والمدينون", type: "asset", category: "الأصول المتداولة", balance: 0, isActive: true },
+  {
+    id: "1",
+    code: "1010",
+    name: "الصندوق الرئيسي (الخزينة)",
+    type: "asset",
+    category: "الأصول المتداولة",
+    balance: 0,
+    isActive: true,
+  },
+  {
+    id: "2",
+    code: "1020",
+    name: "البنك التجاري / الإسلامي",
+    type: "asset",
+    category: "الأصول المتداولة",
+    balance: 0,
+    isActive: true,
+  },
+  {
+    id: "3",
+    code: "1030",
+    name: "حساب العُملاء والمدينون",
+    type: "asset",
+    category: "الأصول المتداولة",
+    balance: 0,
+    isActive: true,
+  },
   // الخصوم
-  { id: "4", code: "2010", name: "الدائنون والموردون", type: "liability", category: "الخصوم المتداولة", balance: 0, isActive: true },
+  {
+    id: "4",
+    code: "2010",
+    name: "الدائنون والموردون",
+    type: "liability",
+    category: "الخصوم المتداولة",
+    balance: 0,
+    isActive: true,
+  },
   // حقوق الملكية
-  { id: "5", code: "3010", name: "رأس المال", type: "equity", category: "حقوق الملكية", balance: 0, isActive: true },
+  {
+    id: "5",
+    code: "3010",
+    name: "رأس المال",
+    type: "equity",
+    category: "حقوق الملكية",
+    balance: 0,
+    isActive: true,
+  },
   // الإيرادات
-  { id: "6", code: "4010", name: "إيرادات خدمات الأعمال والمعاملات", type: "revenue", category: "الإيرادات التشغيلية", balance: 0, isActive: true },
-  { id: "7", code: "4020", name: "إيرادات متنوعة", type: "revenue", category: "إيرادات أخرى", balance: 0, isActive: true },
+  {
+    id: "6",
+    code: "4010",
+    name: "إيرادات خدمات الأعمال والمعاملات",
+    type: "revenue",
+    category: "الإيرادات التشغيلية",
+    balance: 0,
+    isActive: true,
+  },
+  {
+    id: "7",
+    code: "4020",
+    name: "إيرادات متنوعة",
+    type: "revenue",
+    category: "إيرادات أخرى",
+    balance: 0,
+    isActive: true,
+  },
   // المصروفات
-  { id: "8", code: "5010", name: "مصروفات الرواتب والأجور", type: "expense", category: "المصروفات التشغيلية", balance: 0, isActive: true },
-  { id: "9", code: "5020", name: "مصروفات الإيجار والخدمات (كهرباء، ماء، إنترنت)", type: "expense", category: "المصروفات التشغيلية", balance: 0, isActive: true },
-  { id: "10", code: "5030", name: "مصروفات حكومية ورسوم تخليص", type: "expense", category: "المصروفات التشغيلية", balance: 0, isActive: true },
-  { id: "11", code: "5040", name: "مصروفات متنوعة وعمومية", type: "expense", category: "المصروفات الإدارية", balance: 0, isActive: true },
-  { id: "12", code: "5050", name: "تكلفة البضاعة المشتراة (المشتريات التجارية)", type: "expense", category: "تكلفة المبيعات", balance: 0, isActive: true },
+  {
+    id: "8",
+    code: "5010",
+    name: "مصروفات الرواتب والأجور",
+    type: "expense",
+    category: "المصروفات التشغيلية",
+    balance: 0,
+    isActive: true,
+  },
+  {
+    id: "9",
+    code: "5020",
+    name: "مصروفات الإيجار والخدمات (كهرباء، ماء، إنترنت)",
+    type: "expense",
+    category: "المصروفات التشغيلية",
+    balance: 0,
+    isActive: true,
+  },
+  {
+    id: "10",
+    code: "5030",
+    name: "مصروفات حكومية ورسوم تخليص",
+    type: "expense",
+    category: "المصروفات التشغيلية",
+    balance: 0,
+    isActive: true,
+  },
+  {
+    id: "11",
+    code: "5040",
+    name: "مصروفات متنوعة وعمومية",
+    type: "expense",
+    category: "المصروفات الإدارية",
+    balance: 0,
+    isActive: true,
+  },
+  {
+    id: "12",
+    code: "5050",
+    name: "تكلفة البضاعة المشتراة (المشتريات التجارية)",
+    type: "expense",
+    category: "تكلفة المبيعات",
+    balance: 0,
+    isActive: true,
+  },
 ];
 
 const DEFAULT_SETTINGS = [
@@ -407,7 +624,7 @@ export async function seedDefaultData(): Promise<void> {
     _deviceId: deviceId,
   }));
 
-  await runTx("readwrite", ["accounts", "settings"], async (stores) => {
+  await runTx("readwrite", ["accounts", "settings"], async stores => {
     const aStore = (stores as IDBObjectStore[])[0];
     const sStore = (stores as IDBObjectStore[])[1];
     for (const a of accountsWithMeta) aStore.put(a);

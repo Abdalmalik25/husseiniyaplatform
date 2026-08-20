@@ -11,11 +11,12 @@
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     }
   ],
-  "crons": [
-    { "path": "/api/health", "schedule": "0 6 * * *" }
-  ]
+  "crons": [{ "path": "/api/health", "schedule": "0 6 * * *" }]
 }

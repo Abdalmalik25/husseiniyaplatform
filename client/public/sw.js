@@ -12,17 +12,12 @@ const STATIC_CACHE = "alhusainia-static-v1";
 const API_CACHE = "alhusainia-api-v1";
 const OFFLINE_URL = "/offline.html";
 
-const STATIC_ASSETS = [
-  "/",
-  "/index.html",
-  "/manifest.json",
-  "/favicon.svg",
-];
+const STATIC_ASSETS = ["/", "/index.html", "/manifest.json", "/favicon.svg"];
 
 // Install: Pre-cache static assets
-self.addEventListener("install", (event) => {
+self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(STATIC_CACHE).then((cache) => {
+    caches.open(STATIC_CACHE).then(cache => {
       return cache.addAll(STATIC_ASSETS);
     })
   );
@@ -30,13 +25,13 @@ self.addEventListener("install", (event) => {
 });
 
 // Activate: Clean old caches
-self.addEventListener("activate", (event) => {
+self.addEventListener("activate", event => {
   event.waitUntil(
-    caches.keys().then((keys) => {
+    caches.keys().then(keys => {
       return Promise.all(
         keys
-          .filter((key) => key !== STATIC_CACHE && key !== API_CACHE)
-          .map((key) => caches.delete(key))
+          .filter(key => key !== STATIC_CACHE && key !== API_CACHE)
+          .map(key => caches.delete(key))
       );
     })
   );
@@ -44,7 +39,7 @@ self.addEventListener("activate", (event) => {
 });
 
 // Fetch: Handle all requests
-self.addEventListener("fetch", (event) => {
+self.addEventListener("fetch", event => {
   const { request } = event;
   const url = new URL(request.url);
 
@@ -89,7 +84,7 @@ self.addEventListener("fetch", (event) => {
 
 // ─── Strategies ───────────────────────────────────────────────────
 
-async function cacheFirst(request: Request, cacheName: string): Promise<Response> {
+async function cacheFirst(request, cacheName) {
   const cached = await caches.match(request);
   if (cached) return cached;
 
@@ -105,10 +100,10 @@ async function cacheFirst(request: Request, cacheName: string): Promise<Response
   }
 }
 
-async function staleWhileRevalidateFresh(request: Request, cacheName: string, freshWindowMs: number): Promise<Response> {
+async function staleWhileRevalidateFresh(request, cacheName, freshWindowMs) {
   const cached = await caches.match(request);
   const network = fetch(request)
-    .then(async (response) => {
+    .then(async response => {
       if (response.ok) {
         const cache = await caches.open(cacheName);
         cache.put(request, response.clone());
@@ -118,11 +113,15 @@ async function staleWhileRevalidateFresh(request: Request, cacheName: string, fr
     .catch(() => undefined);
 
   if (cached) {
-    const cachedAt = (new Date(cached.headers.get("date") || Date.now())).getTime() || Date.now();
+    const cachedAt =
+      new Date(cached.headers.get("date") || Date.now()).getTime() ||
+      Date.now();
     const isFresh = Date.now() - cachedAt < freshWindowMs;
     if (isFresh) {
       // Serve instantly and let the network refresh run in the background.
-      network.then((r) => r && cachePutIfOk(request, r, cacheName)).catch(() => {});
+      network
+        .then(r => r && cachePutIfOk(request, r, cacheName))
+        .catch(() => {});
       return cached;
     }
   }
@@ -131,19 +130,22 @@ async function staleWhileRevalidateFresh(request: Request, cacheName: string, fr
   const fresh = await network;
   if (fresh) return fresh;
   if (cached) return cached;
-  return new Response(JSON.stringify({ error: "offline", message: "الجهاز غير متصل بالإنترنت" }), {
-    status: 503,
-    headers: { "Content-Type": "application/json" },
-  });
+  return new Response(
+    JSON.stringify({ error: "offline", message: "الجهاز غير متصل بالإنترنت" }),
+    {
+      status: 503,
+      headers: { "Content-Type": "application/json" },
+    }
+  );
 }
 
-async function cachePutIfOk(request: Request, response: Response, cacheName: string): Promise<void> {
+async function cachePutIfOk(request, response, cacheName) {
   if (!response.ok) return;
   const cache = await caches.open(cacheName);
   await cache.put(request, response.clone());
 }
 
-async function networkFirstWithCache(request: Request, cacheName: string): Promise<Response> {
+async function networkFirstWithCache(request, cacheName) {
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -154,14 +156,20 @@ async function networkFirstWithCache(request: Request, cacheName: string): Promi
   } catch {
     const cached = await caches.match(request);
     if (cached) return cached;
-    return new Response(JSON.stringify({ error: "offline", message: "الجهاز غير متصل بالإنترنت" }), {
-      status: 503,
-      headers: { "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "offline",
+        message: "الجهاز غير متصل بالإنترنت",
+      }),
+      {
+        status: 503,
+        headers: { "Content-Type": "application/json" },
+      }
+    );
   }
 }
 
-async function networkFirstWithOffline(request: Request): Promise<Response> {
+async function networkFirstWithOffline(request) {
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -184,11 +192,11 @@ async function networkFirstWithOffline(request: Request): Promise<Response> {
 
 // ─── Background Sync ──────────────────────────────────────────────
 
-self.addEventListener("sync", (event) => {
+self.addEventListener("sync", event => {
   if (event.tag === "alhusainia-sync") {
     event.waitUntil(
-      self.clients.matchAll().then((clients) => {
-        clients.forEach((client) => {
+      self.clients.matchAll().then(clients => {
+        clients.forEach(client => {
           client.postMessage({ type: "SYNC_TRIGGERED" });
         });
       })
@@ -198,8 +206,11 @@ self.addEventListener("sync", (event) => {
 
 // ─── Push Notifications ───────────────────────────────────────────
 
-self.addEventListener("push", (event) => {
-  const data = event.data?.json() || { title: "ALHUSAINIA", body: "تحديث جديد" };
+self.addEventListener("push", event => {
+  const data = event.data?.json() || {
+    title: "ALHUSAINIA",
+    body: "تحديث جديد",
+  };
   event.waitUntil(
     self.registration.showNotification(data.title, {
       body: data.body,
@@ -211,9 +222,7 @@ self.addEventListener("push", (event) => {
   );
 });
 
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener("notificationclick", event => {
   event.notification.close();
-  event.waitUntil(
-    self.clients.openWindow("/")
-  );
+  event.waitUntil(self.clients.openWindow("/"));
 });

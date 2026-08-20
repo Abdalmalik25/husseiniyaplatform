@@ -65,7 +65,7 @@ async function trpcMutate<T>(procedure: string, input: unknown): Promise<T> {
 
 function resolveConflict(
   serverRecord: any,
-  clientRecord: any,
+  clientRecord: any
 ): { winner: "server" | "client"; merged: any } {
   const serverVersion = serverRecord?._version || 0;
   const clientVersion = clientRecord?._version || 0;
@@ -84,14 +84,16 @@ function resolveConflict(
 
 // ─── Pull (Server → Client) ───────────────────────────────────────
 
-export async function pullFromServer(
-  tableName: TableName,
-): Promise<{ pulled: number; conflicts: Array<{ tableName: string; recordId: string; resolution: string }> }> {
+export async function pullFromServer(tableName: TableName): Promise<{
+  pulled: number;
+  conflicts: Array<{ tableName: string; recordId: string; resolution: string }>;
+}> {
   const meta = await getSyncMeta(tableName);
   try {
     // Use the full snapshot endpoint: covers every table in one request
     const snapshot = await trpcQuery<any>("sync.getFullSnapshot");
-    if (!snapshot || typeof snapshot !== "object") return { pulled: 0, conflicts: [] };
+    if (!snapshot || typeof snapshot !== "object")
+      return { pulled: 0, conflicts: [] };
 
     let serverRecords: any[] = [];
     if (Array.isArray(snapshot[tableName])) {
@@ -104,9 +106,15 @@ export async function pullFromServer(
       serverRecords = snapshot.branches;
     } else if (tableName === "users" && snapshot.users) {
       serverRecords = [snapshot.users];
-    } else if (tableName === "branchPermissions" && Array.isArray(snapshot.branchPermissions)) {
+    } else if (
+      tableName === "branchPermissions" &&
+      Array.isArray(snapshot.branchPermissions)
+    ) {
       serverRecords = snapshot.branchPermissions;
-    } else if (tableName === "activityLogs" && Array.isArray(snapshot.activityLogs)) {
+    } else if (
+      tableName === "activityLogs" &&
+      Array.isArray(snapshot.activityLogs)
+    ) {
       serverRecords = snapshot.activityLogs;
     } else {
       return { pulled: 0, conflicts: [] };
@@ -117,10 +125,16 @@ export async function pullFromServer(
     // Deduplicate by business code for chart-of-accounts style tables
     const localByCode = new Map<string, any>(
       tableName === "accounts"
-        ? localRecords.map((r: any): [string, any] => [String(r.code), r]).filter(([, v]) => v?.code != null)
+        ? localRecords
+            .map((r: any): [string, any] => [String(r.code), r])
+            .filter(([, v]) => v?.code != null)
         : []
     );
-    const conflicts: Array<{ tableName: string; recordId: string; resolution: string }> = [];
+    const conflicts: Array<{
+      tableName: string;
+      recordId: string;
+      resolution: string;
+    }> = [];
     const toUpsert: any[] = [];
 
     for (const srvRec of serverRecords) {
@@ -147,7 +161,11 @@ export async function pullFromServer(
         });
       } else if (localRec._status === "pending") {
         const { winner } = resolveConflict(srvRec, localRec);
-        conflicts.push({ tableName, recordId: id, resolution: winner === "server" ? "server-wins" : "client-wins" });
+        conflicts.push({
+          tableName,
+          recordId: id,
+          resolution: winner === "server" ? "server-wins" : "client-wins",
+        });
         toUpsert.push({
           ...(winner === "server" ? srvRec : localRec),
           _syncedAt: Date.now(),
@@ -178,7 +196,10 @@ export async function pullFromServer(
 
 // ─── Push (Client → Server) ───────────────────────────────────────
 
-export async function pushPendingChanges(): Promise<{ pushed: number; failed: number }> {
+export async function pushPendingChanges(): Promise<{
+  pushed: number;
+  failed: number;
+}> {
   const pending = await getPendingSyncs();
   let pushed = 0;
   let failed = 0;
@@ -192,16 +213,32 @@ export async function pushPendingChanges(): Promise<{ pushed: number; failed: nu
     try {
       const table = entry.tableName as TableName;
       const rpcMap: Record<string, string> = {
-        accounts: entry.operation === "create" ? "accounting.addAccount" : "accounting.updateAccount",
-        transactions: entry.operation === "create" ? "accounting.addTransaction" : "accounting.updateTransaction",
+        accounts:
+          entry.operation === "create"
+            ? "accounting.addAccount"
+            : "accounting.updateAccount",
+        transactions:
+          entry.operation === "create"
+            ? "accounting.addTransaction"
+            : "accounting.updateTransaction",
         settings: "accounting.updateSettings",
         budgets: "accounting.saveBudget",
         openingBalances: "accounting.saveOpeningBalances",
         branches: "accounting.createBranch",
-        products: entry.operation === "create" ? "products.create" : "products.update",
-        customers: entry.operation === "create" ? "customers.create" : "customers.update",
-        suppliers: entry.operation === "create" ? "suppliers.create" : "suppliers.update",
-        orders: entry.operation === "create" ? "orders.create" : "orders.updateStatus",
+        products:
+          entry.operation === "create" ? "products.create" : "products.update",
+        customers:
+          entry.operation === "create"
+            ? "customers.create"
+            : "customers.update",
+        suppliers:
+          entry.operation === "create"
+            ? "suppliers.create"
+            : "suppliers.update",
+        orders:
+          entry.operation === "create"
+            ? "orders.create"
+            : "orders.updateStatus",
       };
 
       const rpcName = rpcMap[table];
@@ -212,8 +249,14 @@ export async function pushPendingChanges(): Promise<{ pushed: number; failed: nu
 
       await trpcMutate(rpcName, entry.payload);
       await removeSyncEntry(entry.id!);
-      if (entry.operation === "create" && (table === "transactions" || table === "budgets")) {
-        await removeLocalRow(table, (entry.payload as any)?.id ?? entry.recordId);
+      if (
+        entry.operation === "create" &&
+        (table === "transactions" || table === "budgets")
+      ) {
+        await removeLocalRow(
+          table,
+          (entry.payload as any)?.id ?? entry.recordId
+        );
       }
       pushed++;
     } catch (error) {
@@ -240,11 +283,25 @@ export async function performFullSync(): Promise<SyncResult> {
   const pushResult = await pushPendingChanges();
 
   const tables: TableName[] = [
-    "accounts", "transactions", "settings", "budgets",
-    "openingBalances", "branches", "tenants", "activityLogs",
-    "products", "warehouses", "inventoryMovements", "customers",
-    "suppliers", "salesInvoices", "salesInvoiceItems",
-    "purchaseInvoices", "purchaseInvoiceItems", "orders", "orderItems",
+    "accounts",
+    "transactions",
+    "settings",
+    "budgets",
+    "openingBalances",
+    "branches",
+    "tenants",
+    "activityLogs",
+    "products",
+    "warehouses",
+    "inventoryMovements",
+    "customers",
+    "suppliers",
+    "salesInvoices",
+    "salesInvoiceItems",
+    "purchaseInvoices",
+    "purchaseInvoiceItems",
+    "orders",
+    "orderItems",
     "payments",
   ];
 
@@ -349,7 +406,7 @@ export class SyncManager {
 
   private notify() {
     const status = this.status;
-    this.listeners.forEach((l) => l(status));
+    this.listeners.forEach(l => l(status));
   }
 }
 

@@ -8,7 +8,13 @@
  * - Offline data statistics
  */
 
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import { syncManager, type SyncStatus, type SyncResult } from "./sync";
 import { getOfflineStats, seedDefaultData, type TableName } from "./db";
 
@@ -17,7 +23,10 @@ interface OfflineContextValue {
   isSyncing: boolean;
   lastSyncResult: SyncResult | null;
   syncNow: () => Promise<SyncResult | null>;
-  offlineStats: Record<TableName, { total: number; pending: number; synced: number }> | null;
+  offlineStats: Record<
+    TableName,
+    { total: number; pending: number; synced: number }
+  > | null;
   refreshStats: () => Promise<void>;
 }
 
@@ -34,7 +43,10 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
-  const [offlineStats, setOfflineStats] = useState<Record<TableName, { total: number; pending: number; synced: number }> | null>(null);
+  const [offlineStats, setOfflineStats] = useState<Record<
+    TableName,
+    { total: number; pending: number; synced: number }
+  > | null>(null);
 
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
@@ -45,7 +57,7 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     syncManager.start();
     seedDefaultData().then(() => getOfflineStats().then(setOfflineStats));
 
-    const unsub = syncManager.subscribe((status) => {
+    const unsub = syncManager.subscribe(status => {
       setIsOnline(status.isOnline);
       setIsSyncing(status.isSyncing);
       if (status.lastResult) {

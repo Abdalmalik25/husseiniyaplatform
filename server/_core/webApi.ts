@@ -1,20 +1,45 @@
 import type { Express } from "express";
-import { getCatalog, placePublicOrder, catalogInputSchema, placeOrderInputSchema } from "../webStore";
+import {
+  getCatalog,
+  placePublicOrder,
+  catalogInputSchema,
+  placeOrderInputSchema,
+} from "../webStore";
 import { getDb } from "../db";
+
+/**
+ * Allowed origins for the public storefront API. Configure via STORE_CORS_ORIGINS
+ * (comma-separated) to lock down cross-origin access to specific domains.
+ * When unset, the public endpoints reflect any origin — safe because these are
+ * unauthenticated guest operations (catalog + guest order) that never touch
+ * protected procedures or cookies.
+ */
+const ALLOWED_ORIGINS = (process.env.STORE_CORS_ORIGINS || "")
+  .split(",")
+  .map(s => s.trim())
+  .filter(Boolean);
 
 /**
  * Public REST endpoints for website integration (separate from the platform UI).
  * - No authentication required by design: these mirror the public storefront.
- * - CORS is open so any company website (WordPress/PHP/static) can read the
- *   catalog and submit orders directly into the shared database.
+ * - CORS is restricted to STORE_CORS_ORIGINS when configured, otherwise open.
  * - The website NEVER touches the admin UI or protected procedures.
  */
 export function registerWebApi(app: Express) {
-  app.use("/api/web", (_req, res, next) => {
-    res.setHeader("Access-Control-Allow-Origin", "*");
+  app.use("/api/web", (req, res, next) => {
+    const origin = req.headers.origin;
+    if (ALLOWED_ORIGINS.length > 0) {
+      if (origin && ALLOWED_ORIGINS.includes(origin)) {
+        res.setHeader("Access-Control-Allow-Origin", origin);
+        res.setHeader("Access-Control-Allow-Credentials", "true");
+      }
+    } else {
+      // Reflect any origin for the public, credential-free storefront.
+      res.setHeader("Access-Control-Allow-Origin", origin || "*");
+    }
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-    if (_req.method === "OPTIONS") {
+    if (req.method === "OPTIONS") {
       res.sendStatus(204);
       return;
     }
@@ -30,8 +55,12 @@ export function registerWebApi(app: Express) {
         return;
       }
       const parsed = catalogInputSchema.safeParse({
-        search: typeof req.query.search === "string" ? req.query.search : undefined,
-        category: typeof req.query.category === "string" ? req.query.category : undefined,
+        search:
+          typeof req.query.search === "string" ? req.query.search : undefined,
+        category:
+          typeof req.query.category === "string"
+            ? req.query.category
+            : undefined,
       });
       const data = await getCatalog(db, parsed.success ? parsed.data : {});
       res.status(200).json({ ok: true, ...data });

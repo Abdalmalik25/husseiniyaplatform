@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useMemo,
+  useCallback,
+  useRef,
+} from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
@@ -8,43 +14,125 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
-import { 
-  Building2, Plus, Search, Settings, 
-  BookOpen, BarChart3, LogOut, Save, Check, 
-  FileSpreadsheet, FileText, Sparkles, PieChart, Loader2, Filter, Layers, History, User, UserCheck, Wifi, WifiOff, Power, PowerOff, Network, ShieldAlert, GripVertical, RefreshCw, Upload, ClipboardCopy, Scale, Package, ShoppingCart, Users, AlertTriangle, Lock
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+  TooltipProvider,
+} from "@/components/ui/tooltip";
+import {
+  Building2,
+  Plus,
+  Search,
+  Settings,
+  BookOpen,
+  BarChart3,
+  LogOut,
+  Save,
+  Check,
+  FileSpreadsheet,
+  FileText,
+  Sparkles,
+  PieChart,
+  Loader2,
+  Filter,
+  Layers,
+  History,
+  User,
+  UserCheck,
+  Wifi,
+  WifiOff,
+  Power,
+  PowerOff,
+  Network,
+  ShieldAlert,
+  GripVertical,
+  RefreshCw,
+  Upload,
+  ClipboardCopy,
+  Scale,
+  Package,
+  ShoppingCart,
+  Users,
+  AlertTriangle,
+  Lock,
+  Info,
+  HelpCircle,
+  CheckCircle,
+  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import BudgetsPanel from "@/components/BudgetsPanel";
+import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { put } from "@/lib/offline/db";
 
-type ImportRow = { accountId: number; amount: string; type: "debit" | "credit"; transactionDate: string; narration?: string };
+type ImportRow = {
+  accountId: number;
+  amount: string;
+  type: "debit" | "credit";
+  transactionDate: string;
+  narration?: string;
+};
 
-function parseImportCsv(text: string, accountsData: any): { parsed: ImportRow[]; skipped: { line: number; reason: string }[] } {
+function parseImportCsv(
+  text: string,
+  accountsData: any
+): { parsed: ImportRow[]; skipped: { line: number; reason: string }[] } {
   const skipped: { line: number; reason: string }[] = [];
   const parsed: ImportRow[] = [];
-  const lines = String(text || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const lines = String(text || "")
+    .split(/\r?\n/)
+    .map(l => l.trim())
+    .filter(Boolean);
   if (!lines.length) return { parsed, skipped };
 
   const splitLine = (ln: string) => {
     const cells: string[] = [];
-    let cur = "", inQ = false;
+    let cur = "",
+      inQ = false;
     for (const ch of ln) {
-      if (ch === '"') { inQ = !inQ; continue; }
-      if ((ch === "," || ch === ";" || ch === "\t") && !inQ) { cells.push(cur); cur = ""; }
-      else cur += ch;
+      if (ch === '"') {
+        inQ = !inQ;
+        continue;
+      }
+      if ((ch === "," || ch === ";" || ch === "\t") && !inQ) {
+        cells.push(cur);
+        cur = "";
+      } else cur += ch;
     }
     cells.push(cur);
-    return cells.map((c) => c.trim());
+    return cells.map(c => c.trim());
   };
 
   const first = splitLine(lines[0]);
-  const hasHeader = first.some((c) => /التاريخ|date|الحساب|القيمة|المبلغ|amount|البيان|narration|الكود|code|النوع/i.test(c));
+  const hasHeader = first.some(c =>
+    /التاريخ|date|الحساب|القيمة|المبلغ|amount|البيان|narration|الكود|code|النوع/i.test(
+      c
+    )
+  );
   const findCol = (names: string, fallback: number) => {
-    const i = first.findIndex((c) => names.split("|").some((k) => String(c).toLowerCase().includes(k.toLowerCase())));
+    const i = first.findIndex(c =>
+      names
+        .split("|")
+        .some(k => String(c).toLowerCase().includes(k.toLowerCase()))
+    );
     return i >= 0 ? i : fallback;
   };
   const ciDate = hasHeader ? findCol("التاريخ|date", 0) : 0;
@@ -63,7 +151,7 @@ function parseImportCsv(text: string, accountsData: any): { parsed: ImportRow[];
     const s = raw.trim();
     let m = s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
     if (m) return `${m[1]}-${m[2].padStart(2, "0")}-${m[3].padStart(2, "0")}`;
-    m = s.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    m = s.match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{2,4})$/);
     if (m) {
       const y = m[3].length === 2 ? "20" + m[3] : m[3];
       return `${y}-${m[2].padStart(2, "0")}-${m[1].padStart(2, "0")}`;
@@ -72,7 +160,9 @@ function parseImportCsv(text: string, accountsData: any): { parsed: ImportRow[];
     return isNaN(t.getTime()) ? null : t.toISOString().split("T")[0];
   };
 
-  const parseAmount = (raw: string): { amt: number; negative: boolean } | null => {
+  const parseAmount = (
+    raw: string
+  ): { amt: number; negative: boolean } | null => {
     const s = raw.trim().replace(/,/g, "").replace(/\s+/g, "");
     if (!s) return null;
     const v = parseFloat(s);
@@ -82,30 +172,66 @@ function parseImportCsv(text: string, accountsData: any): { parsed: ImportRow[];
   lines.slice(startIdx).forEach((ln, i) => {
     const lineNo = startIdx + i + 1;
     const cells = splitLine(ln);
-    if (cells.every((c) => !c)) return;
+    if (cells.every(c => !c)) return;
 
     const date = parseDate(cells[ciDate] || "");
-    if (!date) { skipped.push({ line: lineNo, reason: "تاريخ غير صالح: " + (cells[ciDate] || "فارغ") }); return; }
+    if (!date) {
+      skipped.push({
+        line: lineNo,
+        reason: "تاريخ غير صالح: " + (cells[ciDate] || "فارغ"),
+      });
+      return;
+    }
 
     const codeKey = normAr(cells[ciCode] || "");
     const nameKey = normAr(cells[ciAccount] || "");
     let acc: any = codeKey ? acctByCode.get(codeKey) : null;
     if (!acc && codeKey) {
-      const mc = (accountsData || []).filter((a: any) => normAr(String(a.code)) === codeKey);
+      const mc = (accountsData || []).filter(
+        (a: any) => normAr(String(a.code)) === codeKey
+      );
       if (mc.length === 1) acc = mc[0];
-      else if (mc.length > 1) { skipped.push({ line: lineNo, reason: "كود الحساب «" + codeKey + "» غير فريد" }); return; }
+      else if (mc.length > 1) {
+        skipped.push({
+          line: lineNo,
+          reason: "كود الحساب «" + codeKey + "» غير فريد",
+        });
+        return;
+      }
     }
     if (!acc && nameKey && codeKey !== nameKey) {
-      const mn = (accountsData || []).filter((a: any) => normAr(String(a.name)) === nameKey);
+      const mn = (accountsData || []).filter(
+        (a: any) => normAr(String(a.name)) === nameKey
+      );
       if (mn.length === 1) acc = mn[0];
-      else if (mn.length > 1) { skipped.push({ line: lineNo, reason: "اسم الحساب «" + nameKey + "» غير فريد" }); return; }
+      else if (mn.length > 1) {
+        skipped.push({
+          line: lineNo,
+          reason: "اسم الحساب «" + nameKey + "» غير فريد",
+        });
+        return;
+      }
     }
-    if (!acc) { skipped.push({ line: lineNo, reason: "الحساب غير موجود في الدليل: " + (codeKey || nameKey || "فارغ") }); return; }
+    if (!acc) {
+      skipped.push({
+        line: lineNo,
+        reason: "الحساب غير موجود في الدليل: " + (codeKey || nameKey || "فارغ"),
+      });
+      return;
+    }
 
     const amtRes = parseAmount(cells[ciAmount] || "");
-    if (!amtRes || amtRes.amt <= 0) { skipped.push({ line: lineNo, reason: "مبلغ غير صالح: " + (cells[ciAmount] || "فارغ") }); return; }
+    if (!amtRes || amtRes.amt <= 0) {
+      skipped.push({
+        line: lineNo,
+        reason: "مبلغ غير صالح: " + (cells[ciAmount] || "فارغ"),
+      });
+      return;
+    }
 
-    const typeRaw = String(cells[ciType] || "").trim().toLowerCase();
+    const typeRaw = String(cells[ciType] || "")
+      .trim()
+      .toLowerCase();
     let type: "debit" | "credit" = amtRes.negative ? "credit" : "debit";
     if (typeRaw.startsWith("c") || typeRaw === "دائن") type = "credit";
     else if (typeRaw.startsWith("d") || typeRaw === "مدين") type = "debit";
@@ -123,27 +249,54 @@ function parseImportCsv(text: string, accountsData: any): { parsed: ImportRow[];
 }
 
 export default function Home() {
-  let { user, isAuthenticated, logout, loading: authLoading, refresh } = useAuth();
+  const {
+    user,
+    isAuthenticated,
+    logout,
+    loading: authLoading,
+    refresh,
+  } = useAuth();
   const utils = trpc.useUtils();
   const { isOnline, isSyncing, syncNow, lastSyncResult } = useOffline();
 
-  const [activeTab, setActiveTab] = useState<"entry" | "accounts" | "reports" | "audit" | "analytics" | "profile">("entry");
+  const [activeTab, setActiveTab] = useState<
+    "entry" | "accounts" | "reports" | "audit" | "analytics" | "profile"
+  >("entry");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   // Defer non-critical queries (audit log, branch comparison, AI advisor) so the
   // first paint only waits for the core batch (settings/accounts/tx/summary).
   const [deferHeavyQueries, setDeferHeavyQueries] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importText, setImportText] = useState("");
-  const [importLifecycle, setImportLifecycle] = useState<"saved" | "approved" | "sent">("approved");
-  const [importResult, setImportResult] = useState<{ total: number; imported: number; skipped: { line: number; reason: string }[] } | null>(null);
+  const [importLifecycle, setImportLifecycle] = useState<
+    "saved" | "approved" | "sent"
+  >("approved");
+  const [importResult, setImportResult] = useState<{
+    total: number;
+    imported: number;
+    skipped: { line: number; reason: string }[];
+  } | null>(null);
   const [obOpen, setObOpen] = useState(false);
   const [obPeriod, setObPeriod] = useState("");
-  const [obRows, setObRows] = useState<{ accountId: number; code: string; name: string; amount: string; type: string }[]>([]);
+  const [obRows, setObRows] = useState<
+    {
+      accountId: number;
+      code: string;
+      name: string;
+      amount: string;
+      type: string;
+    }[]
+  >([]);
   const [obLoading, setObLoading] = useState(false);
-  const saveOpeningBalancesMutation = trpc.accounting.saveOpeningBalances.useMutation({
-    onSuccess: () => { toast.success("تم حفظ الأرصدة الافتتاحية بنجاح"); setObOpen(false); },
-    onError: (e: any) => toast.error("فشل الحفظ: " + (e?.message || "خطأ غير معروف")),
-  });
+  const saveOpeningBalancesMutation =
+    trpc.accounting.saveOpeningBalances.useMutation({
+      onSuccess: () => {
+        toast.success("تم حفظ الأرصدة الافتتاحية بنجاح");
+        setObOpen(false);
+      },
+      onError: (e: any) =>
+        toast.error("فشل الحفظ: " + (e?.message || "خطأ غير معروف")),
+    });
   useEffect(() => {
     const t = setTimeout(() => setDeferHeavyQueries(true), 700);
     return () => clearTimeout(t);
@@ -151,28 +304,69 @@ export default function Home() {
 
   // Queries
   const { data: settingsData } = trpc.accounting.getSettings.useQuery();
-  const { data: accountsData, refetch: refetchAccounts, isLoading: loadingAccounts } = trpc.accounting.getAccounts.useQuery();
-  const { data: transactionsData, refetch: refetchTransactions, isLoading: loadingTx } = trpc.accounting.getTransactions.useQuery(undefined, { staleTime: 60_000 });
-  const { data: summaryData, refetch: refetchSummary, isLoading: loadingSummary } = trpc.accounting.getDashboardSummary.useQuery(undefined, { staleTime: 60_000 });
-  const { data: commercialStats, isLoading: commercialLoading } = trpc.commercial.getStats.useQuery(undefined, { staleTime: 60_000 });
+  const {
+    data: accountsData,
+    refetch: refetchAccounts,
+    isLoading: loadingAccounts,
+  } = trpc.accounting.getAccounts.useQuery();
+  const {
+    data: transactionsData,
+    refetch: refetchTransactions,
+    isLoading: loadingTx,
+  } = trpc.accounting.getTransactions.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const {
+    data: summaryData,
+    refetch: refetchSummary,
+    isLoading: loadingSummary,
+  } = trpc.accounting.getDashboardSummary.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const { data: commercialStats, isLoading: commercialLoading } =
+    trpc.commercial.getStats.useQuery(undefined, { staleTime: 60_000 });
   const lowStockAlerts = commercialStats?.lowStock ?? [];
   const topCustomerDebts = commercialStats?.topCustomers ?? [];
-  const hasCommercialAlerts = lowStockAlerts.length > 0 || topCustomerDebts.length > 0;
-  const { data: activityLogsData, refetch: refetchActivityLogs } = trpc.auth.getActivityLogs.useQuery(undefined, { enabled: deferHeavyQueries });
-  const { data: branchComparisonData } = trpc.accounting.getBranchPerformanceComparison.useQuery(undefined, { enabled: deferHeavyQueries });
-  const { data: aiAdvisorData, refetch: refetchAiAdvisor, isLoading: aiLoading } = trpc.accounting.getAiFinancialAdvisorAnalysis.useQuery(undefined, { enabled: deferHeavyQueries });
+  const hasCommercialAlerts =
+    lowStockAlerts.length > 0 || topCustomerDebts.length > 0;
+  const { data: activityLogsData, refetch: refetchActivityLogs } =
+    trpc.auth.getActivityLogs.useQuery(undefined, {
+      enabled: deferHeavyQueries,
+    });
+  const { data: branchComparisonData } =
+    trpc.accounting.getBranchPerformanceComparison.useQuery(undefined, {
+      enabled: deferHeavyQueries,
+    });
+  const {
+    data: aiAdvisorData,
+    refetch: refetchAiAdvisor,
+    isLoading: aiLoading,
+  } = trpc.accounting.getAiFinancialAdvisorAnalysis.useQuery(undefined, {
+    enabled: deferHeavyQueries,
+  });
 
   // Local States
-  const [instName, setInstName] = useState("ALHUSAINIA | مركز العمليات المالية");
+  const [instName, setInstName] = useState(
+    "ALHUSAINIA | مركز العمليات المالية"
+  );
   const [currency, setCurrency] = useState("ريال يمني (YER)");
-  const [batchRows, setBatchRows] = useState<Record<number, { amount: string; narration: string }>>({});
+  const [batchRows, setBatchRows] = useState<
+    Record<number, { amount: string; narration: string }>
+  >({});
   const [accountQuery, setAccountQuery] = useState("");
-  const [accountViewMode, setAccountViewMode] = useState<"tree" | "list">("tree");
+  const [accountViewMode, setAccountViewMode] = useState<"tree" | "list">(
+    "tree"
+  );
   const [draggedAccountId, setDraggedAccountId] = useState<number | null>(null);
   const [dropTargetId, setDropTargetId] = useState<number | null>(null); // For visual highlight
 
   // Confirmation Modal for Drag & Drop Move
-  const [pendingMove, setPendingMove] = useState<{ accountId: number; newParentAccountId: number | null; accountName: string; parentName: string } | null>(null);
+  const [pendingMove, setPendingMove] = useState<{
+    accountId: number;
+    newParentAccountId: number | null;
+    accountName: string;
+    parentName: string;
+  } | null>(null);
 
   // Chart of Accounts Management States
   const [newAccCode, setNewAccCode] = useState("");
@@ -189,22 +383,34 @@ export default function Home() {
   const [quickAccountId, setQuickAccountId] = useState("");
   const [quickAmount, setQuickAmount] = useState("");
   const [quickNarration, setQuickNarration] = useState("");
-  const [quickDate, setQuickDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [quickDate, setQuickDate] = useState(
+    () => new Date().toISOString().split("T")[0]
+  );
 
   // Period Closing State
   const [closingPeriod, setClosingPeriod] = useState("السنة المالية 2026");
-  const [closingDate, setClosingDate] = useState(() => new Date().toISOString().split('T')[0]);
-  const [closingPreviewParams, setClosingPreviewParams] = useState<{ periodName: string; asOfDate?: string } | null>(null);
+  const [closingDate, setClosingDate] = useState(
+    () => new Date().toISOString().split("T")[0]
+  );
+  const [closingPreviewParams, setClosingPreviewParams] = useState<{
+    periodName: string;
+    asOfDate?: string;
+  } | null>(null);
   const closingPreview = trpc.accounting.closing.preview.useQuery(
-    { periodName: closingPreviewParams?.periodName ?? "السنة المالية 2026", asOfDate: closingPreviewParams?.asOfDate },
+    {
+      periodName: closingPreviewParams?.periodName ?? "السنة المالية 2026",
+      asOfDate: closingPreviewParams?.asOfDate,
+    },
     { enabled: !!closingPreviewParams }
   );
   const executeClosing = trpc.accounting.closing.execute.useMutation({
-    onSuccess: (r) => {
-      toast.success(`تم إقفال الدورة بنجاح — ${r.entries} حساباً بإجمالي ${Number(r.total).toLocaleString("en-US")} YER`);
+    onSuccess: r => {
+      toast.success(
+        `تم إقفال الدورة بنجاح — ${r.entries} حساباً بإجمالي ${Number(r.total).toLocaleString("en-US")} YER`
+      );
       setClosingPreviewParams(null);
     },
-    onError: (e) => toast.error(String(e.message || "فشل الإقفال"))
+    onError: e => toast.error(String(e.message || "فشل الإقفال")),
   });
 
   // Profile Form States
@@ -233,26 +439,59 @@ export default function Home() {
 
   // Animated count-up for KPI numbers (premium feel, no layout thrash).
   const [kpiNumbers, setKpiNumbers] = useState<Record<string, number>>({});
+  const animationFramesRef = useRef<Map<string, number>>(new Map());
+
   useEffect(() => {
-    animateNumber("revenue", summaryData?.totalRevenue || 0);
-    animateNumber("expense", summaryData?.totalExpense || 0);
-    animateNumber("net", summaryData?.netIncome || 0);
-    animateNumber("assets", summaryData?.totalAssets || 0);
-  }, [summaryData]);
-  const animateNumber = (key: string, target: number) => {
-    const started = performance.now();
-    const duration = 650;
-    const from = kpiNumbers[key] || 0;
-    const tick = (now: number) => {
-      const p = Math.min(1, (now - started) / duration);
-      const eased = 1 - Math.pow(1 - p, 3);
-      setKpiNumbers(prev => ({ ...prev, [key]: Math.round(from + (target - from) * eased) }));
-      if (p < 1) requestAnimationFrame(tick);
+    const targets: [string, number][] = [
+      ["revenue", summaryData?.totalRevenue || 0],
+      ["expense", summaryData?.totalExpense || 0],
+      ["net", summaryData?.netIncome || 0],
+      ["assets", summaryData?.totalAssets || 0],
+    ];
+
+    const animateNumber = (key: string, target: number) => {
+      // Cancel previous animation for this key
+      const prevFrame = animationFramesRef.current.get(key);
+      if (prevFrame) cancelAnimationFrame(prevFrame);
+
+      const started = performance.now();
+      const duration = 650;
+
+      const tick = (now: number) => {
+        const p = Math.min(1, (now - started) / duration);
+        const eased = 1 - Math.pow(1 - p, 3);
+        setKpiNumbers(prev => ({
+          ...prev,
+          [key]: Math.round(
+            (prev[key] || 0) + (target - (prev[key] || 0)) * eased
+          ),
+        }));
+        if (p < 1) {
+          const frameId = requestAnimationFrame(tick);
+          animationFramesRef.current.set(key, frameId);
+        } else {
+          animationFramesRef.current.delete(key);
+        }
+      };
+      const frameId = requestAnimationFrame(tick);
+      animationFramesRef.current.set(key, frameId);
     };
-    requestAnimationFrame(tick);
-  };
+
+    targets.forEach(([key, target]) => animateNumber(key, target));
+
+    // Cleanup all animations on unmount
+    return () => {
+      animationFramesRef.current.forEach(frameId =>
+        cancelAnimationFrame(frameId)
+      );
+      animationFramesRef.current.clear();
+    };
+  }, [summaryData]);
   const countUp = (key: string, value: number | undefined | null): string =>
-    (kpiNumbers[key] !== undefined ? kpiNumbers[key] : Number(value || 0)).toLocaleString();
+    (kpiNumbers[key] !== undefined
+      ? kpiNumbers[key]
+      : Number(value || 0)
+    ).toLocaleString();
 
   // Mutations
   const updateProfileMutation = trpc.auth.updateProfile.useMutation({
@@ -261,21 +500,22 @@ export default function Home() {
       if (refresh) refresh();
       refetchActivityLogs();
     },
-    onError: (err: any) => toast.error(`خطأ: ${err.message}`)
+    onError: (err: any) => toast.error(`خطأ: ${err.message}`),
   });
 
-  const addBatchTransactionsMutation = trpc.accounting.addBatchTransactions.useMutation({
-    onSuccess: () => {
-      toast.success("تم حفظ واعتماد الحركات بنجاح وتوثيقها في سجل التدقيق.");
-      refetchTransactions();
-      refetchSummary();
-      refetchActivityLogs();
-      setBatchRows({});
-      setQuickAmount("");
-      setQuickNarration("");
-    },
-    onError: (err: any) => toast.error(`خطأ: ${err.message}`)
-  });
+  const addBatchTransactionsMutation =
+    trpc.accounting.addBatchTransactions.useMutation({
+      onSuccess: () => {
+        toast.success("تم حفظ واعتماد الحركات بنجاح وتوثيقها في سجل التدقيق.");
+        refetchTransactions();
+        refetchSummary();
+        refetchActivityLogs();
+        setBatchRows({});
+        setQuickAmount("");
+        setQuickNarration("");
+      },
+      onError: (err: any) => toast.error(`خطأ: ${err.message}`),
+    });
 
   const updateAccountMutation = trpc.accounting.updateAccount.useMutation({
     onSuccess: () => {
@@ -283,17 +523,19 @@ export default function Home() {
       refetchAccounts();
       refetchActivityLogs();
     },
-    onError: (err: any) => toast.error(`خطأ: ${err.message}`)
+    onError: (err: any) => toast.error(`خطأ: ${err.message}`),
   });
 
   const moveAccountMutation = trpc.accounting.moveAccount.useMutation({
     onSuccess: () => {
-      toast.success("تم نقل وإعادة ترتيب الحساب في الشجرة بنجاح وتوثيق العملية");
+      toast.success(
+        "تم نقل وإعادة ترتيب الحساب في الشجرة بنجاح وتوثيق العملية"
+      );
       refetchAccounts();
       refetchActivityLogs();
       setPendingMove(null);
     },
-    onError: (err: any) => toast.error(`خطأ: ${err.message}`)
+    onError: (err: any) => toast.error(`خطأ: ${err.message}`),
   });
 
   const createAccountMutation = trpc.accounting.addAccount.useMutation({
@@ -304,7 +546,7 @@ export default function Home() {
       setNewAccCode("");
       setNewAccName("");
     },
-    onError: (err: any) => toast.error(`خطأ: ${err.message}`)
+    onError: (err: any) => toast.error(`خطأ: ${err.message}`),
   });
 
   const updateSettingsMutation = trpc.accounting.updateSettings.useMutation({
@@ -312,37 +554,45 @@ export default function Home() {
       toast.success("تم تحديث إعدادات المؤسسة بنجاح");
       setIsSettingsOpen(false);
     },
-    onError: (err: any) => toast.error(`خطأ: ${err.message}`)
+    onError: (err: any) => toast.error(`خطأ: ${err.message}`),
   });
 
   // Filtered Accounts
   const activeAccountsForEntry = useMemo(() => {
     if (!accountsData) return [];
-    return accountsData.filter(a => 
-      a.isActive && (a.name.includes(accountQuery) || a.code.includes(accountQuery))
+    return accountsData.filter(
+      a =>
+        a.isActive &&
+        (a.name.includes(accountQuery) || a.code.includes(accountQuery))
     );
   }, [accountsData, accountQuery]);
 
   const filteredAccountsManagement = useMemo(() => {
     if (!accountsData) return [];
-    return accountsData.filter(a => 
-      a.name.includes(accountQuery) || a.code.includes(accountQuery) || a.type.includes(accountQuery)
+    return accountsData.filter(
+      a =>
+        a.name.includes(accountQuery) ||
+        a.code.includes(accountQuery) ||
+        a.type.includes(accountQuery)
     );
   }, [accountsData, accountQuery]);
 
   // Grouped Accounts for Tree View with Parent-Child Support
   const accountsTree = useMemo(() => {
     if (!accountsData) return {};
-    const categories: Record<string, { roots: any[], childrenMap: Record<number, any[]> }> = {
+    const categories: Record<
+      string,
+      { roots: any[]; childrenMap: Record<number, any[]> }
+    > = {
       asset: { roots: [], childrenMap: {} },
       liability: { roots: [], childrenMap: {} },
       equity: { roots: [], childrenMap: {} },
       revenue: { roots: [], childrenMap: {} },
-      expense: { roots: [], childrenMap: {} }
+      expense: { roots: [], childrenMap: {} },
     };
 
     filteredAccountsManagement.forEach(acc => {
-      const cat = acc.type || 'asset';
+      const cat = acc.type || "asset";
       if (!categories[cat]) {
         categories[cat] = { roots: [], childrenMap: {} };
       }
@@ -363,20 +613,32 @@ export default function Home() {
   const filteredRecords = useMemo(() => {
     if (!transactionsData) return [];
     return transactionsData.filter(tx => {
-      const matchStatus = filterStatus === 'all' || tx.lifecycleStatus === filterStatus;
-      const matchAccount = statementAccountId === 'all' || String(tx.accountId) === statementAccountId;
-      
+      const matchStatus =
+        filterStatus === "all" || tx.lifecycleStatus === filterStatus;
+      const matchAccount =
+        statementAccountId === "all" ||
+        String(tx.accountId) === statementAccountId;
+
       let matchDate = true;
-      const txDateStr = String(tx.transactionDate).split('T')[0];
+      const txDateStr = String(tx.transactionDate).split("T")[0];
       if (filterStartDate && txDateStr < filterStartDate) matchDate = false;
       if (filterEndDate && txDateStr > filterEndDate) matchDate = false;
 
       return matchStatus && matchAccount && matchDate;
     });
-  }, [transactionsData, filterStatus, statementAccountId, filterStartDate, filterEndDate]);
+  }, [
+    transactionsData,
+    filterStatus,
+    statementAccountId,
+    filterStartDate,
+    filterEndDate,
+  ]);
 
   const filteredTotalAmount = useMemo(() => {
-    return filteredRecords.reduce((sum, tx) => sum + parseFloat(String(tx.amount || 0)), 0);
+    return filteredRecords.reduce(
+      (sum, tx) => sum + parseFloat(String(tx.amount || 0)),
+      0
+    );
   }, [filteredRecords]);
 
   const handleQuickEntry = async () => {
@@ -397,7 +659,9 @@ export default function Home() {
           isReversed: false,
           userId: 0,
         });
-        toast.success("حُفظت محلياً (وضع آفلداين) — ستتزامن تلقائياً عند عودة الاتصال");
+        toast.success(
+          "حُفظت محلياً (وضع آفلداين) — ستتزامن تلقائياً عند عودة الاتصال"
+        );
         setQuickAmount("");
         setQuickNarration("");
       } catch (e: any) {
@@ -407,25 +671,31 @@ export default function Home() {
     }
     addBatchTransactionsMutation.mutate({
       lifecycleStatus: "approved",
-      rows: [{
-        accountId: Number(quickAccountId),
-        amount: quickAmount,
-        narration: quickNarration || "حركة إدخال سريع",
-        transactionDate: quickDate
-      }]
+      rows: [
+        {
+          accountId: Number(quickAccountId),
+          amount: quickAmount,
+          narration: quickNarration || "حركة إدخال سريع",
+          transactionDate: quickDate,
+        },
+      ],
     });
   };
 
   const handleExportExcel = () => {
     toast.success("جاري تصدير التقارير بصيغة Excel (CSV) الرسمية");
-    let csv = "data:text/csv;charset=utf-8,\uFEFFالتاريخ,الحساب,الكود,القيمة,البيان,الحالة\n";
+    let csv =
+      "data:text/csv;charset=utf-8,\uFEFFالتاريخ,الحساب,الكود,القيمة,البيان,الحالة\n";
     filteredRecords.forEach(tx => {
-      csv += `${String(tx.transactionDate).split('T')[0]},${tx.accountName},${tx.accountCode},${tx.amount},${tx.narration || ""},${tx.lifecycleStatus}\n`;
+      csv += `${String(tx.transactionDate).split("T")[0]},${tx.accountName},${tx.accountCode},${tx.amount},${tx.narration || ""},${tx.lifecycleStatus}\n`;
     });
     const encodedUri = encodeURI(csv);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `ALHUSAINIA_Report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      "download",
+      `ALHUSAINIA_Report_${new Date().toISOString().split("T")[0]}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -436,50 +706,95 @@ export default function Home() {
     window.print();
   };
 
-  const updateObRow = (accountId: number, field: "amount" | "type", value: string) => {
-    setObRows((prev) => prev.map((r) => (r.accountId === accountId ? { ...r, [field]: value } : r)));
+  const updateObRow = (
+    accountId: number,
+    field: "amount" | "type",
+    value: string
+  ) => {
+    setObRows(prev =>
+      prev.map(r => (r.accountId === accountId ? { ...r, [field]: value } : r))
+    );
   };
 
   const openOpeningBalances = async () => {
     setObOpen(true);
     const period = settingsData?.accountingPeriod || "السنة المالية 2026";
     setObPeriod(period);
-    const financial = (accountsData || []).filter((a: any) => ["asset", "liability", "equity"].includes(a.type));
-    setObRows(financial.map((a: any) => ({ accountId: a.id, code: a.code, name: a.name, amount: "", type: "debit" })));
+    const financial = (accountsData || []).filter((a: any) =>
+      ["asset", "liability", "equity"].includes(a.type)
+    );
+    setObRows(
+      financial.map((a: any) => ({
+        accountId: a.id,
+        code: a.code,
+        name: a.name,
+        amount: "",
+        type: "debit",
+      }))
+    );
     try {
       setObLoading(true);
-      const existing = await utils.accounting.getOpeningBalances.fetch({ periodName: period });
+      const existing = await utils.accounting.getOpeningBalances.fetch({
+        periodName: period,
+      });
       if (existing?.length) {
-        setObRows((prev) => prev.map((r) => {
-          const ex = existing.find((e: any) => e.accountId === r.accountId);
-          return ex ? { ...r, amount: String(ex.amount ?? ""), type: ex.type || "debit" } : r;
-        }));
+        setObRows(prev =>
+          prev.map(r => {
+            const ex = existing.find((e: any) => e.accountId === r.accountId);
+            return ex
+              ? {
+                  ...r,
+                  amount: String(ex.amount ?? ""),
+                  type: ex.type || "debit",
+                }
+              : r;
+          })
+        );
       }
-    } catch { /* ignore load errors */ }
-    finally { setObLoading(false); }
+    } catch {
+      /* ignore load errors */
+    } finally {
+      setObLoading(false);
+    }
   };
 
   const handleObSave = () => {
-    const balances = obRows.filter((r) => parseFloat(r.amount || "0") > 0).map((r) => ({
-      accountId: r.accountId,
-      amount: r.amount,
-      type: r.type as "debit" | "credit",
-    }));
-    if (!balances.length) { toast.error("أدخل مبلغاً واحداً على الأقل لحفظ الأرصدة"); return; }
-    saveOpeningBalancesMutation.mutate({ periodName: obPeriod.trim(), balances });
+    const balances = obRows
+      .filter(r => parseFloat(r.amount || "0") > 0)
+      .map(r => ({
+        accountId: r.accountId,
+        amount: r.amount,
+        type: r.type as "debit" | "credit",
+      }));
+    if (!balances.length) {
+      toast.error("أدخل مبلغاً واحداً على الأقل لحفظ الأرصدة");
+      return;
+    }
+    saveOpeningBalancesMutation.mutate({
+      periodName: obPeriod.trim(),
+      balances,
+    });
   };
 
   const handleCopyImportTemplate = () => {
-    const tpl = "التاريخ,الحساب,الكود,المبلغ,البيان,النوع\n2026-08-01,الصندوق الرئيسي,1010,5000,مبيعات نقدية,debit\n2026-08-03,البنك الأهلي,1020,2200,سداد فاتورة مورد,credit";
-    navigator.clipboard?.writeText(tpl)
+    const tpl =
+      "التاريخ,الحساب,الكود,المبلغ,البيان,النوع\n2026-08-01,الصندوق الرئيسي,1010,5000,مبيعات نقدية,debit\n2026-08-03,البنك الأهلي,1020,2200,سداد فاتورة مورد,credit";
+    navigator.clipboard
+      ?.writeText(tpl)
       .then(() => toast.success("تم نسخ القالب — الصقه ثم عدّل الصفوف"))
-      .catch(() => toast.error("تعذر النسخ التلقائي — انسخ القالب يدوياً من الدليل"));
+      .catch(() =>
+        toast.error("تعذر النسخ التلقائي — انسخ القالب يدوياً من الدليل")
+      );
   };
 
   const handleImportFromText = () => {
     const parsed = parseImportCsv(importText, accountsData);
     if (!parsed.parsed.length) {
-      setImportResult({ total: parsed.skipped.length, imported: 0, skipped: parsed.skipped });
+      setImportResult({
+        total: parsed.skipped.length,
+        imported: 0,
+        skipped: parsed.skipped,
+      });
       toast.error("لا توجد صفوف صالحة للاستيراد — راجع الأخطاء المبيّنة");
       return;
     }
@@ -488,34 +803,66 @@ export default function Home() {
       {
         onSuccess: (res: any) => {
           const imported = res?.count ?? parsed.parsed.length;
-          setImportResult({ total: parsed.parsed.length + parsed.skipped.length, imported, skipped: parsed.skipped });
+          setImportResult({
+            total: parsed.parsed.length + parsed.skipped.length,
+            imported,
+            skipped: parsed.skipped,
+          });
           refetchTransactions();
           refetchSummary();
           toast.success(`تم استيراد ${imported} حركة بنجاح`);
         },
-        onError: (e: any) => toast.error("فشل الاستيراد: " + (e?.message || "خطأ غير معروف")),
+        onError: (e: any) =>
+          toast.error("فشل الاستيراد: " + (e?.message || "خطأ غير معروف")),
       }
     );
   };
 
   if (!isAuthenticated && !authLoading) {
     return (
-      <div className="min-h-screen bg-[#0d1b1c] flex flex-col items-center justify-center p-4 text-white" dir="rtl">
+      <div
+        className="min-h-screen bg-[#0d1b1c] flex flex-col items-center justify-center p-4 text-white"
+        dir="rtl"
+      >
         <div className="w-full max-w-md space-y-6 text-center">
           <div className="bg-[#b87945] text-[#102a2b] w-14 h-14 rounded-2xl mx-auto flex items-center justify-center font-bold shadow-lg">
             <Building2 className="w-7 h-7" />
           </div>
-          <h1 className="text-xl font-bold font-display">ALHUSAINIA | نظام الحسابات</h1>
-          <p className="text-sm text-slate-400">مؤسسة الحسينية لخدمات الأعمال</p>
+          <h1 className="text-xl font-bold font-display">
+            ALHUSAINIA | نظام الحسابات
+          </h1>
+          <p className="text-sm text-slate-400">
+            مؤسسة الحسينية لخدمات الأعمال
+          </p>
           <Card className="bg-[#162e30] border-[#1e3a3c] text-white p-6 space-y-4 shadow-xl">
-            <p className="text-xs text-slate-400">الرجاء تسجيل الدخول للوصول لنظام الحسابات — عزل تام للبيانات ومعايير موثوقة</p>
-            <Button onClick={() => startLogin()} className="w-full bg-[#b87945] hover:bg-[#a06838] text-xs h-10 font-bold text-[#102a2b]">
-              تسجيل الدخول الآمن
-            </Button>
+            <p className="text-xs text-slate-400">
+              الرجاء تسجيل الدخول للوصول لنظام الحسابات — عزل تام للبيانات
+              ومعايير موثوقة
+            </p>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  onClick={() => startLogin()}
+                  className="w-full bg-[#b87945] hover:bg-[#a06838] text-xs h-10 font-bold text-[#102a2b]"
+                >
+                  تسجيل الدخول الآمن
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent
+                sideOffset={5}
+                className="text-xs bg-[#1e3a3c] text-white border border-[#2a4e50]"
+              >
+                تسجيل الدخول باستخدام بيانات الاعتماد الشخصية
+              </TooltipContent>
+            </Tooltip>
           </Card>
           <div className="mt-4 rounded-2xl border border-[#1e3a3c] bg-[#0d1b1c]/80 p-5 text-right">
-            <h3 className="text-sm font-bold text-[#b87945] mb-3">جرّب النظام مجاناً</h3>
-            <p className="text-xs text-slate-400 leading-6 mb-3">نظام محاسبي متكامل لإدارة حساباتك — بدون بطاقة ائتمان، ابدأ الآن.</p>
+            <h3 className="text-sm font-bold text-[#b87945] mb-3">
+              جرّب النظام مجاناً
+            </h3>
+            <p className="text-xs text-slate-400 leading-6 mb-3">
+              نظام محاسبي متكامل لإدارة حساباتك — بدون بطاقة ائتمان، ابدأ الآن.
+            </p>
             <div className="grid grid-cols-2 gap-2 text-xs text-slate-300">
               <span>✅ إدارة الحسابات</span>
               <span>✅ المعاملات</span>
@@ -529,234 +876,362 @@ export default function Home() {
   }
 
   return (
-    <div className={`min-h-screen ${themePref === 'dark' ? 'bg-[#0d1b1c] text-[#f0ebe3]' : 'bg-[#fbf8f2] text-[#102a2b]'} pb-28`} dir="rtl">
-      {/* Header */}
-      <header className="bg-[#102a2b] text-white shadow-md sticky top-0 z-50 border-b border-[#1e3a3c]">
-        <div className="max-w-7xl mx-auto px-4 py-2.5 flex justify-between items-center">
-          <div className="flex items-center gap-2.5">
-            <div className="bg-[#b87945] text-[#102a2b] p-1.5 rounded-lg font-bold shadow">
-              <Building2 className="w-4 h-4" />
-            </div>
-            <div>
-              <h1 className="text-xs sm:text-sm font-bold tracking-wide font-display">{instName}</h1>
-              <div className="flex items-center gap-2 text-[10px] text-[#b87945] font-mono">
-                <span className="flex items-center gap-1 cursor-pointer hover:underline" onClick={() => setActiveTab("profile")}>
-                  <UserCheck className="w-3 h-3" /> المستخدم: {user?.name || "مشرف المؤسسة"}
-                </span>
-                {isOnline ? (
-                  <span className="text-emerald-400 flex items-center gap-0.5">
-                    {isSyncing ? (
-                      <><RefreshCw className="w-2.5 h-2.5 animate-spin" /> جاري المزامنة...</>
-                    ) : (
-                      <><Wifi className="w-2.5 h-2.5" /> متصل</>
-                    )}
-                  </span>
-                ) : (
-                  <span className="text-rose-400 flex items-center gap-0.5"><WifiOff className="w-2.5 h-2.5" /> أوفلاين — البيانات محفوظة محلياً</span>
-                )}
-              </div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => setIsSettingsOpen(!isSettingsOpen)} className="bg-[#1e3a3c] border-[#2a4e50] text-white h-7 text-[11px] px-2 hover:bg-[#1e3a3c]">
-              <Settings className="w-3 h-3 ml-1" /> إعدادات المؤسسة
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => logout()} className="text-red-400 h-7 px-2 text-[11px] hover:bg-[#1e3a3c]">
-              <LogOut className="w-3.5 h-3.5" />
+    <div
+      className="min-h-screen bg-sand text-ink pb-28"
+      dir="rtl"
+    >
+      {/* Unified Header Navbar */}
+      <HeaderNavbar
+        institutionName={instName}
+        onOpenSettings={() => setIsSettingsOpen(!isSettingsOpen)}
+      />
+
+      {isSettingsOpen && (
+        <div className="bg-[#1e3a3c] border-b border-[#2a4e50] px-4 py-2.5">
+          <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 text-xs text-white">
+            <span className="text-slate-300 font-medium">اسم المؤسسة:</span>
+            <Input
+              value={instName}
+              onChange={e => setInstName(e.target.value)}
+              className="bg-[#102a2b] border-[#2a4e50] text-white text-xs h-7 w-48"
+            />
+            <span className="text-slate-300 font-medium mr-2">العملة:</span>
+            <Input
+              value={currency}
+              onChange={e => setCurrency(e.target.value)}
+              className="bg-[#102a2b] border-[#2a4e50] text-white text-xs h-7 w-28"
+            />
+            <Button
+              size="sm"
+              className="bg-[#b87945] hover:bg-[#a06838] h-7 text-xs px-3 font-bold text-[#102a2b]"
+              onClick={() => {
+                updateSettingsMutation.mutate({
+                  institutionName: instName,
+                  currency: currency,
+                  accountingPeriod:
+                    settingsData?.accountingPeriod ||
+                    new Date().getFullYear().toString(),
+                });
+              }}
+            >
+              حفظ التغييرات
             </Button>
           </div>
         </div>
+      )}
 
-        {isSettingsOpen && (
-          <div className="bg-[#1e3a3c] border-t border-[#2a4e50] px-4 py-2.5">
-            <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 text-xs">
-              <span className="text-slate-300 font-medium">اسم المؤسسة:</span>
-              <Input
-                value={instName}
-                onChange={(e) => setInstName(e.target.value)}
-                className="bg-[#102a2b] border-[#2a4e50] text-white text-xs h-7 w-48"
-              />
-              <span className="text-slate-300 font-medium mr-2">العملة:</span>
-              <Input
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-                className="bg-[#102a2b] border-[#2a4e50] text-white text-xs h-7 w-28"
-              />
-              <Button
-                size="sm"
-                className="bg-[#b87945] hover:bg-[#a06838] h-7 text-xs px-3 font-bold"
-                onClick={() => {
-                  updateSettingsMutation.mutate({
-                    institutionName: instName,
-                    currency: currency,
-                    accountingPeriod: settingsData?.accountingPeriod || new Date().getFullYear().toString(),
-                  });
-                }}
-              >
-                حفظ التغييرات
-              </Button>
-            </div>
-          </div>
-        )}
-      </header>
-
-      {/* Download & Subscribe Banner */}
-      <div className="bg-gradient-to-l from-[#102a2b] to-[#1a3d3f] text-white mx-3 mt-3 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-center justify-between gap-3 shadow-lg">
+      {/* Download & Services Banner */}
+      <div className="brand-gradient text-white mx-3 mt-3 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-center justify-between gap-3 shadow-lg">
         <div className="flex items-center gap-3">
           <div className="bg-[#b87945] text-[#102a2b] w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold font-display">جرّب نظام ALHUSAINIA المحاسبي مجاناً</h3>
-            <p className="text-[11px] text-white/60">نظام متكامل لإدارة حساباتك — بدون بطاقة ائتمان</p>
+            <h3 className="text-sm font-bold font-display">
+              مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة
+            </h3>
+            <p className="text-[11px] text-white/70">
+              استشارات هندسية، تقنية، مؤسسية، وإدارية | خدمات طلابية ومكتبية،
+              تصاميم، بحوث، وصيانة الأجهزة
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs font-bold h-8 px-4" onClick={() => window.open('https://husseiniya-platform.vercel.app/credits', '_blank')}>
-            اشترك الآن
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            size="sm"
+            className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs font-bold h-8 px-4"
+            onClick={() => (window.location.href = "/about")}
+          >
+            التعريف بالمؤسسة والمكتبة
           </Button>
-          <Button size="sm" variant="outline" className="border-white/30 text-white text-xs h-8 px-4 hover:bg-white/10" onClick={() => window.open('https://husseiniya-platform.vercel.app', '_blank')}>
-            زيارة الموقع
+          <Button
+            size="sm"
+            variant="outline"
+            className="border-white/30 text-white text-xs h-8 px-4 hover:bg-white/10"
+            onClick={() => (window.location.href = "/store")}
+          >
+            المتجر الإلكتروني
           </Button>
         </div>
       </div>
 
       <main className="max-w-7xl mx-auto px-3 mt-3 space-y-4">
-{/* KPI Summary Cards */}
-      {loadingSummary ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          {[1, 2, 3, 4].map(i => (
-            <Card key={i} className="p-4 bg-white shadow-sm flex items-center justify-center h-20">
-              <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />
-            </Card>
-          ))}
-        </div>
-      ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <Card onClick={() => setActiveTab("reports")} className="p-3 bg-emerald-50 border-emerald-200 shadow-sm transition-all hover:shadow cursor-pointer group" title="عرض تقارير الإيرادات">
-            <p className="text-[10px] text-emerald-700 font-bold">إجمالي الإيرادات</p>
-            <p className="text-sm font-bold text-emerald-900 mt-1 font-mono group-hover:underline">{countUp("revenue", summaryData?.totalRevenue)} {currency}</p>
-          </Card>
-          <Card onClick={() => setActiveTab("reports")} className="p-3 bg-rose-50 border-rose-200 shadow-sm transition-all hover:shadow cursor-pointer group" title="عرض تقارير المصروفات">
-            <p className="text-[10px] text-rose-700 font-bold">إجمالي المصروفات</p>
-            <p className="text-sm font-bold text-rose-900 mt-1 font-mono group-hover:underline">{countUp("expense", summaryData?.totalExpense)} {currency}</p>
-          </Card>
-          <Card onClick={() => setActiveTab("analytics")} className="p-3 bg-blue-50 border-blue-200 shadow-sm transition-all hover:shadow cursor-pointer group" title="عرض التحليلات">
-            <p className="text-[10px] text-blue-700 font-bold">صافي الدخل التشغيلي</p>
-            <p className="text-sm font-bold text-blue-900 mt-1 font-mono group-hover:underline">{countUp("net", summaryData?.netIncome)} {currency}</p>
-          </Card>
-          <Card onClick={() => setActiveTab("accounts")} className="p-3 bg-slate-100 border-slate-200 shadow-sm transition-all hover:shadow cursor-pointer group" title="فتح دليل الحسابات">
-            <p className="text-[10px] text-slate-700 font-bold">إجمالي الأصول</p>
-            <p className="text-sm font-bold text-slate-900 mt-1 font-mono group-hover:underline">{countUp("assets", summaryData?.totalAssets)} {currency}</p>
-          </Card>
-        </div>
-      )}
-
-      {/* Onboarding empty state: first-time welcome + guided quick action */}
-      {!loadingSummary && summaryData && summaryData.totalRevenue === 0 && summaryData.totalExpense === 0 && (transactionsData?.length ?? 0) === 0 && (
-        <div className="rounded-2xl border border-[#e8c9a0] bg-gradient-to-l from-[#fbf6ee] to-[#f5ece0] p-4 md:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#b87945] text-[#102a2b] w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
-              <Sparkles className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-[#5c3d1e]">مرحباً بك! منصة الحسينية جاهزة للانطلاق</h3>
-              <p className="text-[11px] text-[#7a5228] mt-0.5">الأصول والدليل المحاسبي (12 حساباً) مُجهّزون. ابدأ بتسجيل أول حركة مالية — سيُترحّل فوراً ويرصد في السجل والتدقيق والتقارير.</p>
-            </div>
+        {/* KPI Summary Cards */}
+        {loadingSummary ? (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {[1, 2, 3, 4].map(i => (
+              <Card
+                key={i}
+                className="p-4 bg-white shadow-sm flex items-center justify-center h-20"
+              >
+                <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />
+              </Card>
+            ))}
           </div>
-          <Button size="sm" onClick={() => setActiveTab("entry")} className="bg-[#b87945] hover:bg-[#a06838] text-white text-xs font-bold h-8 px-4 shrink-0">
-            <Plus className="w-3.5 h-3.5 ml-1" /> ابدأ الإدخال السريع
-          </Button>
-        </div>
-      )}
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <Card
+              onClick={() => setActiveTab("reports")}
+              className="p-3 bg-emerald-50 border-emerald-200 shadow-sm transition-all hover:shadow cursor-pointer group"
+              title="عرض تقارير الإيرادات"
+            >
+              <p className="text-[10px] text-emerald-700 font-bold">
+                إجمالي الإيرادات
+              </p>
+              <p className="text-sm font-bold text-emerald-900 mt-1 font-mono group-hover:underline">
+                {countUp("revenue", summaryData?.totalRevenue)} {currency}
+              </p>
+            </Card>
+            <Card
+              onClick={() => setActiveTab("reports")}
+              className="p-3 bg-rose-50 border-rose-200 shadow-sm transition-all hover:shadow cursor-pointer group"
+              title="عرض تقارير المصروفات"
+            >
+              <p className="text-[10px] text-rose-700 font-bold">
+                إجمالي المصروفات
+              </p>
+              <p className="text-sm font-bold text-rose-900 mt-1 font-mono group-hover:underline">
+                {countUp("expense", summaryData?.totalExpense)} {currency}
+              </p>
+            </Card>
+            <Card
+              onClick={() => setActiveTab("analytics")}
+              className="p-3 bg-blue-50 border-blue-200 shadow-sm transition-all hover:shadow cursor-pointer group"
+              title="عرض التحليلات"
+            >
+              <p className="text-[10px] text-blue-700 font-bold">
+                صافي الدخل التشغيلي
+              </p>
+              <p className="text-sm font-bold text-blue-900 mt-1 font-mono group-hover:underline">
+                {countUp("net", summaryData?.netIncome)} {currency}
+              </p>
+            </Card>
+            <Card
+              onClick={() => setActiveTab("accounts")}
+              className="p-3 bg-slate-100 border-slate-200 shadow-sm transition-all hover:shadow cursor-pointer group"
+              title="فتح دليل الحسابات"
+            >
+              <p className="text-[10px] text-slate-700 font-bold">
+                إجمالي الأصول
+              </p>
+              <p className="text-sm font-bold text-slate-900 mt-1 font-mono group-hover:underline">
+                {countUp("assets", summaryData?.totalAssets)} {currency}
+              </p>
+            </Card>
+          </div>
+        )}
 
-      {/* Quick actions row */}
-      <div className="flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={() => setActiveTab("entry")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
-          <Plus className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> إدخال سريع
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setActiveTab("reports")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
-          <FileText className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> السجل والتقارير
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => (window.location.href = "/commercial")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
-          <Layers className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> المحاسبة التجارية
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => (window.location.href = "/store")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
-          <ShoppingCart className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> المتجر الإلكتروني
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => setActiveTab("analytics")} className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]">
-          <BarChart3 className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> التحليلات والمساعد الذكي
-        </Button>
-      </div>
-
-      {/* Commercial Overview Panel */}
-      <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
-        <CardHeader className="py-2.5 px-4 border-b border-[#f0dfc8] bg-[#f5ece0] flex flex-row items-center justify-between">
-          <CardTitle className="text-xs font-bold text-[#5c3d1e] flex items-center gap-1.5">
-            <Layers className="w-4 h-4 text-[#7a5228]" /> نظرة تجارية سريعة — المخزون والمبيعات والذمم
-          </CardTitle>
-          <Button size="sm" variant="ghost" onClick={() => (window.location.href = "/commercial")} className="h-6 text-[10px] text-[#b87945] font-bold hover:bg-[#f5ece0]">
-            فتح المحاسبة التجارية
-          </Button>
-        </CardHeader>
-        <CardContent className="p-3 space-y-2.5">
-          {commercialLoading ? (
-            <div className="h-16 bg-white/60 rounded-lg animate-pulse" />
-          ) : (
-            <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <div className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center" title="مبيعات الشهر الجاري">
-                  <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1"><ShoppingCart className="w-3 h-3 text-emerald-600" /> مبيعات الشهر</p>
-                  <p className="text-xs font-bold text-emerald-800 mt-0.5 font-mono">{(commercialStats?.monthStats?.salesTotal || 0).toLocaleString("en-US")}</p>
+        {/* Onboarding empty state: first-time welcome + guided quick action */}
+        {!loadingSummary &&
+          summaryData &&
+          summaryData.totalRevenue === 0 &&
+          summaryData.totalExpense === 0 &&
+          (transactionsData?.length ?? 0) === 0 && (
+            <div className="rounded-2xl border border-[#e8c9a0] bg-gradient-to-l from-[#fbf6ee] to-[#f5ece0] p-4 md:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="bg-[#b87945] text-[#102a2b] w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
+                  <Sparkles className="w-5 h-5" />
                 </div>
-                <div className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center" title="مشتريات الشهر الجاري">
-                  <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1"><ShoppingCart className="w-3 h-3 text-rose-600" /> مشتريات الشهر</p>
-                  <p className="text-xs font-bold text-rose-800 mt-0.5 font-mono">{(commercialStats?.monthStats?.purchasesTotal || 0).toLocaleString("en-US")}</p>
-                </div>
-                <div className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center" title="المنتجات النشطة في المخزون">
-                  <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1"><Package className="w-3 h-3 text-[#b87945]" /> منتجات نشطة</p>
-                  <p className="text-xs font-bold text-[#5c3d1e] mt-0.5 font-mono">{commercialStats?.counts?.products || 0}</p>
-                </div>
-                <div className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center" title="عدد العملاء النشطين">
-                  <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1"><Users className="w-3 h-3 text-blue-600" /> عملاء نشطون</p>
-                  <p className="text-xs font-bold text-blue-900 mt-0.5 font-mono">{commercialStats?.counts?.customers || 0}</p>
+                <div>
+                  <h3 className="text-sm font-bold text-[#5c3d1e]">
+                    مرحباً بك! منصة الحسينية جاهزة للانطلاق
+                  </h3>
+                  <p className="text-[11px] text-[#7a5228] mt-0.5">
+                    الأصول والدليل المحاسبي (12 حساباً) مُجهّزون. ابدأ بتسجيل
+                    أول حركة مالية — سيُترحّل فوراً ويرصد في السجل والتدقيق
+                    والتقارير.
+                  </p>
                 </div>
               </div>
-              {hasCommercialAlerts && (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {lowStockAlerts.length > 0 && (
-                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
-                      <p className="text-[10px] font-bold text-amber-800 mb-1 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> تنبيه نفاد المخزون ({lowStockAlerts.length})</p>
-                      {lowStockAlerts.slice(0, 4).map((p: any) => (
-                        <p key={p.id} className="text-[10px] text-amber-900 py-0.5">• {p.name} — متبقي <b>{p.currentStock}</b> {p.unit} (الحد الأدنى {p.minStock})</p>
-                      ))}
-                    </div>
-                  )}
-                  {topCustomerDebts.length > 0 && (
-                    <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5">
-                      <p className="text-[10px] font-bold text-rose-800 mb-1">ذمم عملاء غير مسددة ({topCustomerDebts.length})</p>
-                      {topCustomerDebts.slice(0, 4).map((c: any) => (
-                        <p key={c.id} className="text-[10px] text-rose-900 py-0.5">• {c.name} — <b>{Number(c.balance).toLocaleString("en-US")}</b> {currency}</p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-              {!hasCommercialAlerts && (
-                <p className="text-[10px] text-slate-400 text-center py-1">لا تنبيهات حالياً — المخزون والذمم في وضع سليم.</p>
-              )}
-            </>
+              <Button
+                size="sm"
+                onClick={() => setActiveTab("entry")}
+                className="bg-[#b87945] hover:bg-[#a06838] text-white text-xs font-bold h-8 px-4 shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5 ml-1" /> ابدأ الإدخال السريع
+              </Button>
+            </div>
           )}
-        </CardContent>
-      </Card>
 
-      {/* Quick Transaction Entry Widget */}
+        {/* Quick actions row */}
+        <div className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setActiveTab("entry")}
+            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+          >
+            <Plus className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> إدخال سريع
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setActiveTab("reports")}
+            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+          >
+            <FileText className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> السجل
+            والتقارير
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => (window.location.href = "/commercial")}
+            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+          >
+            <Layers className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> المحاسبة
+            التجارية
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => (window.location.href = "/store")}
+            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+          >
+            <ShoppingCart className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> المتجر
+            الإلكتروني
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setActiveTab("analytics")}
+            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+          >
+            <BarChart3 className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> التحليلات
+            والمساعد الذكي
+          </Button>
+        </div>
+
+        {/* Commercial Overview Panel */}
         <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
           <CardHeader className="py-2.5 px-4 border-b border-[#f0dfc8] bg-[#f5ece0] flex flex-row items-center justify-between">
             <CardTitle className="text-xs font-bold text-[#5c3d1e] flex items-center gap-1.5">
-              <Plus className="w-4 h-4 text-[#7a5228]" /> أداة الإدخال السريع للمعاملات اليومية (اعتماد فوري)
+              <Layers className="w-4 h-4 text-[#7a5228]" /> نظرة تجارية سريعة —
+              المخزون والمبيعات والذمم
             </CardTitle>
-            <span className="text-[10px] text-[#7a5228] font-mono">تاريخ الحركة: {quickDate}</span>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => (window.location.href = "/commercial")}
+              className="h-6 text-[10px] text-[#b87945] font-bold hover:bg-[#f5ece0]"
+            >
+              فتح المحاسبة التجارية
+            </Button>
+          </CardHeader>
+          <CardContent className="p-3 space-y-2.5">
+            {commercialLoading ? (
+              <div className="h-16 bg-white/60 rounded-lg animate-pulse" />
+            ) : (
+              <>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  <div
+                    className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center"
+                    title="مبيعات الشهر الجاري"
+                  >
+                    <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1">
+                      <ShoppingCart className="w-3 h-3 text-emerald-600" />{" "}
+                      مبيعات الشهر
+                    </p>
+                    <p className="text-xs font-bold text-emerald-800 mt-0.5 font-mono">
+                      {(
+                        commercialStats?.monthStats?.salesTotal || 0
+                      ).toLocaleString("en-US")}
+                    </p>
+                  </div>
+                  <div
+                    className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center"
+                    title="مشتريات الشهر الجاري"
+                  >
+                    <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1">
+                      <ShoppingCart className="w-3 h-3 text-rose-600" /> مشتريات
+                      الشهر
+                    </p>
+                    <p className="text-xs font-bold text-rose-800 mt-0.5 font-mono">
+                      {(
+                        commercialStats?.monthStats?.purchasesTotal || 0
+                      ).toLocaleString("en-US")}
+                    </p>
+                  </div>
+                  <div
+                    className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center"
+                    title="المنتجات النشطة في المخزون"
+                  >
+                    <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1">
+                      <Package className="w-3 h-3 text-[#b87945]" /> منتجات نشطة
+                    </p>
+                    <p className="text-xs font-bold text-[#5c3d1e] mt-0.5 font-mono">
+                      {commercialStats?.counts?.products || 0}
+                    </p>
+                  </div>
+                  <div
+                    className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center"
+                    title="عدد العملاء النشطين"
+                  >
+                    <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1">
+                      <Users className="w-3 h-3 text-blue-600" /> عملاء نشطون
+                    </p>
+                    <p className="text-xs font-bold text-blue-900 mt-0.5 font-mono">
+                      {commercialStats?.counts?.customers || 0}
+                    </p>
+                  </div>
+                </div>
+                {hasCommercialAlerts && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {lowStockAlerts.length > 0 && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
+                        <p className="text-[10px] font-bold text-amber-800 mb-1 flex items-center gap-1">
+                          <AlertTriangle className="w-3 h-3" /> تنبيه نفاد
+                          المخزون ({lowStockAlerts.length})
+                        </p>
+                        {lowStockAlerts.slice(0, 4).map((p: any) => (
+                          <p
+                            key={p.id}
+                            className="text-[10px] text-amber-900 py-0.5"
+                          >
+                            • {p.name} — متبقي <b>{p.currentStock}</b> {p.unit}{" "}
+                            (الحد الأدنى {p.minStock})
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                    {topCustomerDebts.length > 0 && (
+                      <div className="rounded-lg border border-rose-200 bg-rose-50 p-2.5">
+                        <p className="text-[10px] font-bold text-rose-800 mb-1">
+                          ذمم عملاء غير مسددة ({topCustomerDebts.length})
+                        </p>
+                        {topCustomerDebts.slice(0, 4).map((c: any) => (
+                          <p
+                            key={c.id}
+                            className="text-[10px] text-rose-900 py-0.5"
+                          >
+                            • {c.name} —{" "}
+                            <b>{Number(c.balance).toLocaleString("en-US")}</b>{" "}
+                            {currency}
+                          </p>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {!hasCommercialAlerts && (
+                  <p className="text-[10px] text-slate-400 text-center py-1">
+                    لا تنبيهات حالياً — المخزون والذمم في وضع سليم.
+                  </p>
+                )}
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Quick Transaction Entry Widget */}
+        <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
+          <CardHeader className="py-2.5 px-4 border-b border-[#f0dfc8] bg-[#f5ece0] flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-bold text-[#5c3d1e] flex items-center gap-1.5">
+              <Plus className="w-4 h-4 text-[#7a5228]" /> أداة الإدخال السريع
+              للمعاملات اليومية (اعتماد فوري)
+            </CardTitle>
+            <span className="text-[10px] text-[#7a5228] font-mono">
+              تاريخ الحركة: {quickDate}
+            </span>
           </CardHeader>
           <CardContent className="p-3">
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-center">
@@ -766,7 +1241,11 @@ export default function Home() {
                 </SelectTrigger>
                 <SelectContent>
                   {activeAccountsForEntry.map(acc => (
-                    <SelectItem key={acc.id} value={String(acc.id)} className="text-xs">
+                    <SelectItem
+                      key={acc.id}
+                      value={String(acc.id)}
+                      className="text-xs"
+                    >
                       {acc.code} - {acc.name}
                     </SelectItem>
                   ))}
@@ -776,13 +1255,13 @@ export default function Home() {
                 type="number"
                 placeholder="قيمة المبلغ..."
                 value={quickAmount}
-                onChange={(e) => setQuickAmount(e.target.value)}
+                onChange={e => setQuickAmount(e.target.value)}
                 className="h-8 text-xs bg-white border-[#e8c9a0] font-bold"
               />
               <Input
                 placeholder="البيان أو وصف الحركة (اختياري)..."
                 value={quickNarration}
-                onChange={(e) => setQuickNarration(e.target.value)}
+                onChange={e => setQuickNarration(e.target.value)}
                 className="h-8 text-xs bg-white border-[#e8c9a0]"
               />
               <Button
@@ -790,7 +1269,11 @@ export default function Home() {
                 disabled={addBatchTransactionsMutation.isPending}
                 className="h-8 bg-[#b87945] hover:bg-[#a06838] text-white text-xs font-bold"
               >
-                {addBatchTransactionsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Check className="w-3 h-3 ml-1" />}
+                {addBatchTransactionsMutation.isPending ? (
+                  <Loader2 className="w-3 h-3 animate-spin ml-1" />
+                ) : (
+                  <Check className="w-3 h-3 ml-1" />
+                )}
                 تسجيل واعتماد سريع
               </Button>
             </div>
@@ -800,12 +1283,42 @@ export default function Home() {
         {/* Operational Tabs */}
         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
           <TabsList className="grid grid-cols-6 bg-slate-200 h-9 p-1 rounded-xl text-xs mb-3 shadow-inner">
-            <TabsTrigger value="entry" className="text-[10px] sm:text-xs font-semibold">الإدخال</TabsTrigger>
-            <TabsTrigger value="accounts" className="text-[10px] sm:text-xs font-semibold">الدليل الشجري</TabsTrigger>
-            <TabsTrigger value="reports" className="text-[10px] sm:text-xs font-semibold">السجل والتقارير</TabsTrigger>
-            <TabsTrigger value="audit" className="text-[10px] sm:text-xs font-semibold">سجل التدقيق</TabsTrigger>
-            <TabsTrigger value="analytics" className="text-[10px] sm:text-xs font-semibold">التحليلات</TabsTrigger>
-            <TabsTrigger value="profile" className="text-[10px] sm:text-xs font-semibold">الملف</TabsTrigger>
+            <TabsTrigger
+              value="entry"
+              className="text-[10px] sm:text-xs font-semibold"
+            >
+              الإدخال
+            </TabsTrigger>
+            <TabsTrigger
+              value="accounts"
+              className="text-[10px] sm:text-xs font-semibold"
+            >
+              الدليل الشجري
+            </TabsTrigger>
+            <TabsTrigger
+              value="reports"
+              className="text-[10px] sm:text-xs font-semibold"
+            >
+              السجل والتقارير
+            </TabsTrigger>
+            <TabsTrigger
+              value="audit"
+              className="text-[10px] sm:text-xs font-semibold"
+            >
+              سجل التدقيق
+            </TabsTrigger>
+            <TabsTrigger
+              value="analytics"
+              className="text-[10px] sm:text-xs font-semibold"
+            >
+              التحليلات
+            </TabsTrigger>
+            <TabsTrigger
+              value="profile"
+              className="text-[10px] sm:text-xs font-semibold"
+            >
+              الملف
+            </TabsTrigger>
           </TabsList>
 
           {/* Tab 1: Batch Entry */}
@@ -813,14 +1326,15 @@ export default function Home() {
             <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
               <CardHeader className="bg-slate-50 border-b py-2.5 px-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-[#b87945]" /> جدول الإدخال السريع متعدد الحسابات (الحسابات النشطة فقط)
+                  <Layers className="w-3.5 h-3.5 text-[#b87945]" /> جدول الإدخال
+                  السريع متعدد الحسابات (الحسابات النشطة فقط)
                 </CardTitle>
                 <div className="relative">
                   <Search className="absolute right-2.5 top-2 w-3 h-3 text-slate-400" />
                   <Input
                     placeholder="بحث في الحسابات النشطة..."
                     value={accountQuery}
-                    onChange={(e) => setAccountQuery(e.target.value)}
+                    onChange={e => setAccountQuery(e.target.value)}
                     className="pr-7 h-7 text-xs w-48 bg-white"
                   />
                 </div>
@@ -828,7 +1342,8 @@ export default function Home() {
               <CardContent className="p-0">
                 {loadingAccounts ? (
                   <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" /> جاري تحميل الحسابات النشطة...
+                    <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />{" "}
+                    جاري تحميل الحسابات النشطة...
                   </div>
                 ) : (
                   <table className="w-full text-right text-xs border-collapse">
@@ -841,16 +1356,31 @@ export default function Home() {
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {activeAccountsForEntry.map(acc => (
-                        <tr key={acc.id} className="hover:bg-slate-50 transition-colors">
+                        <tr
+                          key={acc.id}
+                          className="hover:bg-slate-50 transition-colors"
+                        >
                           <td className="py-2.5 px-4">
-                            <span className="font-mono text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded ml-2 border">{acc.code}</span>
-                            <span className="font-medium text-slate-900">{acc.name}</span>
+                            <span className="font-mono text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded ml-2 border">
+                              {acc.code}
+                            </span>
+                            <span className="font-medium text-slate-900">
+                              {acc.name}
+                            </span>
                           </td>
                           <td className="py-2.5 px-4">
                             <Input
                               type="number"
                               value={batchRows[acc.id]?.amount || ""}
-                              onChange={(e) => setBatchRows({ ...batchRows, [acc.id]: { ...batchRows[acc.id], amount: e.target.value } })}
+                              onChange={e =>
+                                setBatchRows({
+                                  ...batchRows,
+                                  [acc.id]: {
+                                    ...batchRows[acc.id],
+                                    amount: e.target.value,
+                                  },
+                                })
+                              }
                               className="h-7 text-xs font-bold text-center font-mono bg-slate-50"
                               placeholder="0"
                             />
@@ -858,7 +1388,15 @@ export default function Home() {
                           <td className="py-2.5 px-4">
                             <Input
                               value={batchRows[acc.id]?.narration || ""}
-                              onChange={(e) => setBatchRows({ ...batchRows, [acc.id]: { ...batchRows[acc.id], narration: e.target.value } })}
+                              onChange={e =>
+                                setBatchRows({
+                                  ...batchRows,
+                                  [acc.id]: {
+                                    ...batchRows[acc.id],
+                                    narration: e.target.value,
+                                  },
+                                })
+                              }
                               className="h-7 text-xs bg-slate-50"
                               placeholder="ملاحظات أو بيان الحركة..."
                             />
@@ -877,18 +1415,23 @@ export default function Home() {
                 size="sm"
                 onClick={() => {
                   const rows = Object.entries(batchRows)
-                    .filter(([_, val]) => val.amount && parseFloat(val.amount) > 0)
+                    .filter(
+                      ([_, val]) => val.amount && parseFloat(val.amount) > 0
+                    )
                     .map(([id, val]) => ({
                       accountId: Number(id),
                       amount: val.amount,
                       narration: val.narration || "حركة مجمعة",
-                      transactionDate: new Date().toISOString().split('T')[0]
+                      transactionDate: new Date().toISOString().split("T")[0],
                     }));
                   if (rows.length === 0) {
                     toast.error("الرجاء إدخال قيمة في حساب واحد على الأقل");
                     return;
                   }
-                  addBatchTransactionsMutation.mutate({ lifecycleStatus: "saved", rows });
+                  addBatchTransactionsMutation.mutate({
+                    lifecycleStatus: "saved",
+                    rows,
+                  });
                 }}
                 disabled={addBatchTransactionsMutation.isPending}
                 className="bg-[#1e3a3c] hover:bg-[#1e3a3c] text-white text-xs h-8 px-3 font-semibold"
@@ -899,23 +1442,32 @@ export default function Home() {
                 size="sm"
                 onClick={() => {
                   const rows = Object.entries(batchRows)
-                    .filter(([_, val]) => val.amount && parseFloat(val.amount) > 0)
+                    .filter(
+                      ([_, val]) => val.amount && parseFloat(val.amount) > 0
+                    )
                     .map(([id, val]) => ({
                       accountId: Number(id),
                       amount: val.amount,
                       narration: val.narration || "حركة مجمعة",
-                      transactionDate: new Date().toISOString().split('T')[0]
+                      transactionDate: new Date().toISOString().split("T")[0],
                     }));
                   if (rows.length === 0) {
                     toast.error("الرجاء إدخال قيمة في حساب واحد على الأقل");
                     return;
                   }
-                  addBatchTransactionsMutation.mutate({ lifecycleStatus: "approved", rows });
+                  addBatchTransactionsMutation.mutate({
+                    lifecycleStatus: "approved",
+                    rows,
+                  });
                 }}
                 disabled={addBatchTransactionsMutation.isPending}
                 className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8 px-4 font-bold shadow"
               >
-                {addBatchTransactionsMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : <Check className="w-3.5 h-3.5 ml-1" />}
+                {addBatchTransactionsMutation.isPending ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" />
+                ) : (
+                  <Check className="w-3.5 h-3.5 ml-1" />
+                )}
                 اعتماد وترحيل فوري
               </Button>
             </div>
@@ -928,45 +1480,67 @@ export default function Home() {
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Scale className="w-4 h-4 text-[#b87945]" />
-                  <h3 className="text-xs font-bold text-slate-800">الأرصدة الافتتاحية للفترة — ترحيل أرصدة بداية السنة</h3>
+                  <h3 className="text-xs font-bold text-slate-800">
+                    الأرصدة الافتتاحية للفترة — ترحيل أرصدة بداية السنة
+                  </h3>
                 </div>
-                <Button size="sm" onClick={openOpeningBalances} className="h-7 px-2.5 text-xs bg-[#b87945] hover:bg-[#a06838] text-white font-semibold">
+                <Button
+                  size="sm"
+                  onClick={openOpeningBalances}
+                  className="h-7 px-2.5 text-xs bg-[#b87945] hover:bg-[#a06838] text-white font-semibold"
+                >
                   <Scale className="w-3.5 h-3.5 ml-1" /> إدارة الأرصدة
                 </Button>
               </div>
               <p className="text-[11px] text-slate-500 mt-2">
-                أدخل أرصدة بداية الفترة لحسابات الميزانية (أصول / خصوم / حقوق ملكية) — تُرحّل تلقائياً إلى ميزان المراجعة والميزانية العمومية. حسابات الإيرادات والمصروفات تبدأ من صفر.
+                أدخل أرصدة بداية الفترة لحسابات الميزانية (أصول / خصوم / حقوق
+                ملكية) — تُرحّل تلقائياً إلى ميزان المراجعة والميزانية العمومية.
+                حسابات الإيرادات والمصروفات تبدأ من صفر.
               </p>
             </Card>
 
             {/* Add New Account Card */}
             <Card className="p-4 bg-white shadow-sm border-slate-200">
               <h3 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5">
-                <Plus className="w-4 h-4 text-[#b87945]" /> إضافة حساب جديد إلى الدليل الشجري
+                <Plus className="w-4 h-4 text-[#b87945]" /> إضافة حساب جديد إلى
+                الدليل الشجري
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-center text-xs">
                 <Input
                   placeholder="كود الحساب (مثال: 1020)..."
                   value={newAccCode}
-                  onChange={(e) => setNewAccCode(e.target.value)}
+                  onChange={e => setNewAccCode(e.target.value)}
                   className="h-8 font-mono bg-slate-50"
                 />
                 <Input
                   placeholder="اسم الحساب..."
                   value={newAccName}
-                  onChange={(e) => setNewAccName(e.target.value)}
+                  onChange={e => setNewAccName(e.target.value)}
                   className="h-8 bg-slate-50"
                 />
-                <Select value={newAccCategory} onValueChange={setNewAccCategory}>
+                <Select
+                  value={newAccCategory}
+                  onValueChange={setNewAccCategory}
+                >
                   <SelectTrigger className="h-8 bg-slate-50">
                     <SelectValue placeholder="طبيعة الحساب" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="asset" className="text-xs">الأصول (Assets)</SelectItem>
-                    <SelectItem value="liability" className="text-xs">الخصوم (Liabilities)</SelectItem>
-                    <SelectItem value="equity" className="text-xs">حقوق الملكية (Equity)</SelectItem>
-                    <SelectItem value="revenue" className="text-xs">الإيرادات (Revenues)</SelectItem>
-                    <SelectItem value="expense" className="text-xs">المصروفات (Expenses)</SelectItem>
+                    <SelectItem value="asset" className="text-xs">
+                      الأصول (Assets)
+                    </SelectItem>
+                    <SelectItem value="liability" className="text-xs">
+                      الخصوم (Liabilities)
+                    </SelectItem>
+                    <SelectItem value="equity" className="text-xs">
+                      حقوق الملكية (Equity)
+                    </SelectItem>
+                    <SelectItem value="revenue" className="text-xs">
+                      الإيرادات (Revenues)
+                    </SelectItem>
+                    <SelectItem value="expense" className="text-xs">
+                      المصروفات (Expenses)
+                    </SelectItem>
                   </SelectContent>
                 </Select>
                 <Button
@@ -979,13 +1553,17 @@ export default function Home() {
                       code: newAccCode,
                       name: newAccName,
                       type: newAccCategory as any,
-                      description: "حساب شجري فرعي"
+                      description: "حساب شجري فرعي",
                     });
                   }}
                   disabled={createAccountMutation.isPending}
                   className="h-8 bg-[#b87945] hover:bg-[#a06838] text-white font-bold"
                 >
-                  {createAccountMutation.isPending ? <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" /> : <Plus className="w-3.5 h-3.5 ml-1" />}
+                  {createAccountMutation.isPending ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" />
+                  ) : (
+                    <Plus className="w-3.5 h-3.5 ml-1" />
+                  )}
                   إضافة الحساب
                 </Button>
               </div>
@@ -996,18 +1574,19 @@ export default function Home() {
               <div className="flex flex-wrap justify-between items-center gap-3">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Network className="w-4 h-4 text-[#b87945]" /> العرض الشجري المتقدم (اسحب وأفلت لإعادة الترتيب)
+                    <Network className="w-4 h-4 text-[#b87945]" /> العرض الشجري
+                    المتقدم (اسحب وأفلت لإعادة الترتيب)
                   </h3>
                   <div className="flex bg-slate-100 p-0.5 rounded-lg text-[11px]">
                     <button
                       onClick={() => setAccountViewMode("tree")}
-                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${accountViewMode === 'tree' ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${accountViewMode === "tree" ? "bg-white shadow text-slate-900" : "text-slate-500"}`}
                     >
                       شجري (Tree)
                     </button>
                     <button
                       onClick={() => setAccountViewMode("list")}
-                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${accountViewMode === 'list' ? 'bg-white shadow text-slate-900' : 'text-slate-500'}`}
+                      className={`px-2.5 py-1 rounded-md font-semibold transition-all ${accountViewMode === "list" ? "bg-white shadow text-slate-900" : "text-slate-500"}`}
                     >
                       قائمة (List)
                     </button>
@@ -1019,7 +1598,7 @@ export default function Home() {
                   <Input
                     placeholder="بحث متقدم (بالكود، الاسم، أو التصنيف)..."
                     value={accountQuery}
-                    onChange={(e) => setAccountQuery(e.target.value)}
+                    onChange={e => setAccountQuery(e.target.value)}
                     className="pr-7 h-7 text-xs bg-slate-50"
                   />
                 </div>
@@ -1027,26 +1606,56 @@ export default function Home() {
 
               {loadingAccounts ? (
                 <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" /> جاري تحميل الدليل الشجري...
+                  <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />{" "}
+                  جاري تحميل الدليل الشجري...
                 </div>
-              ) : accountViewMode === 'tree' ? (
+              ) : accountViewMode === "tree" ? (
                 <div className="space-y-3 pt-2">
                   {[
-                    { key: 'asset', label: 'الأصول (Assets)', color: 'border-emerald-200 bg-emerald-50/40 text-emerald-900' },
-                    { key: 'liability', label: 'الخصوم (Liabilities)', color: 'border-blue-200 bg-blue-50/40 text-blue-900' },
-                    { key: 'equity', label: 'حقوق الملكية (Equity)', color: 'border-purple-200 bg-purple-50/40 text-purple-900' },
-                    { key: 'revenue', label: 'الإيرادات (Revenues)', color: 'border-[#e8c9a0] bg-[#faf5ed] text-[#5c3d1e]' },
-                    { key: 'expense', label: 'المصروفات (Expenses)', color: 'border-rose-200 bg-rose-50/40 text-rose-900' },
+                    {
+                      key: "asset",
+                      label: "الأصول (Assets)",
+                      color:
+                        "border-emerald-200 bg-emerald-50/40 text-emerald-900",
+                    },
+                    {
+                      key: "liability",
+                      label: "الخصوم (Liabilities)",
+                      color: "border-blue-200 bg-blue-50/40 text-blue-900",
+                    },
+                    {
+                      key: "equity",
+                      label: "حقوق الملكية (Equity)",
+                      color:
+                        "border-purple-200 bg-purple-50/40 text-purple-900",
+                    },
+                    {
+                      key: "revenue",
+                      label: "الإيرادات (Revenues)",
+                      color: "border-[#e8c9a0] bg-[#faf5ed] text-[#5c3d1e]",
+                    },
+                    {
+                      key: "expense",
+                      label: "المصروفات (Expenses)",
+                      color: "border-rose-200 bg-rose-50/40 text-rose-900",
+                    },
                   ].map(group => {
-                    const groupData = accountsTree[group.key] || { roots: [], childrenMap: {} };
+                    const groupData = accountsTree[group.key] || {
+                      roots: [],
+                      childrenMap: {},
+                    };
                     const roots = groupData.roots;
-                    if (roots.length === 0 && Object.keys(groupData.childrenMap).length === 0) return null;
+                    if (
+                      roots.length === 0 &&
+                      Object.keys(groupData.childrenMap).length === 0
+                    )
+                      return null;
 
                     return (
-                      <div 
-                        key={group.key} 
-                        className={`p-3 rounded-xl border ${group.color} space-y-2 transition-all ${dropTargetId === -100 ? 'ring-2 ring-[#b87945] bg-[#f5ece0]/60' : ''}`}
-                        onDragOver={(e) => {
+                      <div
+                        key={group.key}
+                        className={`p-3 rounded-xl border ${group.color} space-y-2 transition-all ${dropTargetId === -100 ? "ring-2 ring-[#b87945] bg-[#f5ece0]/60" : ""}`}
+                        onDragOver={e => {
                           e.preventDefault();
                           setDropTargetId(-100);
                         }}
@@ -1054,58 +1663,79 @@ export default function Home() {
                         onDrop={() => {
                           setDropTargetId(null);
                           if (draggedAccountId !== null) {
-                            const accObj = accountsData?.find((a: any) => a.id === draggedAccountId);
+                            const accObj = accountsData?.find(
+                              (a: any) => a.id === draggedAccountId
+                            );
                             setPendingMove({
                               accountId: draggedAccountId,
                               newParentAccountId: null,
                               accountName: accObj?.name || "الحساب",
-                              parentName: "الجذر الرئيسي"
+                              parentName: "الجذر الرئيسي",
                             });
                             setDraggedAccountId(null);
                           }
                         }}
                       >
                         <div className="flex justify-between items-center font-bold text-xs border-b pb-1.5 border-current/10">
-                          <span>📁 {group.label} (أفلت هنا لتجعله جذراً رئيسياً)</span>
-                          <span className="font-mono text-[10px] bg-white/80 px-2 py-0.5 rounded shadow-sm">({roots.length} جذر رئيسي)</span>
+                          <span>
+                            📁 {group.label} (أفلت هنا لتجعله جذراً رئيسياً)
+                          </span>
+                          <span className="font-mono text-[10px] bg-white/80 px-2 py-0.5 rounded shadow-sm">
+                            ({roots.length} جذر رئيسي)
+                          </span>
                         </div>
                         <div className="space-y-2 pr-2">
                           {roots.map((rootAcc: any) => {
-                            const children = groupData.childrenMap[rootAcc.id] || [];
+                            const children =
+                              groupData.childrenMap[rootAcc.id] || [];
                             const isTarget = dropTargetId === rootAcc.id;
                             return (
                               <div
                                 key={rootAcc.id}
                                 draggable
-                                onDragStart={() => setDraggedAccountId(rootAcc.id)}
-                                onDragOver={(e) => {
+                                onDragStart={() =>
+                                  setDraggedAccountId(rootAcc.id)
+                                }
+                                onDragOver={e => {
                                   e.preventDefault();
                                   setDropTargetId(rootAcc.id);
                                 }}
                                 onDragLeave={() => setDropTargetId(null)}
-                                onDrop={(e) => {
+                                onDrop={e => {
                                   e.stopPropagation();
                                   setDropTargetId(null);
-                                  if (draggedAccountId !== null && draggedAccountId !== rootAcc.id) {
-                                    const accObj = accountsData?.find((a: any) => a.id === draggedAccountId);
+                                  if (
+                                    draggedAccountId !== null &&
+                                    draggedAccountId !== rootAcc.id
+                                  ) {
+                                    const accObj = accountsData?.find(
+                                      (a: any) => a.id === draggedAccountId
+                                    );
                                     setPendingMove({
                                       accountId: draggedAccountId,
                                       newParentAccountId: rootAcc.id,
                                       accountName: accObj?.name || "الحساب",
-                                      parentName: rootAcc.name
+                                      parentName: rootAcc.name,
                                     });
                                     setDraggedAccountId(null);
                                   }
                                 }}
-                                className={`p-2.5 rounded-lg bg-white/95 border transition-all ${isTarget ? 'border-amber-500 ring-2 ring-[#d4a574] bg-[#b87945]/10 shadow-md scale-[1.01]' : 'border-slate-200 shadow-sm'} space-y-2 cursor-grab active:cursor-grabbing`}
+                                className={`p-2.5 rounded-lg bg-white/95 border transition-all ${isTarget ? "border-amber-500 ring-2 ring-[#d4a574] bg-[#b87945]/10 shadow-md scale-[1.01]" : "border-slate-200 shadow-sm"} space-y-2 cursor-grab active:cursor-grabbing`}
                               >
                                 <div className="flex justify-between items-center text-xs">
                                   <div className="flex items-center gap-2">
                                     <GripVertical className="w-3.5 h-3.5 text-slate-400" />
-                                    <span className="font-mono bg-slate-100 px-2 py-0.5 rounded border text-slate-800 font-bold">{rootAcc.code}</span>
-                                    <span className="font-bold text-slate-900">{rootAcc.name}</span>
-                                    <Badge variant="outline" className={`text-[9px] ${rootAcc.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                                      {rootAcc.isActive ? 'نشط' : 'موقف'}
+                                    <span className="font-mono bg-slate-100 px-2 py-0.5 rounded border text-slate-800 font-bold">
+                                      {rootAcc.code}
+                                    </span>
+                                    <span className="font-bold text-slate-900">
+                                      {rootAcc.name}
+                                    </span>
+                                    <Badge
+                                      variant="outline"
+                                      className={`text-[9px] ${rootAcc.isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"}`}
+                                    >
+                                      {rootAcc.isActive ? "نشط" : "موقف"}
                                     </Badge>
                                   </div>
                                   <Button
@@ -1118,12 +1748,21 @@ export default function Home() {
                                         name: rootAcc.name,
                                         code: rootAcc.code,
                                         type: rootAcc.type || "asset",
-                                        isActive: newStatus
+                                        isActive: newStatus,
                                       });
                                     }}
-                                    className={`h-6 px-2 text-[10px] ${rootAcc.isActive ? 'text-rose-600 border-rose-200 hover:bg-rose-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}
+                                    className={`h-6 px-2 text-[10px] ${rootAcc.isActive ? "text-rose-600 border-rose-200 hover:bg-rose-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}`}
                                   >
-                                    {rootAcc.isActive ? <><PowerOff className="w-3 h-3 ml-1" /> إيقاف</> : <><Power className="w-3 h-3 ml-1" /> تنشيط</>}
+                                    {rootAcc.isActive ? (
+                                      <>
+                                        <PowerOff className="w-3 h-3 ml-1" />{" "}
+                                        إيقاف
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Power className="w-3 h-3 ml-1" /> تنشيط
+                                      </>
+                                    )}
                                   </Button>
                                 </div>
 
@@ -1134,7 +1773,7 @@ export default function Home() {
                                       <div
                                         key={child.id}
                                         draggable
-                                        onDragStart={(e) => {
+                                        onDragStart={e => {
                                           e.stopPropagation();
                                           setDraggedAccountId(child.id);
                                         }}
@@ -1142,9 +1781,15 @@ export default function Home() {
                                       >
                                         <div className="flex items-center gap-2">
                                           <GripVertical className="w-3 h-3 text-slate-400" />
-                                          <span className="text-slate-400">└─</span>
-                                          <span className="font-mono bg-white px-1.5 py-0.5 rounded border text-slate-700 font-bold text-[11px]">{child.code}</span>
-                                          <span className="font-medium text-slate-900">{child.name}</span>
+                                          <span className="text-slate-400">
+                                            └─
+                                          </span>
+                                          <span className="font-mono bg-white px-1.5 py-0.5 rounded border text-slate-700 font-bold text-[11px]">
+                                            {child.code}
+                                          </span>
+                                          <span className="font-medium text-slate-900">
+                                            {child.name}
+                                          </span>
                                         </div>
                                         <Button
                                           size="sm"
@@ -1156,12 +1801,12 @@ export default function Home() {
                                               name: child.name,
                                               code: child.code,
                                               type: child.type || "asset",
-                                              isActive: newStatus
+                                              isActive: newStatus,
                                             });
                                           }}
-                                          className={`h-5 px-1.5 text-[9px] ${child.isActive ? 'text-rose-600 border-rose-200 hover:bg-rose-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}
+                                          className={`h-5 px-1.5 text-[9px] ${child.isActive ? "text-rose-600 border-rose-200 hover:bg-rose-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}`}
                                         >
-                                          {child.isActive ? 'إيقاف' : 'تنشيط'}
+                                          {child.isActive ? "إيقاف" : "تنشيط"}
                                         </Button>
                                       </div>
                                     ))}
@@ -1178,15 +1823,27 @@ export default function Home() {
               ) : (
                 <div className="space-y-2 pt-2">
                   {filteredAccountsManagement?.map((acc: any) => (
-                    <div key={acc.id} className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 flex justify-between items-center text-xs shadow-sm">
+                    <div
+                      key={acc.id}
+                      className="p-3 rounded-lg border border-slate-200 bg-slate-50/70 flex justify-between items-center text-xs shadow-sm"
+                    >
                       <div className="flex items-center gap-3">
-                        <span className="font-mono bg-white px-2.5 py-1 rounded border text-slate-800 font-bold">{acc.code}</span>
+                        <span className="font-mono bg-white px-2.5 py-1 rounded border text-slate-800 font-bold">
+                          {acc.code}
+                        </span>
                         <div>
-                          <span className="font-bold text-slate-900 block">{acc.name}</span>
-                          <span className="text-[10px] text-slate-500">التصنيف: {acc.category || acc.type}</span>
+                          <span className="font-bold text-slate-900 block">
+                            {acc.name}
+                          </span>
+                          <span className="text-[10px] text-slate-500">
+                            التصنيف: {acc.category || acc.type}
+                          </span>
                         </div>
-                        <Badge variant="outline" className={`text-[10px] ${acc.isActive ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-rose-50 text-rose-700 border-rose-200'}`}>
-                          {acc.isActive ? 'نشط' : 'موقف'}
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${acc.isActive ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-rose-50 text-rose-700 border-rose-200"}`}
+                        >
+                          {acc.isActive ? "نشط" : "موقف"}
                         </Badge>
                       </div>
                       <Button
@@ -1199,12 +1856,20 @@ export default function Home() {
                             name: acc.name,
                             code: acc.code,
                             type: acc.type || "asset",
-                            isActive: newStatus
+                            isActive: newStatus,
                           });
                         }}
-                        className={`h-7 px-2 text-[11px] ${acc.isActive ? 'text-rose-600 border-rose-200 hover:bg-rose-50' : 'text-emerald-600 border-emerald-200 hover:bg-emerald-50'}`}
+                        className={`h-7 px-2 text-[11px] ${acc.isActive ? "text-rose-600 border-rose-200 hover:bg-rose-50" : "text-emerald-600 border-emerald-200 hover:bg-emerald-50"}`}
                       >
-                        {acc.isActive ? <><PowerOff className="w-3 h-3 ml-1" /> إيقاف</> : <><Power className="w-3 h-3 ml-1" /> تنشيط</>}
+                        {acc.isActive ? (
+                          <>
+                            <PowerOff className="w-3 h-3 ml-1" /> إيقاف
+                          </>
+                        ) : (
+                          <>
+                            <Power className="w-3 h-3 ml-1" /> تنشيط
+                          </>
+                        )}
                       </Button>
                     </div>
                   ))}
@@ -1216,37 +1881,62 @@ export default function Home() {
             <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
               <CardHeader className="bg-slate-50 border-b py-2.5 px-4">
                 <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-[#b87945]" /> إقفال الدورة المحاسبية
+                  <Lock className="w-3.5 h-3.5 text-[#b87945]" /> إقفال الدورة
+                  المحاسبية
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-3 space-y-3">
                 <div className="grid grid-cols-2 gap-2">
                   <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-600">اسم الدورة / الفترة</Label>
-                    <Input value={closingPeriod} onChange={(e) => setClosingPeriod(e.target.value)} className="h-8 text-xs" placeholder="مثال: السنة المالية 2026" />
+                    <Label className="text-[11px] font-bold text-slate-600">
+                      اسم الدورة / الفترة
+                    </Label>
+                    <Input
+                      value={closingPeriod}
+                      onChange={e => setClosingPeriod(e.target.value)}
+                      className="h-8 text-xs"
+                      placeholder="مثال: السنة المالية 2026"
+                    />
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-600">إقفال حتى تاريخ</Label>
-                    <Input type="date" value={closingDate} onChange={(e) => setClosingDate(e.target.value)} className="h-8 text-xs" />
+                    <Label className="text-[11px] font-bold text-slate-600">
+                      إقفال حتى تاريخ
+                    </Label>
+                    <Input
+                      type="date"
+                      value={closingDate}
+                      onChange={e => setClosingDate(e.target.value)}
+                      className="h-8 text-xs"
+                    />
                   </div>
                 </div>
 
                 <Button
                   className="w-full h-8 text-xs bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold"
-                  onClick={() => setClosingPreviewParams({ periodName: closingPeriod.trim() || "السنة المالية 2026", asOfDate: closingDate || undefined })}
+                  onClick={() =>
+                    setClosingPreviewParams({
+                      periodName: closingPeriod.trim() || "السنة المالية 2026",
+                      asOfDate: closingDate || undefined,
+                    })
+                  }
                 >
-                  <Scale className="w-3.5 h-3.5 ml-1" /> معاينة الأرصدة قبل الإقفال
+                  <Scale className="w-3.5 h-3.5 ml-1" /> معاينة الأرصدة قبل
+                  الإقفال
                 </Button>
 
                 {closingPreview.isLoading && (
                   <div className="py-6 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                    <Loader2 className="w-4 h-4 animate-spin text-[#b87945]" /> جاري حساب أرصدة الدورة...
+                    <Loader2 className="w-4 h-4 animate-spin text-[#b87945]" />{" "}
+                    جاري حساب أرصدة الدورة...
                   </div>
                 )}
 
-                {closingPreview.data && closingPreview.data.rows.length === 0 && (
-                  <p className="text-center text-slate-400 text-xs py-4">لا توجد أرصدة إيرادات/مصروفات مُقفلة في هذه الدورة</p>
-                )}
+                {closingPreview.data &&
+                  closingPreview.data.rows.length === 0 && (
+                    <p className="text-center text-slate-400 text-xs py-4">
+                      لا توجد أرصدة إيرادات/مصروفات مُقفلة في هذه الدورة
+                    </p>
+                  )}
 
                 {closingPreview.data && closingPreview.data.rows.length > 0 && (
                   <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200">
@@ -1262,14 +1952,28 @@ export default function Home() {
                       <tbody className="divide-y divide-slate-100">
                         {closingPreview.data.rows.map((r: any) => (
                           <tr key={r.accountId} className="bg-white">
-                            <td className="py-1.5 px-3 font-mono text-slate-500">{r.code}</td>
-                            <td className="py-1.5 px-3 font-bold text-slate-800">{r.name}</td>
+                            <td className="py-1.5 px-3 font-mono text-slate-500">
+                              {r.code}
+                            </td>
+                            <td className="py-1.5 px-3 font-bold text-slate-800">
+                              {r.name}
+                            </td>
                             <td className="py-1.5 px-3">
-                              <Badge variant="outline" className={`text-[9px] ${r.side === "debit" ? "text-rose-600 border-rose-200" : "text-emerald-600 border-emerald-200"}`}>
-                                {r.type === "revenue" ? "إيراد" : r.type === "expense" ? "مصروف" : r.type}
+                              <Badge
+                                variant="outline"
+                                className={`text-[9px] ${r.side === "debit" ? "text-rose-600 border-rose-200" : "text-emerald-600 border-emerald-200"}`}
+                              >
+                                {r.type === "revenue"
+                                  ? "إيراد"
+                                  : r.type === "expense"
+                                    ? "مصروف"
+                                    : r.type}
                               </Badge>
                             </td>
-                            <td className="py-1.5 px-3 text-left font-mono font-bold text-slate-800">{Number(r.balance).toLocaleString("en-US")} {r.side === "debit" ? "مدين" : "دائن"}</td>
+                            <td className="py-1.5 px-3 text-left font-mono font-bold text-slate-800">
+                              {Number(r.balance).toLocaleString("en-US")}{" "}
+                              {r.side === "debit" ? "مدين" : "دائن"}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -1279,12 +1983,39 @@ export default function Home() {
 
                 {closingPreview.data && (
                   <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs space-y-1">
-                    <p className="flex justify-between"><span className="text-slate-500">إجمالي الإيرادات</span><b className="text-emerald-700">{Number(closingPreview.data.revenueTotal).toLocaleString("en-US")} YER</b></p>
-                    <p className="flex justify-between"><span className="text-slate-500">إجمالي المصروفات</span><b className="text-rose-700">{Number(closingPreview.data.expenseTotal).toLocaleString("en-US")} YER</b></p>
+                    <p className="flex justify-between">
+                      <span className="text-slate-500">إجمالي الإيرادات</span>
+                      <b className="text-emerald-700">
+                        {Number(
+                          closingPreview.data.revenueTotal
+                        ).toLocaleString("en-US")}{" "}
+                        YER
+                      </b>
+                    </p>
+                    <p className="flex justify-between">
+                      <span className="text-slate-500">إجمالي المصروفات</span>
+                      <b className="text-rose-700">
+                        {Number(
+                          closingPreview.data.expenseTotal
+                        ).toLocaleString("en-US")}{" "}
+                        YER
+                      </b>
+                    </p>
                     <p className="flex justify-between border-t border-slate-200 pt-1.5">
-                      <span className="font-bold text-slate-700">صافي النتيجة (أرباح/خسائر)</span>
-                      <b className={closingPreview.data.netProfit >= 0 ? "text-emerald-700" : "text-rose-700"}>
-                        {Number(closingPreview.data.netProfit).toLocaleString("en-US")} YER
+                      <span className="font-bold text-slate-700">
+                        صافي النتيجة (أرباح/خسائر)
+                      </span>
+                      <b
+                        className={
+                          closingPreview.data.netProfit >= 0
+                            ? "text-emerald-700"
+                            : "text-rose-700"
+                        }
+                      >
+                        {Number(closingPreview.data.netProfit).toLocaleString(
+                          "en-US"
+                        )}{" "}
+                        YER
                       </b>
                     </p>
                   </div>
@@ -1292,16 +2023,35 @@ export default function Home() {
 
                 <Button
                   className="w-full h-9 text-xs bg-[#102a2b] hover:bg-[#1d3f40] text-white font-bold"
-                  disabled={!closingPreview.data || closingPreview.data.rows.length === 0 || executeClosing.isPending}
+                  disabled={
+                    !closingPreview.data ||
+                    closingPreview.data.rows.length === 0 ||
+                    executeClosing.isPending
+                  }
                   onClick={() => {
-                    if (!confirm(`تنفيذ الإقفال لـ "${closingPeriod}"؟ ستُنشأ قيود إقفال نهائية ولا يمكن تكرارها.`)) return;
-                    executeClosing.mutate({ periodName: closingPeriod.trim() || "السنة المالية 2026", asOfDate: closingDate || undefined });
+                    if (
+                      !confirm(
+                        `تنفيذ الإقفال لـ "${closingPeriod}"؟ ستُنشأ قيود إقفال نهائية ولا يمكن تكرارها.`
+                      )
+                    )
+                      return;
+                    executeClosing.mutate({
+                      periodName: closingPeriod.trim() || "السنة المالية 2026",
+                      asOfDate: closingDate || undefined,
+                    });
                   }}
                 >
-                  {executeClosing.isPending ? <Loader2 className="w-4 h-4 animate-spin ml-1" /> : <Lock className="w-3.5 h-3.5 ml-1" />}
+                  {executeClosing.isPending ? (
+                    <Loader2 className="w-4 h-4 animate-spin ml-1" />
+                  ) : (
+                    <Lock className="w-3.5 h-3.5 ml-1" />
+                  )}
                   تنفيذ الإقفال وإنشاء قيود الإقفال
                 </Button>
-                <p className="text-[10px] text-slate-400 text-center">تُنقل أرصدة الإيرادات والمصروفات إلى حساب النتائج (رأس المال 3010) كقيود مرجعية، ولا يمكن تكرارها</p>
+                <p className="text-[10px] text-slate-400 text-center">
+                  تُنقل أرصدة الإيرادات والمصروفات إلى حساب النتائج (رأس المال
+                  3010) كقيود مرجعية، ولا يمكن تكرارها
+                </p>
               </CardContent>
             </Card>
           </TabsContent>
@@ -1311,16 +2061,29 @@ export default function Home() {
             <Card className="p-4 bg-white shadow-sm border-slate-200 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
                 <h2 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                  <Filter className="w-4 h-4 text-[#b87945]" /> تصفية وفرز السجلات المالية والتقارير الرسمية
+                  <Filter className="w-4 h-4 text-[#b87945]" /> تصفية وفرز
+                  السجلات المالية والتقارير الرسمية
                 </h2>
                 <div className="flex items-center gap-1.5">
-                  <Button size="sm" onClick={() => setImportOpen(true)} className="h-7 px-2.5 text-xs bg-sky-700 hover:bg-sky-800 text-white font-semibold">
+                  <Button
+                    size="sm"
+                    onClick={() => setImportOpen(true)}
+                    className="h-7 px-2.5 text-xs bg-sky-700 hover:bg-sky-800 text-white font-semibold"
+                  >
                     <Upload className="w-3.5 h-3.5 ml-1" /> استيراد
                   </Button>
-                  <Button size="sm" onClick={handleExportExcel} className="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold">
+                  <Button
+                    size="sm"
+                    onClick={handleExportExcel}
+                    className="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                  >
                     <FileSpreadsheet className="w-3.5 h-3.5 ml-1" /> Excel
                   </Button>
-                  <Button size="sm" onClick={handleExportPDF} className="h-7 px-2.5 text-xs bg-[#b87945] hover:bg-[#a06838] text-white font-semibold">
+                  <Button
+                    size="sm"
+                    onClick={handleExportPDF}
+                    className="h-7 px-2.5 text-xs bg-[#b87945] hover:bg-[#a06838] text-white font-semibold"
+                  >
                     <FileText className="w-3.5 h-3.5 ml-1" /> PDF / طباعة
                   </Button>
                 </div>
@@ -1333,7 +2096,7 @@ export default function Home() {
                   <Input
                     type="date"
                     value={filterStartDate}
-                    onChange={(e) => setFilterStartDate(e.target.value)}
+                    onChange={e => setFilterStartDate(e.target.value)}
                     className="h-7 text-xs font-mono bg-slate-50"
                   />
                 </div>
@@ -1342,7 +2105,7 @@ export default function Home() {
                   <Input
                     type="date"
                     value={filterEndDate}
-                    onChange={(e) => setFilterEndDate(e.target.value)}
+                    onChange={e => setFilterEndDate(e.target.value)}
                     className="h-7 text-xs font-mono bg-slate-50"
                   />
                 </div>
@@ -1351,20 +2114,37 @@ export default function Home() {
                     <SelectValue placeholder="حالة الحركة" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all" className="text-xs">كافة الحالات</SelectItem>
-                    <SelectItem value="saved" className="text-xs">مسودة</SelectItem>
-                    <SelectItem value="approved" className="text-xs">معتمد</SelectItem>
-                    <SelectItem value="sent" className="text-xs">مرسل</SelectItem>
+                    <SelectItem value="all" className="text-xs">
+                      كافة الحالات
+                    </SelectItem>
+                    <SelectItem value="saved" className="text-xs">
+                      مسودة
+                    </SelectItem>
+                    <SelectItem value="approved" className="text-xs">
+                      معتمد
+                    </SelectItem>
+                    <SelectItem value="sent" className="text-xs">
+                      مرسل
+                    </SelectItem>
                   </SelectContent>
                 </Select>
-                <Select value={statementAccountId} onValueChange={setStatementAccountId}>
+                <Select
+                  value={statementAccountId}
+                  onValueChange={setStatementAccountId}
+                >
                   <SelectTrigger className="h-7 text-xs bg-slate-50">
                     <SelectValue placeholder="تخصيص الحساب" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all" className="text-xs">كافة الحسابات</SelectItem>
+                    <SelectItem value="all" className="text-xs">
+                      كافة الحسابات
+                    </SelectItem>
                     {accountsData?.map((acc: any) => (
-                      <SelectItem key={acc.id} value={String(acc.id)} className="text-xs">
+                      <SelectItem
+                        key={acc.id}
+                        value={String(acc.id)}
+                        className="text-xs"
+                      >
                         {acc.code} - {acc.name}
                       </SelectItem>
                     ))}
@@ -1376,7 +2156,8 @@ export default function Home() {
               <div className="overflow-x-auto pt-2">
                 {loadingTx ? (
                   <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" /> جاري تحميل السجلات المالية...
+                    <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />{" "}
+                    جاري تحميل السجلات المالية...
                   </div>
                 ) : (
                   <table className="w-full text-right border-collapse text-xs">
@@ -1392,24 +2173,45 @@ export default function Home() {
                     <tbody className="divide-y divide-slate-100">
                       {filteredRecords && filteredRecords.length > 0 ? (
                         filteredRecords.map(tx => (
-                          <tr key={tx.id} className="hover:bg-slate-50 transition-colors">
-                            <td className="py-2 px-3 font-mono text-[11px] text-slate-600">{String(tx.transactionDate).split('T')[0]}</td>
+                          <tr
+                            key={tx.id}
+                            className="hover:bg-slate-50 transition-colors"
+                          >
+                            <td className="py-2 px-3 font-mono text-[11px] text-slate-600">
+                              {String(tx.transactionDate).split("T")[0]}
+                            </td>
                             <td className="py-2 px-3 font-medium text-slate-900">
-                              <span className="font-mono text-[10px] bg-slate-100 px-1 rounded ml-1.5 text-slate-600">{tx.accountCode}</span>
+                              <span className="font-mono text-[10px] bg-slate-100 px-1 rounded ml-1.5 text-slate-600">
+                                {tx.accountCode}
+                              </span>
                               {tx.accountName}
                             </td>
-                            <td className="py-2 px-3 font-bold font-mono text-slate-900">{parseFloat(tx.amount).toLocaleString()}</td>
-                            <td className="py-2 px-3 text-slate-600">{tx.narration || "-"}</td>
+                            <td className="py-2 px-3 font-bold font-mono text-slate-900">
+                              {parseFloat(tx.amount).toLocaleString()}
+                            </td>
+                            <td className="py-2 px-3 text-slate-600">
+                              {tx.narration || "-"}
+                            </td>
                             <td className="py-2 px-3">
-                              <Badge variant="outline" className={`text-[10px] px-1.5 py-0.5 ${tx.lifecycleStatus === 'approved' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-[#b87945]/10 text-[#7a5228] border-[#e8c9a0]'}`}>
-                                {tx.lifecycleStatus === 'approved' ? 'معتمد ومرحل' : tx.lifecycleStatus === 'sent' ? 'مرسل' : 'مسودة'}
+                              <Badge
+                                variant="outline"
+                                className={`text-[10px] px-1.5 py-0.5 ${tx.lifecycleStatus === "approved" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-[#b87945]/10 text-[#7a5228] border-[#e8c9a0]"}`}
+                              >
+                                {tx.lifecycleStatus === "approved"
+                                  ? "معتمد ومرحل"
+                                  : tx.lifecycleStatus === "sent"
+                                    ? "مرسل"
+                                    : "مسودة"}
                               </Badge>
                             </td>
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={5} className="py-8 text-center text-slate-400 text-xs">
+                          <td
+                            colSpan={5}
+                            className="py-8 text-center text-slate-400 text-xs"
+                          >
                             لا توجد سجلات مطابقة لمعايير التصفية والفرز المحددة.
                           </td>
                         </tr>
@@ -1418,7 +2220,10 @@ export default function Home() {
                     {/* Bottom Totals Summary Row */}
                     <tfoot className="bg-slate-100 font-bold border-t border-slate-200">
                       <tr>
-                        <td colSpan={2} className="py-2.5 px-3 text-slate-800">إجمالي السجلات المعروضة ({filteredRecords.length} حركة):</td>
+                        <td colSpan={2} className="py-2.5 px-3 text-slate-800">
+                          إجمالي السجلات المعروضة ({filteredRecords.length}{" "}
+                          حركة):
+                        </td>
                         <td className="py-2.5 px-3 text-slate-900 font-mono text-sm text-emerald-700">
                           {filteredTotalAmount.toLocaleString()} {currency}
                         </td>
@@ -1435,26 +2240,43 @@ export default function Home() {
           <TabsContent value="audit" className="space-y-3">
             <Card className="p-4 bg-white shadow-sm border-slate-200 space-y-3">
               <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 border-b pb-3">
-                <ShieldAlert className="w-4 h-4 text-[#b87945]" /> سجل التدقيق الشامل وتتبع الحركات (Audit Trail)
+                <ShieldAlert className="w-4 h-4 text-[#b87945]" /> سجل التدقيق
+                الشامل وتتبع الحركات (Audit Trail)
               </h3>
-              <p className="text-[11px] text-slate-500">يتتبع هذا السجل بدقة متناهية كافة العمليات الحساسة، تعديلات الدليل المحاسبي، السحب والإفلات، وحفظ واعتماد الحركات المالية.</p>
+              <p className="text-[11px] text-slate-500">
+                يتتبع هذا السجل بدقة متناهية كافة العمليات الحساسة، تعديلات
+                الدليل المحاسبي، السحب والإفلات، وحفظ واعتماد الحركات المالية.
+              </p>
 
               <div className="space-y-2 pt-2">
                 {activityLogsData && activityLogsData.length > 0 ? (
                   activityLogsData.map((log: any) => (
-                    <div key={log.id} className="p-3 rounded-lg border border-slate-200 bg-slate-50 flex justify-between items-center text-xs shadow-sm">
+                    <div
+                      key={log.id}
+                      className="p-3 rounded-lg border border-slate-200 bg-slate-50 flex justify-between items-center text-xs shadow-sm"
+                    >
                       <div className="space-y-1">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900">{log.action}</span>
-                          <span className="text-[10px] bg-[#f5ece0] text-[#5c3d1e] px-1.5 py-0.5 rounded font-mono">{log.userName || "المشرف"}</span>
+                          <span className="font-bold text-slate-900">
+                            {log.action}
+                          </span>
+                          <span className="text-[10px] bg-[#f5ece0] text-[#5c3d1e] px-1.5 py-0.5 rounded font-mono">
+                            {log.userName || "المشرف"}
+                          </span>
                         </div>
-                        <p className="text-slate-600 text-[11px]">{log.details}</p>
+                        <p className="text-slate-600 text-[11px]">
+                          {log.details}
+                        </p>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">{new Date(log.createdAt).toLocaleString()}</span>
+                      <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                        {new Date(log.createdAt).toLocaleString()}
+                      </span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-slate-400 text-center py-8 text-xs">لا توجد سجلات تدقيق مسجلة حتى الآن.</p>
+                  <p className="text-slate-400 text-center py-8 text-xs">
+                    لا توجد سجلات تدقيق مسجلة حتى الآن.
+                  </p>
                 )}
               </div>
             </Card>
@@ -1462,24 +2284,40 @@ export default function Home() {
 
           {/* Tab 5: Analytics & AI Advisor */}
           <TabsContent value="analytics" className="space-y-4">
-            <BudgetsPanel transactionsData={transactionsData as any} currency={currency} />
+            <BudgetsPanel
+              transactionsData={transactionsData as any}
+              currency={currency}
+            />
 
             <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
               <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-[#f0dfc8]">
                 <CardTitle className="flex items-center gap-2 text-[#5c3d1e] text-xs font-bold">
-                  <Sparkles className="w-4 h-4 text-[#b87945]" /> تحليل المساعد المالي الذكي (Forge LLM)
+                  <Sparkles className="w-4 h-4 text-[#b87945]" /> تحليل المساعد
+                  المالي الذكي (Forge LLM)
                 </CardTitle>
-                <Button size="sm" variant="outline" onClick={() => refetchAiAdvisor()} disabled={aiLoading} className="h-7 text-[10px] bg-white border-[#b87945]">
-                  {aiLoading ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : "تحديث التحليل"}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => refetchAiAdvisor()}
+                  disabled={aiLoading}
+                  className="h-7 text-[10px] bg-white border-[#b87945]"
+                >
+                  {aiLoading ? (
+                    <Loader2 className="w-3 h-3 animate-spin ml-1" />
+                  ) : (
+                    "تحديث التحليل"
+                  )}
                 </Button>
               </CardHeader>
               <CardContent className="p-4 text-xs leading-relaxed whitespace-pre-wrap text-slate-800">
                 {aiLoading ? (
                   <div className="py-8 flex items-center justify-center gap-2 text-slate-500">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" /> جاري استنتاج التوصيات المالية بدقة...
+                    <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />{" "}
+                    جاري استنتاج التوصيات المالية بدقة...
                   </div>
                 ) : (
-                  aiAdvisorData?.analysis || "لا توجد بيانات كافية للتحليل حالياً."
+                  aiAdvisorData?.analysis ||
+                  "لا توجد بيانات كافية للتحليل حالياً."
                 )}
               </CardContent>
             </Card>
@@ -1487,17 +2325,46 @@ export default function Home() {
             <Card className="border-slate-200 shadow-sm">
               <CardHeader className="py-3 px-4 border-b">
                 <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <PieChart className="w-4 h-4 text-blue-600" /> مقارنة أداء الفروع والمؤسسات المتعددة
+                  <PieChart className="w-4 h-4 text-blue-600" /> مقارنة أداء
+                  الفروع والمؤسسات المتعددة
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
                 {branchComparisonData?.comparison?.map((b: any) => (
-                  <div key={b.id} className="p-3.5 border rounded-xl bg-slate-50 shadow-sm space-y-2">
-                    <div className="flex justify-between items-center"><span className="font-bold text-slate-900 text-xs">{b.name}</span><Badge variant="outline" className="text-[10px] font-mono">{b.code}</Badge></div>
+                  <div
+                    key={b.id}
+                    className="p-3.5 border rounded-xl bg-slate-50 shadow-sm space-y-2"
+                  >
+                    <div className="flex justify-between items-center">
+                      <span className="font-bold text-slate-900 text-xs">
+                        {b.name}
+                      </span>
+                      <Badge
+                        variant="outline"
+                        className="text-[10px] font-mono"
+                      >
+                        {b.code}
+                      </Badge>
+                    </div>
                     <div className="space-y-1 text-[11px] pt-1 border-t">
-                      <div className="flex justify-between"><span className="text-slate-500">الإيرادات:</span><span className="font-bold font-mono text-emerald-600">{b.revenue.toLocaleString()}</span></div>
-                      <div className="flex justify-between"><span className="text-slate-500">المصروفات:</span><span className="font-bold font-mono text-rose-600">{b.expenses.toLocaleString()}</span></div>
-                      <div className="flex justify-between border-t pt-1 font-bold text-slate-900"><span>صافي الدخل:</span><span className="font-mono text-blue-700">{b.netProfit.toLocaleString()}</span></div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">الإيرادات:</span>
+                        <span className="font-bold font-mono text-emerald-600">
+                          {b.revenue.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-500">المصروفات:</span>
+                        <span className="font-bold font-mono text-rose-600">
+                          {b.expenses.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="flex justify-between border-t pt-1 font-bold text-slate-900">
+                        <span>صافي الدخل:</span>
+                        <span className="font-mono text-blue-700">
+                          {b.netProfit.toLocaleString()}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1513,25 +2380,36 @@ export default function Home() {
                   {(profileName || "U").charAt(0).toUpperCase()}
                 </div>
                 <div>
-                  <h2 className="font-bold text-sm text-slate-900">{profileName || "المستخدم الحالي"}</h2>
-                  <p className="text-slate-500 text-[11px]">{profileEmail || "user@al-husainia.com"} • الدور الوظيفي: <span className="font-semibold text-[#b87945]">{user?.role || "admin"}</span></p>
+                  <h2 className="font-bold text-sm text-slate-900">
+                    {profileName || "المستخدم الحالي"}
+                  </h2>
+                  <p className="text-slate-500 text-[11px]">
+                    {profileEmail || "user@al-husainia.com"} • الدور الوظيفي:{" "}
+                    <span className="font-semibold text-[#b87945]">
+                      {user?.role || "admin"}
+                    </span>
+                  </p>
                 </div>
               </div>
 
               <div className="space-y-3">
                 <div>
-                  <Label className="text-[11px] text-slate-700 mb-1 block font-medium">الاسم الشخصي / الوظيفي</Label>
+                  <Label className="text-[11px] text-slate-700 mb-1 block font-medium">
+                    الاسم الشخصي / الوظيفي
+                  </Label>
                   <Input
                     value={profileName}
-                    onChange={(e) => setProfileName(e.target.value)}
+                    onChange={e => setProfileName(e.target.value)}
                     className="h-8 text-xs bg-slate-50"
                   />
                 </div>
                 <div>
-                  <Label className="text-[11px] text-slate-700 mb-1 block font-medium">البريد الإلكتروني للإشعارات</Label>
+                  <Label className="text-[11px] text-slate-700 mb-1 block font-medium">
+                    البريد الإلكتروني للإشعارات
+                  </Label>
                   <Input
                     value={profileEmail}
-                    onChange={(e) => setProfileEmail(e.target.value)}
+                    onChange={e => setProfileEmail(e.target.value)}
                     className="h-8 text-xs bg-slate-50"
                   />
                 </div>
@@ -1557,28 +2435,58 @@ export default function Home() {
       </main>
 
       {/* Bulk CSV Import Dialog */}
-      <Dialog open={importOpen} onOpenChange={(open) => { setImportOpen(open); if (!open) { setImportResult(null); setImportText(""); } }}>
-        <DialogContent className="max-w-lg font-sans" dir="rtl" aria-describedby="import-desc">
+      <Dialog
+        open={importOpen}
+        onOpenChange={open => {
+          setImportOpen(open);
+          if (!open) {
+            setImportResult(null);
+            setImportText("");
+          }
+        }}
+      >
+        <DialogContent
+          className="max-w-lg font-sans"
+          dir="rtl"
+          aria-describedby="import-desc"
+        >
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Upload className="w-4 h-4 text-[#b87945]" /> استيراد جماعي للحركات (Excel/CSV)
+              <Upload className="w-4 h-4 text-[#b87945]" /> استيراد جماعي
+              للحركات (Excel/CSV)
             </DialogTitle>
-            <DialogDescription id="import-desc" className="text-xs text-slate-600 pt-2 space-y-2">
-              <p>الصق صفوفاً بصيغة CSV — الأعمدة بالترتيب: <b>التاريخ، الحساب، الكود، المبلغ، البيان، النوع</b> (النوع اختياري). يدعم أيضاً اللصق المباشر من ملف Excel المُصدَّر.</p>
+            <DialogDescription
+              id="import-desc"
+              className="text-xs text-slate-600 pt-2 space-y-2"
+            >
+              <p>
+                الصق صفوفاً بصيغة CSV — الأعمدة بالترتيب:{" "}
+                <b>التاريخ، الحساب، الكود، المبلغ، البيان، النوع</b> (النوع
+                اختياري). يدعم أيضاً اللصق المباشر من ملف Excel المُصدَّر.
+              </p>
               <p className="text-[11px] bg-[#fff8ef] border border-[#e8c9a0] rounded-lg p-2.5 text-slate-700 leading-relaxed">
-                <span className="font-bold text-[#b87945]">دليل سريع:</span> التاريخ <b>2026-08-01</b> أو <b>01/08/2026</b> · المبلغ أرقام فقط · النوع <b>debit</b> (مدين) أو <b>credit</b> (دائن) ويُفترض <b>debit</b> إن تُرك فارغاً، والمبلغ السالب يُحول دائناً تلقائياً · يجد النظام الحساب بكوده أو اسمه من الدليل.
+                <span className="font-bold text-[#b87945]">دليل سريع:</span>{" "}
+                التاريخ <b>2026-08-01</b> أو <b>01/08/2026</b> · المبلغ أرقام
+                فقط · النوع <b>debit</b> (مدين) أو <b>credit</b> (دائن) ويُفترض{" "}
+                <b>debit</b> إن تُرك فارغاً، والمبلغ السالب يُحول دائناً
+                تلقائياً · يجد النظام الحساب بكوده أو اسمه من الدليل.
               </p>
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <Textarea
               value={importText}
-              onChange={(e) => setImportText(e.target.value)}
-              placeholder={"التاريخ,الحساب,الكود,المبلغ,البيان,النوع\n2026-08-01,الصندوق الرئيسي,1010,5000,مبيعات نقدية,debit"}
+              onChange={e => setImportText(e.target.value)}
+              placeholder={
+                "التاريخ,الحساب,الكود,المبلغ,البيان,النوع\n2026-08-01,الصندوق الرئيسي,1010,5000,مبيعات نقدية,debit"
+              }
               className="min-h-[140px] text-xs font-mono dir-ltr text-left rounded-lg border-slate-300"
             />
             <div className="flex items-center justify-between gap-2">
-              <Select value={importLifecycle} onValueChange={(v) => setImportLifecycle(v as any)}>
+              <Select
+                value={importLifecycle}
+                onValueChange={v => setImportLifecycle(v as any)}
+              >
                 <SelectTrigger className="h-8 text-xs bg-slate-50 w-40">
                   <SelectValue placeholder="حالة الحركات" />
                 </SelectTrigger>
@@ -1588,31 +2496,56 @@ export default function Home() {
                   <SelectItem value="sent">مرسلة</SelectItem>
                 </SelectContent>
               </Select>
-              <span className="text-[11px] text-slate-500">تُطبق الحالة على كل الحركات المستوردة</span>
+              <span className="text-[11px] text-slate-500">
+                تُطبق الحالة على كل الحركات المستوردة
+              </span>
             </div>
             {importResult && (
-              <div className={`rounded-lg border p-2.5 text-xs space-y-1.5 ${importResult.skipped.length ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}>
+              <div
+                className={`rounded-lg border p-2.5 text-xs space-y-1.5 ${importResult.skipped.length ? "bg-amber-50 border-amber-200" : "bg-emerald-50 border-emerald-200"}`}
+              >
                 <p className="font-bold text-slate-800">
-                  النتيجة: استُورد {importResult.imported} من {importResult.total} {importResult.skipped.length ? `— ${importResult.skipped.length} صف متخطّى` : "— تم استيراد الكل بنجاح"}
+                  النتيجة: استُورد {importResult.imported} من{" "}
+                  {importResult.total}{" "}
+                  {importResult.skipped.length
+                    ? `— ${importResult.skipped.length} صف متخطّى`
+                    : "— تم استيراد الكل بنجاح"}
                 </p>
                 {importResult.skipped.slice(0, 6).map((s, i) => (
-                  <p key={i} className="text-[11px] text-slate-600">سطر {s.line}: {s.reason}</p>
+                  <p key={i} className="text-[11px] text-slate-600">
+                    سطر {s.line}: {s.reason}
+                  </p>
                 ))}
-                {importResult.skipped.length > 6 && <p className="text-[11px] text-slate-500">+ {importResult.skipped.length - 6} ملاحظات أخرى…</p>}
+                {importResult.skipped.length > 6 && (
+                  <p className="text-[11px] text-slate-500">
+                    + {importResult.skipped.length - 6} ملاحظات أخرى…
+                  </p>
+                )}
               </div>
             )}
           </div>
           <DialogFooter className="flex gap-2 pt-2">
-            <Button variant="outline" size="sm" onClick={handleCopyImportTemplate} className="text-xs h-8">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCopyImportTemplate}
+              className="text-xs h-8"
+            >
               <ClipboardCopy className="w-3.5 h-3.5 ml-1" /> نسخ قالب
             </Button>
             <Button
               size="sm"
               onClick={handleImportFromText}
-              disabled={!importText.trim() || addBatchTransactionsMutation.isPending}
+              disabled={
+                !importText.trim() || addBatchTransactionsMutation.isPending
+              }
               className="text-xs h-8 bg-sky-700 hover:bg-sky-800 text-white font-bold"
             >
-              {addBatchTransactionsMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Upload className="w-3 h-3 ml-1" />}
+              {addBatchTransactionsMutation.isPending ? (
+                <Loader2 className="w-3 h-3 animate-spin ml-1" />
+              ) : (
+                <Upload className="w-3 h-3 ml-1" />
+              )}
               استيراد الحركات
             </Button>
           </DialogFooter>
@@ -1627,45 +2560,99 @@ export default function Home() {
               <Scale className="w-4 h-4 text-[#b87945]" /> الأرصدة الافتتاحية
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-600 pt-2">
-              أدخل أرصدة بداية الفترة لحسابات الميزانية — الإيرادات والمصروفات تبدأ من صفر.
+              أدخل أرصدة بداية الفترة لحسابات الميزانية — الإيرادات والمصروفات
+              تبدأ من صفر.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div className="flex items-center gap-2">
-              <Label className="text-xs font-bold whitespace-nowrap text-slate-700">الفترة:</Label>
-              <Input value={obPeriod} onChange={(e) => setObPeriod(e.target.value)} className="h-8 text-xs bg-slate-50" />
+              <Label className="text-xs font-bold whitespace-nowrap text-slate-700">
+                الفترة:
+              </Label>
+              <Input
+                value={obPeriod}
+                onChange={e => setObPeriod(e.target.value)}
+                className="h-8 text-xs bg-slate-50"
+              />
             </div>
             <div className="max-h-[44vh] overflow-y-auto space-y-1.5 border border-slate-200 rounded-lg p-2 bg-slate-50/50">
-              {obLoading && <p className="text-xs text-slate-500 py-4 text-center">جاري تحميل الأرصدة…</p>}
-              {!obLoading && obRows.length === 0 && <p className="text-xs text-slate-500 py-4 text-center">لا توجد حسابات ميزانية (أصول/خصوم/حقوق ملكية) — أضفها أولاً من دليل الحسابات.</p>}
-              {!obLoading && obRows.map((r) => (
-                <div key={r.accountId} className="flex items-center gap-2 text-xs py-1.5 border-b border-dashed border-slate-200 last:border-0">
-                  <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-[10px] text-slate-700">{r.code}</span>
-                  <span className="flex-1 truncate text-slate-800">{r.name}</span>
-                  <Select value={r.type} onValueChange={(v) => updateObRow(r.accountId, "type", v)}>
-                    <SelectTrigger className="h-7 w-20 text-[11px] bg-white">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="debit" className="text-xs">مدين</SelectItem>
-                      <SelectItem value="credit" className="text-xs">دائن</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Input
-                    type="number" min="0" placeholder="0"
-                    value={r.amount}
-                    onChange={(e) => updateObRow(r.accountId, "amount", e.target.value)}
-                    className="h-7 w-28 text-xs font-mono text-left bg-white"
-                  />
-                </div>
-              ))}
+              {obLoading && (
+                <p className="text-xs text-slate-500 py-4 text-center">
+                  جاري تحميل الأرصدة…
+                </p>
+              )}
+              {!obLoading && obRows.length === 0 && (
+                <p className="text-xs text-slate-500 py-4 text-center">
+                  لا توجد حسابات ميزانية (أصول/خصوم/حقوق ملكية) — أضفها أولاً من
+                  دليل الحسابات.
+                </p>
+              )}
+              {!obLoading &&
+                obRows.map(r => (
+                  <div
+                    key={r.accountId}
+                    className="flex items-center gap-2 text-xs py-1.5 border-b border-dashed border-slate-200 last:border-0"
+                  >
+                    <span className="font-mono bg-white px-1.5 py-0.5 rounded border border-slate-200 text-[10px] text-slate-700">
+                      {r.code}
+                    </span>
+                    <span className="flex-1 truncate text-slate-800">
+                      {r.name}
+                    </span>
+                    <Select
+                      value={r.type}
+                      onValueChange={v => updateObRow(r.accountId, "type", v)}
+                    >
+                      <SelectTrigger className="h-7 w-20 text-[11px] bg-white">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="debit" className="text-xs">
+                          مدين
+                        </SelectItem>
+                        <SelectItem value="credit" className="text-xs">
+                          دائن
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      min="0"
+                      placeholder="0"
+                      value={r.amount}
+                      onChange={e =>
+                        updateObRow(r.accountId, "amount", e.target.value)
+                      }
+                      className="h-7 w-28 text-xs font-mono text-left bg-white"
+                    />
+                  </div>
+                ))}
             </div>
-            <p className="text-[11px] text-slate-500">الأرصدة تدخل مباشرة في ميزان المراجعة والميزانية العمومية لنفس الفترة.</p>
+            <p className="text-[11px] text-slate-500">
+              الأرصدة تدخل مباشرة في ميزان المراجعة والميزانية العمومية لنفس
+              الفترة.
+            </p>
           </div>
           <DialogFooter className="flex gap-2 pt-2">
-            <Button variant="outline" size="sm" onClick={() => setObOpen(false)} className="text-xs h-8">إلغاء</Button>
-            <Button size="sm" onClick={handleObSave} disabled={saveOpeningBalancesMutation.isPending} className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-white font-bold">
-              {saveOpeningBalancesMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Save className="w-3 h-3 ml-1" />}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setObOpen(false)}
+              className="text-xs h-8"
+            >
+              إلغاء
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleObSave}
+              disabled={saveOpeningBalancesMutation.isPending}
+              className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-white font-bold"
+            >
+              {saveOpeningBalancesMutation.isPending ? (
+                <Loader2 className="w-3 h-3 animate-spin ml-1" />
+              ) : (
+                <Save className="w-3 h-3 ml-1" />
+              )}
               حفظ الأرصدة
             </Button>
           </DialogFooter>
@@ -1673,14 +2660,26 @@ export default function Home() {
       </Dialog>
 
       {/* Confirmation Modal for Drag and Drop Move */}
-      <Dialog open={!!pendingMove} onOpenChange={(open) => !open && setPendingMove(null)}>
+      <Dialog
+        open={!!pendingMove}
+        onOpenChange={open => !open && setPendingMove(null)}
+      >
         <DialogContent className="max-w-md font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Network className="w-4 h-4 text-[#b87945]" /> تأكيد إعادة ترتيب الحساب الشجري
+              <Network className="w-4 h-4 text-[#b87945]" /> تأكيد إعادة ترتيب
+              الحساب الشجري
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-600 pt-2">
-              هل أنت متأكد من رغبتك في نقل الحساب <span className="font-bold text-slate-900">"{pendingMove?.accountName}"</span> ليكون تابعاً تحت الحساب الرئيسي <span className="font-bold text-[#7a5228]">"{pendingMove?.parentName}"</span>؟
+              هل أنت متأكد من رغبتك في نقل الحساب{" "}
+              <span className="font-bold text-slate-900">
+                "{pendingMove?.accountName}"
+              </span>{" "}
+              ليكون تابعاً تحت الحساب الرئيسي{" "}
+              <span className="font-bold text-[#7a5228]">
+                "{pendingMove?.parentName}"
+              </span>
+              ؟
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex gap-2 pt-2">
@@ -1698,14 +2697,18 @@ export default function Home() {
                 if (pendingMove) {
                   moveAccountMutation.mutate({
                     accountId: pendingMove.accountId,
-                    newParentAccountId: pendingMove.newParentAccountId
+                    newParentAccountId: pendingMove.newParentAccountId,
                   });
                 }
               }}
               disabled={moveAccountMutation.isPending}
               className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-white font-bold"
             >
-              {moveAccountMutation.isPending ? <Loader2 className="w-3 h-3 animate-spin ml-1" /> : <Check className="w-3 h-3 ml-1" />}
+              {moveAccountMutation.isPending ? (
+                <Loader2 className="w-3 h-3 animate-spin ml-1" />
+              ) : (
+                <Check className="w-3 h-3 ml-1" />
+              )}
               تأكيد وحفظ النقل
             </Button>
           </DialogFooter>
@@ -1715,27 +2718,45 @@ export default function Home() {
       {/* Mobile Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-[#102a2b] border-t border-[#1e3a3c] z-50 text-white py-1.5 px-4 shadow-2xl">
         <div className="max-w-md mx-auto flex justify-around items-center text-[10px]">
-          <button onClick={() => setActiveTab("entry")} className={`flex flex-col items-center gap-0.5 ${activeTab === 'entry' ? 'text-[#d4a574] font-bold' : 'text-slate-400 hover:text-white'}`}>
+          <button
+            onClick={() => setActiveTab("entry")}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "entry" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+          >
             <Plus className="w-4 h-4" />
             <span>الإدخال</span>
           </button>
-          <button onClick={() => setActiveTab("accounts")} className={`flex flex-col items-center gap-0.5 ${activeTab === 'accounts' ? 'text-[#d4a574] font-bold' : 'text-slate-400 hover:text-white'}`}>
+          <button
+            onClick={() => setActiveTab("accounts")}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "accounts" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+          >
             <BookOpen className="w-4 h-4" />
             <span>الدليل</span>
           </button>
-          <button onClick={() => setActiveTab("reports")} className={`flex flex-col items-center gap-0.5 ${activeTab === 'reports' ? 'text-[#d4a574] font-bold' : 'text-slate-400 hover:text-white'}`}>
+          <button
+            onClick={() => setActiveTab("reports")}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "reports" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+          >
             <BarChart3 className="w-4 h-4" />
             <span>التقارير</span>
           </button>
-          <button onClick={() => setActiveTab("audit")} className={`flex flex-col items-center gap-0.5 ${activeTab === 'audit' ? 'text-[#d4a574] font-bold' : 'text-slate-400 hover:text-white'}`}>
+          <button
+            onClick={() => setActiveTab("audit")}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "audit" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+          >
             <History className="w-4 h-4" />
             <span>التدقيق</span>
           </button>
-          <button onClick={() => setActiveTab("analytics")} className={`flex flex-col items-center gap-0.5 ${activeTab === 'analytics' ? 'text-[#d4a574] font-bold' : 'text-slate-400 hover:text-white'}`}>
+          <button
+            onClick={() => setActiveTab("analytics")}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "analytics" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+          >
             <Sparkles className="w-4 h-4" />
             <span>التحليلات</span>
           </button>
-          <button onClick={() => setActiveTab("profile")} className={`flex flex-col items-center gap-0.5 ${activeTab === 'profile' ? 'text-[#d4a574] font-bold' : 'text-slate-400 hover:text-white'}`}>
+          <button
+            onClick={() => setActiveTab("profile")}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "profile" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+          >
             <User className="w-4 h-4" />
             <span>الملف</span>
           </button>

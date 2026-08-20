@@ -18,6 +18,8 @@ build/
 .manus-logs/
 npm-debug.log*
 pnpm-debug.log*
+ts-err6.txt
+*.tmp
 
 # Vercel project link (machine-specific)
 .vercel/
@@ -31,3 +33,5 @@ Thumbs.db
 .idea/
 .vscode/*
 !.vscode/extensions.json
+
+.vercel

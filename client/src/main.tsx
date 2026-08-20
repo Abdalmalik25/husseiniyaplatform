@@ -1,5 +1,5 @@
 import { trpc } from "@/lib/trpc";
-import { COOKIE_NAME, UNAUTHED_ERR_MSG } from '@shared/const';
+import { COOKIE_NAME, UNAUTHED_ERR_MSG } from "@shared/const";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
@@ -18,21 +18,25 @@ const queryClient = new QueryClient({
   },
 });
 
-const redirectToLoginIfUnauthorized = (error: unknown) => {
+// Only redirect on UNAUTHORIZED when we're not already on the login page and we
+// haven't redirected during this page session. This prevents redirect loops and
+// hijacking the UI during background refetches / mutations. Auth-gated pages that
+// need a hard redirect use useAuth({ redirectOnUnauthenticated: true }) instead.
+let redirectedThisSession = false;
+const maybeRedirectToLogin = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
   if (typeof window === "undefined") return;
-
-  const isUnauthorized = error.message === UNAUTHED_ERR_MSG;
-
-  if (!isUnauthorized) return;
-
+  if (error.message !== UNAUTHED_ERR_MSG) return;
+  if (redirectedThisSession) return;
+  if (window.location.pathname.startsWith("/login")) return;
+  redirectedThisSession = true;
   startLogin();
 };
 
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
-    redirectToLoginIfUnauthorized(error);
+    maybeRedirectToLogin(error);
     console.error("[API Query Error]", error);
   }
 });
@@ -40,7 +44,6 @@ queryClient.getQueryCache().subscribe(event => {
 queryClient.getMutationCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.mutation.state.error;
-    redirectToLoginIfUnauthorized(error);
     console.error("[API Mutation Error]", error);
   }
 });

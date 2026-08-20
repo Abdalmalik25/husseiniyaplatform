@@ -2,8 +2,20 @@ import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Download, Smartphone, Monitor, Tablet, Check, Copy, ExternalLink, QrCode, Wifi, WifiOff } from "lucide-react";
+import {
+  Download,
+  Smartphone,
+  Monitor,
+  Tablet,
+  Check,
+  Copy,
+  ExternalLink,
+  QrCode,
+  Wifi,
+  WifiOff,
+} from "lucide-react";
 import { toast } from "sonner";
+import { HeaderNavbar } from "@/components/HeaderNavbar";
 
 type DeviceType = "android" | "ios" | "desktop" | "unknown";
 type InstallMethod = "pwa" | "apk" | "playstore" | "appstore" | "manual";
@@ -19,7 +31,8 @@ interface DeviceInfo {
 
 function detectDevice(): DeviceInfo {
   const ua = navigator.userAgent;
-  const isStandalone = window.matchMedia("(display-mode: standalone)").matches ||
+  const isStandalone =
+    window.matchMedia("(display-mode: standalone)").matches ||
     (window.navigator as any).standalone === true;
 
   let type: DeviceType = "unknown";
@@ -40,7 +53,10 @@ function detectDevice(): DeviceInfo {
       browser = "Edge";
       canInstallPWA = true;
     }
-  } else if (/iPad|iPhone|iPod/.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)) {
+  } else if (
+    /iPad|iPhone|iPod/.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  ) {
     type = "ios";
     browser = "Safari";
     canInstallPWA = true;
@@ -70,15 +86,15 @@ function detectDevice(): DeviceInfo {
     if (canInstallPWA) {
       instructions = [
         "اضغط على النقاط الثلاث (⋮) في أعلى يمين المتصفح",
-        "اختر \"تثبيت التطبيق\" أو \"إضافة إلى الشاشة الرئيسية\"",
-        "اضغط \"تثبيت\" للتأكيد",
-        "سيظهر التطبيق على شاشتك مباشرة"
+        'اختر "تثبيت التطبيق" أو "إضافة إلى الشاشة الرئيسية"',
+        'اضغط "تثبيت" للتأكيد',
+        "سيظهر التطبيق على شاشتك مباشرة",
       ];
       method = "pwa";
     } else {
       instructions = [
         "افتح هذا الرابط في متصفح Chrome",
-        "اتبع خطوات التثبيت التالية"
+        "اتبع خطوات التثبيت التالية",
       ];
       method = "pwa";
     }
@@ -86,9 +102,9 @@ function detectDevice(): DeviceInfo {
     instructions = [
       "افتح هذا الرابط في متصفح Safari",
       "اضغط على زر المشاركة (المربع السهم) أسفل الشاشة",
-      "اختر \"إضافة إلى الشاشة الرئيسية\"",
-      "اضغط \"إضافة\" في الزاوية اليمنى العليا",
-      "سيظهر التطبيق على شاشتك مباشرة"
+      'اختر "إضافة إلى الشاشة الرئيسية"',
+      'اضغط "إضافة" في الزاوية اليمنى العليا',
+      "سيظهر التطبيق على شاشتك مباشرة",
     ];
     method = "pwa";
   } else if (type === "desktop") {
@@ -96,14 +112,14 @@ function detectDevice(): DeviceInfo {
       instructions = [
         "اضغط على أيقونة التثبيت (⬇) في شريط العنوان",
         "أو اضغط Ctrl+Shift+I ثم اختر Install",
-        "اضغط \"تثبيت\" للتأكيد",
-        "سيظهر التطبيق كنافذة مستقلة"
+        'اضغط "تثبيت" للتأكيد',
+        "سيظهر التطبيق كنافذة مستقلة",
       ];
       method = "pwa";
     } else {
       instructions = [
         "استخدم متصفح Chrome أو Edge لأفضل تجربة",
-        " Bookmark هذا الرابط للوصول السريع"
+        " Bookmark هذا الرابط للوصول السريع",
       ];
       method = "manual";
     }
@@ -114,19 +130,27 @@ function detectDevice(): DeviceInfo {
 
 function getDeviceIcon(type: DeviceType) {
   switch (type) {
-    case "android": return <Smartphone className="w-6 h-6" />;
-    case "ios": return <Smartphone className="w-6 h-6" />;
-    case "desktop": return <Monitor className="w-6 h-6" />;
-    default: return <Tablet className="w-6 h-6" />;
+    case "android":
+      return <Smartphone className="w-6 h-6" />;
+    case "ios":
+      return <Smartphone className="w-6 h-6" />;
+    case "desktop":
+      return <Monitor className="w-6 h-6" />;
+    default:
+      return <Tablet className="w-6 h-6" />;
   }
 }
 
 function getDeviceLabel(type: DeviceType): string {
   switch (type) {
-    case "android": return "Android";
-    case "ios": return "iOS / iPhone";
-    case "desktop": return "كمبيوتر";
-    default: return "جهاز غير معروف";
+    case "android":
+      return "Android";
+    case "ios":
+      return "iOS / iPhone";
+    case "desktop":
+      return "كمبيوتر";
+    default:
+      return "جهاز غير معروف";
   }
 }
 
@@ -135,7 +159,12 @@ function QRCodeSVG({ url, size = 200 }: { url: string; size?: number }) {
   const cellSize = size / modules.length;
 
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} xmlns="http://www.w3.org/2000/svg">
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      xmlns="http://www.w3.org/2000/svg"
+    >
       <rect width={size} height={size} fill="white" />
       {modules.map((row, y) =>
         row.map((cell, x) =>
@@ -157,14 +186,21 @@ function QRCodeSVG({ url, size = 200 }: { url: string; size?: number }) {
 
 function generateQRMatrix(text: string): boolean[][] {
   const size = 25;
-  const matrix: boolean[][] = Array.from({ length: size }, () => Array(size).fill(false));
+  const matrix: boolean[][] = Array.from({ length: size }, () =>
+    Array(size).fill(false)
+  );
 
   // Finder patterns
   const drawFinder = (startX: number, startY: number) => {
     for (let i = 0; i < 7; i++) {
       for (let j = 0; j < 7; j++) {
-        if (i === 0 || i === 6 || j === 0 || j === 6 ||
-            (i >= 2 && i <= 4 && j >= 2 && j <= 4)) {
+        if (
+          i === 0 ||
+          i === 6 ||
+          j === 0 ||
+          j === 6 ||
+          (i >= 2 && i <= 4 && j >= 2 && j <= 4)
+        ) {
           matrix[startY + i][startX + j] = true;
         }
       }
@@ -182,7 +218,10 @@ function generateQRMatrix(text: string): boolean[][] {
   }
 
   // Data encoding (simplified)
-  const hash = Array.from(text).reduce((acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0, 0);
+  const hash = Array.from(text).reduce(
+    (acc, char) => ((acc << 5) - acc + char.charCodeAt(0)) | 0,
+    0
+  );
   let seed = Math.abs(hash);
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
@@ -191,7 +230,7 @@ function generateQRMatrix(text: string): boolean[][] {
       if (x > size - 9 && y < 9) continue;
       if (x < 9 && y > size - 9) continue;
       seed = (seed * 1103515245 + 12345) & 0x7fffffff;
-      matrix[y][x] = (seed % 3) === 0;
+      matrix[y][x] = seed % 3 === 0;
     }
   }
 
@@ -236,27 +275,17 @@ export default function DownloadPage() {
     toast.success("تم نسخ الرابط");
   };
 
-  const currentUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const currentUrl =
+    typeof window !== "undefined" ? window.location.origin : "";
 
   if (!deviceInfo) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#fbf8f2] to-[#f0ebe3] flex flex-col">
-      {/* Header */}
-      <header className="bg-[#102a2b] text-white p-4 shadow-lg">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-[#b87945] w-10 h-10 rounded-xl flex items-center justify-center font-bold text-lg">ح</div>
-            <div>
-              <h1 className="font-bold text-sm">ALHUSAINIA</h1>
-              <p className="text-[10px] text-white/60">نظام الحسينية المحاسبي</p>
-            </div>
-          </div>
-          <Badge variant="outline" className="border-[#b87945] text-[#b87945] text-[10px]">
-            {deviceInfo.isStandalone ? "مُثبّت" : "جاهز للتثبيت"}
-          </Badge>
-        </div>
-      </header>
+    <div
+      className="min-h-screen bg-gradient-to-br from-[#fbf8f2] to-[#f0ebe3] flex flex-col"
+      dir="rtl"
+    >
+      <HeaderNavbar institutionName="تحميل تطبيق منصة الحسينية" />
 
       <main className="flex-1 max-w-2xl mx-auto w-full p-4 space-y-4">
         {/* Device Detection Card */}
@@ -267,7 +296,9 @@ export default function DownloadPage() {
                 {getDeviceIcon(deviceInfo.type)}
               </div>
               <div>
-                <h2 className="font-bold text-[#102a2b] text-lg">تم اكتشاف جهازك</h2>
+                <h2 className="font-bold text-[#102a2b] text-lg">
+                  تم اكتشاف جهازك
+                </h2>
                 <p className="text-xs text-gray-500">
                   {getDeviceLabel(deviceInfo.type)} • {deviceInfo.browser}
                 </p>
@@ -278,8 +309,12 @@ export default function DownloadPage() {
               <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
                 <Check className="w-5 h-5 text-green-600" />
                 <div>
-                  <p className="font-bold text-green-800 text-sm">التطبيق مُثبّت بالفعل</p>
-                  <p className="text-xs text-green-600">يمكنك الوصول من شاشتك الرئيسية</p>
+                  <p className="font-bold text-green-800 text-sm">
+                    التطبيق مُثبّت بالفعل
+                  </p>
+                  <p className="text-xs text-green-600">
+                    يمكنك الوصول من شاشتك الرئيسية
+                  </p>
                 </div>
               </div>
             ) : (
@@ -299,7 +334,9 @@ export default function DownloadPage() {
                 {/* QR Code */}
                 <div className="flex flex-col items-center gap-2 py-3">
                   <QrCode className="w-5 h-5 text-[#102a2b]" />
-                  <p className="text-xs text-gray-500">امسح الرمز للتحميل على جهاز آخر</p>
+                  <p className="text-xs text-gray-500">
+                    امسح الرمز للتحميل على جهاز آخر
+                  </p>
                   <div className="bg-white p-2 rounded-lg border shadow-sm">
                     <QRCodeSVG url={currentUrl} size={160} />
                   </div>
@@ -332,7 +369,9 @@ export default function DownloadPage() {
                     <span className="bg-[#b87945] text-[#102a2b] w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
                       {i + 1}
                     </span>
-                    <span className="text-sm text-gray-700 leading-relaxed">{step}</span>
+                    <span className="text-sm text-gray-700 leading-relaxed">
+                      {step}
+                    </span>
                   </li>
                 ))}
               </ol>
@@ -343,15 +382,29 @@ export default function DownloadPage() {
         {/* Features Card */}
         <Card className="border-0 shadow-md bg-[#102a2b] text-white">
           <CardContent className="p-5">
-            <h3 className="font-bold text-[#b87945] text-sm mb-3">مميزات التطبيق</h3>
+            <h3 className="font-bold text-[#b87945] text-sm mb-3">
+              مميزات التطبيق
+            </h3>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { icon: <WifiOff className="w-4 h-4" />, text: "يعمل بدون إنترنت" },
+                {
+                  icon: <WifiOff className="w-4 h-4" />,
+                  text: "يعمل بدون إنترنت",
+                },
                 { icon: <Wifi className="w-4 h-4" />, text: "مزامنة تلقائية" },
-                { icon: <Smartphone className="w-4 h-4" />, text: "متوافق مع كل الأجهزة" },
-                { icon: <Monitor className="w-4 h-4" />, text: ".POINT OF SALE" },
+                {
+                  icon: <Smartphone className="w-4 h-4" />,
+                  text: "متوافق مع كل الأجهزة",
+                },
+                {
+                  icon: <Monitor className="w-4 h-4" />,
+                  text: ".POINT OF SALE",
+                },
               ].map((f, i) => (
-                <div key={i} className="flex items-center gap-2 text-xs text-white/80">
+                <div
+                  key={i}
+                  className="flex items-center gap-2 text-xs text-white/80"
+                >
                   <span className="text-[#b87945]">{f.icon}</span>
                   {f.text}
                 </div>
@@ -365,7 +418,9 @@ export default function DownloadPage() {
           <CardContent className="p-4">
             <Button
               variant="outline"
-              onClick={() => window.open("https://husseiniya-platform.vercel.app", "_blank")}
+              onClick={() =>
+                window.open("https://alhusainiaye.vercel.app", "_blank")
+              }
               className="w-full border-[#102a2b]/20 text-[#102a2b] h-10 text-xs"
             >
               <ExternalLink className="w-4 h-4 ml-2" />

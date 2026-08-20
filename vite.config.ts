@@ -56,7 +56,7 @@ function writeToLogFile(source: LogSource, entries: unknown[]) {
   const logPath = path.join(LOG_DIR, `${source}.log`);
 
   // Format entries with timestamps
-  const lines = entries.map((entry) => {
+  const lines = entries.map(entry => {
     const ts = new Date().toISOString();
     return `[${ts}] ${JSON.stringify(entry)}`;
   });
@@ -132,7 +132,7 @@ function vitePluginManusDebugCollector(): Plugin {
         }
 
         let body = "";
-        req.on("data", (chunk) => {
+        req.on("data", chunk => {
           body += chunk.toString();
         });
 
@@ -154,7 +154,13 @@ const plugins = [
   react(),
   tailwindcss(),
   // Dev-only instrumentation — excluded from production builds
-  ...(process.env.NODE_ENV === "production" ? [] : [jsxLocPlugin(), vitePluginManusRuntime(), vitePluginManusDebugCollector()]),
+  ...(process.env.NODE_ENV === "production"
+    ? []
+    : [
+        jsxLocPlugin(),
+        vitePluginManusRuntime(),
+        vitePluginManusDebugCollector(),
+      ]),
 ];
 
 export default defineConfig({
@@ -176,10 +182,61 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
-          if (id.includes("recharts") || id.includes("/d3-") || id.includes("victory")) return "charts";
-          if (id.includes("react") || id.includes("/scheduler") || id.includes("react-dom")) return "react";
+
+          // React core - cache indefinitely
+          if (
+            id.includes("react") ||
+            id.includes("/scheduler") ||
+            id.includes("react-dom")
+          )
+            return "react";
+
+          // Recharts + d3 - large charting library
+          if (
+            id.includes("recharts") ||
+            id.includes("/d3-") ||
+            id.includes("victory")
+          )
+            return "charts";
+
+          // Framer Motion - animations
           if (id.includes("framer-motion")) return "motion";
-          if (id.includes("@radix-ui") || id.includes("cmdk") || id.includes("vaul") || id.includes("input-otp") || id.includes("react-day-picker") || id.includes("sonner") || id.includes("react-resizable-panels") || id.includes("embla-carousel")) return "ui";
+
+          // tRPC + TanStack Query - API layer
+          if (id.includes("@trpc") || id.includes("@tanstack/react-query"))
+            return "trpc";
+
+          // Form handling
+          if (id.includes("react-hook-form") || id.includes("@hookform"))
+            return "forms";
+
+          // Radix UI + shadcn components
+          if (
+            id.includes("@radix-ui") ||
+            id.includes("cmdk") ||
+            id.includes("vaul") ||
+            id.includes("input-otp") ||
+            id.includes("react-day-picker") ||
+            id.includes("sonner") ||
+            id.includes("react-resizable-panels") ||
+            id.includes("embla-carousel")
+          )
+            return "ui";
+
+          // Utilities - small, stable libraries
+          if (
+            id.includes("zod") ||
+            id.includes("superjson") ||
+            id.includes("date-fns") ||
+            id.includes("clsx") ||
+            id.includes("tailwind-merge") ||
+            id.includes("class-variance-authority") ||
+            id.includes("nanoid") ||
+            id.includes("wouter") ||
+            id.includes("next-themes")
+          )
+            return "utils";
+
           return "vendor";
         },
       },

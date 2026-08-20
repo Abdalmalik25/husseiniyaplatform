@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /app/
+Disallow: /settings/
+Disallow: /commercial/
+
+Sitemap: https://alhusainiaye.vercel.app/sitemap.xml
