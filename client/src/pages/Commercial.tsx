@@ -1,7 +1,5 @@
 import { useState, useMemo, useRef, useCallback } from "react";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { useOffline } from "@/lib/offline/OfflineContext";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,7 +38,6 @@ import {
   Trash2,
   PackagePlus,
   CheckCircle,
-  XCircle,
   Printer,
   Wallet,
   Loader2,
@@ -50,11 +47,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
-import {
-  statusColors,
-  statusLabels,
-  payLabels,
-} from "./commercial/lib/status-maps";
+import { statusColors, statusLabels } from "./commercial/lib/status-maps";
 import {
   exportProductsCsv,
   downloadProductTemplate,
@@ -74,8 +67,6 @@ type Tab =
   | "orders";
 
 export default function Commercial() {
-  const { user, isAuthenticated } = useAuth();
-  const { isOnline } = useOffline();
   const [activeTab, setActiveTab] = useState<Tab>("products");
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
@@ -168,24 +159,12 @@ export default function Commercial() {
   const [showImportDialog, setShowImportDialog] = useState(false);
   const [importRows, setImportRows] = useState<any[] | null>(null);
   const [importFileName, setImportFileName] = useState("");
-  const importCsv = trpc.products.importCsv.useMutation({
-    onSuccess: r => {
-      toast.success(
-        `أُضيف ${r.created} وحُدّث ${r.updated}${r.errors.length ? ` — أخطاء: ${r.errors.length}` : ""}`
-      );
-      setShowImportDialog(false);
-      setImportRows(null);
-      refetchProducts();
-    },
-    onError: e => toast.error(String(e.message || "فشل الاستيراد")),
-  });
-
   const onImportFile = (file: File | null) => {
     if (!file) return;
     setImportFileName(file.name);
     const reader = new FileReader();
     reader.onload = () => {
-      const { rows, errors } = parseProductCsv(String(reader.result || ""));
+      const { rows } = parseProductCsv(String(reader.result || ""));
       setImportRows(rows.length > 0 ? rows : null);
     };
     reader.readAsText(file, "utf-8");
@@ -591,7 +570,7 @@ export default function Commercial() {
 
   return (
     <div className="min-h-screen bg-[#fbf8f2]" dir="rtl">
-      <HeaderNavbar institutionName="مؤسسة الحسينية — العمليات التجارية" />
+      <HeaderNavbar />
 
       <main className="max-w-7xl mx-auto p-3">
         <div className="mb-3">

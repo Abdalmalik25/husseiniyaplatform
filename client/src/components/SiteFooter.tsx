@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useLocation } from "wouter";
 import { BrandLogo } from "@/components/BrandLogo";
 import { brand, whatsappLink } from "@/lib/brand";
@@ -6,9 +6,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Building2,
-  HardHat,
-  ShoppingCart,
-  BookOpen,
   Phone,
   Mail,
   MapPin,
@@ -24,35 +21,33 @@ import { toast } from "sonner";
 
 const footerNav = [
   {
-    title: "المنظومة",
+    title: "الموقع",
     icon: Layers,
     links: [
-      { label: "الرئيسية والتسويق", path: "/" },
-      { label: "مساحات العمل", path: "/app" },
-      { label: "التعريف بالخدمات", path: "/about" },
-      { label: "بوابة التتبع", path: "/portal" },
-      { label: "مركز التكامل", path: "/integrate" },
+      { label: "الرئيسية", path: "/" },
+      { label: "خدماتنا", path: "/about" },
+      { label: "الأسعار والباقات", path: "/pricing" },
+      { label: "تواصل معنا", path: "/contact" },
+      { label: "دخول النظام", path: "/app" },
     ],
   },
   {
-    title: "الوحدات",
+    title: "خدماتنا",
     icon: Building2,
     links: [
-      { label: "النظام المحاسبي", path: "/app" },
+      { label: "النظام المحاسبي", path: "/about" },
       { label: "الاستشارات الهندسية", path: "/about" },
-      { label: "العمليات التجارية", path: "/commercial" },
-      { label: "مكتبة الحسينية", path: "/store" },
-      { label: "المتجر الإلكتروني", path: "/store" },
+      { label: "العمليات التجارية", path: "/about" },
+      { label: "مكتبة الحسينية", path: "/about" },
     ],
   },
   {
-    title: "الموارد",
+    title: "أدوات مساعدة",
     icon: ShieldCheck,
     links: [
+      { label: "تتبع طلبك", path: "/portal" },
+      { label: "مركز التكامل", path: "/integrate" },
       { label: "تحميل التطبيق", path: "/download" },
-      { label: "التقارير المالية", path: "/reports" },
-      { label: "إعدادات المؤسسة", path: "/settings" },
-      { label: "الدعم الفني", path: "/portal" },
     ],
   },
 ];
@@ -168,7 +163,9 @@ export function SiteFooter() {
               onSubmit={e => {
                 e.preventDefault();
                 const email = (
-                  e.currentTarget.elements.namedItem("email") as HTMLInputElement
+                  e.currentTarget.elements.namedItem(
+                    "email"
+                  ) as HTMLInputElement
                 ).value;
                 if (email && email.includes("@")) {
                   toast.success("تم الاشتراك بنجاح! شكراً لك.");

@@ -3,13 +3,7 @@ import { useLocation } from "wouter";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -140,7 +134,10 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
 }`;
 
   return (
-    <div className="min-h-screen bg-[#fbf8f2] text-[#0e2a2b] pb-20 font-sans" dir="rtl">
+    <div
+      className="min-h-screen bg-[#fbf8f2] text-[#0e2a2b] pb-20 font-sans"
+      dir="rtl"
+    >
       <HeaderNavbar />
 
       {/* Hero */}
@@ -192,7 +189,10 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           ].map(c => {
             const Icon = c.icon;
             return (
-              <Card key={c.t} className="border border-slate-200 bg-white shadow-sm">
+              <Card
+                key={c.t}
+                className="border border-slate-200 bg-white shadow-sm"
+              >
                 <CardContent className="p-4 text-center space-y-2">
                   <div className="mx-auto w-10 h-10 rounded-xl bg-[#0e2a2b] text-[#d4a574] flex items-center justify-center">
                     <Icon className="w-5 h-5" />
@@ -241,9 +241,9 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
                 صفحة (PHP / WordPress)
               </h3>
               <p className="text-xs text-slate-600 mt-1">
-                حمّل الملف <code className="font-mono text-[#b87945]">Store.php</code>{" "}
-                إلى جذر موقعك، أو الصق الكتلة أسفل في صفحة ووردبريس عبر "HTML
-                مخصص".
+                حمّل الملف{" "}
+                <code className="font-mono text-[#b87945]">Store.php</code> إلى
+                جذر موقعك، أو الصق الكتلة أسفل في صفحة ووردبريس عبر "HTML مخصص".
               </p>
             </div>
             <CodeBlock code={storePhpSnippet} lang="php" />
@@ -265,8 +265,8 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
             <div className="text-xs text-slate-600 bg-amber-50 border border-amber-200 rounded-xl p-3">
               <span className="font-bold text-amber-900">دوال متاحة:</span>{" "}
               <code className="font-mono">SyncJav.openStore()</code> ·{" "}
-              <code className="font-mono">SyncJav.embed(selector, height)</code> ·{" "}
-              <code className="font-mono">SyncJav.fetchCatalog()</code> ·{" "}
+              <code className="font-mono">SyncJav.embed(selector, height)</code>{" "}
+              · <code className="font-mono">SyncJav.fetchCatalog()</code> ·{" "}
               <code className="font-mono">SyncJav.placeOrder(payload)</code> ·{" "}
               <code className="font-mono">SyncJav.sync(cart)</code>
             </div>
@@ -275,8 +275,8 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <TabsContent value="api" className="space-y-4 pt-4">
             <div>
               <h3 className="text-lg font-bold font-display text-slate-900 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-[#b87945]" /> 3) واجهة REST عامة
-                (CORS-m enabled)
+                <BookOpen className="w-5 h-5 text-[#b87945]" /> 3) واجهة REST
+                عامة (CORS-m enabled)
               </h3>
               <p className="text-xs text-slate-600 mt-1">
                 نقاط نهاية عامة لجلب الكتالوج وإرسال الطلبات من أي نطاق — مثالية
@@ -290,11 +290,14 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <TabsContent value="webhook" className="space-y-4 pt-4">
             <div>
               <h3 className="text-lg font-bold font-display text-slate-900 flex items-center gap-2">
-                <Webhook className="w-5 h-5 text-[#b87945]" /> 4) ويب هوك للطلبات
-                الجديدة
+                <Webhook className="w-5 h-5 text-[#b87945]" /> 4) ويب هوك
+                للطلبات الجديدة
               </h3>
               <p className="text-xs text-slate-600 mt-1">
-                اضبط متغير البيئة <code className="font-mono text-[#b87945]">ORDER_WEBHOOK_URL</code>{" "}
+                اضبط متغير البيئة{" "}
+                <code className="font-mono text-[#b87945]">
+                  ORDER_WEBHOOK_URL
+                </code>{" "}
                 على Vercel لاستقبال إشعار JSON مع كل طلب جديد.
               </p>
             </div>
@@ -309,9 +312,9 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
             التكامل
           </h3>
           <p className="text-xs text-slate-300 leading-relaxed">
-            كل طلب ومصدر بيانات مرتبط بمؤسسة (tenant) وفرع (branch) وعملة (currency)
-            ووحدة قياس. مرّر هذه الحقول في الـ payload لربط الطلب بالفرع الصحيح
-            ومحاسبته آلياً ضمن دليل الحسابات المركزي.
+            كل طلب ومصدر بيانات مرتبط بمؤسسة (tenant) وفرع (branch) وعملة
+            (currency) ووحدة قياس. مرّر هذه الحقول في الـ payload لربط الطلب
+            بالفرع الصحيح ومحاسبته آلياً ضمن دليل الحسابات المركزي.
           </p>
           <div className="flex flex-wrap gap-2 text-[11px]">
             {["tenantId", "branchCode", "currency", "unit"].map(k => (

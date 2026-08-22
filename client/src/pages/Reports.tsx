@@ -16,7 +16,13 @@ import {
 import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { openPrintableInvoiceWindow } from "@/lib/pdfInvoiceGenerator";
 
-type ReportType = "trialBalance" | "incomeStatement" | "balanceSheet";
+type ReportType = 
+  | "trialBalance" 
+  | "incomeStatement" 
+  | "balanceSheet"
+  | "cashFlow"
+  | "accountAnalysis"
+  | "performanceScore";
 
 export default function Reports() {
   const [activeReport, setActiveReport] = useState<ReportType>("trialBalance");
@@ -130,7 +136,7 @@ export default function Reports() {
 
   return (
     <div className="min-h-screen bg-[#fbf8f2]" dir="rtl">
-      <HeaderNavbar institutionName="التقارير والقوائم المالية — مؤسسة الحسينية" />
+      <HeaderNavbar />
 
       <main className="max-w-5xl mx-auto p-3 space-y-3">
         {/* KPI Cards */}

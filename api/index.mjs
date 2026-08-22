@@ -85,7 +85,8 @@ var lifecycleStatusEnum = pgEnum("lifecycle_status", [
 var subscriptionStatusEnum = pgEnum("subscription_status", [
   "trial",
   "active",
-  "expired"
+  "grace",
+  "suspended"
 ]);
 var users = pgTable(
   "users",
@@ -156,9 +157,7 @@ var accounts = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull()
   },
-  (t2) => [
-    index("idx_accounts_tenant").on(t2.tenantId)
-  ]
+  (t2) => [index("idx_accounts_tenant").on(t2.tenantId)]
 );
 var transactions = pgTable(
   "transactions",
@@ -193,18 +192,20 @@ var transactions = pgTable(
     index("idx_transactions_tenant_date").on(t2.tenantId, t2.transactionDate)
   ]
 );
-var openingBalances = pgTable("opening_balances", {
-  id: serial("id").primaryKey(),
-  tenantId: integer("tenantId").notNull(),
-  accountId: integer("accountId").notNull(),
-  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-  type: transactionTypeEnum("type").default("debit").notNull(),
-  notes: text("notes"),
-  periodName: varchar("periodName", { length: 50 }).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull()
-}, (t2) => [
-  index("idx_openingBalances_tenant").on(t2.tenantId)
-]);
+var openingBalances = pgTable(
+  "opening_balances",
+  {
+    id: serial("id").primaryKey(),
+    tenantId: integer("tenantId").notNull(),
+    accountId: integer("accountId").notNull(),
+    amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+    type: transactionTypeEnum("type").default("debit").notNull(),
+    notes: text("notes"),
+    periodName: varchar("periodName", { length: 50 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull()
+  },
+  (t2) => [index("idx_openingBalances_tenant").on(t2.tenantId)]
+);
 var budgets = pgTable(
   "budgets",
   {
@@ -222,9 +223,7 @@ var budgets = pgTable(
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull()
   },
-  (t2) => [
-    index("idx_budgets_tenant").on(t2.tenantId)
-  ]
+  (t2) => [index("idx_budgets_tenant").on(t2.tenantId)]
 );
 var settings = pgTable("settings", {
   id: serial("id").primaryKey(),
@@ -302,9 +301,7 @@ var warehouses = pgTable(
     isActive: boolean("isActive").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull()
   },
-  (t2) => [
-    index("idx_warehouses_tenant").on(t2.tenantId)
-  ]
+  (t2) => [index("idx_warehouses_tenant").on(t2.tenantId)]
 );
 var inventoryMovements = pgTable(
   "inventory_movements",
@@ -320,9 +317,7 @@ var inventoryMovements = pgTable(
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull()
   },
-  (t2) => [
-    index("idx_inventoryMovements_tenant").on(t2.tenantId)
-  ]
+  (t2) => [index("idx_inventoryMovements_tenant").on(t2.tenantId)]
 );
 var customers = pgTable(
   "customers",
@@ -343,9 +338,7 @@ var customers = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull()
   },
-  (t2) => [
-    index("idx_customers_tenant").on(t2.tenantId)
-  ]
+  (t2) => [index("idx_customers_tenant").on(t2.tenantId)]
 );
 var suppliers = pgTable(
   "suppliers",
@@ -365,9 +358,7 @@ var suppliers = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull()
   },
-  (t2) => [
-    index("idx_suppliers_tenant").on(t2.tenantId)
-  ]
+  (t2) => [index("idx_suppliers_tenant").on(t2.tenantId)]
 );
 var salesInvoiceStatusEnum = pgEnum("sales_invoice_status", [
   "draft",
@@ -396,7 +387,20 @@ var paymentMethodEnum = pgEnum("payment_method", [
   "card",
   "transfer",
   "credit",
-  "online"
+  "online",
+  // ─── وسائل الدفع المحلية (اليمن) ───
+  "cash_yer",
+  // كاش بالريال اليمني
+  "cash_sar",
+  // كاش بالريال السعودي
+  "hawala",
+  // حوالة (صرافة)
+  "shabab",
+  // شباب (أي شبكة محلية)
+  "mobile_money",
+  // محفظة إلكترونية (فليكسي / أمين)
+  "bank_transfer"
+  // حوالة بنكية محلية
 ]);
 var salesInvoices = pgTable(
   "sales_invoices",
@@ -623,7 +627,10 @@ var paymentHistory = pgTable(
     status: varchar("status", { length: 20 }).notNull(),
     paymentMethod: varchar("paymentMethod", { length: 50 }),
     transactionId: varchar("transactionId", { length: 255 }),
-    refundedAmount: decimal("refundedAmount", { precision: 10, scale: 2 }).default("0"),
+    refundedAmount: decimal("refundedAmount", {
+      precision: 10,
+      scale: 2
+    }).default("0"),
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull()
   },
@@ -1125,6 +1132,7 @@ var ENV = {
   databaseUrl: process.env.DATABASE_URL ?? "",
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
+  ownerPassword: process.env.OWNER_PASSWORD ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? ""
@@ -1279,8 +1287,6 @@ var createOAuthHttpClient = () => axios.create({
   timeout: AXIOS_TIMEOUT_MS
 });
 var SDKServer = class {
-  client;
-  oauthService;
   constructor(client = createOAuthHttpClient()) {
     this.client = client;
     this.oauthService = new OAuthService(this.client);
@@ -1433,19 +1439,29 @@ var SDKServer = class {
     const signedInAt = /* @__PURE__ */ new Date();
     let user = await getUserByOpenId(sessionUserId);
     if (!user) {
-      try {
-        const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
+      if (sessionUserId === ENV.ownerOpenId) {
         await upsertUser({
-          openId: userInfo.openId,
-          name: userInfo.name || null,
-          email: userInfo.email ?? null,
-          loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+          openId: ENV.ownerOpenId,
+          name: "Owner",
+          loginMethod: "owner",
           lastSignedIn: signedInAt
         });
-        user = await getUserByOpenId(userInfo.openId);
-      } catch (error) {
-        console.error("[Auth] Failed to sync user from OAuth:", error);
-        throw ForbiddenError("Failed to sync user info");
+        user = await getUserByOpenId(ENV.ownerOpenId);
+      } else {
+        try {
+          const userInfo = await this.getUserInfoWithJwt(sessionToken ?? "");
+          await upsertUser({
+            openId: userInfo.openId,
+            name: userInfo.name || null,
+            email: userInfo.email ?? null,
+            loginMethod: userInfo.loginMethod ?? userInfo.platform ?? null,
+            lastSignedIn: signedInAt
+          });
+          user = await getUserByOpenId(userInfo.openId);
+        } catch (error) {
+          console.error("[Auth] Failed to sync user from OAuth:", error);
+          throw ForbiddenError("Failed to sync user info");
+        }
       }
     }
     if (!user) {
@@ -2111,8 +2127,68 @@ async function notifyOwner(payload) {
 }
 
 // server/_core/trpc.ts
-import { initTRPC, TRPCError as TRPCError2 } from "@trpc/server";
+import { initTRPC, TRPCError as TRPCError3 } from "@trpc/server";
 import superjson from "superjson";
+
+// server/_core/subscription.ts
+import { eq as eq3 } from "drizzle-orm";
+import { TRPCError as TRPCError2 } from "@trpc/server";
+function resolveSubscription(status, trialEndsAt, now = /* @__PURE__ */ new Date()) {
+  const s = status ?? "trial";
+  const end = trialEndsAt ? new Date(trialEndsAt) : null;
+  const trialExpired = s === "trial" && !!end && end.getTime() <= now.getTime();
+  if (trialExpired) {
+    return { status: "grace", transitionedToGrace: true, trialDaysLeft: 0 };
+  }
+  const trialDaysLeft = s === "trial" && end ? Math.max(0, Math.ceil((end.getTime() - now.getTime()) / 864e5)) : null;
+  return { status: s, transitionedToGrace: false, trialDaysLeft };
+}
+var cache = /* @__PURE__ */ new Map();
+var CACHE_TTL_MS = 6e4;
+async function enforceSubscription(tenantId) {
+  const cached = cache.get(tenantId);
+  const now = Date.now();
+  if (cached && cached.expiresAt > now) {
+    throwIfSuspended(cached.decision);
+    return cached.decision;
+  }
+  const db = await getDb();
+  let decision = {
+    status: "grace",
+    transitionedToGrace: false,
+    trialDaysLeft: null
+  };
+  if (db) {
+    const rows = await db.select({
+      subscriptionStatus: settings.subscriptionStatus,
+      trialEndsAt: settings.trialEndsAt
+    }).from(settings).where(eq3(settings.tenantId, tenantId)).limit(1);
+    const row = rows[0];
+    decision = resolveSubscription(
+      row?.subscriptionStatus,
+      row?.trialEndsAt ?? null
+    );
+    if (row && decision.transitionedToGrace) {
+      try {
+        await db.update(settings).set({ subscriptionStatus: "grace" }).where(eq3(settings.tenantId, tenantId));
+      } catch {
+      }
+    }
+  }
+  cache.set(tenantId, { decision, expiresAt: now + CACHE_TTL_MS });
+  throwIfSuspended(decision);
+  return decision;
+}
+function throwIfSuspended(decision) {
+  if (decision.status === "suspended") {
+    throw new TRPCError2({
+      code: "FORBIDDEN",
+      message: "\u0627\u0644\u0627\u0634\u062A\u0631\u0627\u0643 \u0645\u0648\u0642\u0648\u0641 \u0628\u0637\u0644\u0628 \u0645\u0646 \u0627\u0644\u0625\u062F\u0627\u0631\u0629 \u2014 \u062A\u0648\u0627\u0635\u0644 \u0645\u0639 \u0627\u0644\u062F\u0639\u0645 \u0644\u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u062A\u0641\u0639\u064A\u0644."
+    });
+  }
+}
+
+// server/_core/trpc.ts
 var t = initTRPC.context().create({
   transformer: superjson
 });
@@ -2121,7 +2197,7 @@ var publicProcedure = t.procedure;
 var requireUser = t.middleware(async (opts) => {
   const { ctx, next } = opts;
   if (!ctx.user) {
-    throw new TRPCError2({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    throw new TRPCError3({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
   return next({
     ctx: {
@@ -2133,7 +2209,10 @@ var requireUser = t.middleware(async (opts) => {
 var requireTenant = t.middleware(async (opts) => {
   const { ctx, next } = opts;
   if (!ctx.user) {
-    throw new TRPCError2({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    throw new TRPCError3({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+  }
+  if (ctx.tenantId) {
+    await enforceSubscription(ctx.tenantId);
   }
   return next({
     ctx: {
@@ -2149,7 +2228,7 @@ var adminProcedure = t.procedure.use(
   t.middleware(async (opts) => {
     const { ctx, next } = opts;
     if (!ctx.user || ctx.user.role !== "admin") {
-      throw new TRPCError2({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+      throw new TRPCError3({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
     }
     return next({
       ctx: {
@@ -2184,23 +2263,14 @@ var systemRouter = router({
 
 // server/erpRouter.ts
 import { z as z3 } from "zod";
-import {
-  eq as eq3,
-  desc,
-  asc as asc2,
-  and as and2,
-  sql as sql2,
-  ilike as ilike2,
-  gte as gte2,
-  lte
-} from "drizzle-orm";
+import { eq as eq4, desc, asc as asc2, and as and2, sql as sql2, ilike as ilike2, gte as gte2, lte } from "drizzle-orm";
 async function dbOrThrow() {
   const d = await getDb();
   if (!d) throw new Error("Database not available");
   return d;
 }
 async function nextSequence(db, table, tenantId) {
-  const [row] = await db.select({ c: sql2`count(*)` }).from(table).where(eq3(table.tenantId, tenantId));
+  const [row] = await db.select({ c: sql2`count(*)` }).from(table).where(eq4(table.tenantId, tenantId));
   return Number(row?.c ?? 0) + 1;
 }
 var erpRouter = router({
@@ -2208,7 +2278,7 @@ var erpRouter = router({
   listDepartments: tenantProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
-    return db.select().from(departments).where(eq3(departments.tenantId, ctx.tenantId)).orderBy(asc2(departments.name));
+    return db.select().from(departments).where(eq4(departments.tenantId, ctx.tenantId)).orderBy(asc2(departments.name));
   }),
   createDepartment: tenantProcedure.input(
     z3.object({
@@ -2245,26 +2315,32 @@ var erpRouter = router({
     const db = await dbOrThrow();
     const { id, ...rest } = input;
     await db.update(departments).set(rest).where(
-      and2(eq3(departments.id, id), eq3(departments.tenantId, ctx.tenantId))
+      and2(eq4(departments.id, id), eq4(departments.tenantId, ctx.tenantId))
     );
     return { success: true };
   }),
   deleteDepartment: tenantProcedure.input(z3.object({ id: z3.number() })).mutation(async ({ ctx, input }) => {
     const db = await dbOrThrow();
     await db.delete(departments).where(
-      and2(eq3(departments.id, input.id), eq3(departments.tenantId, ctx.tenantId))
+      and2(
+        eq4(departments.id, input.id),
+        eq4(departments.tenantId, ctx.tenantId)
+      )
     );
     return { success: true };
   }),
   // â”€â”€â”€ Ø§Ù„Ù…ÙˆØ¸ÙÙˆÙ† â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   listEmployees: tenantProcedure.input(
-    z3.object({ search: z3.string().optional(), status: z3.string().optional() }).optional()
+    z3.object({
+      search: z3.string().optional(),
+      status: z3.string().optional()
+    }).optional()
   ).query(async ({ ctx, input }) => {
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
     const where = [
-      eq3(employees.tenantId, ctx.tenantId),
-      input?.status ? eq3(employees.status, input.status) : void 0,
+      eq4(employees.tenantId, ctx.tenantId),
+      input?.status ? eq4(employees.status, input.status) : void 0,
       input?.search ? ilike2(employees.fullName, `%${input.search}%`) : void 0
     ].filter(Boolean);
     return db.select().from(employees).where(and2(...where)).orderBy(asc2(employees.fullName));
@@ -2318,13 +2394,15 @@ var erpRouter = router({
   ).mutation(async ({ ctx, input }) => {
     const db = await dbOrThrow();
     const { id, ...rest } = input;
-    await db.update(employees).set(rest).where(and2(eq3(employees.id, id), eq3(employees.tenantId, ctx.tenantId)));
+    await db.update(employees).set(rest).where(
+      and2(eq4(employees.id, id), eq4(employees.tenantId, ctx.tenantId))
+    );
     return { success: true };
   }),
   deleteEmployee: tenantProcedure.input(z3.object({ id: z3.number() })).mutation(async ({ ctx, input }) => {
     const db = await dbOrThrow();
     await db.delete(employees).where(
-      and2(eq3(employees.id, input.id), eq3(employees.tenantId, ctx.tenantId))
+      and2(eq4(employees.id, input.id), eq4(employees.tenantId, ctx.tenantId))
     );
     return { success: true };
   }),
@@ -2339,8 +2417,8 @@ var erpRouter = router({
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
     const where = [
-      eq3(attendance.tenantId, ctx.tenantId),
-      input?.employeeId ? eq3(attendance.employeeId, input.employeeId) : void 0,
+      eq4(attendance.tenantId, ctx.tenantId),
+      input?.employeeId ? eq4(attendance.employeeId, input.employeeId) : void 0,
       input?.from ? gte2(attendance.date, new Date(input.from)) : void 0,
       input?.to ? lte(attendance.date, new Date(input.to)) : void 0
     ].filter(Boolean);
@@ -2373,7 +2451,7 @@ var erpRouter = router({
   listPayrollRuns: tenantProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
-    return db.select().from(payrollRuns).where(eq3(payrollRuns.tenantId, ctx.tenantId)).orderBy(desc(payrollRuns.createdAt));
+    return db.select().from(payrollRuns).where(eq4(payrollRuns.tenantId, ctx.tenantId)).orderBy(desc(payrollRuns.createdAt));
   }),
   createPayrollRun: tenantProcedure.input(
     z3.object({
@@ -2385,7 +2463,7 @@ var erpRouter = router({
     const db = await dbOrThrow();
     const tenantId = ctx.tenantId;
     const active = await db.select().from(employees).where(
-      and2(eq3(employees.tenantId, tenantId), eq3(employees.status, "active"))
+      and2(eq4(employees.tenantId, tenantId), eq4(employees.status, "active"))
     );
     const items = active.map((e) => ({
       tenantId,
@@ -2414,8 +2492,8 @@ var erpRouter = router({
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
     const where = [
-      eq3(projects.tenantId, ctx.tenantId),
-      input?.status ? eq3(projects.status, input.status) : void 0
+      eq4(projects.tenantId, ctx.tenantId),
+      input?.status ? eq4(projects.status, input.status) : void 0
     ].filter(Boolean);
     return db.select().from(projects).where(and2(...where)).orderBy(desc(projects.createdAt));
   }),
@@ -2463,15 +2541,15 @@ var erpRouter = router({
     const set = { ...rest };
     if (rest.endDate !== void 0)
       set.endDate = rest.endDate ? new Date(rest.endDate) : null;
-    await db.update(projects).set(set).where(and2(eq3(projects.id, id), eq3(projects.tenantId, ctx.tenantId)));
+    await db.update(projects).set(set).where(and2(eq4(projects.id, id), eq4(projects.tenantId, ctx.tenantId)));
     return { success: true };
   }),
   deleteProject: tenantProcedure.input(z3.object({ id: z3.number() })).mutation(async ({ ctx, input }) => {
     const db = await dbOrThrow();
-    await db.delete(projectTasks).where(eq3(projectTasks.projectId, input.id));
-    await db.delete(projectMembers).where(eq3(projectMembers.projectId, input.id));
+    await db.delete(projectTasks).where(eq4(projectTasks.projectId, input.id));
+    await db.delete(projectMembers).where(eq4(projectMembers.projectId, input.id));
     await db.delete(projects).where(
-      and2(eq3(projects.id, input.id), eq3(projects.tenantId, ctx.tenantId))
+      and2(eq4(projects.id, input.id), eq4(projects.tenantId, ctx.tenantId))
     );
     return { success: true };
   }),
@@ -2481,8 +2559,8 @@ var erpRouter = router({
     const db = await dbOrThrow();
     return db.select().from(projectMembers).where(
       and2(
-        eq3(projectMembers.projectId, input.projectId),
-        eq3(projectMembers.tenantId, ctx.tenantId)
+        eq4(projectMembers.projectId, input.projectId),
+        eq4(projectMembers.tenantId, ctx.tenantId)
       )
     ).orderBy(asc2(projectMembers.id));
   }),
@@ -2490,8 +2568,8 @@ var erpRouter = router({
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
     const where = [
-      eq3(projectTasks.tenantId, ctx.tenantId),
-      input?.projectId ? eq3(projectTasks.projectId, input.projectId) : void 0
+      eq4(projectTasks.tenantId, ctx.tenantId),
+      input?.projectId ? eq4(projectTasks.projectId, input.projectId) : void 0
     ].filter(Boolean);
     return db.select().from(projectTasks).where(and2(...where)).orderBy(asc2(projectTasks.status));
   }),
@@ -2534,7 +2612,7 @@ var erpRouter = router({
     const db = await dbOrThrow();
     const { id, ...rest } = input;
     await db.update(projectTasks).set(rest).where(
-      and2(eq3(projectTasks.id, id), eq3(projectTasks.tenantId, ctx.tenantId))
+      and2(eq4(projectTasks.id, id), eq4(projectTasks.tenantId, ctx.tenantId))
     );
     return { success: true };
   }),
@@ -2542,8 +2620,8 @@ var erpRouter = router({
     const db = await dbOrThrow();
     await db.delete(projectTasks).where(
       and2(
-        eq3(projectTasks.id, input.id),
-        eq3(projectTasks.tenantId, ctx.tenantId)
+        eq4(projectTasks.id, input.id),
+        eq4(projectTasks.tenantId, ctx.tenantId)
       )
     );
     return { success: true };
@@ -2569,8 +2647,8 @@ var erpRouter = router({
     const db = await dbOrThrow();
     await db.delete(projectMembers).where(
       and2(
-        eq3(projectMembers.id, input.id),
-        eq3(projectMembers.tenantId, ctx.tenantId)
+        eq4(projectMembers.id, input.id),
+        eq4(projectMembers.tenantId, ctx.tenantId)
       )
     );
     return { success: true };
@@ -2580,8 +2658,8 @@ var erpRouter = router({
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
     const where = [
-      eq3(procurements.tenantId, ctx.tenantId),
-      input?.status ? eq3(procurements.status, input.status) : void 0
+      eq4(procurements.tenantId, ctx.tenantId),
+      input?.status ? eq4(procurements.status, input.status) : void 0
     ].filter(Boolean);
     return db.select().from(procurements).where(and2(...where)).orderBy(desc(procurements.createdAt));
   }),
@@ -2637,11 +2715,17 @@ var erpRouter = router({
     });
     if (input.decision === "approved") {
       await db.update(procurements).set({ status: "approved", approvedById: ctx.user.id }).where(
-        and2(eq3(procurements.id, input.id), eq3(procurements.tenantId, tenantId))
+        and2(
+          eq4(procurements.id, input.id),
+          eq4(procurements.tenantId, tenantId)
+        )
       );
     } else if (input.decision === "rejected") {
       await db.update(procurements).set({ status: "rejected" }).where(
-        and2(eq3(procurements.id, input.id), eq3(procurements.tenantId, tenantId))
+        and2(
+          eq4(procurements.id, input.id),
+          eq4(procurements.tenantId, tenantId)
+        )
       );
     }
     return { success: true };
@@ -2651,8 +2735,8 @@ var erpRouter = router({
     const db = await dbOrThrow();
     return db.select().from(procurementApprovals).where(
       and2(
-        eq3(procurementApprovals.procurementId, input.procurementId),
-        eq3(procurementApprovals.tenantId, ctx.tenantId)
+        eq4(procurementApprovals.procurementId, input.procurementId),
+        eq4(procurementApprovals.tenantId, ctx.tenantId)
       )
     ).orderBy(asc2(procurementApprovals.level));
   }),
@@ -2661,8 +2745,8 @@ var erpRouter = router({
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
     const where = [
-      eq3(tickets.tenantId, ctx.tenantId),
-      input?.status ? eq3(tickets.status, input.status) : void 0
+      eq4(tickets.tenantId, ctx.tenantId),
+      input?.status ? eq4(tickets.status, input.status) : void 0
     ].filter(Boolean);
     return db.select().from(tickets).where(and2(...where)).orderBy(desc(tickets.createdAt));
   }),
@@ -2702,21 +2786,21 @@ var erpRouter = router({
   ).mutation(async ({ ctx, input }) => {
     const db = await dbOrThrow();
     const { id, ...rest } = input;
-    await db.update(tickets).set(rest).where(and2(eq3(tickets.id, id), eq3(tickets.tenantId, ctx.tenantId)));
+    await db.update(tickets).set(rest).where(and2(eq4(tickets.id, id), eq4(tickets.tenantId, ctx.tenantId)));
     return { success: true };
   }),
   // â”€â”€â”€ Ø§Ù„Ø¬ÙˆØ¯Ø© â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   deleteTicket: tenantProcedure.input(z3.object({ id: z3.number() })).mutation(async ({ ctx, input }) => {
     const db = await dbOrThrow();
     await db.delete(tickets).where(
-      and2(eq3(tickets.id, input.id), eq3(tickets.tenantId, ctx.tenantId))
+      and2(eq4(tickets.id, input.id), eq4(tickets.tenantId, ctx.tenantId))
     );
     return { success: true };
   }),
   listInspections: tenantProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
-    return db.select().from(qualityInspections).where(eq3(qualityInspections.tenantId, ctx.tenantId)).orderBy(desc(qualityInspections.createdAt));
+    return db.select().from(qualityInspections).where(eq4(qualityInspections.tenantId, ctx.tenantId)).orderBy(desc(qualityInspections.createdAt));
   }),
   createInspection: tenantProcedure.input(
     z3.object({
@@ -2750,8 +2834,8 @@ var erpRouter = router({
     const db = await dbOrThrow();
     await db.delete(qualityInspections).where(
       and2(
-        eq3(qualityInspections.id, input.id),
-        eq3(qualityInspections.tenantId, ctx.tenantId)
+        eq4(qualityInspections.id, input.id),
+        eq4(qualityInspections.tenantId, ctx.tenantId)
       )
     );
     return { success: true };
@@ -2760,9 +2844,7 @@ var erpRouter = router({
     if (!ctx.tenantId) return null;
     const db = await dbOrThrow();
     const tenantId = ctx.tenantId;
-    const cnt = async (table, extra) => (await db.select({ c: sql2`count(*)` }).from(table).where(
-      and2(eq3(table.tenantId, tenantId), ...extra ? [extra] : [])
-    ))[0]?.c;
+    const cnt = async (table, extra) => (await db.select({ c: sql2`count(*)` }).from(table).where(and2(eq4(table.tenantId, tenantId), ...extra ? [extra] : [])))[0]?.c;
     const [
       employeesCount,
       activeProjects,
@@ -2771,9 +2853,9 @@ var erpRouter = router({
       inspections
     ] = await Promise.all([
       cnt(employees),
-      cnt(projects, eq3(projects.status, "active")),
-      cnt(tickets, eq3(tickets.status, "open")),
-      cnt(procurements, eq3(procurements.status, "pending")),
+      cnt(projects, eq4(projects.status, "active")),
+      cnt(tickets, eq4(tickets.status, "open")),
+      cnt(procurements, eq4(procurements.status, "pending")),
       cnt(qualityInspections)
     ]);
     return {
@@ -2787,8 +2869,43 @@ var erpRouter = router({
 });
 
 // server/routers.ts
+import { timingSafeEqual } from "crypto";
+
+// server/_core/rateLimit.ts
+var buckets = /* @__PURE__ */ new Map();
+var lastSweep = Date.now();
+var SWEEP_INTERVAL_MS = 5 * 60 * 1e3;
+function sweep(now) {
+  if (now - lastSweep < SWEEP_INTERVAL_MS) return;
+  lastSweep = now;
+  for (const [key, hits] of Array.from(buckets.entries())) {
+    const newest = hits[hits.length - 1] ?? 0;
+    if (now - newest > 60 * 60 * 1e3) buckets.delete(key);
+  }
+}
+function checkRateLimit(key, max, windowMs, now = Date.now()) {
+  sweep(now);
+  const hits = buckets.get(key) ?? [];
+  const windowStart = now - windowMs;
+  const recent = hits.filter((t2) => t2 > windowStart);
+  if (recent.length >= max) {
+    const oldest = recent[0];
+    const retryAfterSec = Math.max(
+      1,
+      Math.ceil((oldest + windowMs - now) / 1e3)
+    );
+    buckets.set(key, recent);
+    return { ok: false, retryAfterSec, remaining: 0 };
+  }
+  recent.push(now);
+  buckets.set(key, recent);
+  return { ok: true, retryAfterSec: 0, remaining: max - recent.length };
+}
+
+// server/routers.ts
+import { TRPCError as TRPCError4 } from "@trpc/server";
 import {
-  eq as eq4,
+  eq as eq5,
   desc as desc2,
   sql as sql3,
   asc as asc3,
@@ -2906,7 +3023,7 @@ async function seedDefaultAccountsForTenant(tenantId) {
         }
       });
     }
-    const existingSettings = await db.select().from(settings).where(eq4(settings.tenantId, tenantId)).limit(1);
+    const existingSettings = await db.select().from(settings).where(eq5(settings.tenantId, tenantId)).limit(1);
     if (existingSettings.length === 0) {
       await db.insert(settings).values({
         tenantId,
@@ -2925,7 +3042,7 @@ async function seedDefaultAccountsForTenant(tenantId) {
         accountingPeriod: "\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026",
         managerName: "\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629",
         notes: "\u0627\u0644\u0646\u0638\u0627\u0645 \u0627\u0644\u0645\u062D\u0627\u0633\u0628\u064A \u0627\u0644\u0645\u0639\u062A\u0645\u062F \u0644\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644 - \u0645\u0631\u0646 \u0648\u062F\u0642\u064A\u0642."
-      }).where(eq4(settings.id, existingSettings[0].id));
+      }).where(eq5(settings.id, existingSettings[0].id));
     }
     const defaultProducts = [
       {
@@ -3055,7 +3172,7 @@ async function seedDefaultAccountsForTenant(tenantId) {
 }
 async function postInvoiceGlEntries(tx, opts) {
   const findAccount = async (code) => {
-    const rows = await tx.select().from(accounts).where(and3(eq4(accounts.code, code), eq4(accounts.tenantId, opts.tenantId))).limit(1);
+    const rows = await tx.select().from(accounts).where(and3(eq5(accounts.code, code), eq5(accounts.tenantId, opts.tenantId))).limit(1);
     return rows[0];
   };
   const entry = (accountId, type, amount, narration) => tx.insert(transactions).values({
@@ -3143,6 +3260,41 @@ var appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true };
     }),
+    // Self-contained owner login (no external OAuth provider required).
+    // Issues a signed session cookie for the configured owner openId.
+    ownerLogin: publicProcedure.input(z4.object({ password: z4.string().min(1).max(256) })).mutation(async ({ ctx, input }) => {
+      const expected = ENV.ownerPassword;
+      if (!expected) {
+        throw new TRPCError4({
+          code: "FORBIDDEN",
+          message: "\u062A\u0633\u062C\u064A\u0644 \u062F\u062E\u0648\u0644 \u0627\u0644\u0645\u0627\u0644\u0643 \u063A\u064A\u0631 \u0645\u064F\u0647\u064A\u0623"
+        });
+      }
+      const a = Buffer.from(input.password);
+      const b = Buffer.from(expected);
+      const valid = a.length === b.length && timingSafeEqual(a, b);
+      if (!valid) {
+        throw new TRPCError4({
+          code: "UNAUTHORIZED",
+          message: "\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629"
+        });
+      }
+      await upsertUser({
+        openId: ENV.ownerOpenId,
+        name: "Owner",
+        loginMethod: "owner",
+        lastSignedIn: /* @__PURE__ */ new Date()
+      });
+      const token = await sdk.createSessionToken(ENV.ownerOpenId, {
+        name: "Owner"
+      });
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, token, {
+        ...cookieOptions,
+        maxAge: ONE_MONTH_MS
+      });
+      return { success: true };
+    }),
     updateProfile: tenantProcedure.input(
       z4.object({
         name: z4.string().min(1),
@@ -3162,7 +3314,7 @@ var appRouter = router({
         emailNotifications: input.emailNotifications,
         whatsappNotifications: input.whatsappNotifications,
         compactMode: input.compactMode
-      }).where(eq4(users.id, ctx.user.id));
+      }).where(eq5(users.id, ctx.user.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         userName: input.name,
@@ -3171,7 +3323,7 @@ var appRouter = router({
       });
       return { success: true };
     }),
-    getActivityLogs: tenantProcedure.query(async ({ ctx }) => {
+    getActivityLogs: tenantProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
       const logs = await db.select().from(activityLogs).orderBy(desc2(activityLogs.createdAt)).limit(25);
@@ -3204,7 +3356,7 @@ var appRouter = router({
         city: "\u0635\u0646\u0639\u0627\u0621",
         isMain: true
       }).returning();
-      await db.update(users).set({ tenantId: tenant.id, role: "admin" }).where(eq4(users.id, ctx.user.id));
+      await db.update(users).set({ tenantId: tenant.id, role: "admin" }).where(eq5(users.id, ctx.user.id));
       await seedDefaultAccountsForTenant(tenant.id);
       return { tenantId: tenant.id, branchId: branch.id };
     })
@@ -3232,7 +3384,7 @@ var appRouter = router({
           managerName: "\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629",
           subscriptionStatus: "active"
         };
-      const res = await db.select().from(settings).where(eq4(settings.tenantId, ctx.tenantId)).limit(1);
+      const res = await db.select().from(settings).where(eq5(settings.tenantId, ctx.tenantId)).limit(1);
       return res[0] || {
         institutionName: "\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644",
         currency: "\u0631\u064A\u0627\u0644 \u064A\u0645\u0646\u064A (YER)",
@@ -3241,20 +3393,37 @@ var appRouter = router({
         subscriptionStatus: "active"
       };
     }),
-    // Upgrade or manage subscription (simulate payment & unlock advanced features)
+    // سياسة اشتراك مرنة — لا تُغلق النظام أبداً:
+    // trial → active → grace (مهلة غير محدودة) → suspended فقط عند طلب المستخدم
     updateSubscription: tenantProcedure.input(
       z4.object({
-        status: z4.enum(["trial", "active", "expired"])
+        status: z4.enum(["trial", "active", "grace", "suspended"]),
+        // وسيلة دفع محلية اختيارية
+        paymentMethod: z4.string().optional(),
+        // كود ترويجي / خصم اختياري
+        promoCode: z4.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(settings).where(eq4(settings.tenantId, ctx.tenantId)).limit(1);
+      const existing = await db.select().from(settings).where(eq5(settings.tenantId, ctx.tenantId)).limit(1);
+      const newStatus = input.status;
       if (existing.length > 0) {
-        await db.update(settings).set({ subscriptionStatus: input.status }).where(eq4(settings.id, existing[0].id));
+        await db.update(settings).set({
+          subscriptionStatus: newStatus,
+          ...input.paymentMethod ? {
+            notes: `\u0648\u0633\u064A\u0644\u0629 \u0627\u0644\u062F\u0641\u0639: ${input.paymentMethod}${input.promoCode ? ` \u2014 \u0643\u0648\u062F: ${input.promoCode}` : ""}`
+          } : {}
+        }).where(eq5(settings.id, existing[0].id));
       }
-      return { success: true };
+      await db.insert(activityLogs).values({
+        userId: ctx.user.id,
+        userName: ctx.user.name,
+        action: newStatus === "grace" ? "\u0627\u0646\u062A\u0642\u0627\u0644 \u062A\u0644\u0642\u0627\u0626\u064A \u0644\u0648\u0636\u0639 \u0627\u0644\u0645\u0647\u0644\u0629 \u0627\u0644\u0645\u0631\u0646\u0629" : `\u062A\u062D\u062F\u064A\u062B \u0627\u0644\u0627\u0634\u062A\u0631\u0627\u0643 \u0625\u0644\u0649: ${newStatus}`,
+        details: input.paymentMethod ? `\u062A\u0645 \u0627\u0644\u062A\u062C\u062F\u064A\u062F \u0639\u0628\u0631: ${input.paymentMethod}${input.promoCode ? ` (\u0643\u0648\u062F: ${input.promoCode})` : ""}` : "\u062A\u0645 \u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0627\u0644\u0627\u0634\u062A\u0631\u0627\u0643 \u062F\u0648\u0646 \u0625\u063A\u0644\u0627\u0642 \u0627\u0644\u0646\u0638\u0627\u0645"
+      });
+      return { success: true, status: newStatus };
     }),
     // Update settings (Permanent save)
     updateSettings: tenantProcedure.input(
@@ -3270,9 +3439,9 @@ var appRouter = router({
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(settings).where(eq4(settings.tenantId, ctx.tenantId)).limit(1);
+      const existing = await db.select().from(settings).where(eq5(settings.tenantId, ctx.tenantId)).limit(1);
       if (existing.length > 0) {
-        await db.update(settings).set(input).where(eq4(settings.id, existing[0].id));
+        await db.update(settings).set(input).where(eq5(settings.id, existing[0].id));
       } else {
         await db.insert(settings).values({ ...input, tenantId: ctx.tenantId });
       }
@@ -3284,7 +3453,7 @@ var appRouter = router({
       await seedDefaultAccountsForTenant(ctx.tenantId);
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(accounts).where(eq4(accounts.tenantId, ctx.tenantId)).orderBy(asc3(accounts.code));
+      return await db.select().from(accounts).where(eq5(accounts.tenantId, ctx.tenantId)).orderBy(asc3(accounts.code));
     }),
     // Add custom account
     addAccount: tenantProcedure.input(
@@ -3326,7 +3495,9 @@ var appRouter = router({
         type: input.type,
         isActive: input.isActive,
         ...input.parentAccountId !== void 0 ? { parentAccountId: input.parentAccountId } : {}
-      }).where(and3(eq4(accounts.id, input.id), eq4(accounts.tenantId, ctx.tenantId)));
+      }).where(
+        and3(eq5(accounts.id, input.id), eq5(accounts.tenantId, ctx.tenantId))
+      );
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         userName: ctx.user.name,
@@ -3350,7 +3521,12 @@ var appRouter = router({
       }
       await db.update(accounts).set({
         parentAccountId: input.newParentAccountId
-      }).where(and3(eq4(accounts.id, input.accountId), eq4(accounts.tenantId, ctx.tenantId)));
+      }).where(
+        and3(
+          eq5(accounts.id, input.accountId),
+          eq5(accounts.tenantId, ctx.tenantId)
+        )
+      );
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         userName: ctx.user.name,
@@ -3374,7 +3550,7 @@ var appRouter = router({
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      const conditions = [eq4(transactions.tenantId, ctx.tenantId)];
+      const conditions = [eq5(transactions.tenantId, ctx.tenantId)];
       if (input?.search) {
         conditions.push(
           or2(
@@ -3386,10 +3562,10 @@ var appRouter = router({
         );
       }
       if (input?.accountId) {
-        conditions.push(eq4(transactions.accountId, input.accountId));
+        conditions.push(eq5(transactions.accountId, input.accountId));
       }
       if (!input?.includeReversed) {
-        conditions.push(eq4(transactions.isReversed, false));
+        conditions.push(eq5(transactions.isReversed, false));
       }
       if (input?.startDate) {
         conditions.push(
@@ -3420,7 +3596,7 @@ var appRouter = router({
         referenceId: transactions.referenceId,
         branchId: transactions.branchId,
         createdAt: transactions.createdAt
-      }).from(transactions).leftJoin(accounts, eq4(transactions.accountId, accounts.id)).where(whereClause).orderBy(desc2(transactions.transactionDate), desc2(transactions.id)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
+      }).from(transactions).leftJoin(accounts, eq5(transactions.accountId, accounts.id)).where(whereClause).orderBy(desc2(transactions.transactionDate), desc2(transactions.id)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
       return list;
     }),
     // Add Transaction
@@ -3442,7 +3618,7 @@ var appRouter = router({
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const account = await db.select().from(accounts).where(eq4(accounts.id, input.accountId)).limit(1);
+      const account = await db.select().from(accounts).where(eq5(accounts.id, input.accountId)).limit(1);
       if (account.length === 0) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const values = {
         tenantId: ctx.tenantId,
@@ -3530,10 +3706,8 @@ var appRouter = router({
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const account = await db.select().from(accounts).where(eq4(accounts.id, input.accountId)).limit(1);
+      const account = await db.select().from(accounts).where(eq5(accounts.id, input.accountId)).limit(1);
       if (account.length === 0) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
-      const today = /* @__PURE__ */ new Date();
-      const transactionDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
       const values = {
         tenantId: ctx.tenantId,
         accountId: input.accountId,
@@ -3565,7 +3739,7 @@ var appRouter = router({
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(transactions).where(eq4(transactions.id, input.id)).limit(1);
+      const existing = await db.select().from(transactions).where(eq5(transactions.id, input.id)).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u062D\u0631\u0643\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       if (existing[0]?.lifecycleStatus === "posted" && input.lifecycleStatus !== "posted") {
         throw new Error(
@@ -3575,7 +3749,7 @@ var appRouter = router({
       await db.update(transactions).set({
         lifecycleStatus: input.lifecycleStatus,
         ...input.reversalReason ? { reversalReason: input.reversalReason, isReversed: true } : {}
-      }).where(eq4(transactions.id, input.id));
+      }).where(eq5(transactions.id, input.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         action: `\u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0627\u0644\u062D\u0631\u0643\u0629 #${input.id} \u0625\u0644\u0649: ${input.lifecycleStatus}`,
@@ -3594,7 +3768,7 @@ var appRouter = router({
     ).mutation(async ({ input }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(transactions).where(eq4(transactions.id, input.id)).limit(1);
+      const existing = await db.select().from(transactions).where(eq5(transactions.id, input.id)).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u062D\u0631\u0643\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       if (existing[0]?.lifecycleStatus !== "saved") {
         throw new Error(
@@ -3605,7 +3779,7 @@ var appRouter = router({
         amount: input.amount,
         narration: input.narration || null,
         notes: input.notes || null
-      }).where(eq4(transactions.id, input.id));
+      }).where(eq5(transactions.id, input.id));
       return { success: true };
     }),
     // Delete Transaction (only if status is 'saved')
@@ -3617,14 +3791,14 @@ var appRouter = router({
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(transactions).where(eq4(transactions.id, input.id)).limit(1);
+      const existing = await db.select().from(transactions).where(eq5(transactions.id, input.id)).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u062D\u0631\u0643\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       if (existing[0].lifecycleStatus !== "saved") {
         throw new Error(
           "\u0644\u0627 \u064A\u0645\u0643\u0646 \u062D\u0630\u0641 \u062D\u0631\u0643\u0629 \u0645\u0639\u062A\u0645\u062F\u0629 \u0623\u0648 \u0645\u0631\u0633\u0644\u0629 \u2014 \u0627\u0633\u062A\u062E\u062F\u0645 \u0627\u0644\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0639\u0643\u0633\u064A"
         );
       }
-      await db.delete(transactions).where(eq4(transactions.id, input.id));
+      await db.delete(transactions).where(eq5(transactions.id, input.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         action: `\u062D\u0630\u0641 \u062D\u0631\u0643\u0629 \u0645\u0627\u0644\u064A\u0629 #${input.id}`,
@@ -3640,17 +3814,18 @@ var appRouter = router({
         // e.g. "إيراد", "مصروف", "سداد", "عميل"
       })
     ).query(async ({ input, ctx }) => {
-      if (!ctx.tenantId) return { suggestedAccounts: [], recentNarrations: [], insights: [] };
+      if (!ctx.tenantId)
+        return { suggestedAccounts: [], recentNarrations: [], insights: [] };
       const db = await getDb();
       if (!db)
         return { suggestedAccounts: [], recentNarrations: [], insights: [] };
-      const allAccounts = await db.select().from(accounts).where(eq4(accounts.tenantId, ctx.tenantId));
+      const allAccounts = await db.select().from(accounts).where(eq5(accounts.tenantId, ctx.tenantId));
       const recentTx = await db.select({
         narration: transactions.narration,
         accountId: transactions.accountId,
         amount: transactions.amount,
         accountName: accounts.name
-      }).from(transactions).leftJoin(accounts, eq4(transactions.accountId, accounts.id)).where(eq4(transactions.tenantId, ctx.tenantId)).orderBy(desc2(transactions.id)).limit(20);
+      }).from(transactions).leftJoin(accounts, eq5(transactions.accountId, accounts.id)).where(eq5(transactions.tenantId, ctx.tenantId)).orderBy(desc2(transactions.id)).limit(20);
       let matchedAccounts = allAccounts;
       if (input.operationType) {
         const typeKeyword = input.operationType.toLowerCase();
@@ -3683,7 +3858,7 @@ var appRouter = router({
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(budgets).where(eq4(budgets.tenantId, ctx.tenantId)).orderBy(desc2(budgets.id));
+      return await db.select().from(budgets).where(eq5(budgets.tenantId, ctx.tenantId)).orderBy(desc2(budgets.id));
     }),
     saveBudget: tenantProcedure.input(
       z4.object({
@@ -3743,7 +3918,12 @@ var appRouter = router({
         narration: transactions.narration,
         lifecycleStatus: transactions.lifecycleStatus,
         isReversed: transactions.isReversed
-      }).from(transactions).leftJoin(accounts, eq4(transactions.accountId, accounts.id)).where(and3(eq4(transactions.tenantId, ctx.tenantId), eq4(transactions.isReversed, false))).orderBy(desc2(transactions.transactionDate), desc2(transactions.id));
+      }).from(transactions).leftJoin(accounts, eq5(transactions.accountId, accounts.id)).where(
+        and3(
+          eq5(transactions.tenantId, ctx.tenantId),
+          eq5(transactions.isReversed, false)
+        )
+      ).orderBy(desc2(transactions.transactionDate), desc2(transactions.id));
       let totalRevenue = 0;
       let totalExpense = 0;
       let totalAssets = 0;
@@ -3802,7 +3982,12 @@ var appRouter = router({
         transactionDate: transactions.transactionDate,
         accountType: accounts.type,
         lifecycleStatus: transactions.lifecycleStatus
-      }).from(transactions).leftJoin(accounts, eq4(transactions.accountId, accounts.id)).where(and3(eq4(transactions.tenantId, ctx.tenantId), eq4(transactions.isReversed, false)));
+      }).from(transactions).leftJoin(accounts, eq5(transactions.accountId, accounts.id)).where(
+        and3(
+          eq5(transactions.tenantId, ctx.tenantId),
+          eq5(transactions.isReversed, false)
+        )
+      );
       const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
       const dailyMap = {};
       for (let d = 1; d <= daysInMonth; d++) {
@@ -3865,7 +4050,12 @@ var appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const period = input.periodName || "\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026";
-      return await db.select().from(openingBalances).where(and3(eq4(openingBalances.tenantId, ctx.tenantId), eq4(openingBalances.periodName, period)));
+      return await db.select().from(openingBalances).where(
+        and3(
+          eq5(openingBalances.tenantId, ctx.tenantId),
+          eq5(openingBalances.periodName, period)
+        )
+      );
     }),
     saveOpeningBalances: tenantProcedure.input(
       z4.object({
@@ -3886,8 +4076,8 @@ var appRouter = router({
       for (const item of input.balances) {
         const existing = await db.select().from(openingBalances).where(
           and3(
-            eq4(openingBalances.accountId, item.accountId),
-            eq4(openingBalances.periodName, input.periodName)
+            eq5(openingBalances.accountId, item.accountId),
+            eq5(openingBalances.periodName, input.periodName)
           )
         ).limit(1);
         if (existing.length > 0) {
@@ -3895,7 +4085,7 @@ var appRouter = router({
             amount: item.amount,
             type: item.type,
             notes: item.notes || null
-          }).where(eq4(openingBalances.id, existing[0].id));
+          }).where(eq5(openingBalances.id, existing[0].id));
         } else {
           await db.insert(openingBalances).values({
             tenantId: ctx.tenantId,
@@ -3926,17 +4116,17 @@ var appRouter = router({
         if (!db)
           return { rows: [], revenueTotal: 0, expenseTotal: 0, netProfit: 0 };
         const asOf = input.asOfDate ? new Date(input.asOfDate) : /* @__PURE__ */ new Date();
-        const allAccounts = await db.select().from(accounts).where(eq4(accounts.isActive, true));
+        const allAccounts = await db.select().from(accounts).where(eq5(accounts.isActive, true));
         const opening = await db.select().from(openingBalances).where(
           and3(
-            eq4(openingBalances.periodName, input.periodName),
+            eq5(openingBalances.periodName, input.periodName),
             lte2(openingBalances.createdAt, asOf)
           )
         );
         const txns = await db.select().from(transactions).where(
           and3(
             lte2(transactions.transactionDate, asOf),
-            eq4(transactions.isReversed, false),
+            eq5(transactions.isReversed, false),
             or2(
               isNull(transactions.referenceType),
               ne(transactions.referenceType, "closing")
@@ -3985,7 +4175,7 @@ var appRouter = router({
         const asOf = input.asOfDate ? new Date(input.asOfDate) : /* @__PURE__ */ new Date();
         const already = await db.select().from(transactions).where(
           and3(
-            eq4(transactions.referenceType, "closing"),
+            eq5(transactions.referenceType, "closing"),
             ilike3(transactions.narration, `%${input.periodName}%`)
           )
         ).limit(1);
@@ -3996,9 +4186,9 @@ var appRouter = router({
         let retainedId = input.retainedAccountId;
         if (!retainedId) {
           const eq3010 = await db.select().from(accounts).where(
-            and3(eq4(accounts.code, "3010"), eq4(accounts.type, "equity"))
+            and3(eq5(accounts.code, "3010"), eq5(accounts.type, "equity"))
           ).limit(1);
-          const fallback = eq3010.length > 0 ? eq3010[0].id : (await db.select().from(accounts).where(eq4(accounts.type, "equity")).limit(1))[0]?.id;
+          const fallback = eq3010.length > 0 ? eq3010[0].id : (await db.select().from(accounts).where(eq5(accounts.type, "equity")).limit(1))[0]?.id;
           if (!fallback)
             throw new Error(
               "\u0644\u0627 \u064A\u0648\u062C\u062F \u062D\u0633\u0627\u0628 \u0631\u0623\u0633 \u0645\u0627\u0644/\u0646\u062A\u0627\u0626\u062C \u2014 \u0623\u0646\u0634\u0626 \u062D\u0633\u0627\u0628\u0627\u064B \u0645\u0646 \u0646\u0648\u0639 \u0631\u0623\u0633 \u0627\u0644\u0645\u0627\u0644 \u0623\u0648\u0644\u0627\u064B"
@@ -4008,14 +4198,14 @@ var appRouter = router({
         const allAccounts = await db.select().from(accounts);
         const opening = await db.select().from(openingBalances).where(
           and3(
-            eq4(openingBalances.periodName, input.periodName),
+            eq5(openingBalances.periodName, input.periodName),
             lte2(openingBalances.createdAt, asOf)
           )
         );
         const txns = await db.select().from(transactions).where(
           and3(
             lte2(transactions.transactionDate, asOf),
-            eq4(transactions.isReversed, false)
+            eq5(transactions.isReversed, false)
           )
         );
         const balanceOf = /* @__PURE__ */ new Map();
@@ -4033,7 +4223,6 @@ var appRouter = router({
             (balanceOf.get(t2.accountId) ?? 0) + (t2.type === "debit" ? v : -v)
           );
         }
-        const acctMap = new Map(allAccounts.map((a) => [a.id, a]));
         const closingRows = allAccounts.filter(
           (a) => (a.type === "revenue" || a.type === "expense") && Math.abs(balanceOf.get(a.id) ?? 0) > 9e-3
         ).map((a) => ({
@@ -4250,13 +4439,13 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
       const db = await getDb();
       if (!db) return { tenants: [], branches: [] };
       if (!ctx.tenantId) return { tenants: [], branches: [] };
-      const userTenant = await db.select().from(tenants).where(eq4(tenants.id, ctx.tenantId)).limit(1);
+      const userTenant = await db.select().from(tenants).where(eq5(tenants.id, ctx.tenantId)).limit(1);
       if (userTenant.length === 0) {
         return { tenants: [], branches: [] };
       }
       return {
         tenants: userTenant,
-        branches: await db.select().from(branches).where(eq4(branches.tenantId, ctx.tenantId))
+        branches: await db.select().from(branches).where(eq5(branches.tenantId, ctx.tenantId))
       };
     }),
     createBranch: tenantProcedure.input(
@@ -4292,7 +4481,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
     ).query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(userBranchPermissions).where(eq4(userBranchPermissions.userId, input.userId));
+      return await db.select().from(userBranchPermissions).where(eq5(userBranchPermissions.userId, input.userId));
     }),
     saveUserPermission: tenantProcedure.input(
       z4.object({
@@ -4308,8 +4497,8 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(userBranchPermissions).where(
         and3(
-          eq4(userBranchPermissions.userId, input.userId),
-          eq4(userBranchPermissions.branchId, input.branchId)
+          eq5(userBranchPermissions.userId, input.userId),
+          eq5(userBranchPermissions.branchId, input.branchId)
         )
       );
       if (existing.length > 0) {
@@ -4318,7 +4507,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
           canInsert: input.canInsert,
           canApprove: input.canApprove,
           canPost: input.canPost
-        }).where(eq4(userBranchPermissions.id, existing[0].id));
+        }).where(eq5(userBranchPermissions.id, existing[0].id));
       } else {
         await db.insert(userBranchPermissions).values({
           tenantId: ctx.tenantId,
@@ -4350,7 +4539,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
         type: transactions.type,
         branchId: transactions.branchId,
         accountType: accounts.type
-      }).from(transactions).leftJoin(accounts, eq4(transactions.accountId, accounts.id)).where(inArray2(transactions.lifecycleStatus, ["approved", "posted"]));
+      }).from(transactions).leftJoin(accounts, eq5(transactions.accountId, accounts.id)).where(inArray2(transactions.lifecycleStatus, ["approved", "posted"]));
       const branchStats = /* @__PURE__ */ new Map();
       for (const b of allBranches) {
         branchStats.set(b.id, { revenue: 0, expenses: 0, count: 0 });
@@ -4408,7 +4597,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
         narration: transactions.narration,
         lifecycleStatus: transactions.lifecycleStatus,
         isReversed: transactions.isReversed
-      }).from(transactions).leftJoin(accounts, eq4(transactions.accountId, accounts.id)).where(eq4(transactions.isReversed, false)).orderBy(desc2(transactions.transactionDate), desc2(transactions.id));
+      }).from(transactions).leftJoin(accounts, eq5(transactions.accountId, accounts.id)).where(eq5(transactions.isReversed, false)).orderBy(desc2(transactions.transactionDate), desc2(transactions.id));
       const allAccts = await db.select().from(accounts);
       const allBudgets = await db.select().from(budgets).orderBy(desc2(budgets.id));
       const approved = allTx.filter(
@@ -4691,10 +4880,10 @@ ${analysisText}
                 type: mutation.payload.type,
                 isActive: mutation.payload.isActive,
                 parentAccountId: mutation.payload.parentAccountId
-              }).where(eq4(accounts.id, mutation.payload.id));
+              }).where(eq5(accounts.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.delete(accounts).where(eq4(accounts.id, mutation.payload.id));
+              await db.delete(accounts).where(eq5(accounts.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "transactions") {
@@ -4722,16 +4911,16 @@ ${analysisText}
                 narration: mutation.payload.narration,
                 notes: mutation.payload.notes,
                 lifecycleStatus: mutation.payload.lifecycleStatus
-              }).where(eq4(transactions.id, mutation.payload.id));
+              }).where(eq5(transactions.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.delete(transactions).where(eq4(transactions.id, mutation.payload.id));
+              await db.delete(transactions).where(eq5(transactions.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "settings") {
             const existing = await db.select().from(settings).limit(1);
             if (existing.length > 0) {
-              await db.update(settings).set(mutation.payload).where(eq4(settings.id, existing[0].id));
+              await db.update(settings).set(mutation.payload).where(eq5(settings.id, existing[0].id));
             } else {
               await db.insert(settings).values(mutation.payload);
             }
@@ -4745,8 +4934,8 @@ ${analysisText}
             if (mutation.operation === "create" || mutation.operation === "update") {
               const existing = await db.select().from(openingBalances).where(
                 and3(
-                  eq4(openingBalances.accountId, mutation.payload.accountId),
-                  eq4(
+                  eq5(openingBalances.accountId, mutation.payload.accountId),
+                  eq5(
                     openingBalances.periodName,
                     mutation.payload.periodName
                   )
@@ -4757,7 +4946,7 @@ ${analysisText}
                   amount: mutation.payload.amount,
                   type: mutation.payload.type,
                   notes: mutation.payload.notes
-                }).where(eq4(openingBalances.id, existing[0].id));
+                }).where(eq5(openingBalances.id, existing[0].id));
               } else {
                 await db.insert(openingBalances).values(mutation.payload);
               }
@@ -4771,10 +4960,10 @@ ${analysisText}
               });
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(products).set(mutation.payload).where(eq4(products.id, mutation.payload.id));
+              await db.update(products).set(mutation.payload).where(eq5(products.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.delete(products).where(eq4(products.id, mutation.payload.id));
+              await db.delete(products).where(eq5(products.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "customers") {
@@ -4785,10 +4974,10 @@ ${analysisText}
               });
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(customers).set(mutation.payload).where(eq4(customers.id, mutation.payload.id));
+              await db.update(customers).set(mutation.payload).where(eq5(customers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.delete(customers).where(eq4(customers.id, mutation.payload.id));
+              await db.delete(customers).where(eq5(customers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "suppliers") {
@@ -4799,10 +4988,10 @@ ${analysisText}
               });
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(suppliers).set(mutation.payload).where(eq4(suppliers.id, mutation.payload.id));
+              await db.update(suppliers).set(mutation.payload).where(eq5(suppliers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.delete(suppliers).where(eq4(suppliers.id, mutation.payload.id));
+              await db.delete(suppliers).where(eq5(suppliers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "warehouses") {
@@ -4824,7 +5013,7 @@ ${analysisText}
                 serverId: inserted[0]?.id
               });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(salesInvoices).set(mutation.payload).where(eq4(salesInvoices.id, mutation.payload.id));
+              await db.update(salesInvoices).set(mutation.payload).where(eq5(salesInvoices.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "salesInvoiceItems") {
@@ -4841,7 +5030,7 @@ ${analysisText}
                 serverId: inserted[0]?.id
               });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(purchaseInvoices).set(mutation.payload).where(eq4(purchaseInvoices.id, mutation.payload.id));
+              await db.update(purchaseInvoices).set(mutation.payload).where(eq5(purchaseInvoices.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "purchaseInvoiceItems") {
@@ -4858,7 +5047,7 @@ ${analysisText}
                 serverId: inserted[0]?.id
               });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(orders).set(mutation.payload).where(eq4(orders.id, mutation.payload.id));
+              await db.update(orders).set(mutation.payload).where(eq5(orders.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "orderItems") {
@@ -4907,7 +5096,8 @@ ${analysisText}
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { changes: {}, serverTime: (/* @__PURE__ */ new Date()).toISOString() };
-      if (!ctx.tenantId) return { changes: {}, serverTime: (/* @__PURE__ */ new Date()).toISOString() };
+      if (!ctx.tenantId)
+        return { changes: {}, serverTime: (/* @__PURE__ */ new Date()).toISOString() };
       const sinceDate = new Date(input.since);
       const tablesToSync = input.tables || [
         "accounts",
@@ -5044,7 +5234,10 @@ ${analysisText}
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const conditions = [eq4(products.isActive, true), eq4(products.tenantId, ctx.tenantId)];
+      const conditions = [
+        eq5(products.isActive, true),
+        eq5(products.tenantId, ctx.tenantId)
+      ];
       if (input?.search) {
         conditions.push(
           or2(
@@ -5055,7 +5248,7 @@ ${analysisText}
         );
       }
       if (input?.category)
-        conditions.push(eq4(products.category, input.category));
+        conditions.push(eq5(products.category, input.category));
       const where = and3(...conditions);
       const [countResult] = await db.select({ count: sql3`count(*)::int` }).from(products).where(where);
       const items = await db.select().from(products).where(where).orderBy(asc3(products.code)).limit(limit).offset(offset);
@@ -5114,7 +5307,9 @@ ${analysisText}
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const { id, ...data } = input;
-      await db.update(products).set(data).where(and3(eq4(products.id, id), eq4(products.tenantId, ctx.tenantId)));
+      await db.update(products).set(data).where(
+        and3(eq5(products.id, id), eq5(products.tenantId, ctx.tenantId))
+      );
       return { success: true };
     }),
     adjustStock: tenantProcedure.input(
@@ -5128,7 +5323,7 @@ ${analysisText}
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const product = await db.select().from(products).where(eq4(products.id, input.productId)).limit(1);
+      const product = await db.select().from(products).where(eq5(products.id, input.productId)).limit(1);
       if (product.length === 0) throw new Error("\u0627\u0644\u0645\u0646\u062A\u062C \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const currentStock = product[0].currentStock || 0;
       let newStock = currentStock;
@@ -5148,13 +5343,13 @@ ${analysisText}
         if (input.type === "in") {
           await tx.update(products).set({
             currentStock: sql3`${products.currentStock} + ${input.quantity}`
-          }).where(eq4(products.id, input.productId));
+          }).where(eq5(products.id, input.productId));
         } else if (input.type === "out") {
           const done = await tx.update(products).set({
             currentStock: sql3`${products.currentStock} - ${input.quantity}`
           }).where(
             and3(
-              eq4(products.id, input.productId),
+              eq5(products.id, input.productId),
               gte3(products.currentStock, input.quantity)
             )
           ).returning({ id: products.id });
@@ -5163,7 +5358,7 @@ ${analysisText}
               `\u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u063A\u064A\u0631 \u0643\u0627\u0641\u064D \u2014 \u0627\u0644\u0645\u062A\u0648\u0641\u0631 \u0627\u0644\u062D\u0627\u0644\u064A \u0623\u0642\u0644 \u0645\u0646 ${input.quantity}`
             );
         } else {
-          await tx.update(products).set({ currentStock: input.quantity }).where(eq4(products.id, input.productId));
+          await tx.update(products).set({ currentStock: input.quantity }).where(eq5(products.id, input.productId));
         }
         await tx.insert(inventoryMovements).values({
           productId: input.productId,
@@ -5179,7 +5374,7 @@ ${analysisText}
       });
       return { success: true, previousStock: currentStock, newStock };
     }),
-    movements: publicProcedure.input(
+    movements: protectedProcedure.input(
       z4.object({
         productId: z4.number().optional()
       }).optional()
@@ -5187,7 +5382,7 @@ ${analysisText}
       const db = await getDb();
       if (!db) return [];
       if (input?.productId) {
-        return await db.select().from(inventoryMovements).where(eq4(inventoryMovements.productId, input.productId)).orderBy(desc2(inventoryMovements.createdAt));
+        return await db.select().from(inventoryMovements).where(eq5(inventoryMovements.productId, input.productId)).orderBy(desc2(inventoryMovements.createdAt));
       }
       return await db.select().from(inventoryMovements).orderBy(desc2(inventoryMovements.createdAt));
     }),
@@ -5239,7 +5434,7 @@ ${analysisText}
           }
           seen.add(r.code);
           await db.transaction(async (tx) => {
-            const existing = await tx.select().from(products).where(eq4(products.code, r.code)).limit(1);
+            const existing = await tx.select().from(products).where(eq5(products.code, r.code)).limit(1);
             const values = {
               name: r.name,
               type: r.type,
@@ -5253,12 +5448,12 @@ ${analysisText}
               isActive: true
             };
             if (existing.length > 0) {
-              await tx.update(products).set(values).where(eq4(products.id, existing[0].id));
+              await tx.update(products).set(values).where(eq5(products.id, existing[0].id));
               const prevStock = existing[0].currentStock || 0;
               if (r.currentStock !== prevStock) {
                 await tx.update(products).set({
                   currentStock: sql3`${products.currentStock} + ${r.currentStock - prevStock}`
-                }).where(eq4(products.id, existing[0].id));
+                }).where(eq5(products.id, existing[0].id));
                 await tx.insert(inventoryMovements).values({
                   productId: existing[0].id,
                   type: "adjustment",
@@ -5301,7 +5496,10 @@ ${analysisText}
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const conditions = [eq4(customers.isActive, true), eq4(customers.tenantId, ctx.tenantId)];
+      const conditions = [
+        eq5(customers.isActive, true),
+        eq5(customers.tenantId, ctx.tenantId)
+      ];
       if (input?.search) {
         conditions.push(
           or2(
@@ -5352,7 +5550,9 @@ ${analysisText}
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const { id, ...data } = input;
-      await db.update(customers).set(data).where(and3(eq4(customers.id, id), eq4(customers.tenantId, ctx.tenantId)));
+      await db.update(customers).set(data).where(
+        and3(eq5(customers.id, id), eq5(customers.tenantId, ctx.tenantId))
+      );
       return { success: true };
     })
   }),
@@ -5370,7 +5570,10 @@ ${analysisText}
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const conditions = [eq4(suppliers.isActive, true), eq4(suppliers.tenantId, ctx.tenantId)];
+      const conditions = [
+        eq5(suppliers.isActive, true),
+        eq5(suppliers.tenantId, ctx.tenantId)
+      ];
       if (input?.search) {
         conditions.push(
           or2(
@@ -5419,7 +5622,9 @@ ${analysisText}
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const { id, ...data } = input;
-      await db.update(suppliers).set(data).where(and3(eq4(suppliers.id, id), eq4(suppliers.tenantId, ctx.tenantId)));
+      await db.update(suppliers).set(data).where(
+        and3(eq5(suppliers.id, id), eq5(suppliers.tenantId, ctx.tenantId))
+      );
       return { success: true };
     })
   }),
@@ -5438,11 +5643,11 @@ ${analysisText}
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const conditions = [eq4(salesInvoices.tenantId, ctx.tenantId)];
+      const conditions = [eq5(salesInvoices.tenantId, ctx.tenantId)];
       if (input?.status)
-        conditions.push(eq4(salesInvoices.status, input.status));
+        conditions.push(eq5(salesInvoices.status, input.status));
       if (input?.customerId)
-        conditions.push(eq4(salesInvoices.customerId, input.customerId));
+        conditions.push(eq5(salesInvoices.customerId, input.customerId));
       const where = and3(...conditions);
       const [countResult] = await db.select({ count: sql3`count(*)::int` }).from(salesInvoices).where(where);
       const items = await db.select().from(salesInvoices).where(where).orderBy(desc2(salesInvoices.createdAt)).limit(limit).offset(offset);
@@ -5452,10 +5657,15 @@ ${analysisText}
       if (!ctx.tenantId) return null;
       const db = await getDb();
       if (!db) return null;
-      const [invoice] = await db.select().from(salesInvoices).where(and3(eq4(salesInvoices.id, input.id), eq4(salesInvoices.tenantId, ctx.tenantId))).limit(1);
+      const [invoice] = await db.select().from(salesInvoices).where(
+        and3(
+          eq5(salesInvoices.id, input.id),
+          eq5(salesInvoices.tenantId, ctx.tenantId)
+        )
+      ).limit(1);
       if (!invoice) return null;
-      const customer = invoice.customerId ? (await db.select().from(customers).where(eq4(customers.id, invoice.customerId)).limit(1))[0] ?? null : null;
-      const items = await db.select().from(salesInvoiceItems).where(eq4(salesInvoiceItems.invoiceId, invoice.id)).orderBy(asc3(salesInvoiceItems.id));
+      const customer = invoice.customerId ? (await db.select().from(customers).where(eq5(customers.id, invoice.customerId)).limit(1))[0] ?? null : null;
+      const items = await db.select().from(salesInvoiceItems).where(eq5(salesInvoiceItems.invoiceId, invoice.id)).orderBy(asc3(salesInvoiceItems.id));
       return { invoice, customer, items };
     }),
     create: tenantProcedure.input(
@@ -5545,7 +5755,7 @@ ${analysisText}
         for (const item of input.items) {
           await tx.update(products).set({
             currentStock: sql3`${products.currentStock} - ${item.quantity}`
-          }).where(eq4(products.id, item.productId));
+          }).where(eq5(products.id, item.productId));
           await tx.insert(inventoryMovements).values({
             productId: item.productId,
             type: "out",
@@ -5558,7 +5768,7 @@ ${analysisText}
         if (input.customerId) {
           const unpaidAmount = total - paidAmount;
           if (unpaidAmount > 0) {
-            await tx.update(customers).set({ balance: sql3`${customers.balance} + ${unpaidAmount}` }).where(eq4(customers.id, input.customerId));
+            await tx.update(customers).set({ balance: sql3`${customers.balance} + ${unpaidAmount}` }).where(eq5(customers.id, input.customerId));
           }
         }
         await postInvoiceGlEntries(tx, {
@@ -5594,7 +5804,7 @@ ${analysisText}
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(salesInvoices).where(eq4(salesInvoices.id, input.id)).limit(1);
+      const existing = await db.select().from(salesInvoices).where(eq5(salesInvoices.id, input.id)).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       const inv = existing[0];
       if (inv.status === "cancelled" && input.status !== "cancelled") {
@@ -5603,11 +5813,11 @@ ${analysisText}
       if (inv.status === input.status)
         return { success: true, unchanged: true };
       const cancelFlow = input.status === "cancelled" && inv.status !== "draft";
-      const items = cancelFlow ? await db.select().from(salesInvoiceItems).where(eq4(salesInvoiceItems.invoiceId, inv.id)) : [];
+      const items = cancelFlow ? await db.select().from(salesInvoiceItems).where(eq5(salesInvoiceItems.invoiceId, inv.id)) : [];
       const itemPayments = cancelFlow ? await db.select().from(payments).where(
         and3(
-          eq4(payments.source, "sales"),
-          eq4(payments.invoiceId, inv.id)
+          eq5(payments.source, "sales"),
+          eq5(payments.invoiceId, inv.id)
         )
       ) : [];
       await db.transaction(async (tx) => {
@@ -5615,7 +5825,7 @@ ${analysisText}
           for (const item of items) {
             await tx.update(products).set({
               currentStock: sql3`${products.currentStock} + ${item.quantity}`
-            }).where(eq4(products.id, item.productId));
+            }).where(eq5(products.id, item.productId));
             await tx.insert(inventoryMovements).values({
               productId: item.productId,
               type: "in",
@@ -5630,11 +5840,11 @@ ${analysisText}
             if (reversedUnpaid > 0) {
               await tx.update(customers).set({
                 balance: sql3`${customers.balance} - ${reversedUnpaid}`
-              }).where(eq4(customers.id, inv.customerId));
+              }).where(eq5(customers.id, inv.customerId));
             }
           }
           for (const p of itemPayments) {
-            await tx.update(payments).set({ notes: `\u0645\u0633\u062A\u0631\u062F\u0629 \u2014 \u0625\u0644\u063A\u0627\u0621 \u0641\u0627\u062A\u0648\u0631\u0629 ${inv.invoiceNumber}` }).where(eq4(payments.id, p.id));
+            await tx.update(payments).set({ notes: `\u0645\u0633\u062A\u0631\u062F\u0629 \u2014 \u0625\u0644\u063A\u0627\u0621 \u0641\u0627\u062A\u0648\u0631\u0629 ${inv.invoiceNumber}` }).where(eq5(payments.id, p.id));
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
@@ -5642,7 +5852,7 @@ ${analysisText}
             details: `\u062A\u0645 \u0639\u0643\u0633 \u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u0648\u0627\u0644\u0623\u0631\u0635\u062F\u0629 \u0627\u0644\u0645\u0631\u062A\u0628\u0637\u0629 \u0628\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629`
           });
         }
-        await tx.update(salesInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq4(salesInvoices.id, inv.id));
+        await tx.update(salesInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(salesInvoices.id, inv.id));
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
           action: `\u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A ${inv.invoiceNumber} \u0625\u0644\u0649 "${input.status}"`
@@ -5658,9 +5868,14 @@ ${analysisText}
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      const [invoice] = await db.select({ id: salesInvoices.id }).from(salesInvoices).where(and3(eq4(salesInvoices.id, input.invoiceId), eq4(salesInvoices.tenantId, ctx.tenantId))).limit(1);
+      const [invoice] = await db.select({ id: salesInvoices.id }).from(salesInvoices).where(
+        and3(
+          eq5(salesInvoices.id, input.invoiceId),
+          eq5(salesInvoices.tenantId, ctx.tenantId)
+        )
+      ).limit(1);
       if (!invoice) return [];
-      return await db.select().from(salesInvoiceItems).where(eq4(salesInvoiceItems.invoiceId, input.invoiceId));
+      return await db.select().from(salesInvoiceItems).where(eq5(salesInvoiceItems.invoiceId, input.invoiceId));
     })
   }),
   // ─── Purchases ──────────────────────────────────────────────────
@@ -5678,11 +5893,13 @@ ${analysisText}
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const conditions = [eq4(purchaseInvoices.tenantId, ctx.tenantId)];
+      const conditions = [
+        eq5(purchaseInvoices.tenantId, ctx.tenantId)
+      ];
       if (input?.status)
-        conditions.push(eq4(purchaseInvoices.status, input.status));
+        conditions.push(eq5(purchaseInvoices.status, input.status));
       if (input?.supplierId)
-        conditions.push(eq4(purchaseInvoices.supplierId, input.supplierId));
+        conditions.push(eq5(purchaseInvoices.supplierId, input.supplierId));
       const where = and3(...conditions);
       const [countResult] = await db.select({ count: sql3`count(*)::int` }).from(purchaseInvoices).where(where);
       const items = await db.select().from(purchaseInvoices).where(where).orderBy(desc2(purchaseInvoices.createdAt)).limit(limit).offset(offset);
@@ -5770,7 +5987,7 @@ ${analysisText}
         for (const item of input.items) {
           await tx.update(products).set({
             currentStock: sql3`${products.currentStock} + ${item.quantity}`
-          }).where(eq4(products.id, item.productId));
+          }).where(eq5(products.id, item.productId));
           await tx.insert(inventoryMovements).values({
             productId: item.productId,
             type: "in",
@@ -5783,7 +6000,7 @@ ${analysisText}
         if (input.supplierId) {
           const unpaidAmount = total - paidAmount;
           if (unpaidAmount > 0) {
-            await tx.update(suppliers).set({ balance: sql3`${suppliers.balance} + ${unpaidAmount}` }).where(eq4(suppliers.id, input.supplierId));
+            await tx.update(suppliers).set({ balance: sql3`${suppliers.balance} + ${unpaidAmount}` }).where(eq5(suppliers.id, input.supplierId));
           }
         }
         await postInvoiceGlEntries(tx, {
@@ -5819,7 +6036,7 @@ ${analysisText}
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(purchaseInvoices).where(eq4(purchaseInvoices.id, input.id)).limit(1);
+      const existing = await db.select().from(purchaseInvoices).where(eq5(purchaseInvoices.id, input.id)).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       const inv = existing[0];
       if (inv.status === "cancelled" && input.status !== "cancelled") {
@@ -5828,13 +6045,13 @@ ${analysisText}
       if (inv.status === input.status)
         return { success: true, unchanged: true };
       const cancelFlow = input.status === "cancelled" && inv.status !== "draft";
-      const items = cancelFlow ? await db.select().from(purchaseInvoiceItems).where(eq4(purchaseInvoiceItems.invoiceId, inv.id)) : [];
+      const items = cancelFlow ? await db.select().from(purchaseInvoiceItems).where(eq5(purchaseInvoiceItems.invoiceId, inv.id)) : [];
       await db.transaction(async (tx) => {
         if (cancelFlow) {
           for (const item of items) {
             await tx.update(products).set({
               currentStock: sql3`${products.currentStock} - ${item.quantity}`
-            }).where(eq4(products.id, item.productId));
+            }).where(eq5(products.id, item.productId));
             await tx.insert(inventoryMovements).values({
               productId: item.productId,
               type: "out",
@@ -5849,7 +6066,7 @@ ${analysisText}
             if (reversedUnpaid > 0) {
               await tx.update(suppliers).set({
                 balance: sql3`${suppliers.balance} - ${reversedUnpaid}`
-              }).where(eq4(suppliers.id, inv.supplierId));
+              }).where(eq5(suppliers.id, inv.supplierId));
             }
           }
           await tx.insert(activityLogs).values({
@@ -5858,7 +6075,7 @@ ${analysisText}
             details: `\u062A\u0645 \u0639\u0643\u0633 \u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u0648\u0627\u0644\u0623\u0631\u0635\u062F\u0629 \u0627\u0644\u0645\u0631\u062A\u0628\u0637\u0629 \u0628\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629`
           });
         }
-        await tx.update(purchaseInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq4(purchaseInvoices.id, inv.id));
+        await tx.update(purchaseInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(purchaseInvoices.id, inv.id));
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
           action: `\u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0634\u062A\u0631\u064A\u0627\u062A ${inv.invoiceNumber} \u0625\u0644\u0649 "${input.status}"`
@@ -5874,14 +6091,56 @@ ${analysisText}
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      const [invoice] = await db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(and3(eq4(purchaseInvoices.id, input.invoiceId), eq4(purchaseInvoices.tenantId, ctx.tenantId))).limit(1);
+      const [invoice] = await db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(
+        and3(
+          eq5(purchaseInvoices.id, input.invoiceId),
+          eq5(purchaseInvoices.tenantId, ctx.tenantId)
+        )
+      ).limit(1);
       if (!invoice) return [];
-      return await db.select().from(purchaseInvoiceItems).where(eq4(purchaseInvoiceItems.invoiceId, input.invoiceId));
+      return await db.select().from(purchaseInvoiceItems).where(eq5(purchaseInvoiceItems.invoiceId, input.invoiceId));
     })
   }),
   // ─── Orders & Distribution ──────────────────────────────────────
   orders: router({
-    list: publicProcedure.input(
+    // Public order tracking for the customer portal: matches ONLY by order
+    // reference number or the guest's own phone number. Never exposes the
+    // full order list or other customers' data to anonymous visitors.
+    track: publicProcedure.input(
+      z4.object({
+        query: z4.string().min(6, "\u0623\u062F\u062E\u0644 \u0631\u0642\u0645 \u0637\u0644\u0628 \u0623\u0648 \u0647\u0627\u062A\u0641 \u0635\u062D\u064A\u062D").max(50)
+      })
+    ).query(async ({ input, ctx }) => {
+      const ip = ctx.req.ip || "unknown";
+      const rl = checkRateLimit(`track:${ip}`, 30, 60 * 60 * 1e3);
+      if (!rl.ok) {
+        throw new TRPCError4({
+          code: "TOO_MANY_REQUESTS",
+          message: `\u0637\u0644\u0628\u0627\u062A \u0628\u062D\u062B \u0643\u062B\u064A\u0631\u0629 \u2014 \u0623\u0639\u062F \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629 \u0628\u0639\u062F ${rl.retryAfterSec} \u062B\u0627\u0646\u064A\u0629.`
+        });
+      }
+      const db = await getDb();
+      if (!db) return { items: [] };
+      const q = input.query.trim();
+      const rows = await db.select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        status: orders.status,
+        total: orders.total,
+        createdAt: orders.createdAt,
+        deliveryAddress: orders.deliveryAddress,
+        deliveryNotes: orders.deliveryNotes,
+        assignedTo: orders.assignedTo
+      }).from(orders).leftJoin(customers, eq5(orders.customerId, customers.id)).where(
+        or2(
+          ilike3(orders.orderNumber, `%${q}%`),
+          ilike3(customers.phone, `%${q}%`)
+        )
+      ).orderBy(desc2(orders.createdAt)).limit(20);
+      return { items: rows };
+    }),
+    // Tenant-scoped listing — consumed by the authenticated Commercial page.
+    list: tenantProcedure.input(
       z4.object({
         limit: z4.number().min(1).max(100).default(50),
         offset: z4.number().min(0).default(0),
@@ -5894,12 +6153,15 @@ ${analysisText}
           "cancelled"
         ]).optional()
       }).optional()
-    ).query(async ({ input }) => {
+    ).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { items: [], total: 0 };
       const db = await getDb();
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const where = input?.status ? eq4(orders.status, input.status) : void 0;
+      const conditions = [eq5(orders.tenantId, ctx.tenantId)];
+      if (input?.status) conditions.push(eq5(orders.status, input.status));
+      const where = and3(...conditions);
       const [countResult] = await db.select({ count: sql3`count(*)::int` }).from(orders).where(where);
       const items = await db.select().from(orders).where(where).orderBy(desc2(orders.createdAt)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
@@ -5981,7 +6243,7 @@ ${analysisText}
             currentStock: sql3`${products.currentStock} - ${item.quantity}`
           }).where(
             and3(
-              eq4(products.id, item.productId),
+              eq5(products.id, item.productId),
               gte3(products.currentStock, item.quantity)
             )
           ).returning({ id: products.id });
@@ -6022,7 +6284,7 @@ ${analysisText}
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(orders).where(eq4(orders.id, input.id)).limit(1);
+      const existing = await db.select().from(orders).where(eq5(orders.id, input.id)).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const currentStatus = existing[0].status;
       if (currentStatus === "delivered") {
@@ -6032,15 +6294,15 @@ ${analysisText}
         throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u0625\u0639\u0627\u062F\u0629 \u062A\u0641\u0639\u064A\u0644\u0647");
       }
       const result = await db.transaction(async (tx) => {
-        await tx.update(orders).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq4(orders.id, input.id));
+        await tx.update(orders).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq5(orders.id, input.id));
         if (input.status === "cancelled") {
           const linked = await tx.select().from(salesInvoices).where(ilike3(salesInvoices.notes, `%${existing[0].orderNumber}%`)).limit(1);
           if (linked.length === 0) {
-            const items = await tx.select().from(orderItems).where(eq4(orderItems.orderId, input.id));
+            const items = await tx.select().from(orderItems).where(eq5(orderItems.orderId, input.id));
             for (const it of items) {
               await tx.update(products).set({
                 currentStock: sql3`${products.currentStock} + ${it.quantity}`
-              }).where(eq4(products.id, it.productId));
+              }).where(eq5(products.id, it.productId));
               await tx.insert(inventoryMovements).values({
                 productId: it.productId,
                 type: "in",
@@ -6076,11 +6338,11 @@ ${analysisText}
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await seedDefaultAccountsForTenant(ctx.tenantId);
-      const [order] = await db.select().from(orders).where(eq4(orders.id, input.orderId)).limit(1);
+      const [order] = await db.select().from(orders).where(eq5(orders.id, input.orderId)).limit(1);
       if (!order) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (order.status === "cancelled")
         throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u062D\u0648\u064A\u0644\u0647");
-      const items = await db.select().from(orderItems).where(eq4(orderItems.orderId, order.id));
+      const items = await db.select().from(orderItems).where(eq5(orderItems.orderId, order.id));
       if (items.length === 0) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0644\u0627 \u064A\u062D\u062A\u0648\u064A \u0623\u0635\u0646\u0627\u0641\u0627\u064B");
       const subtotal = items.reduce(
         (s, it) => s + parseFloat(it.unitPrice || "0") * it.quantity,
@@ -6101,7 +6363,7 @@ ${analysisText}
           throw new Error(
             `\u062A\u0645 \u062A\u062D\u0648\u064A\u0644 \u0627\u0644\u0637\u0644\u0628 \u0645\u0633\u0628\u0642\u0627\u064B \u0625\u0644\u0649 \u0641\u0627\u062A\u0648\u0631\u0629 ${prior[0].invoiceNumber}`
           );
-        const fresh = await tx.select().from(orders).where(eq4(orders.id, order.id)).limit(1);
+        const fresh = await tx.select().from(orders).where(eq5(orders.id, order.id)).limit(1);
         if (fresh.length === 0 || fresh[0].status === "cancelled")
           throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u062D\u0648\u064A\u0644\u0647");
         const [invoice] = await tx.insert(salesInvoices).values({
@@ -6130,7 +6392,7 @@ ${analysisText}
         await tx.insert(salesInvoiceItems).values(itemValues);
         const unpaid = total - paidAmount;
         if (order.customerId && unpaid > 9e-3) {
-          await tx.update(customers).set({ balance: sql3`${customers.balance} + ${unpaid}` }).where(eq4(customers.id, order.customerId));
+          await tx.update(customers).set({ balance: sql3`${customers.balance} + ${unpaid}` }).where(eq5(customers.id, order.customerId));
         }
         await postInvoiceGlEntries(tx, {
           kind: "sale",
@@ -6143,7 +6405,7 @@ ${analysisText}
           tenantId: ctx.tenantId
         });
         if (fresh[0].status === "pending") {
-          await tx.update(orders).set({ status: "confirmed", updatedAt: /* @__PURE__ */ new Date() }).where(eq4(orders.id, order.id));
+          await tx.update(orders).set({ status: "confirmed", updatedAt: /* @__PURE__ */ new Date() }).where(eq5(orders.id, order.id));
         }
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
@@ -6154,14 +6416,15 @@ ${analysisText}
       });
       return { success: true, ...result };
     }),
-    getItems: publicProcedure.input(
+    // Authenticated only — order line items may reference internal pricing.
+    getItems: protectedProcedure.input(
       z4.object({
         orderId: z4.number()
       })
     ).query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(orderItems).where(eq4(orderItems.orderId, input.orderId));
+      return await db.select().from(orderItems).where(eq5(orderItems.orderId, input.orderId));
     })
   }),
   // ─── Commercial Dashboard Stats ────────────────────────────────
@@ -6196,7 +6459,9 @@ ${analysisText}
             orders: 0
           }
         };
-      const allProducts = await db.select().from(products).where(and3(eq4(products.isActive, true), eq4(products.tenantId, ctx.tenantId)));
+      const allProducts = await db.select().from(products).where(
+        and3(eq5(products.isActive, true), eq5(products.tenantId, ctx.tenantId))
+      );
       const lowStock = allProducts.filter((p) => p.currentStock <= p.minStock).sort(
         (a, b) => a.currentStock - a.minStock - (b.currentStock - b.minStock)
       ).slice(0, 10);
@@ -6209,7 +6474,7 @@ ${analysisText}
         total: sql3`coalesce(sum(${salesInvoices.total}), '0')`
       }).from(salesInvoices).where(
         and3(
-          eq4(salesInvoices.tenantId, ctx.tenantId),
+          eq5(salesInvoices.tenantId, ctx.tenantId),
           gte3(salesInvoices.invoiceDate, monthStart),
           ne(salesInvoices.status, "cancelled")
         )
@@ -6218,19 +6483,47 @@ ${analysisText}
         total: sql3`coalesce(sum(${purchaseInvoices.total}), '0')`
       }).from(purchaseInvoices).where(
         and3(
-          eq4(purchaseInvoices.tenantId, ctx.tenantId),
+          eq5(purchaseInvoices.tenantId, ctx.tenantId),
           gte3(purchaseInvoices.invoiceDate, monthStart),
           ne(purchaseInvoices.status, "cancelled")
         )
       );
       const [ordersAgg] = await db.select({ count: sql3`count(*)::int` }).from(orders).where(gte3(orders.createdAt, monthStart));
-      const [productsCount] = await db.select({ count: sql3`count(*)::int` }).from(products).where(and3(eq4(products.isActive, true), eq4(products.tenantId, ctx.tenantId)));
-      const [customersCount] = await db.select({ count: sql3`count(*)::int` }).from(customers).where(and3(eq4(customers.isActive, true), eq4(customers.tenantId, ctx.tenantId)));
-      const [suppliersCount] = await db.select({ count: sql3`count(*)::int` }).from(suppliers).where(and3(eq4(suppliers.isActive, true), eq4(suppliers.tenantId, ctx.tenantId)));
-      const [salesCount] = await db.select({ count: sql3`count(*)::int` }).from(salesInvoices).where(and3(eq4(salesInvoices.tenantId, ctx.tenantId), ne(salesInvoices.status, "cancelled")));
-      const [purchasesCount] = await db.select({ count: sql3`count(*)::int` }).from(purchaseInvoices).where(and3(eq4(purchaseInvoices.tenantId, ctx.tenantId), ne(purchaseInvoices.status, "cancelled")));
+      const [productsCount] = await db.select({ count: sql3`count(*)::int` }).from(products).where(
+        and3(eq5(products.isActive, true), eq5(products.tenantId, ctx.tenantId))
+      );
+      const [customersCount] = await db.select({ count: sql3`count(*)::int` }).from(customers).where(
+        and3(
+          eq5(customers.isActive, true),
+          eq5(customers.tenantId, ctx.tenantId)
+        )
+      );
+      const [suppliersCount] = await db.select({ count: sql3`count(*)::int` }).from(suppliers).where(
+        and3(
+          eq5(suppliers.isActive, true),
+          eq5(suppliers.tenantId, ctx.tenantId)
+        )
+      );
+      const [salesCount] = await db.select({ count: sql3`count(*)::int` }).from(salesInvoices).where(
+        and3(
+          eq5(salesInvoices.tenantId, ctx.tenantId),
+          ne(salesInvoices.status, "cancelled")
+        )
+      );
+      const [purchasesCount] = await db.select({ count: sql3`count(*)::int` }).from(purchaseInvoices).where(
+        and3(
+          eq5(purchaseInvoices.tenantId, ctx.tenantId),
+          ne(purchaseInvoices.status, "cancelled")
+        )
+      );
       const [ordersCount] = await db.select({ count: sql3`count(*)::int` }).from(orders).where(ne(orders.status, "cancelled"));
-      const topCustomers = await db.select().from(customers).where(and3(eq4(customers.tenantId, ctx.tenantId), eq4(customers.isActive, true), sql3`${customers.balance} > 0`)).orderBy(desc2(customers.balance)).limit(5);
+      const topCustomers = await db.select().from(customers).where(
+        and3(
+          eq5(customers.tenantId, ctx.tenantId),
+          eq5(customers.isActive, true),
+          sql3`${customers.balance} > 0`
+        )
+      ).orderBy(desc2(customers.balance)).limit(5);
       return {
         lowStock: lowStock.map((p) => ({
           id: p.id,
@@ -6280,7 +6573,15 @@ ${analysisText}
       });
       return { items: data.items.slice(0, 200), categories: data.categories };
     }),
-    placeOrder: publicProcedure.input(placeOrderInputSchema).mutation(async ({ input }) => {
+    placeOrder: publicProcedure.input(placeOrderInputSchema).mutation(async ({ input, ctx }) => {
+      const ip = ctx.req.ip || "unknown";
+      const rl = checkRateLimit(`place-order:${ip}`, 5, 60 * 60 * 1e3);
+      if (!rl.ok) {
+        throw new TRPCError4({
+          code: "TOO_MANY_REQUESTS",
+          message: `\u0639\u062F\u062F \u0643\u0628\u064A\u0631 \u0645\u0646 \u0627\u0644\u0637\u0644\u0628\u0627\u062A \u2014 \u0623\u0639\u062F \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629 \u0628\u0639\u062F ${rl.retryAfterSec} \u062B\u0627\u0646\u064A\u0629.`
+        });
+      }
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const result = await placePublicOrder(db, input);
@@ -6299,9 +6600,9 @@ ${analysisText}
       if (!db) return [];
       return await db.select().from(payments).where(
         and3(
-          eq4(payments.tenantId, ctx.tenantId),
-          eq4(payments.source, input.source),
-          eq4(payments.invoiceId, input.invoiceId)
+          eq5(payments.tenantId, ctx.tenantId),
+          eq5(payments.source, input.source),
+          eq5(payments.invoiceId, input.invoiceId)
         )
       ).orderBy(desc2(payments.paymentDate));
     }),
@@ -6323,7 +6624,7 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const paymentAmount = parseFloat(input.amount);
       if (input.source === "sales") {
-        const invoices = await db.select().from(salesInvoices).where(eq4(salesInvoices.id, input.invoiceId)).limit(1);
+        const invoices = await db.select().from(salesInvoices).where(eq5(salesInvoices.id, input.invoiceId)).limit(1);
         if (invoices.length === 0)
           throw new Error("\u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
         const inv = invoices[0];
@@ -6350,9 +6651,9 @@ ${analysisText}
             paidAmount: newPaid.toString(),
             status: newStatus,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq4(salesInvoices.id, input.invoiceId));
+          }).where(eq5(salesInvoices.id, input.invoiceId));
           if (inv.customerId) {
-            await tx.update(customers).set({ balance: sql3`${customers.balance} - ${paymentAmount}` }).where(eq4(customers.id, inv.customerId));
+            await tx.update(customers).set({ balance: sql3`${customers.balance} - ${paymentAmount}` }).where(eq5(customers.id, inv.customerId));
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
@@ -6362,7 +6663,7 @@ ${analysisText}
           return { paymentId: pay.id };
         });
       } else {
-        const invoices = await db.select().from(purchaseInvoices).where(eq4(purchaseInvoices.id, input.invoiceId)).limit(1);
+        const invoices = await db.select().from(purchaseInvoices).where(eq5(purchaseInvoices.id, input.invoiceId)).limit(1);
         if (invoices.length === 0)
           throw new Error("\u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0634\u062A\u0631\u064A\u0627\u062A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
         const inv = invoices[0];
@@ -6389,9 +6690,9 @@ ${analysisText}
             paidAmount: newPaid.toString(),
             status: newStatus,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(eq4(purchaseInvoices.id, input.invoiceId));
+          }).where(eq5(purchaseInvoices.id, input.invoiceId));
           if (inv.supplierId) {
-            await tx.update(suppliers).set({ balance: sql3`${suppliers.balance} - ${paymentAmount}` }).where(eq4(suppliers.id, inv.supplierId));
+            await tx.update(suppliers).set({ balance: sql3`${suppliers.balance} - ${paymentAmount}` }).where(eq5(suppliers.id, inv.supplierId));
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
@@ -6423,9 +6724,11 @@ async function createContext(opts) {
 }
 
 // server/_core/app.ts
+import { sql as sql4 } from "drizzle-orm";
 function createApp() {
   const app2 = express();
   app2.disable("x-powered-by");
+  app2.set("trust proxy", 1);
   app2.use(
     helmet({
       contentSecurityPolicy: {
@@ -6479,14 +6782,42 @@ function createApp() {
       next(err);
     }
   );
-  app2.get("/api/health", (_req, res) => {
+  app2.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+      if (req.path.startsWith("/api")) {
+        console.log(
+          JSON.stringify({
+            t: (/* @__PURE__ */ new Date()).toISOString(),
+            method: req.method,
+            path: req.path,
+            status: res.statusCode,
+            ms: Date.now() - start
+          })
+        );
+      }
+    });
+    next();
+  });
+  app2.get("/api/health", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    res.status(200).json({
+    let dbAvailable = false;
+    try {
+      const db = await getDb();
+      if (db) {
+        await db.execute(sql4`select 1`);
+        dbAvailable = true;
+      }
+    } catch {
+      dbAvailable = false;
+    }
+    res.status(dbAvailable ? 200 : 503).json({
       ok: true,
+      dbAvailable,
       service: "alhusainia-platform",
       institution: "\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644 \u0648\u0645\u0643\u062A\u0628\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0627\u0644\u062D\u062F\u064A\u062B\u0629",
       version: "1.2.0",
-      status: "Operational",
+      status: dbAvailable ? "Operational" : "Degraded (DB unreachable)",
       security: "ISO-Compliant",
       time: (/* @__PURE__ */ new Date()).toISOString()
     });

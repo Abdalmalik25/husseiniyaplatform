@@ -199,6 +199,7 @@ export function formatMoney(
   value: number | string | null | undefined,
   currency = "YER"
 ): string {
-  const n = typeof value === "number" ? value : parseFloat(String(value ?? "0")) || 0;
+  const n =
+    typeof value === "number" ? value : parseFloat(String(value ?? "0")) || 0;
   return `${n.toLocaleString("en-US")} ${currency}`;
 }

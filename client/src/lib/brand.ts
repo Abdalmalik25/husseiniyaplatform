@@ -15,7 +15,7 @@ export const brand = {
     arabic: "الحسينية",
     commercial: "ALHUSAINIA",
     legal: "مؤسسة الحسينية لخدمات الأعمال",
-    legalFull: "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
+    legalFull: "مؤسسة الحسينية لخدمات الأعمال",
     english: "ALHUSAINIA Business Services Establishment",
     library: "مكتبة الحسينية الحديثة",
   },

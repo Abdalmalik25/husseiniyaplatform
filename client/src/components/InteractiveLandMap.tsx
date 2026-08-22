@@ -1,11 +1,5 @@
 import React, { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,19 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import {
   Map,
   MapPin,
-  Compass,
   Navigation,
   Layers,
-  ShieldCheck,
-  Ruler,
   CheckCircle2,
   Share2,
   ExternalLink,
-  HardHat,
-  FileSpreadsheet,
-  Eye,
 } from "lucide-react";
-import { toast } from "sonner";
 
 export function InteractiveLandMap() {
   const [lat, setLat] = useState<string>("15.3694");

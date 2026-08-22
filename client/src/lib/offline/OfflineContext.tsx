@@ -15,8 +15,9 @@ import React, {
   useEffect,
   useCallback,
 } from "react";
-import { syncManager, type SyncStatus, type SyncResult } from "./sync";
+import { syncManager, type SyncResult } from "./sync";
 import { getOfflineStats, seedDefaultData, type TableName } from "./db";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 interface OfflineContextValue {
   isOnline: boolean;
@@ -40,6 +41,7 @@ const OfflineContext = createContext<OfflineContextValue>({
 });
 
 export function OfflineProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAuth();
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncResult, setLastSyncResult] = useState<SyncResult | null>(null);
@@ -48,30 +50,39 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     { total: number; pending: number; synced: number }
   > | null>(null);
 
+  // Local (IndexedDB) seed runs for every visitor so the app shell has data to
+  // render; the server sync loop only runs for authenticated subscribers so we
+  // never fire unauthenticated /api/trpc/sync.* calls (which would 401 on the
+  // public marketing site).
+  useEffect(() => {
+    seedDefaultData().then(() => getOfflineStats().then(setOfflineStats));
+  }, []);
+
   useEffect(() => {
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
 
-    syncManager.start();
-    seedDefaultData().then(() => getOfflineStats().then(setOfflineStats));
-
-    const unsub = syncManager.subscribe(status => {
-      setIsOnline(status.isOnline);
-      setIsSyncing(status.isSyncing);
-      if (status.lastResult) {
-        setLastSyncResult(status.lastResult);
-      }
-    });
+    let unsub = () => {};
+    if (isAuthenticated) {
+      syncManager.start();
+      unsub = syncManager.subscribe(status => {
+        setIsOnline(status.isOnline);
+        setIsSyncing(status.isSyncing);
+        if (status.lastResult) {
+          setLastSyncResult(status.lastResult);
+        }
+      });
+    }
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
-      syncManager.stop();
       unsub();
+      syncManager.stop();
     };
-  }, []);
+  }, [isAuthenticated]);
 
   const syncNow = useCallback(async (): Promise<SyncResult | null> => {
     const result = await syncManager.syncNow();

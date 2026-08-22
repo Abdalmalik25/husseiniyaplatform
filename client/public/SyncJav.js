@@ -59,7 +59,9 @@
 
   function embed(selector, height) {
     var el =
-      typeof selector === "string" ? document.querySelector(selector) : selector;
+      typeof selector === "string"
+        ? document.querySelector(selector)
+        : selector;
     if (!el) return null;
     var frame = document.createElement("iframe");
     frame.src = CONFIG.storeUrl;
@@ -118,7 +120,8 @@
   function placeOrder(payload) {
     var body = Object.assign({}, payload);
     if (!body.currency && CONFIG.currency) body.currency = CONFIG.currency;
-    if (!body.branchCode && CONFIG.branchCode) body.branchCode = CONFIG.branchCode;
+    if (!body.branchCode && CONFIG.branchCode)
+      body.branchCode = CONFIG.branchCode;
     return fetch(apiBase() + "/api/web/place-order", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

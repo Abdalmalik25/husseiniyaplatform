@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import {
@@ -15,26 +15,24 @@ import {
 } from "lucide-react";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { useAuth } from "@/_core/hooks/useAuth";
+import { useI18n } from "@/lib/i18n";
 import { BrandLogo } from "@/components/BrandLogo";
-import { brand } from "@/lib/brand";
-import { NAV_ITEMS } from "@/lib/nav";
+import { MARKETING_NAV } from "@/lib/nav";
+import { Zap, ArrowLeft } from "lucide-react";
 
 interface HeaderNavbarProps {
   institutionName?: string;
   onOpenSettings?: () => void;
 }
 
-export function HeaderNavbar({
-  institutionName = "مؤسسة الحسينية لخدمات الأعمال",
-  onOpenSettings,
-}: HeaderNavbarProps) {
+export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
   const [location, setLocation] = useLocation();
   const { isOnline, isSyncing } = useOffline();
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated } = useAuth();
+  const { language, setLanguage } = useI18n();
   const [mobileOpen, setMobileOpen] = React.useState(false);
 
-  const baseBtn =
-    "h-9 px-3 text-xs font-medium transition-all gap-1.5";
+  const baseBtn = "h-9 px-3 text-xs font-medium transition-all gap-1.5";
   const navClass = (active: boolean, highlight?: boolean) =>
     active
       ? "bg-brand text-ink font-bold shadow"
@@ -42,57 +40,56 @@ export function HeaderNavbar({
         ? "bg-white/5 text-brand-300 hover:bg-white/10 border border-brand/30"
         : "text-white/75 hover:bg-white/5 hover:text-white";
 
+  const handleLanguageToggle = () => {
+    setLanguage(language === "ar" ? "en" : "ar");
+  };
+
   return (
     <header
       className="bg-ink text-white shadow-lg sticky top-0 z-50 border-b border-white/10"
       dir="rtl"
     >
       <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
-        {/* Brand & Title */}
+        {/* Brand — the logo lockup is the identity; no repeated names */}
         <div
           className="flex items-center gap-3 cursor-pointer"
           onClick={() => setLocation("/")}
         >
           <BrandLogo size={38} />
-          <div>
-            <h1 className="text-sm md:text-base font-bold tracking-wide font-display text-white flex items-center gap-1.5">
-              {institutionName}
-              <span className="hidden sm:inline-block text-[10px] bg-brand/20 text-brand-300 px-2 py-0.5 rounded-full border border-brand/40">
-                ومكتبة الحسينية الحديثة
+          <div className="flex items-center gap-2 text-[10px] text-brand font-mono">
+            {isAuthenticated && (
+              <span className="hidden sm:inline-flex items-center gap-1">
+                <UserCheck className="w-3 h-3 text-brand-300" />{" "}
+                {user?.name || "مشرف المنصة"}
               </span>
-            </h1>
-            <div className="flex items-center gap-2 text-[10px] text-brand font-mono">
-              {isAuthenticated && (
-                <span className="hidden sm:inline-flex items-center gap-1">
-                  <UserCheck className="w-3 h-3 text-brand-300" />{" "}
-                  {user?.name || "مشرف المنصة"}
-                </span>
-              )}
-              {isOnline ? (
-                <span className="text-emerald-400 flex items-center gap-0.5">
-                  {isSyncing ? (
-                    <>
-                      <RefreshCw className="w-2.5 h-2.5 animate-spin" /> جاري
-                      المزامنة...
-                    </>
-                  ) : (
-                    <>
-                      <Wifi className="w-2.5 h-2.5" /> متصل
-                    </>
-                  )}
-                </span>
-              ) : (
-                <span className="text-rose-400 flex items-center gap-0.5">
-                  <WifiOff className="w-2.5 h-2.5" /> أوفلاين
-                </span>
-              )}
-            </div>
+            )}
+            {isOnline ? (
+              <span className="text-emerald-400 flex items-center gap-0.5">
+                {isSyncing ? (
+                  <>
+                    <RefreshCw className="w-2.5 h-2.5 animate-spin" /> جاري
+                    المزامنة...
+                  </>
+                ) : (
+                  <>
+                    <Wifi className="w-2.5 h-2.5" /> متصل
+                  </>
+                )}
+              </span>
+            ) : (
+              <span className="text-rose-400 flex items-center gap-0.5">
+                <WifiOff className="w-2.5 h-2.5" /> أوفلاين
+              </span>
+            )}
           </div>
         </div>
 
-        {/* Desktop Navigation Links */}
-        <nav className="hidden md:flex items-center gap-1" aria-label="التنقل الرئيسي">
-          {NAV_ITEMS.map(item => {
+        {/* Desktop Navigation Links — marketing layer (5 items max) */}
+        <nav
+          className="hidden md:flex items-center gap-1"
+          aria-label="التنقل الرئيسي"
+        >
+          {MARKETING_NAV.map(item => {
             const Icon = item.icon;
             const isActive = location === item.path;
             return (
@@ -109,6 +106,16 @@ export function HeaderNavbar({
               </Button>
             );
           })}
+
+          {/* Primary CTA — always visible: enter the system */}
+          <Button
+            onClick={() => setLocation("/app")}
+            className="bg-brand hover:bg-brand-deep text-ink font-black h-9 px-4 rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 text-xs mr-2"
+          >
+            <Zap className="w-4 h-4 fill-current" />
+            {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
+            <ArrowLeft className="w-3.5 h-3.5" />
+          </Button>
         </nav>
 
         {/* Actions & Mobile Menu Toggle */}
@@ -130,12 +137,7 @@ export function HeaderNavbar({
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => {
-              const current = document.documentElement.lang || "ar";
-              const next = current === "ar" ? "en" : "ar";
-              document.documentElement.lang = next;
-              document.documentElement.dir = next === "ar" ? "rtl" : "ltr";
-            }}
+            onClick={handleLanguageToggle}
             className="text-white/70 hover:text-white hover:bg-white/5 h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium"
             aria-label="تبديل اللغة"
           >
@@ -143,16 +145,18 @@ export function HeaderNavbar({
             <span>العربية / EN</span>
           </Button>
 
-          {/* Role & Language Selector Badge */}
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setLocation("/settings")}
-            className="bg-white/5 border-brand/40 text-brand-300 h-8 text-[11px] px-2.5 hover:bg-white/10 hidden sm:flex items-center gap-1 font-bold"
-          >
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-            <span>مدير النظام (العربية)</span>
-          </Button>
+          {/* Role & Language Selector Badge — operators only (hidden from visitors) */}
+          {isAuthenticated && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLocation("/settings")}
+              className="bg-white/5 border-brand/40 text-brand-300 h-8 text-[11px] px-2.5 hover:bg-white/10 hidden sm:flex items-center gap-1 font-bold"
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+              <span>مدير النظام (العربية)</span>
+            </Button>
+          )}
 
           {onOpenSettings && (
             <Button
@@ -186,7 +190,18 @@ export function HeaderNavbar({
       {/* Mobile Drawer Menu */}
       {mobileOpen && (
         <div className="md:hidden bg-ink-deep border-t border-white/10 px-4 py-3 space-y-1.5">
-          {NAV_ITEMS.map(item => {
+          {/* Primary CTA on mobile */}
+          <button
+            onClick={() => {
+              setLocation("/app");
+              setMobileOpen(false);
+            }}
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-brand text-ink font-black text-xs shadow-lg"
+          >
+            <Zap className="w-4 h-4 fill-current" />
+            {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
+          </button>
+          {MARKETING_NAV.map(item => {
             const Icon = item.icon;
             const isActive = location === item.path;
             return (
@@ -222,10 +237,7 @@ export function HeaderNavbar({
           )}
           <button
             onClick={() => {
-              const current = document.documentElement.lang || "ar";
-              const next = current === "ar" ? "en" : "ar";
-              document.documentElement.lang = next;
-              document.documentElement.dir = next === "ar" ? "rtl" : "ltr";
+              setLanguage(language === "ar" ? "en" : "ar");
               setMobileOpen(false);
             }}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/5"

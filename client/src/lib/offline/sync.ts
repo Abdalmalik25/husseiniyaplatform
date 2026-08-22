@@ -19,7 +19,6 @@ import {
   bulkPut,
   removeLocalRow,
   type TableName,
-  type SyncQueueEntry,
 } from "./db";
 
 const MAX_RETRIES = 5;
@@ -364,6 +363,7 @@ export class SyncManager {
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private isOnline = false;
   private isSyncing = false;
+  private started = false;
   private listeners: Set<(status: SyncStatus) => void> = new Set();
   private lastResult: SyncResult | null = null;
 
@@ -387,6 +387,8 @@ export class SyncManager {
   }
 
   start() {
+    if (this.started) return;
+    this.started = true;
     this.isOnline = navigator.onLine;
     window.addEventListener("online", this.handleOnline);
     window.addEventListener("offline", this.handleOffline);
@@ -403,6 +405,8 @@ export class SyncManager {
   }
 
   stop() {
+    if (!this.started) return;
+    this.started = false;
     if (this.intervalId) {
       clearInterval(this.intervalId);
       this.intervalId = null;

@@ -3,23 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
-import {
-  HardHat,
-  Calculator,
-  Ruler,
-  Truck,
-  Send,
-  CheckCircle2,
-  FileSpreadsheet,
-  Building2,
-} from "lucide-react";
+import { Card, CardTitle } from "@/components/ui/card";
+import { HardHat, FileSpreadsheet } from "lucide-react";
 import { openPrintableInvoiceWindow } from "@/lib/pdfInvoiceGenerator";
 import { toast } from "sonner";
 
@@ -29,7 +14,7 @@ export function EngineeringBOQCalculator() {
   const [structureType, setStructureType] = useState<
     "residential" | "commercial" | "villa"
   >("residential");
-  const [includeExcavation, setIncludeExcavation] = useState<boolean>(true);
+  const [includeExcavation] = useState<boolean>(true);
 
   // Structural Math & Quantities Estimations
   const totalBuiltArea = useMemo(() => areaSqM * floors, [areaSqM, floors]);

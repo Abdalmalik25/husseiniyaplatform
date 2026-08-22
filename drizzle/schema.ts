@@ -43,7 +43,8 @@ export const lifecycleStatusEnum = pgEnum("lifecycle_status", [
 export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "trial",
   "active",
-  "expired",
+  "grace",
+  "suspended",
 ]);
 
 // ─── Users table for multi-tenant SaaS ────────────────────────────
@@ -148,9 +149,7 @@ export const accounts = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
-  t => [
-    index("idx_accounts_tenant").on(t.tenantId),
-  ]
+  t => [index("idx_accounts_tenant").on(t.tenantId)]
 );
 
 export type Account = typeof accounts.$inferSelect;
@@ -199,18 +198,20 @@ export type InsertTransaction = typeof transactions.$inferInsert;
 
 // ─── Opening Balances ─────────────────────────────────────────────
 
-export const openingBalances = pgTable("opening_balances", {
-  id: serial("id").primaryKey(),
-  tenantId: integer("tenantId").notNull(),
-  accountId: integer("accountId").notNull(),
-  amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-  type: transactionTypeEnum("type").default("debit").notNull(),
-  notes: text("notes"),
-  periodName: varchar("periodName", { length: 50 }).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, t => [
-  index("idx_openingBalances_tenant").on(t.tenantId),
-]);
+export const openingBalances = pgTable(
+  "opening_balances",
+  {
+    id: serial("id").primaryKey(),
+    tenantId: integer("tenantId").notNull(),
+    accountId: integer("accountId").notNull(),
+    amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+    type: transactionTypeEnum("type").default("debit").notNull(),
+    notes: text("notes"),
+    periodName: varchar("periodName", { length: 50 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [index("idx_openingBalances_tenant").on(t.tenantId)]
+);
 
 export type OpeningBalance = typeof openingBalances.$inferSelect;
 export type InsertOpeningBalance = typeof openingBalances.$inferInsert;
@@ -234,9 +235,7 @@ export const budgets = pgTable(
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  t => [
-    index("idx_budgets_tenant").on(t.tenantId),
-  ]
+  t => [index("idx_budgets_tenant").on(t.tenantId)]
 );
 
 export type Budget = typeof budgets.$inferSelect;
@@ -353,9 +352,7 @@ export const warehouses = pgTable(
     isActive: boolean("isActive").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  t => [
-    index("idx_warehouses_tenant").on(t.tenantId),
-  ]
+  t => [index("idx_warehouses_tenant").on(t.tenantId)]
 );
 
 export type Warehouse = typeof warehouses.$inferSelect;
@@ -375,9 +372,7 @@ export const inventoryMovements = pgTable(
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  t => [
-    index("idx_inventoryMovements_tenant").on(t.tenantId),
-  ]
+  t => [index("idx_inventoryMovements_tenant").on(t.tenantId)]
 );
 
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
@@ -408,9 +403,7 @@ export const customers = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
-  t => [
-    index("idx_customers_tenant").on(t.tenantId),
-  ]
+  t => [index("idx_customers_tenant").on(t.tenantId)]
 );
 
 export type Customer = typeof customers.$inferSelect;
@@ -436,9 +429,7 @@ export const suppliers = pgTable(
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
-  t => [
-    index("idx_suppliers_tenant").on(t.tenantId),
-  ]
+  t => [index("idx_suppliers_tenant").on(t.tenantId)]
 );
 
 export type Supplier = typeof suppliers.$inferSelect;
@@ -474,6 +465,13 @@ export const paymentMethodEnum = pgEnum("payment_method", [
   "transfer",
   "credit",
   "online",
+  // ─── وسائل الدفع المحلية (اليمن) ───
+  "cash_yer", // كاش بالريال اليمني
+  "cash_sar", // كاش بالريال السعودي
+  "hawala", // حوالة (صرافة)
+  "shabab", // شباب (أي شبكة محلية)
+  "mobile_money", // محفظة إلكترونية (فليكسي / أمين)
+  "bank_transfer", // حوالة بنكية محلية
 ]);
 
 export const salesInvoices = pgTable(
@@ -711,7 +709,9 @@ export const tenantSubscriptions = pgTable(
     tenantId: integer("tenantId").notNull(),
     planId: integer("planId").notNull(),
     status: varchar("status", { length: 20 }).notNull(),
-    billingCycle: varchar("billingCycle", { length: 10 }).default("monthly").notNull(),
+    billingCycle: varchar("billingCycle", { length: 10 })
+      .default("monthly")
+      .notNull(),
     trialStartsAt: timestamp("trialStartsAt"),
     trialEndsAt: timestamp("trialEndsAt"),
     currentPeriodStart: timestamp("currentPeriodStart"),
@@ -742,7 +742,9 @@ export const billingInvoices = pgTable(
     invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
     status: varchar("status", { length: 20 }).notNull(),
     subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-    taxAmount: decimal("taxAmount", { precision: 10, scale: 2 }).default("0").notNull(),
+    taxAmount: decimal("taxAmount", { precision: 10, scale: 2 })
+      .default("0")
+      .notNull(),
     total: decimal("total", { precision: 10, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 10 }).default("USD").notNull(),
     dueDate: timestamp("dueDate").notNull(),
@@ -774,7 +776,10 @@ export const paymentHistory = pgTable(
     status: varchar("status", { length: 20 }).notNull(),
     paymentMethod: varchar("paymentMethod", { length: 50 }),
     transactionId: varchar("transactionId", { length: 255 }),
-    refundedAmount: decimal("refundedAmount", { precision: 10, scale: 2 }).default("0"),
+    refundedAmount: decimal("refundedAmount", {
+      precision: 10,
+      scale: 2,
+    }).default("0"),
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
@@ -915,7 +920,9 @@ export const fileUploads = pgTable(
     mimeType: varchar("mimeType", { length: 100 }).notNull(),
     fileSize: integer("fileSize").notNull(),
     storageKey: varchar("storageKey", { length: 500 }).notNull(),
-    storageProvider: varchar("storageProvider", { length: 50 }).default("s3").notNull(),
+    storageProvider: varchar("storageProvider", { length: 50 })
+      .default("s3")
+      .notNull(),
     url: varchar("url", { length: 500 }).notNull(),
     entityType: varchar("entityType", { length: 50 }),
     entityId: integer("entityId"),

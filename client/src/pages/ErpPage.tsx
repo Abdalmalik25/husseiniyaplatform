@@ -3,12 +3,7 @@ import { useLocation } from "wouter";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,12 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogContent,
@@ -54,17 +44,11 @@ import {
   Pencil,
   Clock,
   Wallet,
-  CalendarCheck,
-  ListChecks,
   UserPlus,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
-import {
-  MODULES,
-  modulesForRole,
-  type ModuleKey,
-} from "@/lib/design";
+import { MODULES, modulesForRole, type ModuleKey } from "@/lib/design";
 import { formatMoney } from "@/lib/design";
 
 const ERP_KEYS: ModuleKey[] = [
@@ -86,7 +70,7 @@ const ICONS: Record<string, React.ElementType> = {
 export default function ErpPage() {
   const { user } = useAuth();
   const [loc] = useLocation();
-  const visible = ERP_KEYS.filter((k) => modulesForRole(user?.role).includes(k));
+  const visible = ERP_KEYS.filter(k => modulesForRole(user?.role).includes(k));
   const params = new URLSearchParams(loc.split("?")[1] || "");
   const requested = params.get("module") as ModuleKey | null;
   const defaultTab =
@@ -98,7 +82,7 @@ export default function ErpPage() {
   if (!visible.length) {
     return (
       <div className="min-h-screen bg-background" dir="rtl">
-        <HeaderNavbar institutionName="منظومة الحسينية" />
+        <HeaderNavbar />
         <main className="max-w-3xl mx-auto px-4 py-16 text-center">
           <p className="text-muted-foreground">
             لا توجد وحدات تشغيلية مصرّح بها لدورك الحالي.
@@ -110,7 +94,7 @@ export default function ErpPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground pb-24" dir="rtl">
-      <HeaderNavbar institutionName="منظومة الحسينية — التشغيل" />
+      <HeaderNavbar />
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <div>
           <h1 className="text-2xl font-black font-display text-foreground">
@@ -132,9 +116,9 @@ export default function ErpPage() {
           </div>
         )}
 
-        <Tabs value={tab} onValueChange={(v) => setTab(v as ModuleKey)}>
+        <Tabs value={tab} onValueChange={v => setTab(v as ModuleKey)}>
           <TabsList className="flex-wrap">
-            {visible.map((k) => {
+            {visible.map(k => {
               const Icon = ICONS[k];
               return (
                 <TabsTrigger key={k} value={k} className="gap-2">
@@ -190,7 +174,7 @@ function ConfirmDialog({
   pending?: boolean;
 }) {
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
+    <Dialog open={open} onOpenChange={o => !o && onCancel()}>
       <DialogContent dir="rtl">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
@@ -281,7 +265,7 @@ function HrSection() {
   );
 
   const deptName = (id?: number | null) =>
-    departments?.find((d) => d.id === id)?.name ?? "—";
+    departments?.find(d => d.id === id)?.name ?? "—";
 
   return (
     <div className="space-y-4">
@@ -292,7 +276,10 @@ function HrSection() {
           <div className="flex gap-2">
             <Dialog open={empOpen} onOpenChange={setEmpOpen}>
               <DialogTrigger asChild>
-                <Button size="sm" className="bg-[#0d9488] hover:bg-[#0f766e] text-white">
+                <Button
+                  size="sm"
+                  className="bg-[#0d9488] hover:bg-[#0f766e] text-white"
+                >
                   <Plus className="w-4 h-4" /> موظف جديد
                 </Button>
               </DialogTrigger>
@@ -303,7 +290,7 @@ function HrSection() {
                 <EmployeeDialog
                   departments={departments ?? []}
                   pending={createEmp.isPending}
-                  onSave={(v) => {
+                  onSave={v => {
                     createEmp.mutate(v as any, {
                       onSuccess: () => setEmpOpen(false),
                     });
@@ -323,7 +310,7 @@ function HrSection() {
                 </DialogHeader>
                 <DepartmentDialog
                   pending={createDept.isPending}
-                  onSave={(v) => {
+                  onSave={v => {
                     createDept.mutate(v as any, {
                       onSuccess: () => setDeptOpen(false),
                     });
@@ -339,12 +326,13 @@ function HrSection() {
           <Stat label="الأقسام" value={departments?.length ?? 0} />
           <Stat
             label="النشطون"
-            value={employees?.filter((e) => e.status === "active").length ?? 0}
+            value={employees?.filter(e => e.status === "active").length ?? 0}
           />
           <Stat
             label="إجمالي الرواتب"
             value={formatMoney(
-              employees?.reduce((s, e) => s + (parseFloat(e.salary) || 0), 0) ?? 0
+              employees?.reduce((s, e) => s + (parseFloat(e.salary) || 0), 0) ??
+                0
             )}
           />
         </div>
@@ -365,7 +353,7 @@ function HrSection() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {employees.map((e) => (
+              {employees.map(e => (
                 <TableRow key={e.id}>
                   <TableCell dir="ltr">{e.code}</TableCell>
                   <TableCell>{e.fullName}</TableCell>
@@ -373,7 +361,9 @@ function HrSection() {
                   <TableCell>{deptName(e.departmentId)}</TableCell>
                   <TableCell dir="ltr">{formatMoney(e.salary)}</TableCell>
                   <TableCell>
-                    <Badge variant={e.status === "active" ? "default" : "secondary"}>
+                    <Badge
+                      variant={e.status === "active" ? "default" : "secondary"}
+                    >
                       {e.status}
                     </Badge>
                   </TableCell>
@@ -406,14 +396,16 @@ function HrSection() {
         <div className="border-t pt-4">
           <p className="text-xs text-muted-foreground mb-2">الأقسام</p>
           <div className="flex flex-wrap gap-2">
-            {departments?.map((d) => (
+            {departments?.map(d => (
               <div
                 key={d.id}
                 className="flex items-center gap-1 rounded-lg border px-2 py-1 text-sm"
               >
                 <span>
                   {d.name}{" "}
-                  <span className="text-muted-foreground dir-ltr">({d.code})</span>
+                  <span className="text-muted-foreground dir-ltr">
+                    ({d.code})
+                  </span>
                 </span>
                 <Button
                   size="sm"
@@ -440,7 +432,7 @@ function HrSection() {
       <AttendanceCard employees={employees ?? []} />
       <PayrollCard />
 
-      <Dialog open={!!editingEmp} onOpenChange={(o) => !o && setEditingEmp(null)}>
+      <Dialog open={!!editingEmp} onOpenChange={o => !o && setEditingEmp(null)}>
         <DialogContent dir="rtl">
           <DialogHeader>
             <DialogTitle>تعديل موظف</DialogTitle>
@@ -450,7 +442,7 @@ function HrSection() {
               initial={editingEmp}
               departments={departments ?? []}
               pending={updateEmp.isPending}
-              onSave={(v) => {
+              onSave={v => {
                 updateEmp.mutate(
                   { id: editingEmp.id, ...(v as any) },
                   { onSuccess: () => setEditingEmp(null) }
@@ -461,7 +453,10 @@ function HrSection() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editingDept} onOpenChange={(o) => !o && setEditingDept(null)}>
+      <Dialog
+        open={!!editingDept}
+        onOpenChange={o => !o && setEditingDept(null)}
+      >
         <DialogContent dir="rtl">
           <DialogHeader>
             <DialogTitle>تعديل قسم</DialogTitle>
@@ -471,7 +466,7 @@ function HrSection() {
               initial={editingDept}
               employees={employees ?? []}
               pending={updateDept.isPending}
-              onSave={(v) => {
+              onSave={v => {
                 updateDept.mutate(
                   { id: editingDept.id, ...(v as any) },
                   { onSuccess: () => setEditingDept(null) }
@@ -485,7 +480,9 @@ function HrSection() {
       <ConfirmDialog
         open={!!del}
         title="تأكيد الحذف؟"
-        pending={del?.kind === "emp" ? deleteEmp.isPending : deleteDept.isPending}
+        pending={
+          del?.kind === "emp" ? deleteEmp.isPending : deleteDept.isPending
+        }
         onCancel={() => setDel(null)}
         onConfirm={() => {
           if (!del) return;
@@ -524,19 +521,22 @@ function EmployeeDialog({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>الرقم الوظيفي</Label>
-          <Input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />
+          <Input
+            value={f.code}
+            onChange={e => setF({ ...f, code: e.target.value })}
+          />
         </div>
         <div>
           <Label>القسم</Label>
           <Select
             value={f.departmentId}
-            onValueChange={(v) => setF({ ...f, departmentId: v })}
+            onValueChange={v => setF({ ...f, departmentId: v })}
           >
             <SelectTrigger>
               <SelectValue placeholder="اختر القسم" />
             </SelectTrigger>
             <SelectContent>
-              {departments.map((d) => (
+              {departments.map(d => (
                 <SelectItem key={d.id} value={String(d.id)}>
                   {d.name}
                 </SelectItem>
@@ -547,35 +547,47 @@ function EmployeeDialog({
       </div>
       <div>
         <Label>الاسم الكامل</Label>
-        <Input value={f.fullName} onChange={(e) => setF({ ...f, fullName: e.target.value })} />
+        <Input
+          value={f.fullName}
+          onChange={e => setF({ ...f, fullName: e.target.value })}
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>المسمى الوظيفي</Label>
-          <Input value={f.jobTitle} onChange={(e) => setF({ ...f, jobTitle: e.target.value })} />
+          <Input
+            value={f.jobTitle}
+            onChange={e => setF({ ...f, jobTitle: e.target.value })}
+          />
         </div>
         <div>
           <Label>الراتب</Label>
           <Input
             type="number"
             value={f.salary}
-            onChange={(e) => setF({ ...f, salary: e.target.value })}
+            onChange={e => setF({ ...f, salary: e.target.value })}
           />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>الهاتف</Label>
-          <Input value={f.phone} onChange={(e) => setF({ ...f, phone: e.target.value })} />
+          <Input
+            value={f.phone}
+            onChange={e => setF({ ...f, phone: e.target.value })}
+          />
         </div>
         <div>
           <Label>البريد</Label>
-          <Input value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} />
+          <Input
+            value={f.email}
+            onChange={e => setF({ ...f, email: e.target.value })}
+          />
         </div>
       </div>
       <div>
         <Label>الحالة</Label>
-        <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
+        <Select value={f.status} onValueChange={v => setF({ ...f, status: v })}>
           <SelectTrigger>
             <SelectValue />
           </SelectTrigger>
@@ -636,11 +648,17 @@ function DepartmentDialog({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>رمز القسم</Label>
-          <Input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />
+          <Input
+            value={f.code}
+            onChange={e => setF({ ...f, code: e.target.value })}
+          />
         </div>
         <div>
           <Label>اسم القسم</Label>
-          <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+          <Input
+            value={f.name}
+            onChange={e => setF({ ...f, name: e.target.value })}
+          />
         </div>
       </div>
       <div className="grid grid-cols-2 gap-3">
@@ -648,13 +666,13 @@ function DepartmentDialog({
           <Label>المدير</Label>
           <Select
             value={f.managerId}
-            onValueChange={(v) => setF({ ...f, managerId: v })}
+            onValueChange={v => setF({ ...f, managerId: v })}
           >
             <SelectTrigger>
               <SelectValue placeholder="اختر مديرًا" />
             </SelectTrigger>
             <SelectContent>
-              {(employees ?? []).map((e) => (
+              {(employees ?? []).map(e => (
                 <SelectItem key={e.id} value={String(e.id)}>
                   {e.fullName}
                 </SelectItem>
@@ -666,7 +684,7 @@ function DepartmentDialog({
           <Label>مركز التكلفة</Label>
           <Input
             value={f.costCenter}
-            onChange={(e) => setF({ ...f, costCenter: e.target.value })}
+            onChange={e => setF({ ...f, costCenter: e.target.value })}
           />
         </div>
       </div>
@@ -717,7 +735,10 @@ function AttendanceCard({ employees }: { employees: any[] }) {
       onAdd={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-[#0d9488] hover:bg-[#0f766e] text-white">
+            <Button
+              size="sm"
+              className="bg-[#0d9488] hover:bg-[#0f766e] text-white"
+            >
               <Clock className="w-4 h-4" /> تسجيل حضور
             </Button>
           </DialogTrigger>
@@ -730,13 +751,13 @@ function AttendanceCard({ employees }: { employees: any[] }) {
                 <Label>الموظف</Label>
                 <Select
                   value={f.employeeId}
-                  onValueChange={(v) => setF({ ...f, employeeId: v })}
+                  onValueChange={v => setF({ ...f, employeeId: v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="اختر موظفًا" />
                   </SelectTrigger>
                   <SelectContent>
-                    {employees.map((e) => (
+                    {employees.map(e => (
                       <SelectItem key={e.id} value={String(e.id)}>
                         {e.fullName}
                       </SelectItem>
@@ -750,14 +771,14 @@ function AttendanceCard({ employees }: { employees: any[] }) {
                   <Input
                     type="date"
                     value={f.date}
-                    onChange={(e) => setF({ ...f, date: e.target.value })}
+                    onChange={e => setF({ ...f, date: e.target.value })}
                   />
                 </div>
                 <div>
                   <Label>الحالة</Label>
                   <Select
                     value={f.status}
-                    onValueChange={(v) => setF({ ...f, status: v })}
+                    onValueChange={v => setF({ ...f, status: v })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -777,7 +798,7 @@ function AttendanceCard({ employees }: { employees: any[] }) {
                   <Input
                     type="datetime-local"
                     value={f.checkIn}
-                    onChange={(e) => setF({ ...f, checkIn: e.target.value })}
+                    onChange={e => setF({ ...f, checkIn: e.target.value })}
                   />
                 </div>
                 <div>
@@ -785,13 +806,16 @@ function AttendanceCard({ employees }: { employees: any[] }) {
                   <Input
                     type="datetime-local"
                     value={f.checkOut}
-                    onChange={(e) => setF({ ...f, checkOut: e.target.value })}
+                    onChange={e => setF({ ...f, checkOut: e.target.value })}
                   />
                 </div>
               </div>
               <div>
                 <Label>ملاحظة</Label>
-                <Input value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+                <Input
+                  value={f.note}
+                  onChange={e => setF({ ...f, note: e.target.value })}
+                />
               </div>
             </div>
             <DialogFooter className="gap-2">
@@ -836,17 +860,21 @@ function AttendanceCard({ employees }: { employees: any[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows?.map((r) => (
+            {rows?.map(r => (
               <TableRow key={r.id}>
                 <TableCell>
-                  {employees.find((e) => e.id === r.employeeId)?.fullName ?? "—"}
+                  {employees.find(e => e.id === r.employeeId)?.fullName ?? "—"}
                 </TableCell>
                 <TableCell dir="ltr">{String(r.date).slice(0, 10)}</TableCell>
                 <TableCell>
                   <Badge variant="outline">{r.status}</Badge>
                 </TableCell>
-                <TableCell dir="ltr">{r.checkIn ? String(r.checkIn).slice(11, 16) : "—"}</TableCell>
-                <TableCell dir="ltr">{r.checkOut ? String(r.checkOut).slice(11, 16) : "—"}</TableCell>
+                <TableCell dir="ltr">
+                  {r.checkIn ? String(r.checkIn).slice(11, 16) : "—"}
+                </TableCell>
+                <TableCell dir="ltr">
+                  {r.checkOut ? String(r.checkOut).slice(11, 16) : "—"}
+                </TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -872,7 +900,10 @@ function PayrollCard() {
       onAdd={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-[#0d9488] hover:bg-[#0f766e] text-white">
+            <Button
+              size="sm"
+              className="bg-[#0d9488] hover:bg-[#0f766e] text-white"
+            >
               <Wallet className="w-4 h-4" /> دورة رواتب
             </Button>
           </DialogTrigger>
@@ -885,7 +916,7 @@ function PayrollCard() {
                 <Label>اسم الفترة</Label>
                 <Input
                   value={f.periodName}
-                  onChange={(e) => setF({ ...f, periodName: e.target.value })}
+                  onChange={e => setF({ ...f, periodName: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -894,7 +925,7 @@ function PayrollCard() {
                   <Input
                     type="date"
                     value={f.fromDate}
-                    onChange={(e) => setF({ ...f, fromDate: e.target.value })}
+                    onChange={e => setF({ ...f, fromDate: e.target.value })}
                   />
                 </div>
                 <div>
@@ -902,7 +933,7 @@ function PayrollCard() {
                   <Input
                     type="date"
                     value={f.toDate}
-                    onChange={(e) => setF({ ...f, toDate: e.target.value })}
+                    onChange={e => setF({ ...f, toDate: e.target.value })}
                   />
                 </div>
               </div>
@@ -912,7 +943,12 @@ function PayrollCard() {
                 <Button variant="outline">إلغاء</Button>
               </DialogClose>
               <Button
-                disabled={createRun.isPending || !f.periodName || !f.fromDate || !f.toDate}
+                disabled={
+                  createRun.isPending ||
+                  !f.periodName ||
+                  !f.fromDate ||
+                  !f.toDate
+                }
                 className="bg-[#0d9488] hover:bg-[#0f766e] text-white"
                 onClick={() =>
                   createRun.mutate(
@@ -945,11 +981,12 @@ function PayrollCard() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {runs?.map((r) => (
+            {runs?.map(r => (
               <TableRow key={r.id}>
                 <TableCell>{r.periodName}</TableCell>
                 <TableCell dir="ltr">
-                  {String(r.fromDate).slice(0, 10)} ← {String(r.toDate).slice(0, 10)}
+                  {String(r.fromDate).slice(0, 10)} ←{" "}
+                  {String(r.toDate).slice(0, 10)}
                 </TableCell>
                 <TableCell dir="ltr">{formatMoney(r.totalNet)}</TableCell>
                 <TableCell>
@@ -997,9 +1034,10 @@ function ProjectsSection() {
   const [sel, setSel] = useState<number | null>(null);
   const [editingProject, setEditingProject] = useState<any>(null);
   const [editingTask, setEditingTask] = useState<any>(null);
-  const [del, setDel] = useState<{ id: number; kind: "project" | "task" } | null>(
-    null
-  );
+  const [del, setDel] = useState<{
+    id: number;
+    kind: "project" | "task";
+  } | null>(null);
 
   const [p, setP] = useState({ code: "", name: "", budget: "" });
   const [t, setT] = useState({
@@ -1017,7 +1055,10 @@ function ProjectsSection() {
         onAdd={
           <Dialog open={pOpen} onOpenChange={setPOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-[#ca8a04] hover:bg-[#a16207] text-white">
+              <Button
+                size="sm"
+                className="bg-[#ca8a04] hover:bg-[#a16207] text-white"
+              >
                 <Plus className="w-4 h-4" /> مشروع جديد
               </Button>
             </DialogTrigger>
@@ -1029,20 +1070,26 @@ function ProjectsSection() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <Label>رمز المشروع</Label>
-                    <Input value={p.code} onChange={(e) => setP({ ...p, code: e.target.value })} />
+                    <Input
+                      value={p.code}
+                      onChange={e => setP({ ...p, code: e.target.value })}
+                    />
                   </div>
                   <div>
                     <Label>الميزانية</Label>
                     <Input
                       type="number"
                       value={p.budget}
-                      onChange={(e) => setP({ ...p, budget: e.target.value })}
+                      onChange={e => setP({ ...p, budget: e.target.value })}
                     />
                   </div>
                 </div>
                 <div>
                   <Label>اسم المشروع</Label>
-                  <Input value={p.name} onChange={(e) => setP({ ...p, name: e.target.value })} />
+                  <Input
+                    value={p.name}
+                    onChange={e => setP({ ...p, name: e.target.value })}
+                  />
                 </div>
               </div>
               <DialogFooter className="gap-2">
@@ -1070,12 +1117,12 @@ function ProjectsSection() {
           <Stat label="المشاريع" value={projects?.length ?? 0} />
           <Stat
             label="نشط"
-            value={projects?.filter((x) => x.status === "active").length ?? 0}
+            value={projects?.filter(x => x.status === "active").length ?? 0}
           />
           <Stat label="المهام" value={tasks?.length ?? 0} />
           <Stat
             label="قيد التنفيذ"
-            value={tasks?.filter((x) => x.status === "in_progress").length ?? 0}
+            value={tasks?.filter(x => x.status === "in_progress").length ?? 0}
           />
         </div>
 
@@ -1086,7 +1133,7 @@ function ProjectsSection() {
               <Skeleton className="h-32 w-full" />
             ) : (
               <div className="space-y-2">
-                {projects?.map((pr) => (
+                {projects?.map(pr => (
                   <div
                     key={pr.id}
                     className={`flex items-center justify-between rounded-lg border px-3 py-2 ${
@@ -1131,7 +1178,12 @@ function ProjectsSection() {
               <h3 className="text-sm font-bold">المهام</h3>
               <Dialog open={tOpen} onOpenChange={setTOpen}>
                 <DialogTrigger asChild>
-                  <Button size="sm" variant="outline" className="gap-1" disabled={!projects?.length}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    disabled={!projects?.length}
+                  >
                     <Plus className="w-3 h-3" /> مهمة
                   </Button>
                 </DialogTrigger>
@@ -1144,13 +1196,13 @@ function ProjectsSection() {
                       <Label>المشروع</Label>
                       <Select
                         value={t.projectId}
-                        onValueChange={(v) => setT({ ...t, projectId: v })}
+                        onValueChange={v => setT({ ...t, projectId: v })}
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="اختر المشروع" />
                         </SelectTrigger>
                         <SelectContent>
-                          {projects?.map((pr) => (
+                          {projects?.map(pr => (
                             <SelectItem key={pr.id} value={String(pr.id)}>
                               {pr.name}
                             </SelectItem>
@@ -1160,20 +1212,23 @@ function ProjectsSection() {
                     </div>
                     <div>
                       <Label>عنوان المهمة</Label>
-                      <Input value={t.title} onChange={(e) => setT({ ...t, title: e.target.value })} />
+                      <Input
+                        value={t.title}
+                        onChange={e => setT({ ...t, title: e.target.value })}
+                      />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
                         <Label>المكلف</Label>
                         <Select
                           value={t.assigneeId}
-                          onValueChange={(v) => setT({ ...t, assigneeId: v })}
+                          onValueChange={v => setT({ ...t, assigneeId: v })}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="موظف" />
                           </SelectTrigger>
                           <SelectContent>
-                            {employees?.map((e) => (
+                            {employees?.map(e => (
                               <SelectItem key={e.id} value={String(e.id)}>
                                 {e.fullName}
                               </SelectItem>
@@ -1185,7 +1240,7 @@ function ProjectsSection() {
                         <Label>الأولوية</Label>
                         <Select
                           value={t.priority}
-                          onValueChange={(v) => setT({ ...t, priority: v })}
+                          onValueChange={v => setT({ ...t, priority: v })}
                         >
                           <SelectTrigger>
                             <SelectValue />
@@ -1205,14 +1260,18 @@ function ProjectsSection() {
                       <Button variant="outline">إلغاء</Button>
                     </DialogClose>
                     <Button
-                      disabled={createTask.isPending || !t.projectId || !t.title}
+                      disabled={
+                        createTask.isPending || !t.projectId || !t.title
+                      }
                       className="bg-[#ca8a04] hover:bg-[#a16207] text-white"
                       onClick={() =>
                         createTask.mutate(
                           {
                             projectId: Number(t.projectId),
                             title: t.title,
-                            assigneeId: t.assigneeId ? Number(t.assigneeId) : undefined,
+                            assigneeId: t.assigneeId
+                              ? Number(t.assigneeId)
+                              : undefined,
                             priority: t.priority,
                           },
                           { onSuccess: () => setTOpen(false) }
@@ -1236,9 +1295,9 @@ function ProjectsSection() {
               </TableHeader>
               <TableBody>
                 {tasks
-                  ?.filter((tk) => !sel || tk.projectId === sel)
+                  ?.filter(tk => !sel || tk.projectId === sel)
                   .slice(0, 12)
-                  .map((tk) => (
+                  .map(tk => (
                     <TableRow key={tk.id}>
                       <TableCell>{tk.title}</TableCell>
                       <TableCell>
@@ -1274,14 +1333,12 @@ function ProjectsSection() {
           </div>
         </div>
 
-        {sel && (
-          <ProjectMembers projectId={sel} employees={employees ?? []} />
-        )}
+        {sel && <ProjectMembers projectId={sel} employees={employees ?? []} />}
       </SectionShell>
 
       <Dialog
         open={!!editingProject}
-        onOpenChange={(o) => !o && setEditingProject(null)}
+        onOpenChange={o => !o && setEditingProject(null)}
       >
         <DialogContent dir="rtl">
           <DialogHeader>
@@ -1291,7 +1348,7 @@ function ProjectsSection() {
             <ProjectDialog
               initial={editingProject}
               pending={updateProject.isPending}
-              onSave={(v) => {
+              onSave={v => {
                 updateProject.mutate(
                   { id: editingProject.id, ...(v as any) },
                   { onSuccess: () => setEditingProject(null) }
@@ -1302,7 +1359,10 @@ function ProjectsSection() {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!editingTask} onOpenChange={(o) => !o && setEditingTask(null)}>
+      <Dialog
+        open={!!editingTask}
+        onOpenChange={o => !o && setEditingTask(null)}
+      >
         <DialogContent dir="rtl">
           <DialogHeader>
             <DialogTitle>تعديل مهمة</DialogTitle>
@@ -1312,7 +1372,7 @@ function ProjectsSection() {
               initial={editingTask}
               employees={employees ?? []}
               pending={updateTask.isPending}
-              onSave={(v) => {
+              onSave={v => {
                 updateTask.mutate(
                   { id: editingTask.id, ...(v as any) },
                   { onSuccess: () => setEditingTask(null) }
@@ -1326,7 +1386,11 @@ function ProjectsSection() {
       <ConfirmDialog
         open={!!del}
         title="تأكيد الحذف؟"
-        pending={del?.kind === "project" ? deleteProject.isPending : deleteTask.isPending}
+        pending={
+          del?.kind === "project"
+            ? deleteProject.isPending
+            : deleteTask.isPending
+        }
         onCancel={() => setDel(null)}
         onConfirm={() => {
           if (!del) return;
@@ -1359,19 +1423,25 @@ function ProjectDialog({
     <div className="space-y-3">
       <div>
         <Label>اسم المشروع</Label>
-        <Input value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} />
+        <Input
+          value={f.name}
+          onChange={e => setF({ ...f, name: e.target.value })}
+        />
       </div>
       <div>
         <Label>الوصف</Label>
         <Textarea
           value={f.description}
-          onChange={(e) => setF({ ...f, description: e.target.value })}
+          onChange={e => setF({ ...f, description: e.target.value })}
         />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>الحالة</Label>
-          <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
+          <Select
+            value={f.status}
+            onValueChange={v => setF({ ...f, status: v })}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -1389,7 +1459,7 @@ function ProjectDialog({
           <Input
             type="number"
             value={f.budget}
-            onChange={(e) => setF({ ...f, budget: e.target.value })}
+            onChange={e => setF({ ...f, budget: e.target.value })}
           />
         </div>
       </div>
@@ -1398,7 +1468,7 @@ function ProjectDialog({
         <Input
           type="date"
           value={f.endDate}
-          onChange={(e) => setF({ ...f, endDate: e.target.value })}
+          onChange={e => setF({ ...f, endDate: e.target.value })}
         />
       </div>
       <DialogFooter className="gap-2">
@@ -1447,7 +1517,10 @@ function TaskDialog({
       <div className="grid grid-cols-2 gap-3">
         <div>
           <Label>الحالة</Label>
-          <Select value={f.status} onValueChange={(v) => setF({ ...f, status: v })}>
+          <Select
+            value={f.status}
+            onValueChange={v => setF({ ...f, status: v })}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -1461,7 +1534,10 @@ function TaskDialog({
         </div>
         <div>
           <Label>الأولوية</Label>
-          <Select value={f.priority} onValueChange={(v) => setF({ ...f, priority: v })}>
+          <Select
+            value={f.priority}
+            onValueChange={v => setF({ ...f, priority: v })}
+          >
             <SelectTrigger>
               <SelectValue />
             </SelectTrigger>
@@ -1479,13 +1555,13 @@ function TaskDialog({
           <Label>المكلف</Label>
           <Select
             value={f.assigneeId}
-            onValueChange={(v) => setF({ ...f, assigneeId: v })}
+            onValueChange={v => setF({ ...f, assigneeId: v })}
           >
             <SelectTrigger>
               <SelectValue placeholder="موظف" />
             </SelectTrigger>
             <SelectContent>
-              {employees.map((e) => (
+              {employees.map(e => (
                 <SelectItem key={e.id} value={String(e.id)}>
                   {e.fullName}
                 </SelectItem>
@@ -1498,7 +1574,7 @@ function TaskDialog({
           <Input
             type="number"
             value={f.actualHours}
-            onChange={(e) => setF({ ...f, actualHours: e.target.value })}
+            onChange={e => setF({ ...f, actualHours: e.target.value })}
           />
         </div>
       </div>
@@ -1547,7 +1623,7 @@ function ProjectMembers({
   const [roleInProject, setRoleInProject] = useState("");
 
   const empName = (id?: number | null) =>
-    employees.find((e) => e.id === id)?.fullName ?? "—";
+    employees.find(e => e.id === id)?.fullName ?? "—";
 
   return (
     <Card>
@@ -1562,7 +1638,7 @@ function ProjectMembers({
           <Skeleton className="h-20 w-full" />
         ) : (
           <div className="space-y-1">
-            {members?.map((m) => (
+            {members?.map(m => (
               <div
                 key={m.id}
                 className="flex items-center justify-between rounded-lg border px-3 py-2"
@@ -1593,7 +1669,7 @@ function ProjectMembers({
                 <SelectValue placeholder="اختر موظفًا" />
               </SelectTrigger>
               <SelectContent>
-                {employees.map((e) => (
+                {employees.map(e => (
                   <SelectItem key={e.id} value={String(e.id)}>
                     {e.fullName}
                   </SelectItem>
@@ -1605,7 +1681,7 @@ function ProjectMembers({
             <Label>الدور</Label>
             <Input
               value={roleInProject}
-              onChange={(e) => setRoleInProject(e.target.value)}
+              onChange={e => setRoleInProject(e.target.value)}
             />
           </div>
           <Button
@@ -1613,7 +1689,11 @@ function ProjectMembers({
             className="bg-[#ca8a04] hover:bg-[#a16207] text-white"
             onClick={() => {
               add.mutate(
-                { projectId, employeeId: Number(employeeId), roleInProject: roleInProject || undefined },
+                {
+                  projectId,
+                  employeeId: Number(employeeId),
+                  roleInProject: roleInProject || undefined,
+                },
                 {
                   onSuccess: () => {
                     setEmployeeId("");
@@ -1657,7 +1737,10 @@ function ProcurementSection() {
       onAdd={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-[#b45309] hover:bg-[#92400e] text-white">
+            <Button
+              size="sm"
+              className="bg-[#b45309] hover:bg-[#92400e] text-white"
+            >
               <Plus className="w-4 h-4" /> أمر توريد
             </Button>
           </DialogTrigger>
@@ -1670,7 +1753,7 @@ function ProcurementSection() {
                 <Label>الصنف</Label>
                 <Input
                   value={f.itemName}
-                  onChange={(e) => setF({ ...f, itemName: e.target.value })}
+                  onChange={e => setF({ ...f, itemName: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1679,7 +1762,7 @@ function ProcurementSection() {
                   <Input
                     type="number"
                     value={f.quantity}
-                    onChange={(e) => setF({ ...f, quantity: e.target.value })}
+                    onChange={e => setF({ ...f, quantity: e.target.value })}
                   />
                 </div>
                 <div>
@@ -1687,7 +1770,9 @@ function ProcurementSection() {
                   <Input
                     type="number"
                     value={f.estimatedCost}
-                    onChange={(e) => setF({ ...f, estimatedCost: e.target.value })}
+                    onChange={e =>
+                      setF({ ...f, estimatedCost: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -1695,7 +1780,7 @@ function ProcurementSection() {
                 <Label>الوصف</Label>
                 <Textarea
                   value={f.description}
-                  onChange={(e) => setF({ ...f, description: e.target.value })}
+                  onChange={e => setF({ ...f, description: e.target.value })}
                 />
               </div>
             </div>
@@ -1740,7 +1825,7 @@ function ProcurementSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items?.map((r) => (
+            {items?.map(r => (
               <TableRow key={r.id}>
                 <TableCell dir="ltr">{r.requisitionNumber}</TableCell>
                 <TableCell>{r.itemName}</TableCell>
@@ -1752,8 +1837,8 @@ function ProcurementSection() {
                       r.status === "approved"
                         ? "default"
                         : r.status === "rejected"
-                        ? "destructive"
-                        : "secondary"
+                          ? "destructive"
+                          : "secondary"
                     }
                   >
                     {r.status}
@@ -1796,8 +1881,12 @@ function ProcurementSection() {
       <div className="border-t pt-4">
         <p className="text-xs text-muted-foreground mb-2">سير الاعتماد</p>
         <div className="space-y-2">
-          {items?.map((r) => (
-            <ApprovalsFor key={r.id} procurementId={r.id} number={r.requisitionNumber} />
+          {items?.map(r => (
+            <ApprovalsFor
+              key={r.id}
+              procurementId={r.id}
+              number={r.requisitionNumber}
+            />
           ))}
         </div>
       </div>
@@ -1805,21 +1894,23 @@ function ProcurementSection() {
   );
 }
 
-function ApprovalsFor({ procurementId, number }: { procurementId: number; number: string }) {
-  const { data: approvals, isLoading } = trpc.erp.listProcurementApprovals.useQuery(
-    { procurementId }
-  );
+function ApprovalsFor({
+  procurementId,
+  number,
+}: {
+  procurementId: number;
+  number: string;
+}) {
+  const { data: approvals, isLoading } =
+    trpc.erp.listProcurementApprovals.useQuery({ procurementId });
   if (isLoading) return <Skeleton className="h-10 w-full" />;
   if (!approvals?.length) return null;
   return (
     <div className="rounded-lg border px-3 py-2 text-xs">
       <span className="font-medium dir-ltr">{number}</span>
       <div className="flex flex-wrap gap-2 mt-1">
-        {approvals.map((a) => (
-          <span
-            key={a.id}
-            className="rounded bg-muted px-2 py-0.5"
-          >
+        {approvals.map(a => (
+          <span key={a.id} className="rounded bg-muted px-2 py-0.5">
             المستوى {a.level}: {a.decision}
             {a.note ? ` — ${a.note}` : ""}
           </span>
@@ -1859,7 +1950,10 @@ function SupportSection() {
       onAdd={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white">
+            <Button
+              size="sm"
+              className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white"
+            >
               <Plus className="w-4 h-4" /> تذكرة جديدة
             </Button>
           </DialogTrigger>
@@ -1872,7 +1966,7 @@ function SupportSection() {
                 <Label>الموضوع</Label>
                 <Input
                   value={f.subject}
-                  onChange={(e) => setF({ ...f, subject: e.target.value })}
+                  onChange={e => setF({ ...f, subject: e.target.value })}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -1880,14 +1974,16 @@ function SupportSection() {
                   <Label>اسم العميل</Label>
                   <Input
                     value={f.customerName}
-                    onChange={(e) => setF({ ...f, customerName: e.target.value })}
+                    onChange={e => setF({ ...f, customerName: e.target.value })}
                   />
                 </div>
                 <div>
                   <Label>الهاتف</Label>
                   <Input
                     value={f.customerPhone}
-                    onChange={(e) => setF({ ...f, customerPhone: e.target.value })}
+                    onChange={e =>
+                      setF({ ...f, customerPhone: e.target.value })
+                    }
                   />
                 </div>
               </div>
@@ -1895,7 +1991,7 @@ function SupportSection() {
                 <Label>الأولوية</Label>
                 <Select
                   value={f.priority}
-                  onValueChange={(v) => setF({ ...f, priority: v })}
+                  onValueChange={v => setF({ ...f, priority: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -1912,7 +2008,7 @@ function SupportSection() {
                 <Label>التفاصيل</Label>
                 <Textarea
                   value={f.description}
-                  onChange={(e) => setF({ ...f, description: e.target.value })}
+                  onChange={e => setF({ ...f, description: e.target.value })}
                 />
               </div>
             </div>
@@ -1958,7 +2054,7 @@ function SupportSection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tickets?.map((t) => (
+            {tickets?.map(t => (
               <TableRow key={t.id}>
                 <TableCell dir="ltr">{t.ticketNumber}</TableCell>
                 <TableCell>{t.subject}</TableCell>
@@ -1983,7 +2079,8 @@ function SupportSection() {
                         onClick={() =>
                           updateTicket.mutate({
                             id: t.id,
-                            status: t.status === "resolved" ? "closed" : "resolved",
+                            status:
+                              t.status === "resolved" ? "closed" : "resolved",
                           })
                         }
                       >
@@ -2047,7 +2144,10 @@ function QualitySection() {
       onAdd={
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button size="sm" className="bg-[#16a34a] hover:bg-[#15803d] text-white">
+            <Button
+              size="sm"
+              className="bg-[#16a34a] hover:bg-[#15803d] text-white"
+            >
               <Plus className="w-4 h-4" /> فحص جديد
             </Button>
           </DialogTrigger>
@@ -2059,23 +2159,32 @@ function QualitySection() {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>الرمز</Label>
-                  <Input value={f.code} onChange={(e) => setF({ ...f, code: e.target.value })} />
+                  <Input
+                    value={f.code}
+                    onChange={e => setF({ ...f, code: e.target.value })}
+                  />
                 </div>
                 <div>
                   <Label>النوع</Label>
-                  <Input value={f.type} onChange={(e) => setF({ ...f, type: e.target.value })} />
+                  <Input
+                    value={f.type}
+                    onChange={e => setF({ ...f, type: e.target.value })}
+                  />
                 </div>
               </div>
               <div>
                 <Label>العنوان</Label>
-                <Input value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
+                <Input
+                  value={f.title}
+                  onChange={e => setF({ ...f, title: e.target.value })}
+                />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label>النتيجة</Label>
                   <Select
                     value={f.result}
-                    onValueChange={(v) => setF({ ...f, result: v })}
+                    onValueChange={v => setF({ ...f, result: v })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -2092,13 +2201,16 @@ function QualitySection() {
                   <Input
                     type="number"
                     value={f.score}
-                    onChange={(e) => setF({ ...f, score: e.target.value })}
+                    onChange={e => setF({ ...f, score: e.target.value })}
                   />
                 </div>
               </div>
               <div>
                 <Label>ملاحظات</Label>
-                <Textarea value={f.note} onChange={(e) => setF({ ...f, note: e.target.value })} />
+                <Textarea
+                  value={f.note}
+                  onChange={e => setF({ ...f, note: e.target.value })}
+                />
               </div>
             </div>
             <DialogFooter className="gap-2">
@@ -2144,7 +2256,7 @@ function QualitySection() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {items?.map((i) => (
+            {items?.map(i => (
               <TableRow key={i.id}>
                 <TableCell dir="ltr">{i.code}</TableCell>
                 <TableCell>{i.title}</TableCell>
@@ -2155,8 +2267,8 @@ function QualitySection() {
                       i.result === "pass"
                         ? "default"
                         : i.result === "fail"
-                        ? "destructive"
-                        : "secondary"
+                          ? "destructive"
+                          : "secondary"
                     }
                   >
                     {i.result}

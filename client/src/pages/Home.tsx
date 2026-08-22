@@ -1,12 +1,6 @@
-import React, {
-  useState,
-  useEffect,
-  useMemo,
-  useCallback,
-  useRef,
-} from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
+import { goLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { Button } from "@/components/ui/button";
@@ -35,16 +29,13 @@ import {
   Tooltip,
   TooltipTrigger,
   TooltipContent,
-  TooltipProvider,
 } from "@/components/ui/tooltip";
 import {
   Building2,
   Plus,
   Search,
-  Settings,
   BookOpen,
   BarChart3,
-  LogOut,
   Save,
   Check,
   FileSpreadsheet,
@@ -56,15 +47,11 @@ import {
   Layers,
   History,
   User,
-  UserCheck,
-  Wifi,
-  WifiOff,
   Power,
   PowerOff,
   Network,
   ShieldAlert,
   GripVertical,
-  RefreshCw,
   Upload,
   ClipboardCopy,
   Scale,
@@ -73,10 +60,6 @@ import {
   Users,
   AlertTriangle,
   Lock,
-  Info,
-  HelpCircle,
-  CheckCircle,
-  AlertCircle,
 } from "lucide-react";
 import { toast } from "sonner";
 import BudgetsPanel from "@/components/BudgetsPanel";
@@ -249,15 +232,9 @@ function parseImportCsv(
 }
 
 export default function Home() {
-  const {
-    user,
-    isAuthenticated,
-    logout,
-    loading: authLoading,
-    refresh,
-  } = useAuth();
+  const { user, isAuthenticated, loading: authLoading, refresh } = useAuth();
   const utils = trpc.useUtils();
-  const { isOnline, isSyncing, syncNow, lastSyncResult } = useOffline();
+  const { isOnline } = useOffline();
 
   const [activeTab, setActiveTab] = useState<
     "entry" | "accounts" | "reports" | "audit" | "analytics" | "profile"
@@ -383,9 +360,7 @@ export default function Home() {
   const [quickAccountId, setQuickAccountId] = useState("");
   const [quickAmount, setQuickAmount] = useState("");
   const [quickNarration, setQuickNarration] = useState("");
-  const [quickDate, setQuickDate] = useState(
-    () => new Date().toISOString().split("T")[0]
-  );
+  const [quickDate] = useState(() => new Date().toISOString().split("T")[0]);
 
   // Period Closing State
   const [closingPeriod, setClosingPeriod] = useState("السنة المالية 2026");
@@ -842,7 +817,7 @@ export default function Home() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
-                  onClick={() => startLogin()}
+                  onClick={() => goLogin()}
                   className="w-full bg-[#b87945] hover:bg-[#a06838] text-xs h-10 font-bold text-[#102a2b]"
                 >
                   تسجيل الدخول الآمن
@@ -876,15 +851,9 @@ export default function Home() {
   }
 
   return (
-    <div
-      className="min-h-screen bg-sand text-ink pb-28"
-      dir="rtl"
-    >
+    <div className="min-h-screen bg-sand text-ink pb-28" dir="rtl">
       {/* Unified Header Navbar */}
-      <HeaderNavbar
-        institutionName={instName}
-        onOpenSettings={() => setIsSettingsOpen(!isSettingsOpen)}
-      />
+      <HeaderNavbar onOpenSettings={() => setIsSettingsOpen(!isSettingsOpen)} />
 
       {isSettingsOpen && (
         <div className="bg-[#1e3a3c] border-b border-[#2a4e50] px-4 py-2.5">

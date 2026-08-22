@@ -45,6 +45,7 @@
   --color-brand: var(--brand);
   --color-brand-deep: var(--brand-deep);
   --color-brand-foreground: var(--brand-foreground);
+  --color-gold: var(--brand-300);
   --color-ink: var(--ink);
   --color-ink-deep: var(--ink-deep);
   --color-sand: var(--sand);
@@ -223,7 +224,11 @@
 
   .brand-gradient {
     background-image:
-      radial-gradient(120% 130% at 82% -10%, rgba(212, 165, 116, 0.22) 0%, transparent 52%),
+      radial-gradient(
+        120% 130% at 82% -10%,
+        rgba(212, 165, 116, 0.22) 0%,
+        transparent 52%
+      ),
       linear-gradient(135deg, #0a1f20 0%, #102a2b 46%, #16393b 100%);
   }
 
@@ -255,7 +260,10 @@
 
   /* Subtle dotted heritage texture used behind hero sections. */
   .brand-dotgrid {
-    background-image: radial-gradient(rgba(184, 121, 69, 0.18) 1px, transparent 1px);
+    background-image: radial-gradient(
+      rgba(184, 121, 69, 0.18) 1px,
+      transparent 1px
+    );
     background-size: 20px 20px;
   }
 
@@ -292,8 +300,13 @@
     animation: pulse-brand 3s ease-in-out infinite;
   }
   @keyframes pulse-brand {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
   }
 
   /* Fade-in-up animation for staggered reveals. */
@@ -312,10 +325,18 @@
 
 @layer components {
   .dark .brand-gradient {
-    background-image: linear-gradient(135deg, #0a1f20 0%, #102a2b 55%, #16393b 100%);
+    background-image: linear-gradient(
+      135deg,
+      #0a1f20 0%,
+      #102a2b 55%,
+      #16393b 100%
+    );
   }
   .dark .brand-dotgrid {
-    background-image: radial-gradient(rgba(184, 121, 69, 0.22) 1px, transparent 1px);
+    background-image: radial-gradient(
+      rgba(184, 121, 69, 0.22) 1px,
+      transparent 1px
+    );
   }
 }
 
@@ -394,4 +415,25 @@
 }
 .dark .to-slate-100 {
   --tw-gradient-to: var(--muted) var(--tw-gradient-to-position);
+}
+
+/* ── Scroll Reveal Animations (premium marketing sites) ── */
+.reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.reveal.revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
 }

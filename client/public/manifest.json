@@ -32,10 +32,45 @@
   "categories": ["business", "finance", "productivity"],
   "prefer_related_applications": false,
   "shortcuts": [
-    { "name": "لوحة المحاسبة", "short_name": "الرئيسية", "url": "/", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
-    { "name": "التعريف والمؤسسة", "short_name": "عن المنصة", "url": "/about", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
-    { "name": "المتجر الإلكتروني", "short_name": "المتجر", "url": "/store", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
-    { "name": "العمليات التجارية", "short_name": "التجاري", "url": "/commercial", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] },
-    { "name": "مركز التكامل", "short_name": "التكامل", "url": "/integrate", "icons": [{ "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }] }
+    {
+      "name": "لوحة المحاسبة",
+      "short_name": "الرئيسية",
+      "url": "/",
+      "icons": [
+        { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }
+      ]
+    },
+    {
+      "name": "التعريف والمؤسسة",
+      "short_name": "عن المنصة",
+      "url": "/about",
+      "icons": [
+        { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }
+      ]
+    },
+    {
+      "name": "المتجر الإلكتروني",
+      "short_name": "المتجر",
+      "url": "/store",
+      "icons": [
+        { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }
+      ]
+    },
+    {
+      "name": "العمليات التجارية",
+      "short_name": "التجاري",
+      "url": "/commercial",
+      "icons": [
+        { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }
+      ]
+    },
+    {
+      "name": "مركز التكامل",
+      "short_name": "التكامل",
+      "url": "/integrate",
+      "icons": [
+        { "src": "/icon-192.svg", "sizes": "192x192", "type": "image/svg+xml" }
+      ]
+    }
   ]
 }

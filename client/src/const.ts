@@ -29,3 +29,11 @@ export const startLogin = () => {
 
   window.location.href = url.toString();
 };
+
+// Navigate to the unified login page. The Login page decides whether to use
+// the external OAuth portal (when configured) or the self-contained owner
+// password login. Prefer this over startLogin() at entry points so the system
+// works on independent hosting without the Manus OAuth provider injected.
+export const goLogin = () => {
+  window.location.href = "/login";
+};

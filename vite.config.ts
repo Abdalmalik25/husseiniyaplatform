@@ -193,9 +193,7 @@ export default defineConfig({
           // inflating the "react" chunk to ~594 kB and forcing every visitor to
           // download UI/form code before first paint.
           if (
-            /node_modules\/(react|react-dom|react-is|scheduler)\//.test(
-              pkgPath
-            )
+            /node_modules\/(react|react-dom|react-is|scheduler)\//.test(pkgPath)
           )
             return "react";
 

@@ -18,10 +18,6 @@ import {
   Save,
   Building2,
   Globe,
-  Bell,
-  Moon,
-  Sun,
-  Shield,
   Database,
 } from "lucide-react";
 
@@ -67,7 +63,7 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-[#fbf8f2] text-[#102a2b] pb-20" dir="rtl">
-      <HeaderNavbar institutionName="إعدادات المنصة والمؤسسة" />
+      <HeaderNavbar />
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
@@ -216,7 +212,10 @@ export default function Settings() {
             <CardContent className="p-5 space-y-4">
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs">
                 {[
-                  { t: "مؤسسات متعددة (Tenants)", d: "每个 مشترك بياناته مستقلة" },
+                  {
+                    t: "مؤسسات متعددة (Tenants)",
+                    d: "每个 مشترك بياناته مستقلة",
+                  },
                   { t: "دول وعملات متعددة", d: "YER, SAR, USD, AED…" },
                   { t: "فروع متعددة", d: "صلاحيات لكل فرع وحركة مستقلة" },
                   { t: "وحدات قياس", d: "م، م²، طن، قطعة، لتر…" },

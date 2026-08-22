@@ -625,17 +625,20 @@ export const projectMembersRelations = relations(projectMembers, ({ one }) => ({
 }));
 
 // ─── Procurements ────────────────────────────────────────────────
-export const procurementsRelations = relations(procurements, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [procurements.tenantId],
-    references: [tenants.id],
-  }),
-  department: one(departments, {
-    fields: [procurements.departmentId],
-    references: [departments.id],
-  }),
-  approvals: many(procurementApprovals),
-}));
+export const procurementsRelations = relations(
+  procurements,
+  ({ one, many }) => ({
+    tenant: one(tenants, {
+      fields: [procurements.tenantId],
+      references: [tenants.id],
+    }),
+    department: one(departments, {
+      fields: [procurements.departmentId],
+      references: [departments.id],
+    }),
+    approvals: many(procurementApprovals),
+  })
+);
 
 // ─── Procurement Approvals ───────────────────────────────────────
 export const procurementApprovalsRelations = relations(

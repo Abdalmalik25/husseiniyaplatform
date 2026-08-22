@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Download,
   Smartphone,
@@ -285,7 +284,7 @@ export default function DownloadPage() {
       className="min-h-screen bg-gradient-to-br from-[#fbf8f2] to-[#f0ebe3] flex flex-col"
       dir="rtl"
     >
-      <HeaderNavbar institutionName="تحميل تطبيق منصة الحسينية" />
+      <HeaderNavbar />
 
       <main className="flex-1 max-w-2xl mx-auto w-full p-4 space-y-4">
         {/* Device Detection Card */}

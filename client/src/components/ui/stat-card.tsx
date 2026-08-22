@@ -1,6 +1,5 @@
 import React from "react";
 import { Card } from "@/components/ui/card";
-import { cva } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 type Tone = "neutral" | "positive" | "negative" | "info" | "warning";
@@ -33,10 +32,7 @@ export function StatCard({
 }) {
   return (
     <Card
-      className={cn(
-        "surface p-4 rounded-2xl overflow-hidden",
-        className ?? ""
-      )}
+      className={cn("surface p-4 rounded-2xl overflow-hidden", className ?? "")}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -52,7 +48,9 @@ export function StatCard({
         )}
       </div>
       <div className="flex items-center justify-between mt-2">
-        {hint && <span className="text-[10px] text-muted-foreground">{hint}</span>}
+        {hint && (
+          <span className="text-[10px] text-muted-foreground">{hint}</span>
+        )}
         {trend && (
           <span
             className={cn(

@@ -15,16 +15,7 @@ import {
   tickets,
   qualityInspections,
 } from "../drizzle/schema";
-import {
-  eq,
-  desc,
-  asc,
-  and,
-  sql,
-  ilike,
-  gte,
-  lte,
-} from "drizzle-orm";
+import { eq, desc, asc, and, sql, ilike, gte, lte } from "drizzle-orm";
 
 async function dbOrThrow() {
   const d = await getDb();
@@ -110,7 +101,10 @@ export const erpRouter = router({
       await db
         .delete(departments)
         .where(
-          and(eq(departments.id, input.id), eq(departments.tenantId, ctx.tenantId!))
+          and(
+            eq(departments.id, input.id),
+            eq(departments.tenantId, ctx.tenantId!)
+          )
         );
       return { success: true };
     }),
@@ -119,7 +113,10 @@ export const erpRouter = router({
   listEmployees: tenantProcedure
     .input(
       z
-        .object({ search: z.string().optional(), status: z.string().optional() })
+        .object({
+          search: z.string().optional(),
+          status: z.string().optional(),
+        })
         .optional()
     )
     .query(async ({ ctx, input }) => {
@@ -199,7 +196,9 @@ export const erpRouter = router({
       await db
         .update(employees)
         .set(rest as any)
-        .where(and(eq(employees.id, id), eq(employees.tenantId, ctx.tenantId!)));
+        .where(
+          and(eq(employees.id, id), eq(employees.tenantId, ctx.tenantId!))
+        );
       return { success: true };
     }),
 
@@ -411,9 +410,7 @@ export const erpRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await dbOrThrow();
-      await db
-        .delete(projectTasks)
-        .where(eq(projectTasks.projectId, input.id));
+      await db.delete(projectTasks).where(eq(projectTasks.projectId, input.id));
       await db
         .delete(projectMembers)
         .where(eq(projectMembers.projectId, input.id));
@@ -651,14 +648,20 @@ export const erpRouter = router({
           .update(procurements)
           .set({ status: "approved", approvedById: ctx.user.id })
           .where(
-            and(eq(procurements.id, input.id), eq(procurements.tenantId, tenantId))
+            and(
+              eq(procurements.id, input.id),
+              eq(procurements.tenantId, tenantId)
+            )
           );
       } else if (input.decision === "rejected") {
         await db
           .update(procurements)
           .set({ status: "rejected" })
           .where(
-            and(eq(procurements.id, input.id), eq(procurements.tenantId, tenantId))
+            and(
+              eq(procurements.id, input.id),
+              eq(procurements.tenantId, tenantId)
+            )
           );
       }
       return { success: true };
@@ -830,9 +833,7 @@ export const erpRouter = router({
         await db
           .select({ c: sql`count(*)` })
           .from(table)
-          .where(
-            and(eq(table.tenantId, tenantId), ...(extra ? [extra] : []))
-          )
+          .where(and(eq(table.tenantId, tenantId), ...(extra ? [extra] : [])))
       )[0]?.c;
 
     const [

@@ -655,7 +655,6 @@ export async function seedDefaultData(): Promise<void> {
   const accountsCount = await count("accounts");
   if (accountsCount > 0) return; // already seeded
 
-  const now = Date.now();
   const deviceId = getDeviceId();
 
   const accountsWithMeta = DEFAULT_ACCOUNTS.map(a => ({

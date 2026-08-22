@@ -109,9 +109,7 @@
         "accounts_code_unique": {
           "name": "accounts_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -323,9 +321,7 @@
         "api_keys_keyHash_unique": {
           "name": "api_keys_keyHash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "keyHash"
-          ]
+          "columns": ["keyHash"]
         }
       },
       "policies": {},
@@ -723,9 +719,7 @@
         "billing_invoices_invoiceNumber_unique": {
           "name": "billing_invoices_invoiceNumber_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoiceNumber"
-          ]
+          "columns": ["invoiceNumber"]
         }
       },
       "policies": {},
@@ -919,9 +913,7 @@
         "currencies_code_unique": {
           "name": "currencies_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -1051,9 +1043,7 @@
         "customers_code_unique": {
           "name": "customers_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -2186,9 +2176,7 @@
         "orders_orderNumber_unique": {
           "name": "orders_orderNumber_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "orderNumber"
-          ]
+          "columns": ["orderNumber"]
         }
       },
       "policies": {},
@@ -3046,9 +3034,7 @@
         "products_code_unique": {
           "name": "products_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -3667,9 +3653,7 @@
         "purchase_invoices_invoiceNumber_unique": {
           "name": "purchase_invoices_invoiceNumber_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoiceNumber"
-          ]
+          "columns": ["invoiceNumber"]
         }
       },
       "policies": {},
@@ -4065,9 +4049,7 @@
         "sales_invoices_invoiceNumber_unique": {
           "name": "sales_invoices_invoiceNumber_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoiceNumber"
-          ]
+          "columns": ["invoiceNumber"]
         }
       },
       "policies": {},
@@ -4153,9 +4135,7 @@
         "settings_tenantId_unique": {
           "name": "settings_tenantId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId"
-          ]
+          "columns": ["tenantId"]
         }
       },
       "policies": {},
@@ -4272,9 +4252,7 @@
         "subscription_plans_code_unique": {
           "name": "subscription_plans_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -4397,9 +4375,7 @@
         "suppliers_code_unique": {
           "name": "suppliers_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -4513,9 +4489,7 @@
         "team_invitations_token_unique": {
           "name": "team_invitations_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -4723,9 +4697,7 @@
         "tenants_code_unique": {
           "name": "tenants_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -5241,9 +5213,7 @@
         "users_openId_unique": {
           "name": "users_openId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "policies": {},
@@ -5322,9 +5292,7 @@
         "warehouses_code_unique": {
           "name": "warehouses_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -5527,71 +5495,37 @@
     "public.account_type": {
       "name": "account_type",
       "schema": "public",
-      "values": [
-        "asset",
-        "liability",
-        "equity",
-        "revenue",
-        "expense"
-      ]
+      "values": ["asset", "liability", "equity", "revenue", "expense"]
     },
     "public.approval_decision": {
       "name": "approval_decision",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
+      "values": ["pending", "approved", "rejected"]
     },
     "public.attendance_status": {
       "name": "attendance_status",
       "schema": "public",
-      "values": [
-        "present",
-        "absent",
-        "late",
-        "leave"
-      ]
+      "values": ["present", "absent", "late", "leave"]
     },
     "public.employee_status": {
       "name": "employee_status",
       "schema": "public",
-      "values": [
-        "active",
-        "on_leave",
-        "terminated"
-      ]
+      "values": ["active", "on_leave", "terminated"]
     },
     "public.inspection_result": {
       "name": "inspection_result",
       "schema": "public",
-      "values": [
-        "pass",
-        "fail",
-        "conditional"
-      ]
+      "values": ["pass", "fail", "conditional"]
     },
     "public.inventory_movement_type": {
       "name": "inventory_movement_type",
       "schema": "public",
-      "values": [
-        "in",
-        "out",
-        "transfer",
-        "adjustment"
-      ]
+      "values": ["in", "out", "transfer", "adjustment"]
     },
     "public.lifecycle_status": {
       "name": "lifecycle_status",
       "schema": "public",
-      "values": [
-        "saved",
-        "approved",
-        "sent",
-        "posted",
-        "completed"
-      ]
+      "values": ["saved", "approved", "sent", "posted", "completed"]
     },
     "public.order_status": {
       "name": "order_status",
@@ -5608,60 +5542,32 @@
     "public.payment_method": {
       "name": "payment_method",
       "schema": "public",
-      "values": [
-        "cash",
-        "card",
-        "transfer",
-        "credit",
-        "online"
-      ]
+      "values": ["cash", "card", "transfer", "credit", "online"]
     },
     "public.payment_source": {
       "name": "payment_source",
       "schema": "public",
-      "values": [
-        "sales",
-        "purchases"
-      ]
+      "values": ["sales", "purchases"]
     },
     "public.payroll_status": {
       "name": "payroll_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "processed",
-        "paid"
-      ]
+      "values": ["draft", "processed", "paid"]
     },
     "public.product_type": {
       "name": "product_type",
       "schema": "public",
-      "values": [
-        "goods",
-        "service"
-      ]
+      "values": ["goods", "service"]
     },
     "public.project_status": {
       "name": "project_status",
       "schema": "public",
-      "values": [
-        "planning",
-        "active",
-        "on_hold",
-        "completed",
-        "cancelled"
-      ]
+      "values": ["planning", "active", "on_hold", "completed", "cancelled"]
     },
     "public.purchase_invoice_status": {
       "name": "purchase_invoice_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "confirmed",
-        "paid",
-        "partial",
-        "cancelled"
-      ]
+      "values": ["draft", "confirmed", "paid", "partial", "cancelled"]
     },
     "public.requisition_status": {
       "name": "requisition_status",
@@ -5678,81 +5584,42 @@
     "public.sales_invoice_status": {
       "name": "sales_invoice_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "confirmed",
-        "paid",
-        "partial",
-        "cancelled"
-      ]
+      "values": ["draft", "confirmed", "paid", "partial", "cancelled"]
     },
     "public.subscription_status": {
       "name": "subscription_status",
       "schema": "public",
-      "values": [
-        "trial",
-        "active",
-        "expired"
-      ]
+      "values": ["trial", "active", "expired"]
     },
     "public.task_priority": {
       "name": "task_priority",
       "schema": "public",
-      "values": [
-        "low",
-        "medium",
-        "high",
-        "urgent"
-      ]
+      "values": ["low", "medium", "high", "urgent"]
     },
     "public.task_status": {
       "name": "task_status",
       "schema": "public",
-      "values": [
-        "todo",
-        "in_progress",
-        "review",
-        "done"
-      ]
+      "values": ["todo", "in_progress", "review", "done"]
     },
     "public.ticket_priority": {
       "name": "ticket_priority",
       "schema": "public",
-      "values": [
-        "low",
-        "medium",
-        "high",
-        "urgent"
-      ]
+      "values": ["low", "medium", "high", "urgent"]
     },
     "public.ticket_status": {
       "name": "ticket_status",
       "schema": "public",
-      "values": [
-        "open",
-        "in_progress",
-        "resolved",
-        "closed"
-      ]
+      "values": ["open", "in_progress", "resolved", "closed"]
     },
     "public.transaction_type": {
       "name": "transaction_type",
       "schema": "public",
-      "values": [
-        "debit",
-        "credit"
-      ]
+      "values": ["debit", "credit"]
     },
     "public.role": {
       "name": "role",
       "schema": "public",
-      "values": [
-        "admin",
-        "auditor",
-        "accountant",
-        "owner",
-        "user"
-      ]
+      "values": ["admin", "auditor", "accountant", "owner", "user"]
     }
   },
   "schemas": {},

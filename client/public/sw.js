@@ -3,16 +3,25 @@
  *
  * Strategy:
  * - Static assets: Cache-first (App Shell)
- * - API calls: Network-first with cache fallback
- * - Offline fallback: Serve cached or offline page
+ * - API calls: stale-while-revalidate with 30s freshness window
+ * - HTML pages: Network-first with offline fallback
+ * - Background sync for deferred operations
+ *
+ * Versioning: v1 → v2 on update triggers clean install
  */
 
-const CACHE_NAME = "alhusainia-v1";
-const STATIC_CACHE = "alhusainia-static-v1";
-const API_CACHE = "alhusainia-api-v1";
+const CACHE_NAME = "alhusainia-v2";
+const STATIC_CACHE = "alhusainia-static-v2";
+const API_CACHE = "alhusainia-api-v2";
 const OFFLINE_URL = "/offline.html";
 
-const STATIC_ASSETS = ["/", "/index.html", "/manifest.json", "/favicon.svg"];
+const STATIC_ASSETS = [
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/favicon.svg",
+  "/sw.js",
+];
 
 // Install: Pre-cache static assets
 self.addEventListener("install", event => {
@@ -24,7 +33,7 @@ self.addEventListener("install", event => {
   self.skipWaiting();
 });
 
-// Activate: Clean old caches
+// Activate: Clean old caches and claim clients
 self.addEventListener("activate", event => {
   event.waitUntil(
     caches.keys().then(keys => {
@@ -35,6 +44,7 @@ self.addEventListener("activate", event => {
       );
     })
   );
+  // Claim all clients immediately so the SW controls the page right away
   self.clients.claim();
 });
 
@@ -43,14 +53,18 @@ self.addEventListener("fetch", event => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Skip requests for non-http(s) schemes (chrome-extension://, moz-extension://,
+  // browser://, etc.) — the Cache API only accepts http(s) and the service worker
+  // must not intercept extension or internal browser requests.
+  if (!/^https?:$/.test(url.protocol)) return;
+
   // Skip non-GET requests
   if (request.method !== "GET") return;
 
-  // Skip tRPC mutations (POST)
+  // Skip tRPC mutations (POST) - let them go to server
   if (request.method === "POST") return;
 
-  // API requests: stale-while-revalidate with a freshness window — return the
-  // cached copy instantly if it is recent, and refresh it in the background.
+  // API requests (tRPC): stale-while-revalidate with freshness window
   if (url.pathname.startsWith("/api/trpc")) {
     event.respondWith(staleWhileRevalidateFresh(request, API_CACHE, 30_000));
     return;
@@ -66,19 +80,20 @@ self.addEventListener("fetch", event => {
     url.pathname.endsWith(".ico") ||
     url.pathname.endsWith(".woff") ||
     url.pathname.endsWith(".woff2") ||
-    url.pathname.endsWith(".ttf")
+    url.pathname.endsWith(".ttf") ||
+    url.pathname.endsWith(".eot")
   ) {
     event.respondWith(cacheFirst(request, STATIC_CACHE));
     return;
   }
 
-  // HTML pages: Network-first
+  // HTML pages: Network-first with offline fallback
   if (request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(networkFirstWithOffline(request));
     return;
   }
 
-  // Default: Network-first
+  // Default: Network-first with cache fallback
   event.respondWith(networkFirstWithCache(request, STATIC_CACHE));
 });
 
@@ -91,12 +106,20 @@ async function cacheFirst(request, cacheName) {
   try {
     const response = await fetch(request);
     if (response.ok) {
-      const cache = await caches.open(cacheName);
-      cache.put(request, response.clone());
+      let cacheable = true;
+      try {
+        cacheable = /^https?:$/.test(new URL(request.url).protocol);
+      } catch {
+        cacheable = false;
+      }
+      if (cacheable) {
+        const cache = await caches.open(cacheName);
+        cache.put(request, response.clone());
+      }
     }
     return response;
   } catch {
-    return new Response("Offline", { status: 503 });
+    return null;
   }
 }
 
@@ -204,25 +227,36 @@ self.addEventListener("sync", event => {
   }
 });
 
-// ─── Push Notifications ───────────────────────────────────────────
+// ─── Periodic Cache Management ──────────────────────────────────
 
-self.addEventListener("push", event => {
-  const data = event.data?.json() || {
-    title: "ALHUSAINIA",
-    body: "تحديث جديد",
-  };
-  event.waitUntil(
-    self.registration.showNotification(data.title, {
-      body: data.body,
-      icon: "/favicon.ico",
-      badge: "/favicon.ico",
-      dir: "rtl",
-      lang: "ar",
-    })
-  );
+// Periodic sweep to remove stale API cache entries
+self.addEventListener("periodicsync", event => {
+  if (event.tag === "cache-sweep") {
+    event.waitUntil(
+      caches.open(API_CACHE).then(cache => {
+        return cache.keys().then(keys => {
+          const now = Date.now();
+          return Promise.all(
+            keys.map(key => {
+              const cachedResponse = cache.get(key);
+              if (!cachedResponse) return cache.delete(key);
+              const date = cachedResponse.headers.get("date");
+              const age = now - (date ? new Date(date).getTime() : now);
+              if (age > 24 * 60 * 60 * 1000) {
+                // Remove entries older than 24 hours
+                return cache.delete(key);
+              }
+            })
+          ).then(() => cache.clear());
+        });
+      })
+    );
+  }
 });
 
-self.addEventListener("notificationclick", event => {
-  event.notification.close();
-  event.waitUntil(self.clients.openWindow("/"));
+// Force update check on mount - can be called from app runtime
+self.addEventListener("message", event => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });

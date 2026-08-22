@@ -1,18 +1,7 @@
+import { brand } from "@/lib/brand";
+
 export const siteConfig = {
-  brand: {
-    arabicName: "الحسينية",
-    commercialName: "ALHUSAINIA",
-    legalName: "مؤسسة الحسينية لخدمات الأعمال",
-    legalFullName: "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
-    englishName: "ALHUSAINIA Business Services Establishment",
-    libraryName: "مكتبة الحسينية الحديثة",
-    tagline: "منظومة الأعمال الموحّدة للمؤسسات والفروع",
-    taglineEn: "The Unified Business OS for Institutions & Branches",
-    shortDescription:
-      "منظومة سحابية متعددة المؤسسات والفروع للأعمال: محاسبة متقدمة، استشارات هندسية، مبيعات ومخازن، وخدمات مكتبية وطلابية.",
-    promise:
-      "محاسبة متقدمة، استشارات هندسية، وخدمات مكتبية وطلابية — في منصة سحابية واحدة متعددة المؤسسات والفروع والعملات.",
-  },
+  brand: brand.names,
   app: {
     name: "ALHUSAINIA — منظومة الأعمال الموحّدة",
     description:
@@ -20,85 +9,12 @@ export const siteConfig = {
     downloadUrl: "#download",
     shareText: "جرّب ALHUSAINIA — منظومة الأعمال الموحّدة للمؤسسات والفروع.",
   },
-  features: [
-    "نظام محاسبي متقدم (قيد مزدوج ودليل شجري)",
-    "إدارة متعددة المؤسسات والفروع والعملات",
-    "استشارات هندسية: مخططات، رفع مساحي، وجداول BOQ",
-    "فواتير وسندات ومخازن وربط المتجر آلياً",
-    "تحليلات ذكية بالذكاء الاصطناعي",
-    "تدقيق وإقفال مالي سنوي تلقائي",
-    "تصدير Excel وPDF واحترافي",
-    "تطبيق جوال PWA يعمل أوفلاين وسحابياً",
-  ],
-  stats: [
-    { value: "+1,200", label: "مشروع هندسي ورفع مساحي" },
-    { value: "+450", label: "جدول كميات (BOQ) ومخطط" },
-    { value: "+15,000", label: "معاملة مالية منجزة" },
-    { value: "%99.6", label: "رضا العملاء والمقاولين" },
-  ],
-  pillars: [
-    {
-      key: "accounting",
-      title: "النظام المحاسبي المتقدم",
-      summary:
-        "قيد مزدوج، دليل حسابات شجري، ميزان مراجعة، وقوائم مالية وإقفال سنوي تلقائي.",
-      icon: "Building2",
-    },
-    {
-      key: "engineering",
-      title: "الاستشارات الهندسية والمقاولات",
-      summary:
-        "مخططات تنفيذية، رفع مساحي، جداول BOQ، وحساب الحفر والردم للمقاولين والأراضي.",
-      icon: "HardHat",
-    },
-    {
-      key: "commercial",
-      title: "المبيعات والمخازن والعملاء",
-      summary:
-        "فواتير، سندات، حركة مخزون، وربط طلبات المتجر بكتالوج المنتجات آلياً.",
-      icon: "ShoppingCart",
-    },
-    {
-      key: "library",
-      title: "مكتبة الحسينية وصيانة الأجهزة",
-      summary:
-        "خدمات طلابية، تصاميم، أبحاث، وتصليح الموبايل والكمبيوتر تحت سقف واحد.",
-      icon: "BookOpen",
-    },
-  ],
-  testimonials: [
-    {
-      quote:
-        "وحّدنا محاسبتنا وفروعنا الثلاثة في منصة واحدة، وصار الإقفال السنوي في يوم بدل أسابيع.",
-      author: "أ. محمد العُمري",
-      role: "مدير مؤسسة مقاولات",
-    },
-    {
-      quote:
-        "جداول الـ BOQ والرفع المساحي وفّرت علينا هدراً كبيراً في حديد وخرسانة المشاريع.",
-      author: "م. سارة الحُبيشي",
-      role: "استشارية هندسية",
-    },
-    {
-      quote:
-        "خدمة الطباعة والتصميم والصيانة من نفس المنصة جعلت حياتنا الطلابية أسهل بكثير.",
-      author: "ط. عبدالله النخعي",
-      role: "طالب دراسات عليا",
-    },
-  ],
-  trustBadges: [
-    "تشفير SSL ومصادقة JWT آمنة",
-    "نُشر على GitHub & Vercel",
-    "يعمل أوفلاين وسحابياً",
-    "دعم متعدد العملات والفروع",
-  ],
-  contact: {
-    phone: "+967 770 000 000",
-    whatsapp: "967770000000",
-    email: "hello@husseiniya-business.com",
-    engineeringEmail: "engineering@husseiniya-business.com",
-    address: "المركز الرئيسي — شارع المؤسسة والمكتبة",
-    country: "اليمن",
-    website: "https://alhusainiaye.vercel.app",
-  },
+  features: brand.stats.map((stat, i) => {
+    // Map stats values to feature-like descriptions
+    return stat.label;
+  }),
+  stats: brand.stats,
+  pillars: brand.pillars,
+  testimonials: brand.testimonials,
+  contact: brand.contact,
 };

@@ -9,12 +9,18 @@ import { registerStorageProxy } from "./storageProxy";
 import { registerWebApi } from "./webApi";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
+import { getDb } from "../db";
+import { sql } from "drizzle-orm";
 
 export function createApp(): Express {
   const app = express();
 
   // Hide X-Powered-By header
   app.disable("x-powered-by");
+  // Trust one reverse-proxy hop (Vercel/nginx) so `req.ip` and the per-IP
+  // rate limiters see the real client address — otherwise every visitor
+  // shares a single bucket and throttling becomes meaningless in prod.
+  app.set("trust proxy", 1);
 
   // Helmet security headers
   app.use(
@@ -88,15 +94,47 @@ export function createApp(): Express {
     }
   );
 
-  // Plain health endpoint for uptime monitors (no auth required)
-  app.get("/api/health", (_req, res) => {
+  // Structured request logging (JSON lines) — one line per API request with
+  // duration, so production incidents are diagnosable without extra tooling.
+  app.use((req, res, next) => {
+    const start = Date.now();
+    res.on("finish", () => {
+      if (req.path.startsWith("/api")) {
+        console.log(
+          JSON.stringify({
+            t: new Date().toISOString(),
+            method: req.method,
+            path: req.path,
+            status: res.statusCode,
+            ms: Date.now() - start,
+          })
+        );
+      }
+    });
+    next();
+  });
+
+  // Deep health endpoint for uptime monitors (no auth required).
+  // Actually pings the database so a silent DB outage is detected (503).
+  app.get("/api/health", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    res.status(200).json({
+    let dbAvailable = false;
+    try {
+      const db = await getDb();
+      if (db) {
+        await db.execute(sql`select 1`);
+        dbAvailable = true;
+      }
+    } catch {
+      dbAvailable = false;
+    }
+    res.status(dbAvailable ? 200 : 503).json({
       ok: true,
+      dbAvailable,
       service: "alhusainia-platform",
       institution: "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
       version: "1.2.0",
-      status: "Operational",
+      status: dbAvailable ? "Operational" : "Degraded (DB unreachable)",
       security: "ISO-Compliant",
       time: new Date().toISOString(),
     });

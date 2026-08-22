@@ -1,30 +1,16 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Building2,
   Lock,
-  Mail,
-  Phone,
-  User,
   Eye,
   EyeOff,
-  Sparkles,
-  CheckCircle2,
   ShieldCheck,
-  ArrowRight,
   Zap,
   KeyRound,
   HardHat,
@@ -32,41 +18,47 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { startLogin } from "@/const";
+import { trpc } from "@/lib/trpc";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BrandLogo } from "@/components/BrandLogo";
 
+// The external OAuth portal is only available when the Manus runtime injects
+// these build-time variables. On independent hosting we fall back to the
+// self-contained owner password login below.
+const oauthEnabled = Boolean(
+  import.meta.env.VITE_OAUTH_PORTAL_URL && import.meta.env.VITE_APP_ID
+);
+
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { isAuthenticated, user } = useAuth();
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
 
-  // Form States
-  const [emailOrPhone, setEmailOrPhone] = useState("");
+  // Owner / admin password login
   const [password, setPassword] = useState("");
-  const [rememberMe, setRememberMe] = useState(true);
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Register Form States
   const [regName, setRegName] = useState("");
   const [regPhone, setRegPhone] = useState("");
   const [regCompany, setRegCompany] = useState("");
-  const [regPassword, setRegPassword] = useState("");
 
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const ownerLogin = trpc.auth.ownerLogin.useMutation({
+    onSuccess: () => {
+      window.location.href = "/";
+    },
+    onError: (err: { message?: string }) => {
+      toast.error(err?.message || "تعذر تسجيل الدخول");
+    },
+  });
+
+  const handleOwnerLogin = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!emailOrPhone.trim()) {
-      toast.error("الرجاء أدخل البريد الإلكتروني أو رقم الهاتف");
+    if (!password) {
+      toast.error("الرجاء إدخال كلمة المرور");
       return;
     }
-    setIsSubmitting(true);
-    toast.success("جاري تسجيل الدخول الآمن...");
-    setTimeout(() => {
-      startLogin();
-      setIsSubmitting(false);
-    }, 600);
+    ownerLogin.mutate({ password });
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -75,13 +67,13 @@ export default function Login() {
       toast.error("الرجاء إدخال الاسم ورقم الهاتف لتفعيل الاشتراك");
       return;
     }
-    toast.success("تم تفعيل التجربة المجانية لمدة 14 يوماً بنجاح!");
-    setLocation("/app");
-  };
-
-  const handleDemoLogin = () => {
-    toast.success("تم الدخول الحساب التجريبي المباشر بنجاح!");
-    setLocation("/app");
+    if (oauthEnabled) {
+      // Real portal signup (14-day trial is provisioned there).
+      startLogin();
+    } else {
+      toast.info("إنشاء المؤسسات يتم عبر المدير — سجّل دخول المدير أولاً");
+      setActiveTab("login");
+    }
   };
 
   return (
@@ -204,46 +196,17 @@ export default function Login() {
             </CardHeader>
 
             <CardContent className="p-5 pt-2">
-              {/* TAB 1: LOGIN FORM */}
+              {/* TAB 1: OWNER / ADMIN LOGIN */}
               {activeTab === "login" && (
                 <form
-                  onSubmit={handleLoginSubmit}
+                  onSubmit={handleOwnerLogin}
                   className="space-y-4 animate-in fade-in duration-200"
                 >
                   <div className="space-y-1.5">
                     <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                      <Mail className="w-3.5 h-3.5 text-brand-300" /> البريد
-                      الإلكتروني أو رقم الهاتف
+                      <KeyRound className="w-3.5 h-3.5 text-brand-300" /> كلمة
+                      مرور المدير / المالك
                     </Label>
-                    <Input
-                      required
-                      type="text"
-                      placeholder="admin@husseiniya-business.com / 770000000"
-                      value={emailOrPhone}
-                      onChange={e => setEmailOrPhone(e.target.value)}
-                      className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl font-mono text-left"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between items-center text-xs">
-                      <Label className="font-bold text-slate-300 flex items-center gap-1">
-                        <KeyRound className="w-3.5 h-3.5 text-brand-300" /> كلمة
-                        المرور
-                      </Label>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          toast.info(
-                            "تواصل مع إدارة المؤسسة لإعادة تعيين كلمة المرور"
-                          )
-                        }
-                        className="text-[11px] text-brand-300 hover:underline"
-                      >
-                        نسيت كلمة المرور؟
-                      </button>
-                    </div>
-
                     <div className="relative">
                       <Input
                         required
@@ -252,6 +215,7 @@ export default function Login() {
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl font-mono pl-10"
+                        autoComplete="current-password"
                       />
                       <button
                         type="button"
@@ -267,43 +231,33 @@ export default function Login() {
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between text-xs text-slate-300 pt-1">
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={rememberMe}
-                        onChange={e => setRememberMe(e.target.checked)}
-                        className="rounded border-white/15 bg-ink text-brand focus:ring-0"
-                      />
-                      <span>تذكرني في هذا الجهاز</span>
-                    </label>
-                  </div>
-
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={ownerLogin.isPending}
                     className="w-full bg-brand hover:bg-brand-deep text-ink font-black text-xs h-11 rounded-xl shadow-lg flex items-center justify-center gap-2"
                   >
                     <Lock className="w-4 h-4" />
-                    {isSubmitting
-                      ? "جاري التحقق والاتصال..."
-                      : "تسجيل الدخول الآمن"}
+                    {ownerLogin.isPending
+                      ? "جاري التحقق…"
+                      : "دخول المدير"}
                   </Button>
 
-                  <div className="pt-2 border-t border-white/10 text-center space-y-2">
-                    <p className="text-[11px] text-white/50">
-                      أو التجربة المباشرة الفورية بدون كلمة مرور:
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleDemoLogin}
-                      className="w-full border-white/15 bg-ink text-white hover:bg-white/10 text-xs h-9 rounded-xl flex items-center justify-center gap-1.5 font-bold"
-                    >
-                      <Zap className="w-4 h-4 text-brand-300" />
-                      الدخول الفوري بنقرة واحدة (Demo Mode)
-                    </Button>
-                  </div>
+                  {oauthEnabled && (
+                    <div className="pt-2 border-t border-white/10 text-center space-y-2">
+                      <p className="text-[11px] text-white/50">
+                        أو عبر البوابة الموحدة:
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => startLogin()}
+                        className="w-full border-white/15 bg-ink text-white hover:bg-white/10 text-xs h-9 rounded-xl flex items-center justify-center gap-1.5 font-bold"
+                      >
+                        <Zap className="w-4 h-4 text-brand-300" />
+                        الدخول عبر البوابة
+                      </Button>
+                    </div>
+                  )}
                 </form>
               )}
 
@@ -351,19 +305,6 @@ export default function Login() {
                     />
                   </div>
 
-                  <div className="space-y-1">
-                    <Label className="text-xs font-bold text-slate-300">
-                      كلمة المرور الجديدة
-                    </Label>
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      value={regPassword}
-                      onChange={e => setRegPassword(e.target.value)}
-                      className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl font-mono"
-                    />
-                  </div>
-
                   <div className="p-2.5 bg-ink rounded-xl border border-white/15 text-[11px] text-white/70 space-y-1">
                     <p className="font-bold text-brand-300">
                       ✨ مميزات التجربة المجانية:
@@ -377,8 +318,17 @@ export default function Login() {
                     type="submit"
                     className="w-full bg-brand hover:bg-brand-deep text-ink font-black text-xs h-10 rounded-xl shadow-lg"
                   >
-                    تفعيل الاشتراك والدخول
+                    {oauthEnabled
+                      ? "تفعيل الاشتراك والدخول"
+                      : "المتابعة لتفعيل الاشتراك"}
                   </Button>
+
+                  {!oauthEnabled && (
+                    <p className="text-[11px] text-white/50 text-center leading-relaxed">
+                      في هذا النشر، يتم إنشاء المؤسسات وإدارتها عبر حساب المدير.
+                      سجّل دخول المدير من تبويب «تسجيل الدخول».
+                    </p>
+                  )}
                 </form>
               )}
             </CardContent>

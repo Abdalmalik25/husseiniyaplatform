@@ -1,5 +1,6 @@
 import { ENV } from "./_core/env";
-import { COOKIE_NAME } from "../shared/const";
+import { sdk } from "./_core/sdk";
+import { COOKIE_NAME, ONE_MONTH_MS } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { invokeLLM } from "./_core/llm";
 import { systemRouter } from "./_core/systemRouter";
@@ -10,12 +11,15 @@ import {
   tenantProcedure,
   router,
 } from "./_core/trpc";
-import { getDb } from "./db";
+import { getDb, upsertUser } from "./db";
+import { timingSafeEqual } from "crypto";
 import {
   getCatalog,
   placePublicOrder,
   placeOrderInputSchema,
 } from "./webStore";
+import { checkRateLimit } from "./_core/rateLimit";
+import { TRPCError } from "@trpc/server";
 import {
   users,
   accounts,
@@ -450,6 +454,47 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+
+    // Self-contained owner login (no external OAuth provider required).
+    // Issues a signed session cookie for the configured owner openId.
+    ownerLogin: publicProcedure
+      .input(z.object({ password: z.string().min(1).max(256) }))
+      .mutation(async ({ ctx, input }) => {
+        const expected = ENV.ownerPassword;
+        if (!expected) {
+          throw new TRPCError({
+            code: "FORBIDDEN",
+            message: "تسجيل دخول المالك غير مُهيأ",
+          });
+        }
+        const a = Buffer.from(input.password);
+        const b = Buffer.from(expected);
+        const valid = a.length === b.length && timingSafeEqual(a, b);
+        if (!valid) {
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "كلمة المرور غير صحيحة",
+          });
+        }
+
+        await upsertUser({
+          openId: ENV.ownerOpenId,
+          name: "Owner",
+          loginMethod: "owner",
+          lastSignedIn: new Date(),
+        });
+
+        const token = await sdk.createSessionToken(ENV.ownerOpenId, {
+          name: "Owner",
+        });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, {
+          ...cookieOptions,
+          maxAge: ONE_MONTH_MS,
+        });
+
+        return { success: true } as const;
+      }),
     updateProfile: tenantProcedure
       .input(
         z.object({
@@ -486,7 +531,7 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    getActivityLogs: tenantProcedure.query(async ({ ctx }) => {
+    getActivityLogs: tenantProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
       const logs = await db
@@ -575,7 +620,11 @@ export const appRouter = router({
           managerName: "إدارة المؤسسة",
           subscriptionStatus: "active",
         };
-      const res = await db.select().from(settings).where(eq(settings.tenantId, ctx.tenantId)).limit(1);
+      const res = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.tenantId, ctx.tenantId))
+        .limit(1);
       return (
         res[0] || {
           institutionName: "مؤسسة الحسينية لخدمات الأعمال",
@@ -587,25 +636,61 @@ export const appRouter = router({
       );
     }),
 
-    // Upgrade or manage subscription (simulate payment & unlock advanced features)
+    // سياسة اشتراك مرنة — لا تُغلق النظام أبداً:
+    // trial → active → grace (مهلة غير محدودة) → suspended فقط عند طلب المستخدم
     updateSubscription: tenantProcedure
       .input(
         z.object({
-          status: z.enum(["trial", "active", "expired"]),
+          status: z.enum(["trial", "active", "grace", "suspended"]),
+          // وسيلة دفع محلية اختيارية
+          paymentMethod: z.string().optional(),
+          // كود ترويجي / خصم اختياري
+          promoCode: z.string().optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
         if (!ctx.tenantId) throw new Error("يجب إنشاء مؤسسة أولاً");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        const existing = await db.select().from(settings).where(eq(settings.tenantId, ctx.tenantId)).limit(1);
+        const existing = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.tenantId, ctx.tenantId))
+          .limit(1);
+
+        // سياسة المرونة: أي حالة يمر بها النظام لا تؤدي إلى إغلاق العمل.
+        // "suspended" لا تُستخدم إلا إذا طلبها المستخدم صراحةً عبر واجهة
+        // الإدارة — انتهاء الاشتراك لا يوقف النظام أبداً.
+        const newStatus = input.status;
+
         if (existing.length > 0) {
           await db
             .update(settings)
-            .set({ subscriptionStatus: input.status })
+            .set({
+              subscriptionStatus: newStatus as any,
+              ...(input.paymentMethod
+                ? {
+                    notes: `وسيلة الدفع: ${input.paymentMethod}${input.promoCode ? ` — كود: ${input.promoCode}` : ""}`,
+                  }
+                : {}),
+            })
             .where(eq(settings.id, existing[0].id));
         }
-        return { success: true };
+
+        // سجل نشاط
+        await db.insert(activityLogs).values({
+          userId: ctx.user.id,
+          userName: ctx.user.name,
+          action:
+            newStatus === "grace"
+              ? "انتقال تلقائي لوضع المهلة المرنة"
+              : `تحديث الاشتراك إلى: ${newStatus}`,
+          details: input.paymentMethod
+            ? `تم التجديد عبر: ${input.paymentMethod}${input.promoCode ? ` (كود: ${input.promoCode})` : ""}`
+            : "تم تحديث حالة الاشتراك دون إغلاق النظام",
+        });
+
+        return { success: true, status: newStatus };
       }),
 
     // Update settings (Permanent save)
@@ -624,14 +709,20 @@ export const appRouter = router({
         if (!ctx.tenantId) throw new Error("يجب إنشاء مؤسسة أولاً");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        const existing = await db.select().from(settings).where(eq(settings.tenantId, ctx.tenantId)).limit(1);
+        const existing = await db
+          .select()
+          .from(settings)
+          .where(eq(settings.tenantId, ctx.tenantId))
+          .limit(1);
         if (existing.length > 0) {
           await db
             .update(settings)
             .set(input)
             .where(eq(settings.id, existing[0].id));
         } else {
-          await db.insert(settings).values({ ...input, tenantId: ctx.tenantId });
+          await db
+            .insert(settings)
+            .values({ ...input, tenantId: ctx.tenantId });
         }
         return { success: true };
       }),
@@ -642,7 +733,11 @@ export const appRouter = router({
       await seedDefaultAccountsForTenant(ctx.tenantId);
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(accounts).where(eq(accounts.tenantId, ctx.tenantId!)).orderBy(asc(accounts.code));
+      return await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.tenantId, ctx.tenantId!))
+        .orderBy(asc(accounts.code));
     }),
 
     // Add custom account
@@ -695,7 +790,9 @@ export const appRouter = router({
               ? { parentAccountId: input.parentAccountId }
               : {}),
           })
-          .where(and(eq(accounts.id, input.id), eq(accounts.tenantId, ctx.tenantId!)));
+          .where(
+            and(eq(accounts.id, input.id), eq(accounts.tenantId, ctx.tenantId!))
+          );
 
         await db.insert(activityLogs).values({
           userId: ctx.user.id,
@@ -729,7 +826,12 @@ export const appRouter = router({
           .set({
             parentAccountId: input.newParentAccountId,
           })
-          .where(and(eq(accounts.id, input.accountId), eq(accounts.tenantId, ctx.tenantId!)));
+          .where(
+            and(
+              eq(accounts.id, input.accountId),
+              eq(accounts.tenantId, ctx.tenantId!)
+            )
+          );
 
         await db.insert(activityLogs).values({
           userId: ctx.user.id,
@@ -971,9 +1073,6 @@ export const appRouter = router({
           .limit(1);
         if (account.length === 0) throw new Error("الحساب غير موجود");
 
-        const today = new Date();
-        const transactionDate = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-
         const values = {
           tenantId: ctx.tenantId,
           accountId: input.accountId,
@@ -1128,12 +1227,16 @@ export const appRouter = router({
         })
       )
       .query(async ({ input, ctx }) => {
-        if (!ctx.tenantId) return { suggestedAccounts: [], recentNarrations: [], insights: [] };
+        if (!ctx.tenantId)
+          return { suggestedAccounts: [], recentNarrations: [], insights: [] };
         const db = await getDb();
         if (!db)
           return { suggestedAccounts: [], recentNarrations: [], insights: [] };
 
-        const allAccounts = await db.select().from(accounts).where(eq(accounts.tenantId, ctx.tenantId!));
+        const allAccounts = await db
+          .select()
+          .from(accounts)
+          .where(eq(accounts.tenantId, ctx.tenantId!));
         const recentTx = await db
           .select({
             narration: transactions.narration,
@@ -1189,7 +1292,11 @@ export const appRouter = router({
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(budgets).where(eq(budgets.tenantId, ctx.tenantId!)).orderBy(desc(budgets.id));
+      return await db
+        .select()
+        .from(budgets)
+        .where(eq(budgets.tenantId, ctx.tenantId!))
+        .orderBy(desc(budgets.id));
     }),
 
     saveBudget: tenantProcedure
@@ -1261,7 +1368,12 @@ export const appRouter = router({
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(and(eq(transactions.tenantId, ctx.tenantId!), eq(transactions.isReversed, false)))
+        .where(
+          and(
+            eq(transactions.tenantId, ctx.tenantId!),
+            eq(transactions.isReversed, false)
+          )
+        )
         .orderBy(desc(transactions.transactionDate), desc(transactions.id));
 
       let totalRevenue = 0;
@@ -1333,7 +1445,12 @@ export const appRouter = router({
         })
         .from(transactions)
         .leftJoin(accounts, eq(transactions.accountId, accounts.id))
-        .where(and(eq(transactions.tenantId, ctx.tenantId!), eq(transactions.isReversed, false)));
+        .where(
+          and(
+            eq(transactions.tenantId, ctx.tenantId!),
+            eq(transactions.isReversed, false)
+          )
+        );
 
       const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
       const dailyMap: Record<
@@ -1415,7 +1532,12 @@ export const appRouter = router({
         return await db
           .select()
           .from(openingBalances)
-          .where(and(eq(openingBalances.tenantId, ctx.tenantId!), eq(openingBalances.periodName, period)));
+          .where(
+            and(
+              eq(openingBalances.tenantId, ctx.tenantId!),
+              eq(openingBalances.periodName, period)
+            )
+          );
       }),
 
     saveOpeningBalances: tenantProcedure
@@ -1660,7 +1782,6 @@ export const appRouter = router({
             );
           }
 
-          const acctMap = new Map(allAccounts.map(a => [a.id, a]));
           const closingRows = allAccounts
             .filter(
               a =>
@@ -2810,7 +2931,8 @@ ${analysisText}
       .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return { changes: {}, serverTime: new Date().toISOString() };
-        if (!ctx.tenantId) return { changes: {}, serverTime: new Date().toISOString() };
+        if (!ctx.tenantId)
+          return { changes: {}, serverTime: new Date().toISOString() };
 
         const sinceDate = new Date(input.since);
         const tablesToSync = input.tables || [
@@ -3019,7 +3141,10 @@ ${analysisText}
         if (!db) return { items: [], total: 0 };
         const limit = input?.limit ?? 50;
         const offset = input?.offset ?? 0;
-        const conditions = [eq(products.isActive, true), eq(products.tenantId, ctx.tenantId!)];
+        const conditions = [
+          eq(products.isActive, true),
+          eq(products.tenantId, ctx.tenantId!),
+        ];
         if (input?.search) {
           conditions.push(
             or(
@@ -3136,7 +3261,12 @@ ${analysisText}
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const { id, ...data } = input;
-        await db.update(products).set(data).where(and(eq(products.id, id), eq(products.tenantId, ctx.tenantId!)));
+        await db
+          .update(products)
+          .set(data)
+          .where(
+            and(eq(products.id, id), eq(products.tenantId, ctx.tenantId!))
+          );
         return { success: true };
       }),
 
@@ -3224,7 +3354,7 @@ ${analysisText}
         return { success: true, previousStock: currentStock, newStock };
       }),
 
-    movements: publicProcedure
+    movements: protectedProcedure
       .input(
         z
           .object({
@@ -3400,7 +3530,10 @@ ${analysisText}
         if (!db) return { items: [], total: 0 };
         const limit = input?.limit ?? 50;
         const offset = input?.offset ?? 0;
-        const conditions = [eq(customers.isActive, true), eq(customers.tenantId, ctx.tenantId!)];
+        const conditions = [
+          eq(customers.isActive, true),
+          eq(customers.tenantId, ctx.tenantId!),
+        ];
         if (input?.search) {
           conditions.push(
             or(
@@ -3443,7 +3576,9 @@ ${analysisText}
         if (!ctx.tenantId) throw new Error("يجب إنشاء مؤسسة أولاً");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        await db.insert(customers).values({ ...input, tenantId: ctx.tenantId, balance: "0" });
+        await db
+          .insert(customers)
+          .values({ ...input, tenantId: ctx.tenantId, balance: "0" });
         await db.insert(activityLogs).values({
           userId: ctx.user.id,
           action: `إضافة عميل جديد: ${input.name} (${input.code})`,
@@ -3466,7 +3601,12 @@ ${analysisText}
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const { id, ...data } = input;
-        await db.update(customers).set(data).where(and(eq(customers.id, id), eq(customers.tenantId, ctx.tenantId!)));
+        await db
+          .update(customers)
+          .set(data)
+          .where(
+            and(eq(customers.id, id), eq(customers.tenantId, ctx.tenantId!))
+          );
         return { success: true };
       }),
   }),
@@ -3489,7 +3629,10 @@ ${analysisText}
         if (!db) return { items: [], total: 0 };
         const limit = input?.limit ?? 50;
         const offset = input?.offset ?? 0;
-        const conditions = [eq(suppliers.isActive, true), eq(suppliers.tenantId, ctx.tenantId!)];
+        const conditions = [
+          eq(suppliers.isActive, true),
+          eq(suppliers.tenantId, ctx.tenantId!),
+        ];
         if (input?.search) {
           conditions.push(
             or(
@@ -3531,7 +3674,9 @@ ${analysisText}
         if (!ctx.tenantId) throw new Error("يجب إنشاء مؤسسة أولاً");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        await db.insert(suppliers).values({ ...input, tenantId: ctx.tenantId, balance: "0" });
+        await db
+          .insert(suppliers)
+          .values({ ...input, tenantId: ctx.tenantId, balance: "0" });
         await db.insert(activityLogs).values({
           userId: ctx.user.id,
           action: `إضافة مورد جديد: ${input.name} (${input.code})`,
@@ -3553,7 +3698,12 @@ ${analysisText}
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const { id, ...data } = input;
-        await db.update(suppliers).set(data).where(and(eq(suppliers.id, id), eq(suppliers.tenantId, ctx.tenantId!)));
+        await db
+          .update(suppliers)
+          .set(data)
+          .where(
+            and(eq(suppliers.id, id), eq(suppliers.tenantId, ctx.tenantId!))
+          );
         return { success: true };
       }),
   }),
@@ -3608,7 +3758,12 @@ ${analysisText}
         const [invoice] = await db
           .select()
           .from(salesInvoices)
-          .where(and(eq(salesInvoices.id, input.id), eq(salesInvoices.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(salesInvoices.id, input.id),
+              eq(salesInvoices.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
         if (!invoice) return null;
         const customer = invoice.customerId
@@ -3928,8 +4083,16 @@ ${analysisText}
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
-        const [invoice] = await db.select({ id: salesInvoices.id }).from(salesInvoices)
-          .where(and(eq(salesInvoices.id, input.invoiceId), eq(salesInvoices.tenantId, ctx.tenantId!))).limit(1);
+        const [invoice] = await db
+          .select({ id: salesInvoices.id })
+          .from(salesInvoices)
+          .where(
+            and(
+              eq(salesInvoices.id, input.invoiceId),
+              eq(salesInvoices.tenantId, ctx.tenantId!)
+            )
+          )
+          .limit(1);
         if (!invoice) return [];
         return await db
           .select()
@@ -3959,7 +4122,9 @@ ${analysisText}
         if (!db) return { items: [], total: 0 };
         const limit = input?.limit ?? 50;
         const offset = input?.offset ?? 0;
-        const conditions: any[] = [eq(purchaseInvoices.tenantId, ctx.tenantId!)];
+        const conditions: any[] = [
+          eq(purchaseInvoices.tenantId, ctx.tenantId!),
+        ];
         if (input?.status)
           conditions.push(eq(purchaseInvoices.status, input.status));
         if (input?.supplierId)
@@ -4247,8 +4412,16 @@ ${analysisText}
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
-        const [invoice] = await db.select({ id: purchaseInvoices.id }).from(purchaseInvoices)
-          .where(and(eq(purchaseInvoices.id, input.invoiceId), eq(purchaseInvoices.tenantId, ctx.tenantId!))).limit(1);
+        const [invoice] = await db
+          .select({ id: purchaseInvoices.id })
+          .from(purchaseInvoices)
+          .where(
+            and(
+              eq(purchaseInvoices.id, input.invoiceId),
+              eq(purchaseInvoices.tenantId, ctx.tenantId!)
+            )
+          )
+          .limit(1);
         if (!invoice) return [];
         return await db
           .select()
@@ -4259,7 +4432,54 @@ ${analysisText}
 
   // ─── Orders & Distribution ──────────────────────────────────────
   orders: router({
-    list: publicProcedure
+    // Public order tracking for the customer portal: matches ONLY by order
+    // reference number or the guest's own phone number. Never exposes the
+    // full order list or other customers' data to anonymous visitors.
+    track: publicProcedure
+      .input(
+        z.object({
+          query: z.string().min(6, "أدخل رقم طلب أو هاتف صحيح").max(50),
+        })
+      )
+      .query(async ({ input, ctx }) => {
+        // Public lookup: moderate per-IP budget against enumeration.
+        const ip = ctx.req.ip || "unknown";
+        const rl = checkRateLimit(`track:${ip}`, 30, 60 * 60 * 1000);
+        if (!rl.ok) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: `طلبات بحث كثيرة — أعد المحاولة بعد ${rl.retryAfterSec} ثانية.`,
+          });
+        }
+        const db = await getDb();
+        if (!db) return { items: [] };
+        const q = input.query.trim();
+        const rows = await db
+          .select({
+            id: orders.id,
+            orderNumber: orders.orderNumber,
+            status: orders.status,
+            total: orders.total,
+            createdAt: orders.createdAt,
+            deliveryAddress: orders.deliveryAddress,
+            deliveryNotes: orders.deliveryNotes,
+            assignedTo: orders.assignedTo,
+          })
+          .from(orders)
+          .leftJoin(customers, eq(orders.customerId, customers.id))
+          .where(
+            or(
+              ilike(orders.orderNumber, `%${q}%`),
+              ilike(customers.phone, `%${q}%`)
+            )
+          )
+          .orderBy(desc(orders.createdAt))
+          .limit(20);
+        return { items: rows };
+      }),
+
+    // Tenant-scoped listing — consumed by the authenticated Commercial page.
+    list: tenantProcedure
       .input(
         z
           .object({
@@ -4278,14 +4498,15 @@ ${analysisText}
           })
           .optional()
       )
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return { items: [], total: 0 };
         const db = await getDb();
         if (!db) return { items: [], total: 0 };
         const limit = input?.limit ?? 50;
         const offset = input?.offset ?? 0;
-        const where = input?.status
-          ? eq(orders.status, input.status)
-          : undefined;
+        const conditions: any[] = [eq(orders.tenantId, ctx.tenantId!)];
+        if (input?.status) conditions.push(eq(orders.status, input.status));
+        const where = and(...conditions);
         const [countResult] = await db
           .select({ count: sql<number>`count(*)::int` })
           .from(orders)
@@ -4667,7 +4888,8 @@ ${analysisText}
         return { success: true, ...result };
       }),
 
-    getItems: publicProcedure
+    // Authenticated only — order line items may reference internal pricing.
+    getItems: protectedProcedure
       .input(
         z.object({
           orderId: z.number(),
@@ -4719,7 +4941,9 @@ ${analysisText}
       const allProducts = await db
         .select()
         .from(products)
-        .where(and(eq(products.isActive, true), eq(products.tenantId, ctx.tenantId!)));
+        .where(
+          and(eq(products.isActive, true), eq(products.tenantId, ctx.tenantId!))
+        );
       const lowStock = allProducts
         .filter(p => p.currentStock <= p.minStock)
         .sort(
@@ -4764,23 +4988,45 @@ ${analysisText}
       const [productsCount] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(products)
-        .where(and(eq(products.isActive, true), eq(products.tenantId, ctx.tenantId!)));
+        .where(
+          and(eq(products.isActive, true), eq(products.tenantId, ctx.tenantId!))
+        );
       const [customersCount] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(customers)
-        .where(and(eq(customers.isActive, true), eq(customers.tenantId, ctx.tenantId!)));
+        .where(
+          and(
+            eq(customers.isActive, true),
+            eq(customers.tenantId, ctx.tenantId!)
+          )
+        );
       const [suppliersCount] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(suppliers)
-        .where(and(eq(suppliers.isActive, true), eq(suppliers.tenantId, ctx.tenantId!)));
+        .where(
+          and(
+            eq(suppliers.isActive, true),
+            eq(suppliers.tenantId, ctx.tenantId!)
+          )
+        );
       const [salesCount] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(salesInvoices)
-        .where(and(eq(salesInvoices.tenantId, ctx.tenantId!), ne(salesInvoices.status, "cancelled")));
+        .where(
+          and(
+            eq(salesInvoices.tenantId, ctx.tenantId!),
+            ne(salesInvoices.status, "cancelled")
+          )
+        );
       const [purchasesCount] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(purchaseInvoices)
-        .where(and(eq(purchaseInvoices.tenantId, ctx.tenantId!), ne(purchaseInvoices.status, "cancelled")));
+        .where(
+          and(
+            eq(purchaseInvoices.tenantId, ctx.tenantId!),
+            ne(purchaseInvoices.status, "cancelled")
+          )
+        );
       const [ordersCount] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(orders)
@@ -4790,7 +5036,13 @@ ${analysisText}
       const topCustomers = await db
         .select()
         .from(customers)
-        .where(and(eq(customers.tenantId, ctx.tenantId!), eq(customers.isActive, true), sql`${customers.balance} > 0`))
+        .where(
+          and(
+            eq(customers.tenantId, ctx.tenantId!),
+            eq(customers.isActive, true),
+            sql`${customers.balance} > 0`
+          )
+        )
         .orderBy(desc(customers.balance))
         .limit(5);
 
@@ -4851,7 +5103,16 @@ ${analysisText}
 
     placeOrder: publicProcedure
       .input(placeOrderInputSchema)
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // Stock-draining write: strict per-IP budget (5 orders/hour).
+        const ip = ctx.req.ip || "unknown";
+        const rl = checkRateLimit(`place-order:${ip}`, 5, 60 * 60 * 1000);
+        if (!rl.ok) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: `عدد كبير من الطلبات — أعد المحاولة بعد ${rl.retryAfterSec} ثانية.`,
+          });
+        }
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const result = await placePublicOrder(db, input);

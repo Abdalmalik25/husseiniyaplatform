@@ -38,4 +38,21 @@ export default [
       "*.config.*",
     ],
   },
+  {
+    // Dev helper scripts (CommonJS) — run under Node, not the app bundle.
+    files: ["scripts/**/*.cjs"],
+    languageOptions: {
+      globals: {
+        require: "readonly",
+        module: "readonly",
+        process: "readonly",
+        console: "readonly",
+        __dirname: "readonly",
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "no-console": "off",
+    },
+  },
 ];

@@ -3,13 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
   MessageSquare,
-  Phone,
   HardHat,
   Building2,
   BookOpen,
   X,
   Sparkles,
-  Send,
 } from "lucide-react";
 import { brand, whatsappLink } from "@/lib/brand";
 

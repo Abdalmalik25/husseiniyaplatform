@@ -7,8 +7,11 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { OfflineProvider } from "./lib/offline/OfflineContext";
 import { FloatingSupportWidget } from "@/components/FloatingSupportWidget";
+import { InstallPrompt } from "@/components/InstallPrompt";
 import { BrandMark } from "@/components/BrandLogo";
 import { CommandPalette } from "@/components/CommandPalette";
+import { RequireAuth } from "@/components/RequireAuth";
+import { I18nProvider } from "@/lib/i18n";
 
 const Landing = lazy(() => import("@/pages/Landing"));
 const Login = lazy(() => import("@/pages/Login"));
@@ -17,6 +20,8 @@ const Home = lazy(() => import("@/pages/Home"));
 const About = lazy(() => import("@/pages/About"));
 const Portal = lazy(() => import("@/pages/Portal"));
 const Download = lazy(() => import("@/pages/Download"));
+const Pricing = lazy(() => import("@/pages/Pricing"));
+const Contact = lazy(() => import("@/pages/Contact"));
 const Commercial = lazy(() => import("@/pages/Commercial"));
 const Reports = lazy(() => import("@/pages/Reports"));
 const Store = lazy(() => import("@/pages/Store"));
@@ -31,9 +36,9 @@ function PageSplash() {
       <div className="mt-3.5 font-bold text-[15px]">
         ALHUSAINIA | منصة الحسينية
       </div>
-      <div className="mt-1.5 text-[11px] text-[#8fa3a4]">
-        مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة — جاري التحميل…
-      </div>
+        <div className="mt-1.5 text-[11px] text-[#8fa3a4]">
+          مؤسسة الحسينية لخدمات الأعمال — جاري التحميل…
+        </div>
     </div>
   );
 }
@@ -42,19 +47,52 @@ function Router() {
   return (
     <Suspense fallback={<PageSplash />}>
       <Switch>
+        {/* ── Public marketing & guest pages (no session required) ── */}
         <Route path={"/"} component={Landing} />
         <Route path={"/login"} component={Login} />
-        <Route path={"/app"} component={WorkspaceDashboard} />
-        <Route path={"/accounting"} component={Home} />
         <Route path={"/about"} component={About} />
         <Route path={"/portal"} component={Portal} />
         <Route path={"/download"} component={Download} />
-        <Route path={"/store"} component={Store} />
-        <Route path={"/commercial"} component={Commercial} />
-        <Route path={"/reports"} component={Reports} />
-        <Route path={"/settings"} component={Settings} />
+        <Route path={"/pricing"} component={Pricing} />
+        <Route path={"/contact"} component={Contact} />
         <Route path={"/integrate"} component={Integrate} />
-        <Route path={"/erp"} component={ErpPage} />
+
+        {/* ── Operational pages (login + subscription required) ── */}
+        <Route path={"/app"}>
+          <RequireAuth>
+            <WorkspaceDashboard />
+          </RequireAuth>
+        </Route>
+        <Route path={"/accounting"}>
+          <RequireAuth>
+            <Home />
+          </RequireAuth>
+        </Route>
+        <Route path={"/commercial"}>
+          <RequireAuth>
+            <Commercial />
+          </RequireAuth>
+        </Route>
+        <Route path={"/reports"}>
+          <RequireAuth>
+            <Reports />
+          </RequireAuth>
+        </Route>
+        <Route path={"/settings"}>
+          <RequireAuth>
+            <Settings />
+          </RequireAuth>
+        </Route>
+        <Route path={"/erp"}>
+          <RequireAuth>
+            <ErpPage />
+          </RequireAuth>
+        </Route>
+        <Route path={"/store"}>
+          <RequireAuth>
+            <Store />
+          </RequireAuth>
+        </Route>
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -95,18 +133,21 @@ function App() {
   }, []);
 
   return (
+    <I18nProvider>
       <ErrorBoundary>
         <ThemeProvider defaultTheme="light">
           <OfflineProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-            <CommandPalette />
-            <FloatingSupportWidget />
-          </TooltipProvider>
-        </OfflineProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+              <CommandPalette />
+              <FloatingSupportWidget />
+              <InstallPrompt />
+            </TooltipProvider>
+          </OfflineProvider>
+        </ThemeProvider>
+      </ErrorBoundary>
+    </I18nProvider>
   );
 }
 

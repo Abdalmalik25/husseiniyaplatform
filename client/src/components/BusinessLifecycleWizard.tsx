@@ -1,33 +1,21 @@
 import React, { useState } from "react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Settings,
   Layers,
   ShoppingCart,
-  FileText,
-  CheckCircle2,
-  ArrowRight,
   Building2,
   Users,
   Package,
   DollarSign,
   BarChart3,
   Printer,
-  Send,
   Sparkles,
   Sliders,
 } from "lucide-react";
 import { openPrintableInvoiceWindow } from "@/lib/pdfInvoiceGenerator";
-import { toast } from "sonner";
 
 export function BusinessLifecycleWizard() {
   const [activeStage, setActiveStage] = useState<
@@ -213,7 +201,7 @@ export function BusinessLifecycleWizard() {
               <Button
                 size="sm"
                 onClick={() => (window.location.href = "/accounting")}
-                className="w-full bg-[#102a2b] text-white text-xs h-8"
+                className="w-full bg-[#102a2b] text-white text-sm h-10 rounded-lg flex items-center justify-center gap-2 shadow"
               >
                 إضافة معاملة مالية
               </Button>
@@ -230,7 +218,7 @@ export function BusinessLifecycleWizard() {
               <Button
                 size="sm"
                 onClick={() => (window.location.href = "/commercial")}
-                className="w-full bg-[#b87945] text-[#102a2b] font-bold text-xs h-8"
+                className="w-full bg-[#b87945] text-[#102a2b] font-bold text-sm h-10 rounded-lg flex items-center justify-center gap-2 shadow"
               >
                 إدارة المشتريات
               </Button>
@@ -247,7 +235,7 @@ export function BusinessLifecycleWizard() {
               <Button
                 size="sm"
                 onClick={() => (window.location.href = "/portal")}
-                className="w-full bg-sky-800 text-white text-xs h-8"
+                className="w-full bg-sky-800 text-white text-sm h-10 rounded-lg flex items-center justify-center gap-2 shadow"
               >
                 بوابة التتبع المباشر
               </Button>

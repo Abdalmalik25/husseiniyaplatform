@@ -3,12 +3,8 @@ import { useLocation } from "wouter";
 import { Command } from "cmdk";
 import {
   Building2,
-  HardHat,
-  ShoppingCart,
-  BookOpen,
   BarChart3,
   Layers,
-  Plus,
   Search,
   Settings,
   Globe2,
@@ -16,10 +12,11 @@ import {
   Phone,
   FileText,
   Zap,
+  CreditCard,
   type LucideIcon,
 } from "lucide-react";
 import { MODULE_LIST } from "@/lib/design";
-import { brand, whatsappLink } from "@/lib/brand";
+import { whatsappLink } from "@/lib/brand";
 
 interface NavItem {
   label: string;
@@ -32,8 +29,9 @@ const NAV: NavItem[] = [
   { label: "الرئيسية والتسويق", path: "/", icon: HomeIcon },
   { label: "مساحات العمل والأنظمة", path: "/app", icon: Layers },
   { label: "التعريف بالخدمات", path: "/about", icon: FileText },
+  { label: "الأسعار والباقات", path: "/pricing", icon: CreditCard },
+  { label: "تواصل معنا", path: "/contact", icon: Phone },
   { label: "بوابة التتبع", path: "/portal", icon: Search },
-  { label: "المتجر الإلكتروني", path: "/store", icon: ShoppingCart },
   { label: "العمليات التجارية", path: "/commercial", icon: Building2 },
   { label: "التقارير المالية", path: "/reports", icon: BarChart3 },
   { label: "مركز التكامل", path: "/integrate", icon: Globe2 },
@@ -130,7 +128,9 @@ export function CommandPalette() {
                 >
                   <Icon className="w-4 h-4" style={{ color: m.accent }} />
                   <span className="flex-1">{m.label}</span>
-                  <span className="text-[10px] text-slate-400">{m.tagline}</span>
+                  <span className="text-[10px] text-slate-400">
+                    {m.tagline}
+                  </span>
                 </Command.Item>
               );
             })}

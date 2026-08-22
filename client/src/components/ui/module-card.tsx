@@ -49,7 +49,10 @@ export function ModuleCard({
           {badge && (
             <Badge
               variant="outline"
-              className={cn("text-[10px] font-bold bg-background", module.border)}
+              className={cn(
+                "text-[10px] font-bold bg-background",
+                module.border
+              )}
               style={{ color: module.accent }}
             >
               {badge}

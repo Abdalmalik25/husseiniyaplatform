@@ -77,6 +77,34 @@ export default function About() {
   const [selectedService, setSelectedService] =
     useState<string>("استشارة هندسية");
 
+  // Vision, Mission & Values
+  const vision =
+    "أن نكون الشريك الاستراتيجي الأمثل للمؤسسات العربية في التحول الرقمي، مقدمي حلول محاسبية وهندسية وتقنية مبتكرة تجمع بين الدقة العالمية وبين الفهم العميق للبيئة المحلية.";
+  const mission =
+    "تمكين المؤسسات من النمو والازدهار منصة موحّدة واحدة تدير فيها حساباتها، مشاريعها الهندسية، ومواردها التجارية بكل مرونة وأمان وشفافية، لتكون الشريك الموثوق في رحلة النجاح المؤسسي.";
+  const values = [
+    {
+      ar: "التميز",
+      en: "Excellence",
+      desc: "نحرص على أعلى معايير الجودة في كل خدمة، ونؤمن بأن التفاصيل الصغيرة تصنع الفارق الكبير.",
+    },
+    {
+      ar: "الموثوقية",
+      en: "Reliability",
+      desc: "التزامنا phrase بوعدنا، وشفافيتنا في التعاملات، وثقتنا في قدراتنا التقنية والمهنية.",
+    },
+    {
+      ar: "الابتكار",
+      en: "Innovation",
+      desc: "نتبنى أحدث التقنيات وأساليب العمل الحديثة، ونسعى دائماً لتجاوز توقعات عملائنا بحلول إبداعية.",
+    },
+    {
+      ar: "الشراكة",
+      en: "Partnership",
+      desc: "نعمل جنبًا إلى جنب مع عملائنا كنصيرين حقيقيين، نضع مصلحة مشروعهم نصب أعيننا في كل خطوة.",
+    },
+  ];
+
   // Request Form States
   const [clientName, setClientName] = useState("");
   const [clientPhone, setClientPhone] = useState("");
@@ -393,7 +421,7 @@ export default function About() {
             </Button>
 
             <Button
-              onClick={() => setLocation("/store")}
+              onClick={() => setLocation("/app")}
               variant="outline"
               className="border-[#2a4e50] bg-[#1e3a3c] text-white hover:bg-[#25484a] text-xs sm:text-sm h-11 px-5 rounded-xl flex items-center gap-2"
             >
@@ -744,7 +772,7 @@ export default function About() {
             </div>
 
             <Button
-              onClick={() => setLocation("/store")}
+              onClick={() => setLocation("/app")}
               variant="outline"
               className="border-sky-700 text-sky-800 hover:bg-sky-50 text-xs h-9 font-medium px-4 rounded-lg flex items-center gap-1.5"
             >

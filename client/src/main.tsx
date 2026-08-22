@@ -5,8 +5,9 @@ import { httpBatchLink, TRPCClientError } from "@trpc/client";
 import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
-import { startLogin } from "./const";
+import { goLogin } from "./const";
 import "./index.css";
+import { I18nProvider } from "./lib/i18n";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -30,7 +31,7 @@ const maybeRedirectToLogin = (error: unknown) => {
   if (redirectedThisSession) return;
   if (window.location.pathname.startsWith("/login")) return;
   redirectedThisSession = true;
-  startLogin();
+  goLogin();
 };
 
 queryClient.getQueryCache().subscribe(event => {
@@ -84,9 +85,11 @@ const trpcClient = trpc.createClient({
 });
 
 createRoot(document.getElementById("root")!).render(
-  <trpc.Provider client={trpcClient} queryClient={queryClient}>
-    <QueryClientProvider client={queryClient}>
-      <App />
-    </QueryClientProvider>
-  </trpc.Provider>
+  <I18nProvider>
+    <trpc.Provider client={trpcClient} queryClient={queryClient}>
+      <QueryClientProvider client={queryClient}>
+        <App />
+      </QueryClientProvider>
+    </trpc.Provider>
+  </I18nProvider>
 );

@@ -75,7 +75,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/_core/hooks/useAuth";
-import { startLogin } from "@/const";
+import { goLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
 import { SiteFooter } from "@/components/SiteFooter";
 import { brand } from "@/lib/brand";
@@ -99,7 +99,7 @@ export default function Landing() {
       setAuthModalOpen(false);
       setLocation("/app");
     },
-    onError: (error) => {
+    onError: error => {
       toast.error(error.message || "حدث خطأ أثناء إنشاء المؤسسة");
     },
   });
@@ -111,7 +111,7 @@ export default function Landing() {
       return;
     }
     if (!isAuthenticated) {
-      startLogin();
+      goLogin();
       return;
     }
     onboardMutation.mutate({
@@ -138,9 +138,12 @@ export default function Landing() {
           </div>
 
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black font-display tracking-tight leading-tight text-balance animate-in fade-in slide-in-from-bottom-3 duration-700">
-            مؤسسة الحسينية لخدمات الأعمال <br />
-            <span className="text-brand-300">ومكتبة الحسينية الحديثة</span>
+            مؤسسة الحسينية لخدمات الأعمال
           </h1>
+
+          <p className="text-lg sm:text-2xl font-bold text-brand-300 leading-snug animate-in fade-in slide-in-from-bottom-3 duration-700">
+            هندسة، استشارات، وتقنية — منصة أعمال واحدة موثوقة
+          </p>
 
           <p className="max-w-3xl mx-auto text-sm sm:text-lg text-white/70 leading-relaxed font-light text-pretty animate-in fade-in slide-in-from-bottom-4 duration-700">
             {brand.promise}
@@ -163,15 +166,6 @@ export default function Landing() {
             >
               <Building2 className="w-5 h-5 text-brand-300" />
               استكشاف مساحات العمل والأنظمة
-            </Button>
-
-            <Button
-              onClick={() => setLocation("/store")}
-              variant="ghost"
-              className="text-white/70 hover:text-white text-sm h-12 px-4 flex items-center gap-1.5"
-            >
-              <ShoppingCart className="w-4 h-4 text-brand-300" />
-              المتجر الإلكتروني
             </Button>
           </div>
 
@@ -291,7 +285,7 @@ export default function Landing() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-               <ul className="space-y-2 text-xs text-muted-foreground">
+              <ul className="space-y-2 text-xs text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" /> دليل
                   حسابات شجري قابل للتخصيص الكامل
@@ -339,7 +333,7 @@ export default function Landing() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-               <ul className="space-y-2 text-xs text-muted-foreground">
+              <ul className="space-y-2 text-xs text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" /> المخططات
                   المعمارية والإنشائية 2D/3D ونمذجة BIM
@@ -387,7 +381,7 @@ export default function Landing() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-               <ul className="space-y-2 text-xs text-muted-foreground">
+              <ul className="space-y-2 text-xs text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" /> إصدار
                   فواتير المبيعات والمشتريات والربط المحاسبي
@@ -406,7 +400,7 @@ export default function Landing() {
                 </li>
               </ul>
               <Button
-                onClick={() => setLocation("/commercial")}
+                onClick={() => setLocation("/app")}
                 className="w-full bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-10 font-bold rounded-xl flex items-center justify-center gap-2"
               >
                 الدخول للمساحة التجارية
@@ -435,7 +429,7 @@ export default function Landing() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-6 space-y-4">
-               <ul className="space-y-2 text-xs text-muted-foreground">
+              <ul className="space-y-2 text-xs text-muted-foreground">
                 <li className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600" /> طباعة
                   وتغليف وتنسيق رسائل ومشاريع التخرج
@@ -454,7 +448,7 @@ export default function Landing() {
                 </li>
               </ul>
               <Button
-                onClick={() => setLocation("/store")}
+                onClick={() => setLocation("/app")}
                 className="w-full bg-sky-800 hover:bg-sky-900 text-white text-xs h-10 font-bold rounded-xl flex items-center justify-center gap-2"
               >
                 الدخول لمساحة المكتبة والخدمات
@@ -464,6 +458,132 @@ export default function Landing() {
           </Card>
         </div>
       </main>
+
+      {/* 🧭 HOW IT WORKS: Familiar 4-step onboarding flow */}
+      <section className="max-w-7xl mx-auto px-4 py-16">
+        <div className="text-center space-y-3 max-w-3xl mx-auto mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
+            كيف نعمل
+          </Badge>
+          <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground">
+            أربع خطوات إلى منصة أعمال متكاملة
+          </h2>
+          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            رحلة بسيطة، آمنة، ومهيأة للنمو — من التسجيل حتى اتخاذ القرار.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            {
+              icon: UserCheck,
+              title: "أنشئ مؤسستك",
+              desc: "سجّل خلال دقائق وفعّل الفترة التجريبية المجانية 14 يوماً بدون بطاقة ائتمان.",
+            },
+            {
+              icon: Layers,
+              title: "اختر وحداتك",
+              desc: "فعّل المحاسبة، الهندسة، التجارة، والمكتبة وفق ما تحتاجه مؤسستك فقط.",
+            },
+            {
+              icon: Wifi,
+              title: "اعمل أينما كنت",
+              desc: "منصة أوفلاين أولاً مع مزامنة تلقائية عند الاتصال — لا تتوقف أعمالك.",
+            },
+            {
+              icon: BarChart3,
+              title: "قرّر بثقة",
+              desc: "تقارير ولوحات تحكم لحظية متعددة الفروع والعملات لقرارات مبنية على بيانات.",
+            },
+          ].map((s, i) => {
+            const Icon = s.icon;
+            return (
+              <div
+                key={i}
+                className="surface rounded-2xl p-6 text-center hover:-translate-y-1 hover:shadow-xl transition-all"
+              >
+                <div className="w-12 h-12 mx-auto rounded-2xl bg-brand/10 flex items-center justify-center mb-4 text-brand">
+                  <Icon className="w-6 h-6" />
+                </div>
+                <div className="text-[11px] font-bold text-brand-300 mb-1">
+                  الخطوة {i + 1}
+                </div>
+                <h3 className="font-bold text-sm text-foreground mb-2">
+                  {s.title}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  {s.desc}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 🏛️ WHY ALHUSAINIA: Enterprise-grade differentiators */}
+      <section className="bg-ink text-white py-16">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+            <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
+              لماذا الحسينية
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
+              بنية مؤسسية بمعايير عالمية
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[
+              {
+                icon: ShieldCheck,
+                title: "أمان مؤسسي",
+                desc: "مصادقة JWT، عزل كامل للبيانات، وضوابط مطابقة لمعايير الحوكمة المؤسسية.",
+              },
+              {
+                icon: Wifi,
+                title: "أوفلاين أولاً",
+                desc: "اعمل بلا اتصال ودوّن بياناتك؛ تُزامَن تلقائياً عند عودة الإنترنت.",
+              },
+              {
+                icon: Layers,
+                title: "متعدد المؤسسات",
+                desc: "متعدد المؤسسات والفروع والعملات من اليوم الأول بصلاحيات دقيقة.",
+              },
+              {
+                icon: Sparkles,
+                title: "ذكاء اصطناعي محلّي",
+                desc: "مستشار مالي وإحصائي يعمل محلياً لاقتراحات ذكية وآمنة.",
+              },
+              {
+                icon: MessageSquare,
+                title: "دعم خبراء 24/7",
+                desc: "فريق هندسي ومحاسبي وتقني يجيبك مباشرة عبر الواتساب على مدار الساعة.",
+              },
+              {
+                icon: Globe,
+                title: "نشر سحابي موثوق",
+                desc: "منشورة عبر GitHub & Vercel بأعلى معايير التوفر والأداء العالمية.",
+              },
+            ].map((f, i) => {
+              const Icon = f.icon;
+              return (
+                <div
+                  key={i}
+                  className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-brand text-ink flex items-center justify-center mb-4">
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <h3 className="font-bold text-sm text-white mb-2">{f.title}</h3>
+                  <p className="text-xs text-white/60 leading-relaxed">
+                    {f.desc}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
       {/* 🌟 TESTIMONIALS: Social proof from contractors, engineers & students */}
       <section className="max-w-7xl mx-auto px-4 py-16">
@@ -495,13 +615,65 @@ export default function Landing() {
                   {t.author.charAt(0)}
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-foreground">{t.author}</p>
+                  <p className="text-xs font-bold text-foreground">
+                    {t.author}
+                  </p>
                   <p className="text-[11px] text-muted-foreground">{t.role}</p>
                 </div>
               </div>
             </Card>
           ))}
         </div>
+      </section>
+
+      {/* ❓ FAQ: Common questions — builds familiarity & trust */}
+      <section className="max-w-3xl mx-auto px-4 py-16">
+        <div className="text-center space-y-3 mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
+            أسئلة شائعة
+          </Badge>
+          <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground text-balance">
+            إجابات سريعة عن منصة الحسينية
+          </h2>
+        </div>
+
+        <Accordion type="single" collapsible className="w-full space-y-3">
+          {[
+            {
+              q: "هل المتجر الإلكتروني متاح لجميع الزوار؟",
+              a: "المتجر الإلكتروني متاح للمشتركين المسجلين داخل النظام فقط؛ تتيح لك المؤسسة عرض كتالوج المنتجات والخدمات وإتمام الطلبات بأمان بعد الدخول.",
+            },
+            {
+              q: "هل أحتاج إلى خبرة تقنية للبدء؟",
+              a: "لا — واجهة عربية موحّدة ورقيقة تتيح لك إنشاء مؤسستك وتفعيل الوحدات خلال دقائق، مع دعم فني مباشر عند الحاجة.",
+            },
+            {
+              q: "كيف تُحفظ بياناتي وكيف تُحمى؟",
+              a: "بياناتك معزولة لكل مؤسسة ومشفّرة، مع جلسة JWT آمنة وصلاحيات دقيقة لكل مستخدم وفرع.",
+            },
+            {
+              q: "هل يعمل النظام دون إنترنت؟",
+              a: "نعم — البنية أوفلاين أولاً؛ يمكنك تسجيل عملياتك ومزامنتها تلقائياً عند عودة الاتصال دون فقدان أي بيانات.",
+            },
+            {
+              q: "ما هي مدة التجربة المجانية؟",
+              a: "14 يوماً كاملة لجميع الوحدات والمساحات، بدون بطاقة ائتمان، مع تفعيل فوري عند التسجيل.",
+            },
+          ].map((item, i) => (
+            <AccordionItem
+              key={i}
+              value={`faq-${i}`}
+              className="surface rounded-xl px-4 border border-border"
+            >
+              <AccordionTrigger className="text-sm font-bold text-foreground py-4">
+                {item.q}
+              </AccordionTrigger>
+              <AccordionContent className="text-xs text-muted-foreground leading-relaxed pb-4">
+                {item.a}
+              </AccordionContent>
+            </AccordionItem>
+          ))}
+        </Accordion>
       </section>
 
       {/* 🚀 MODAL: التسجيل ودخول التجربة المجانية */}

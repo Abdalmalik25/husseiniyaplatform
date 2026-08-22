@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { useDebounce } from "@/hooks/useDebounce";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
+import { AppSidebar } from "@/components/AppSidebar";
 import { openPrintableInvoiceWindow } from "@/lib/pdfInvoiceGenerator";
 import {
   Search,
@@ -28,7 +29,6 @@ import {
   MapPin,
   User,
   PackageCheck,
-  ArrowRight,
   ChefHat,
   Info,
 } from "lucide-react";
@@ -42,6 +42,7 @@ interface CartItem {
 }
 
 export default function Store() {
+  const [, setLocation] = useLocation();
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 350);
   const [category, setCategory] = useState<string>("all");
@@ -241,44 +242,45 @@ export default function Store() {
   );
 
   return (
-    <div className="min-h-screen bg-[#fbf8f2]" dir="rtl">
-      <HeaderNavbar institutionName="متجر مؤسسة ومكتبة الحسينية" />
-      <div className="bg-[#162e30] text-white border-b border-[#1e3a3c] shadow-sm py-2 px-4 sticky top-[49px] z-30">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-xs">
-            <StoreIcon className="w-4 h-4 text-[#d4a574]" />
-            <span className="font-bold">
-              كتالوج المنتجات والخدمات الاستشارية والمكتبية
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              size="sm"
-              variant="outline"
-              className="text-white border-white/30 h-7 text-xs bg-[#102a2b] hover:bg-[#1e3a3c]"
-              onClick={() => (window.location.href = "/about")}
-            >
-              <Info className="w-3 h-3 ml-1 text-[#d4a574]" />
-              عن المؤسسة
-            </Button>
-            <Button
-              size="sm"
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] relative h-7 font-bold text-xs"
-              onClick={() => setCartOpen(true)}
-            >
-              <ShoppingCart className="w-3.5 h-3.5 ml-1" />
-              <span>سلة الطلبات</span>
-              {cartCount > 0 && (
-                <span className="absolute -top-1.5 -left-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
-                  {cartCount}
-                </span>
-              )}
-            </Button>
+    <div className="min-h-screen bg-[#fbf8f2] flex" dir="rtl">
+      <AppSidebar />
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="bg-[#162e30] text-white border-b border-[#1e3a3c] shadow-sm py-2 px-4 sticky top-0 z-30">
+          <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-xs">
+              <StoreIcon className="w-4 h-4 text-[#d4a574]" />
+              <span className="font-bold">
+                كتالوج المنتجات والخدمات الاستشارية والمكتبية
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="text-white border-white/30 h-7 text-xs bg-[#102a2b] hover:bg-[#1e3a3c]"
+                onClick={() => setLocation("/about")}
+              >
+                <Info className="w-3 h-3 ml-1 text-[#d4a574]" />
+                عن المؤسسة
+              </Button>
+              <Button
+                size="sm"
+                className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] relative h-7 font-bold text-xs"
+                onClick={() => setCartOpen(true)}
+              >
+                <ShoppingCart className="w-3.5 h-3.5 ml-1" />
+                <span>سلة الطلبات</span>
+                {cartCount > 0 && (
+                  <span className="absolute -top-1.5 -left-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                    {cartCount}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
         </div>
-      </div>
 
-      <main className="max-w-6xl mx-auto p-3">
+        <main className="max-w-6xl mx-auto w-full p-3">
         <div className="relative mb-3">
           <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
           <Input
@@ -565,8 +567,7 @@ export default function Store() {
                     invoiceDate: new Date().toISOString(),
                     customerName: "عميل المتجر الإلكتروني",
                     customerPhone: lastPhone,
-                    institutionName:
-                      "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
+                    institutionName: "مؤسسة الحسينية لخدمات الأعمال",
                     currency: "ريال يمني (YER)",
                     items: [
                       {
@@ -596,6 +597,7 @@ export default function Store() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      </div>
     </div>
   );
 }
