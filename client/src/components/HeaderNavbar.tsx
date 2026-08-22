@@ -31,6 +31,14 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
   const { user, isAuthenticated } = useAuth();
   const { language, setLanguage } = useI18n();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [scrolled, setScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 12);
+    onScroll();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
 
   const baseBtn = "h-9 px-3 text-xs font-medium transition-all gap-1.5";
   const navClass = (active: boolean, highlight?: boolean) =>
@@ -46,7 +54,11 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
 
   return (
     <header
-      className="bg-ink text-white shadow-lg sticky top-0 z-50 border-b border-white/10"
+      className={`text-white sticky top-0 z-50 border-b border-white/10 transition-all duration-300 ${
+        scrolled
+          ? "bg-ink/80 backdrop-blur-xl shadow-2xl shadow-black/40"
+          : "bg-ink/95"
+      }`}
       dir="rtl"
     >
       <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
@@ -99,10 +111,15 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
                 size="sm"
                 onClick={() => setLocation(item.path)}
                 aria-current={isActive ? "page" : undefined}
-                className={`${baseBtn} ${navClass(isActive, item.highlight)}`}
+                className={`${baseBtn} ${navClass(isActive, item.highlight)} group relative`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 {item.label}
+                <span
+                  className={`absolute bottom-1 left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-brand transition-all duration-300 ${
+                    isActive ? "w-2/3" : "w-0 group-hover:w-2/3"
+                  }`}
+                />
               </Button>
             );
           })}

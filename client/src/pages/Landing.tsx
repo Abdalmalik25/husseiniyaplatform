@@ -80,6 +80,9 @@ import { trpc } from "@/lib/trpc";
 import { SiteFooter } from "@/components/SiteFooter";
 import { brand } from "@/lib/brand";
 import { HeroBackground } from "@/components/ModernBackground";
+import { HeroAurora } from "@/components/HeroAurora";
+import { HeroShowcase } from "@/components/HeroShowcase";
+import { AnimatedCounter } from "@/components/AnimatedCounter";
 
 export default function Landing() {
   const [, setLocation] = useLocation();
@@ -128,18 +131,35 @@ export default function Landing() {
       <HeaderNavbar />
 
       {/* 🚀 HERO SECTION: التسويق العالمي والتعريفي */}
-      <section className="relative text-white py-20 px-4 overflow-hidden border-b border-white/10">
+      <section className="relative text-white overflow-hidden border-b border-white/10">
         <HeroBackground />
+        <HeroAurora />
+        <div className="absolute inset-0 bg-gradient-to-b from-ink/95 via-ink/75 to-ink" />
 
-        <div className="max-w-6xl mx-auto text-center relative z-10 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+        <div className="relative z-10">
+          <div className="bg-gradient-to-l from-brand-deep to-ink border-b border-brand/30 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/85">
+            <span className="inline-flex items-center gap-1.5 bg-white/10 px-2.5 py-0.5 rounded-full font-bold">
+              <Sparkles className="w-3 h-3 text-brand-300" /> إصدار 2026
+            </span>
+            <span className="hidden sm:inline">منصة الأعمال الموحدة — منشورة عالمياً</span>
+            <span className="flex items-center gap-1 text-emerald-300"><Wifi className="w-3 h-3" /> مباشر</span>
+          </div>
+        </div>
+
+        <div className="max-w-6xl mx-auto text-center relative z-10 px-4 pt-14 pb-20 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
           <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur border border-brand/50 text-brand-300 px-4 py-1.5 rounded-full text-xs font-bold shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-700">
             <Sparkles className="w-4 h-4 text-brand" />
             {brand.tagline}
           </div>
 
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black font-display tracking-tight leading-tight text-balance animate-in fade-in slide-in-from-bottom-3 duration-700">
-            مؤسسة الحسينية لخدمات الأعمال
+          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black font-display tracking-tight leading-[1.1] text-balance animate-in fade-in slide-in-from-bottom-3 duration-700">
+            مؤسسة الحسينية
+            <span className="block text-brand">لخدمات الأعمال</span>
           </h1>
+
+          <p className="text-[11px] sm:text-xs font-mono tracking-[0.25em] text-brand-300/80 uppercase animate-in fade-in slide-in-from-bottom-3 duration-700">
+            ALHUSAINIA · THE UNIFIED BUSINESS OS
+          </p>
 
           <p className="text-lg sm:text-2xl font-bold text-brand-300 leading-snug animate-in fade-in slide-in-from-bottom-3 duration-700">
             هندسة، استشارات، وتقنية — منصة أعمال واحدة موثوقة
@@ -185,8 +205,13 @@ export default function Landing() {
             </span>
           </div>
 
+          {/* Interactive product showcase */}
+          <div className="pt-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
+            <HeroShowcase />
+          </div>
+
           {/* KPI Numbers Banner */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto pt-10 text-right">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto pt-12 text-right">
             {brand.stats.map((stat, i) => (
               <div
                 key={i}
@@ -194,7 +219,7 @@ export default function Landing() {
                 style={{ animationDelay: `${i * 100}ms` }}
               >
                 <div className="text-2xl font-black text-brand-300 font-mono">
-                  {stat.value}
+                  <AnimatedCounter value={stat.value} />
                 </div>
                 <div className="text-xs text-white/70 mt-1">{stat.label}</div>
               </div>
