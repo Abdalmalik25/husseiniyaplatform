@@ -1,5 +1,8 @@
 /**
- * api/agent.mjs — Strict rule agent endpoint.
+ * server/serverless/agent.ts — Strict rule agent endpoint.
+ * Bundled by scripts/build-server.cjs → api/agent.mjs (single-file serverless
+ * function). Source lives OUTSIDE api/ so Vercel does not try to compile it
+ * itself (that broke at runtime: ERR_MODULE_NOT_FOUND for ../server/*).
  *
  * This is a SEPARATE, independent API endpoint designed for the exclusive
  * use of the strict rule agent. It operates completely independently from
@@ -18,11 +21,10 @@
  * exclusively by the authorized rule agent process.
  */
 
-import "dotenv/config";
-import { getDb } from "../server/db";
-import { tenants, users, activityLogs, loginAttempts } from "../drizzle/schema";
+import { getDb } from "../db";
+import { tenants, users, activityLogs, loginAttempts } from "../../drizzle/schema";
 import { desc, count, lt } from "drizzle-orm";
-import { runProactiveAlerts, runScheduledJournalEntries } from "../server/automation";
+import { runProactiveAlerts, runScheduledJournalEntries } from "../automation";
 
 const AGENT_SECRET = process.env.AGENT_SECRET;
 if (!AGENT_SECRET) {
@@ -49,7 +51,7 @@ export default async function handler(req: any, res: any) {
 
     const { action } = req.query || {};
     const db = await getDb();
-    if (!db && action !== "status") {
+    if (!db) {
       res.statusCode = 500;
       res.setHeader("content-type", "application/json");
       res.end(JSON.stringify({ ok: false, error: "database unavailable" }));
@@ -168,6 +170,11 @@ export default async function handler(req: any, res: any) {
   } catch (e) {
     res.statusCode = 500;
     res.setHeader("content-type", "application/json");
-    res.end(JSON.stringify({ ok: false, error: String(e?.message || e) }));
+    res.end(
+      JSON.stringify({
+        ok: false,
+        error: e instanceof Error ? e.message : String(e),
+      })
+    );
   }
 }

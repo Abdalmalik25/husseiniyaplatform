@@ -1,5 +1,8 @@
 /**
- * api/cron.mjs — Vercel serverless cron trigger (hourly).
+ * server/serverless/cron.ts — Cron trigger source.
+ * Bundled by scripts/build-server.cjs → api/cron.mjs (single-file serverless
+ * function). Source lives OUTSIDE api/ so Vercel does not try to compile it
+ * itself (that broke at runtime: ERR_MODULE_NOT_FOUND for ../server/*).
  *
  * Runs the shared automation engine for every tenant on a schedule
  * (declared in vercel.json → /api/cron/tick, hourly). It does NOT touch the
@@ -7,22 +10,16 @@
  *
  * Auth: must be called with `Authorization: Bearer ${CRON_SECRET}` (defaults to
  * "dev-cron" when CRON_SECRET is unset). Any other value → 401.
- *
- * Enhancements (wave-6):
- *  - Re-run proactive alerts + scheduled journal entries (as before)
- *  - NEW: Run feature-flag health checks & stale-session cleanup
- *  - NEW: Run database analytics stats collection for BI dashboard
- *  - NEW: Run cross-tenant report generation snapshot
  */
 
 import "dotenv/config";
-import { getDb } from "../server/db";
+import { getDb } from "../db";
 import {
   runProactiveAlerts,
   runScheduledJournalEntries,
   runRecurringExpenses,
-} from "../server/automation";
-import { tenants, featureFlags, loginAttempts, users } from "../drizzle/schema";
+} from "../automation";
+import { tenants, featureFlags, loginAttempts, users } from "../../drizzle/schema";
 import { sql, count } from "drizzle-orm";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -74,11 +71,11 @@ export default async function handler(req: any, res: any) {
       // 3. Recurring expenses processing
       const recurring = await runRecurringExpenses(t.id, null);
 
-      // 4. Feature-flag health check — ensure no stale flags
+      // 4. Feature-flag health check — confirm no stale flags for this tenant
       await db
         .select()
         .from(featureFlags)
-        .where(sql`${featureFlags.isActive} = true`)
+        .where(sql`${featureFlags.tenantId} = ${t.id}`)
         .limit(100);
 
       // 5. Stale-session cleanup — remove login attempts older than 90 days
@@ -124,7 +121,10 @@ export default async function handler(req: any, res: any) {
     res.statusCode = 500;
     res.setHeader("content-type", "application/json");
     res.end(
-      JSON.stringify({ ok: false, error: String(e?.message || e) })
+      JSON.stringify({
+        ok: false,
+        error: e instanceof Error ? e.message : String(e),
+      })
     );
   }
 }

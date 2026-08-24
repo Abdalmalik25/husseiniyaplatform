@@ -10,34 +10,66 @@ const fs = require("fs");
 
 const projectRoot = path.resolve(__dirname, "..");
 const apiDir = path.join(projectRoot, "api");
+const serverlessDir = path.join(projectRoot, "server", "serverless");
 
 // Ensure the output directory exists
 fs.mkdirSync(apiDir, { recursive: true });
 
-build({
-  entryPoints: [path.join(projectRoot, "server", "prod-entry.ts")],
-  platform: "node",
-  packages: "external",
-  bundle: true,
-  format: "esm",
-  outfile: path.join(apiDir, "index.mjs"),
-  alias: {
-    "@shared": path.join(projectRoot, "shared"),
-  },
-  // Single source of truth for the app version = package.json
-  define: {
-    __APP_VERSION__: JSON.stringify(
-      require(path.join(projectRoot, "package.json")).version
+function baseConfig(entryPoint, outfile) {
+  return {
+    entryPoints: [entryPoint],
+    platform: "node",
+    packages: "external",
+    bundle: true,
+    format: "esm",
+    outfile,
+    alias: {
+      "@shared": path.join(projectRoot, "shared"),
+    },
+    define: {
+      __APP_VERSION__: JSON.stringify(
+        require(path.join(projectRoot, "package.json")).version
+      ),
+    },
+    logLevel: "info",
+    sourcemap: false,
+  };
+}
+
+// Map of label → esbuild build options (label kept OUT of build() call).
+const jobs = [
+  // Main API — single source of truth for the app version = package.json
+  [
+    "api/index.mjs",
+    baseConfig(
+      path.join(projectRoot, "server", "prod-entry.ts"),
+      path.join(apiDir, "index.mjs")
     ),
-  },
-  logLevel: "info",
-  sourcemap: false,
-})
+  ],
+  // Cron serverless trigger (self-contained bundle)
+  [
+    "api/cron.mjs",
+    baseConfig(
+      path.join(serverlessDir, "cron.ts"),
+      path.join(apiDir, "cron.mjs")
+    ),
+  ],
+  // Strict-rule agent endpoint (self-contained bundle)
+  [
+    "api/agent.mjs",
+    baseConfig(
+      path.join(serverlessDir, "agent.ts"),
+      path.join(apiDir, "agent.mjs")
+    ),
+  ],
+];
+
+Promise.all(jobs.map(([, opts]) => build(opts)))
   .then(() => {
-    console.log("✓ Server bundle built: api/index.mjs");
+    jobs.forEach(([label]) => console.log(`✓ Serverless bundle built: ${label}`));
     process.exit(0);
   })
   .catch((err) => {
-    console.error("✗ Server bundle failed:", err);
+    console.error("✗ Serverless bundling failed:", err);
     process.exit(1);
   });
