@@ -16,20 +16,21 @@
  */
 
 import "dotenv/config";
-import { getDb } from "../server/db.ts";
+import { getDb } from "../server/db";
 import {
   runProactiveAlerts,
   runScheduledJournalEntries,
   runRecurringExpenses,
-} from "../server/automation.ts";
-import { tenants } from "../drizzle/schema.ts";
-import { featureFlags } from "../drizzle/schema.ts";
-import { activityLogs } from "../drizzle/schema.ts";
-import { loginAttempts } from "../drizzle/schema.ts";
-import { users } from "../drizzle/schema.ts";
+} from "../server/automation";
+import { tenants } from "../drizzle/schema";
+import { featureFlags } from "../drizzle/schema";
+import { activityLogs } from "../drizzle/schema";
+import { loginAttempts } from "../drizzle/schema";
+import { users } from "../drizzle/schema";
 import { sql, count } from "drizzle-orm";
 
-export default async function handler(req, res) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default async function handler(req: any, res: any) {
   try {
     // SECURITY: fail closed in production — the cron surface must never be
     // callable with a well-known default secret. Vercel Cron automatically

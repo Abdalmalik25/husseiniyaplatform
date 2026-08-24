@@ -19,17 +19,18 @@
  */
 
 import "dotenv/config";
-import { getDb } from "../server/db.ts";
-import { tenants, users, activityLogs, loginAttempts } from "../drizzle/schema.ts";
+import { getDb } from "../server/db";
+import { tenants, users, activityLogs, loginAttempts } from "../drizzle/schema";
 import { desc, count, lt } from "drizzle-orm";
-import { runProactiveAlerts, runScheduledJournalEntries } from "../server/automation.ts";
+import { runProactiveAlerts, runScheduledJournalEntries } from "../server/automation";
 
 const AGENT_SECRET = process.env.AGENT_SECRET;
 if (!AGENT_SECRET) {
   console.error("[agent] AGENT_SECRET is not defined in .env — endpoint disabled");
 }
 
-export default async function handler(req, res) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export default async function handler(req: any, res: any) {
   try {
     // --- Authentication ---
     if (!AGENT_SECRET) {
