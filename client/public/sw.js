@@ -1,10 +1,11 @@
-// ALHUSAINIA service worker (v2) — installable PWA + robust offline shell.
+// ALHUSAINIA service worker (v3) — installable PWA + robust offline shell.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v2";
+const CACHE = "alhusainia-v3";
 const SHELL = [
   "/",
   "/index.html",
+  "/offline.html",
   "/icon-192.png",
   "/icon-512.png",
   "/manifest.webmanifest",

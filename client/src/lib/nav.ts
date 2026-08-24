@@ -93,6 +93,7 @@ export const APP_NAV: NavItem[] = [
     icon: BarChart3,
     highlight: true,
   },
+  { path: "/billing", label: "الاشتراك والفوترة", icon: CreditCard, highlight: true },
   { path: "/settings", label: "الإعدادات", icon: Settings },
 ];
 

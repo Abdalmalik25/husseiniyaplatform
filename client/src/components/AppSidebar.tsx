@@ -14,6 +14,7 @@ import {
 import { APP_NAV, UTILITY_LINKS } from "@/lib/nav";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { BrandMark } from "@/components/BrandLogo";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { trpc } from "@/lib/trpc";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -474,18 +475,21 @@ export function AppSidebar() {
           })}
         </nav>
 
-        {/* Footer: collapse toggle (desktop) + back to site + logout */}
+        {/* Footer: collapse toggle (desktop) + theme + back to site + logout */}
         <div className="border-t border-white/10 p-2.5 space-y-1">
-          {compact && !isDrawer && (
-            <button
-              onClick={() => setCollapsed((c) => !c)}
-              className="w-full flex items-center justify-center px-3 py-2 rounded-xl text-white/50 hover:bg-white/5 hover:text-white transition-colors"
-              aria-label="توسيع القائمة"
-              title="توسيع القائمة"
-            >
-              <ChevronsLeft className="w-4 h-4" />
-            </button>
-          )}
+          <div className={`flex items-center gap-1 ${compact ? "" : "justify-between"}`}>
+            <ThemeSwitcher compact={compact} />
+            {compact && !isDrawer && (
+              <button
+                onClick={() => setCollapsed((c) => !c)}
+                className="w-full flex items-center justify-center px-3 py-2 rounded-xl text-white/50 hover:bg-white/5 hover:text-white transition-colors"
+                aria-label="توسيع القائمة"
+                title="توسيع القائمة"
+              >
+                <ChevronsLeft className="w-4 h-4" />
+              </button>
+            )}
+          </div>
           <button
             onClick={() => setLocation("/")}
             title={compact ? "الموقع الإلكتروني والخدمات" : undefined}

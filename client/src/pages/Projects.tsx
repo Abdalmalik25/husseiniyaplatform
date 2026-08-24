@@ -17,6 +17,18 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -111,6 +123,7 @@ export default function Projects() {
   });
   const projects = (projectsQ.data ?? []) as any[];
   const tasks = (tasksQ.data ?? []) as any[];
+  const isPending = projectsQ.isPending || tasksQ.isPending;
 
   const total = projects.length;
   const active = projects.filter((p) => p.status === "active").length;
@@ -118,6 +131,13 @@ export default function Projects() {
   const totalBudget = projects.reduce((s, p) => s + parseFloat(p.budget || "0"), 0);
   const tasksDone = tasks.filter((t) => t.status === "done").length;
   const progressPct = tasks.length ? Math.round((tasksDone / tasks.length) * 100) : 0;
+
+  /** Progress for a single project, derived from its tasks (0–100). */
+  const projectProgress = (projectId: number) => {
+    const own = tasks.filter((t) => t.projectId === projectId);
+    if (!own.length) return 0;
+    return Math.round((own.filter((t) => t.status === "done").length / own.length) * 100);
+  };
 
   return (
     <div className="min-h-screen bg-background text-foreground font-display flex">
@@ -164,7 +184,18 @@ export default function Projects() {
 
           {/* ───────── Overview ───────── */}
           <TabsContent value="overview" className="space-y-5 mt-4">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {isPending ? (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" aria-hidden>
+                {[0, 1, 2, 3].map((i) => (
+                  <div key={i} className="surface rounded-2xl p-4 space-y-2.5">
+                    <Skeleton className="h-3 w-24 rounded-full" />
+                    <Skeleton className="h-8 w-16 rounded-lg" />
+                    <Skeleton className="h-3 w-20 rounded-full" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
                 label="إجمالي المشاريع"
                 value={total}
@@ -193,7 +224,8 @@ export default function Projects() {
                 icon={Clock}
                 hint={`${tasksDone} من ${tasks.length} مهمة`}
               />
-            </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card className="surface rounded-2xl">
@@ -278,7 +310,7 @@ export default function Projects() {
 
           {/* ───────── Projects ───────── */}
           <TabsContent value="projects" className="space-y-4 mt-4">
-            <ProjectsPanel projects={projects} utils={utils} />
+            <ProjectsPanel projects={projects} tasks={tasks} utils={utils} />
           </TabsContent>
 
           {/* ───────── Tasks ───────── */}
@@ -357,7 +389,15 @@ export default function Projects() {
 }
 
 /* ───────────────────────── Projects ───────────────────────── */
-function ProjectsPanel({ projects, utils }: { projects: any[]; utils: any }) {
+function ProjectsPanel({
+  projects,
+  tasks,
+  utils,
+}: {
+  projects: any[];
+  tasks?: any[];
+  utils: any;
+}) {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -377,6 +417,16 @@ function ProjectsPanel({ projects, utils }: { projects: any[]; utils: any }) {
     if (search && !`${p.name} ${p.code}`.includes(search)) return false;
     return true;
   });
+
+  /** Progress per project (0–100) computed from its tasks. */
+  const progressOf = (projectId: number) => {
+    if (!tasks) return 0;
+    const own = tasks.filter((t) => t.projectId === Number(projectId));
+    if (!own.length) return 0;
+    return Math.round(
+      (own.filter((t) => t.status === "done").length / own.length) * 100
+    );
+  };
 
   const createM = trpc.erp.createProject.useMutation({
     onSuccess: () => {
@@ -471,6 +521,7 @@ function ProjectsPanel({ projects, utils }: { projects: any[]; utils: any }) {
                 <TableHead className="text-[11px]">البداية</TableHead>
                 <TableHead className="text-[11px]">النهاية</TableHead>
                 <TableHead className="text-[11px]">الميزانية</TableHead>
+                <TableHead className="text-[11px]">الإنجاز</TableHead>
                 <TableHead className="text-[11px] text-left">إجراء</TableHead>
               </TableRow>
             </TableHeader>
@@ -489,29 +540,63 @@ function ProjectsPanel({ projects, utils }: { projects: any[]; utils: any }) {
                   <TableCell className="text-[11px]">{fmtDate(p.startDate)}</TableCell>
                   <TableCell className="text-[11px]">{fmtDate(p.endDate)}</TableCell>
                   <TableCell className="text-[11px] dir-ltr">{fmt(p.budget)}</TableCell>
+                  <TableCell className="text-[11px]">
+                    <div className="flex items-center gap-2" dir="ltr">
+                      <div className="h-2 w-16 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full ${
+                            progressOf(p.id) >= 75
+                              ? "bg-emerald-500"
+                              : progressOf(p.id) >= 40
+                                ? "bg-sky-500"
+                                : "bg-amber-500"
+                          }`}
+                          style={{ width: `${progressOf(p.id)}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-muted-foreground">
+                        {progressOf(p.id)}%
+                      </span>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-left">
                     <div className="flex gap-1">
                       <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => openEdit(p)}>
                         <Pencil className="w-3 h-3" />
                       </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-[10px] text-rose-600"
-                        onClick={() => {
-                          if (confirm(`حذف المشروع "${p.name}" ومهامه؟`))
-                            deleteM.mutate({ id: p.id });
-                        }}
-                      >
-                        <Trash2 className="w-3 h-3" />
-                      </Button>
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button size="sm" variant="outline" className="h-7 text-[10px] text-rose-600">
+                            <Trash2 className="w-3 h-3" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent className="bg-white max-w-md">
+                          <AlertDialogHeader>
+                            <AlertDialogTitle className="text-sm text-ink">حذف المشروع نهائياً؟</AlertDialogTitle>
+                            <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                              سيتم حذف المشروع <b>«{p.name}»</b> مع جميع مهامه وأعضائه المرتبطة.
+                              هذا الإجراء لا يمكن التراجع عنه.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel className="text-xs h-9">إلغاء</AlertDialogCancel>
+                            <AlertDialogAction
+                              disabled={deleteM.isPending}
+                              onClick={() => deleteM.mutate({ id: p.id })}
+                              className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 font-bold"
+                            >
+                              {deleteM.isPending ? "جاري الحذف..." : "حذف نهائي"}
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </div>
                   </TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-xs text-muted-foreground py-6">
+                  <TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-6">
                     لا توجد مشاريع مطابقة.
                   </TableCell>
                 </TableRow>
@@ -573,7 +658,10 @@ function ProjectsPanel({ projects, utils }: { projects: any[]; utils: any }) {
                 <Label className="text-[10px]">الميزانية</Label>
                 <Input
                   value={form.budget}
-                  onChange={(e) => setForm({ ...form, budget: e.target.value })}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^\d.]/g, "");
+                    setForm({ ...form, budget: v });
+                  }}
                   className="h-9 text-xs dir-ltr"
                   placeholder="0.00"
                 />
@@ -623,7 +711,8 @@ function ProjectsPanel({ projects, utils }: { projects: any[]; utils: any }) {
                     name: form.name,
                     description: form.description || null,
                     status: form.status,
-                    budget: form.budget,
+                    budget: String(parseFloat(form.budget) || 0),
+                    startDate: form.startDate || null,
                     endDate: form.endDate || null,
                   });
                 } else {
@@ -634,7 +723,7 @@ function ProjectsPanel({ projects, utils }: { projects: any[]; utils: any }) {
                     status: form.status,
                     startDate: form.startDate || undefined,
                     endDate: form.endDate || undefined,
-                    budget: form.budget,
+                    budget: String(parseFloat(form.budget) || 0),
                   });
                 }
               }}
@@ -660,6 +749,10 @@ function TasksPanel({
 }) {
   const [projectId, setProjectId] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [priorityFilter, setPriorityFilter] = useState("all");
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -670,9 +763,37 @@ function TasksPanel({
   });
 
   const effectiveProject = projectId ? Number(projectId) : projects[0]?.id;
-  const projectTasks = effectiveProject
+  const baseTasks = effectiveProject
     ? tasks.filter((t) => t.projectId === effectiveProject)
     : [];
+  const projectTasks = baseTasks.filter((t) => {
+    if (statusFilter !== "all" && t.status !== statusFilter) return false;
+    if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
+    if (search && !`${t.title} ${t.description ?? ""}`.includes(search)) return false;
+    return true;
+  });
+
+  const resetTaskForm = () =>
+    setForm({ title: "", description: "", status: "todo", priority: "medium", dueDate: "", estimatedHours: "" });
+
+  const openCreateTask = () => {
+    setEditingId(null);
+    resetTaskForm();
+    setDialogOpen(true);
+  };
+
+  const openEditTask = (t: any) => {
+    setEditingId(Number(t.id));
+    setForm({
+      title: t.title,
+      description: t.description || "",
+      status: t.status || "todo",
+      priority: t.priority || "medium",
+      dueDate: toDateInput(t.dueDate),
+      estimatedHours: t.estimatedHours || "",
+    });
+    setDialogOpen(true);
+  };
 
   const createM = trpc.erp.createTask.useMutation({
     onSuccess: () => {
@@ -707,7 +828,7 @@ function TasksPanel({
       <div className="flex flex-col sm:flex-row gap-2 items-center justify-between">
         <Select
           value={String(effectiveProject)}
-          onValueChange={(v) => setProjectId(v)}
+          onValueChange={(v) => { setProjectId(v); setSearch(""); setStatusFilter("all"); setPriorityFilter("all"); }}
         >
           <SelectTrigger className="h-9 text-xs w-full sm:w-72">
             <SelectValue placeholder="اختر مشروعاً" />
@@ -721,14 +842,51 @@ function TasksPanel({
           </SelectContent>
         </Select>
         <Button
-          onClick={() => {
-            setForm({ title: "", description: "", status: "todo", priority: "medium", dueDate: "", estimatedHours: "" });
-            setDialogOpen(true);
-          }}
+          onClick={openCreateTask}
           className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
         >
           <Plus className="w-4 h-4" /> مهمة جديدة
         </Button>
+      </div>
+
+      {/* Filter row — smart task discovery */}
+      <div className="flex flex-col sm:flex-row gap-2 items-center justify-between">
+        <div className="flex gap-2 w-full sm:w-auto">
+          <div className="relative flex-1 sm:max-w-[10rem]">
+            <Search className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="بحث في المهام..."
+              className="h-8 text-xs pr-8"
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="h-8 text-xs w-32">
+              <SelectValue placeholder="الحالة" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الحالات</SelectItem>
+              {Object.entries(TASK_STATUS_LABEL).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+            <SelectTrigger className="h-8 text-xs w-32">
+              <SelectValue placeholder="الأولوية" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">كل الأولويات</SelectItem>
+              {Object.entries(PRIORITY_LABEL).map(([k, v]) => (
+                <SelectItem key={k} value={k}>{v}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <span className="text-[11px] text-muted-foreground">
+          {projectTasks.length} مهمة من {baseTasks.length}
+        </span>
       </div>
 
       <div className="rounded-xl border border-border overflow-x-auto bg-card">
@@ -779,14 +937,42 @@ function TasksPanel({
                 </TableCell>
                 <TableCell className="text-[11px]">{fmtDate(t.dueDate)}</TableCell>
                 <TableCell className="text-left">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 text-[10px] text-rose-600"
-                    onClick={() => deleteM.mutate({ id: t.id })}
-                  >
-                    <Trash2 className="w-3 h-3" />
-                  </Button>
+                  <div className="flex gap-1">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 text-[10px]"
+                      onClick={() => openEditTask(t)}
+                      aria-label="تعديل المهمة"
+                    >
+                      <Pencil className="w-3 h-3" />
+                    </Button>
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button size="sm" variant="outline" className="h-7 text-[10px] text-rose-600" aria-label="حذف المهمة">
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-white max-w-md">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-sm text-ink">حذف المهمة؟</AlertDialogTitle>
+                          <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
+                            سيتم حذف مهمة <b>«{t.title}»</b> نهائياً. لا يمكن التراجع عن هذا الإجراء.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="text-xs h-9">إلغاء</AlertDialogCancel>
+                          <AlertDialogAction
+                            disabled={deleteM.isPending}
+                            onClick={() => deleteM.mutate({ id: t.id })}
+                            className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 font-bold"
+                          >
+                            {deleteM.isPending ? "جاري الحذف..." : "حذف نهائي"}
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  </div>
                 </TableCell>
               </TableRow>
             ))}
@@ -801,10 +987,12 @@ function TasksPanel({
         </Table>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingId(null); }}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-ink">مهمة جديدة</DialogTitle>
+            <DialogTitle className="text-sm text-ink">
+              {editingId !== null ? "تعديل المهمة" : "مهمة جديدة"}
+            </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
               للمشروع: {projects.find((p) => p.id === effectiveProject)?.name}
             </DialogDescription>
@@ -865,7 +1053,10 @@ function TasksPanel({
                 <Label className="text-[10px]">الساعات المقدّرة</Label>
                 <Input
                   value={form.estimatedHours}
-                  onChange={(e) => setForm({ ...form, estimatedHours: e.target.value })}
+                  onChange={(e) => {
+                    const v = e.target.value.replace(/[^\d.]/g, "");
+                    setForm({ ...form, estimatedHours: v });
+                  }}
                   className="h-9 text-xs dir-ltr"
                   placeholder="0"
                 />
@@ -881,25 +1072,41 @@ function TasksPanel({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" className="text-xs h-9" onClick={() => setDialogOpen(false)}>
+            <Button variant="outline" className="text-xs h-9" onClick={() => { setDialogOpen(false); setEditingId(null); }}>
               إلغاء
             </Button>
             <Button
-              disabled={!form.title || !effectiveProject || createM.isPending}
+              disabled={!form.title || !effectiveProject || createM.isPending || updateM.isPending}
               className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
-              onClick={() =>
-                createM.mutate({
-                  projectId: effectiveProject!,
-                  title: form.title,
-                  description: form.description || undefined,
-                  status: form.status,
-                  priority: form.priority,
-                  dueDate: form.dueDate || undefined,
-                  estimatedHours: form.estimatedHours || undefined,
-                })
-              }
+              onClick={() => {
+                if (editingId !== null) {
+                  updateM.mutate({
+                    id: editingId,
+                    title: form.title,
+                    description: form.description || null,
+                    status: form.status,
+                    priority: form.priority,
+                    dueDate: form.dueDate || null,
+                    estimatedHours: form.estimatedHours || null,
+                  });
+                } else {
+                  createM.mutate({
+                    projectId: effectiveProject!,
+                    title: form.title,
+                    description: form.description || undefined,
+                    status: form.status,
+                    priority: form.priority,
+                    dueDate: form.dueDate || undefined,
+                    estimatedHours: form.estimatedHours || undefined,
+                  });
+                }
+              }}
             >
-              {createM.isPending ? "جاري الحفظ…" : "إضافة المهمة"}
+              {createM.isPending || updateM.isPending
+                ? "جاري الحفظ…"
+                : editingId !== null
+                  ? "حفظ التعديلات"
+                  : "إضافة المهمة"}
             </Button>
           </DialogFooter>
         </DialogContent>

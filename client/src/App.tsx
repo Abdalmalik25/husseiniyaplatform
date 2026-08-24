@@ -50,6 +50,7 @@ const Audit = lazy(() => import("@/pages/Audit"));
 const Requisitions = lazy(() => import("@/pages/Requisitions"));
 const Operations = lazy(() => import("@/pages/Operations"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
+const Billing = lazy(() => import("@/pages/Billing"));
 
 function PageSplash() {
   return (
@@ -239,6 +240,11 @@ function Router() {
             <Analytics />
           </RequireAuth>
         </Route>
+        <Route path={"/billing"}>
+          <RequireAuth>
+            <Billing />
+          </RequireAuth>
+        </Route>
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
       </Switch>
@@ -295,7 +301,7 @@ function App() {
   return (
     <I18nProvider>
       <ErrorBoundary>
-        <ThemeProvider defaultTheme="light">
+        <ThemeProvider defaultTheme="light" switchable>
           <OfflineProvider>
             <TooltipProvider>
               <Toaster />

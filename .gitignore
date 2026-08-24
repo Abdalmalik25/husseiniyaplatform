@@ -21,10 +21,14 @@ pnpm-debug.log*
 ts-err6.txt
 *.tmp
 lint-*.txt
+esbuild-output.txt
 test-output.txt
 lint-output.txt
 build-output.txt
 temp/
+
+# Wrong lockfile for a pnpm workspace (pnpm-lock.yaml is canonical)
+package-lock.json
 
 # Vercel project link (machine-specific)
 .vercel/

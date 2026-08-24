@@ -6447,12 +6447,15 @@ var erpRouter = router({
       description: z3.string().nullish(),
       status: z3.string().optional(),
       budget: z3.string().optional(),
+      startDate: z3.string().nullish(),
       endDate: z3.string().nullish()
     })
   ).mutation(async ({ ctx, input }) => {
     const db = await dbOrThrow();
     const { id, ...rest } = input;
     const set = { ...rest };
+    if (rest.startDate !== void 0)
+      set.startDate = rest.startDate ? new Date(rest.startDate) : null;
     if (rest.endDate !== void 0)
       set.endDate = rest.endDate ? new Date(rest.endDate) : null;
     await db.update(projects).set(set).where(and4(eq6(projects.id, id), eq6(projects.tenantId, ctx.tenantId)));
@@ -6460,8 +6463,20 @@ var erpRouter = router({
   }),
   deleteProject: tenantProcedure.input(z3.object({ id: z3.number() })).mutation(async ({ ctx, input }) => {
     const db = await dbOrThrow();
-    await db.delete(projectTasks).where(eq6(projectTasks.projectId, input.id));
-    await db.delete(projectMembers).where(eq6(projectMembers.projectId, input.id));
+    const owned = await db.select({ id: projects.id }).from(projects).where(and4(eq6(projects.id, input.id), eq6(projects.tenantId, ctx.tenantId))).limit(1);
+    if (!owned[0]) return { success: false };
+    await db.delete(projectTasks).where(
+      and4(
+        eq6(projectTasks.projectId, input.id),
+        eq6(projectTasks.tenantId, ctx.tenantId)
+      )
+    );
+    await db.delete(projectMembers).where(
+      and4(
+        eq6(projectMembers.projectId, input.id),
+        eq6(projectMembers.tenantId, ctx.tenantId)
+      )
+    );
     await db.delete(projects).where(
       and4(eq6(projects.id, input.id), eq6(projects.tenantId, ctx.tenantId))
     );
@@ -6517,15 +6532,22 @@ var erpRouter = router({
   updateTask: tenantProcedure.input(
     z3.object({
       id: z3.number(),
+      title: z3.string().min(1).optional(),
+      description: z3.string().nullish(),
       status: z3.string().optional(),
       priority: z3.string().optional(),
       assigneeId: z3.number().nullish(),
+      dueDate: z3.string().nullish(),
+      estimatedHours: z3.string().nullish(),
       actualHours: z3.string().optional()
     })
   ).mutation(async ({ ctx, input }) => {
     const db = await dbOrThrow();
     const { id, ...rest } = input;
-    await db.update(projectTasks).set(rest).where(
+    const set = { ...rest };
+    if (rest.dueDate !== void 0)
+      set.dueDate = rest.dueDate ? new Date(rest.dueDate) : null;
+    await db.update(projectTasks).set(set).where(
       and4(eq6(projectTasks.id, id), eq6(projectTasks.tenantId, ctx.tenantId))
     );
     return { success: true };

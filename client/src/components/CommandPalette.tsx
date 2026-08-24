@@ -42,6 +42,7 @@ const NAV: NavItem[] = [
   { label: "التقارير المالية", path: "/reports", icon: BarChart3 },
   { label: "مركز التكامل", path: "/integrate", icon: Globe2 },
   { label: "تحميل التطبيق", path: "/download", icon: Zap },
+  { label: "الاشتراك والفوترة", path: "/billing", icon: CreditCard },
   { label: "إعدادات المؤسسة", path: "/settings", icon: Settings },
 ];
 

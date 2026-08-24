@@ -610,6 +610,7 @@ export const erpRouter = router({
         description: z.string().nullish(),
         status: z.string().optional(),
         budget: z.string().optional(),
+        startDate: z.string().nullish(),
         endDate: z.string().nullish(),
       })
     )
@@ -617,6 +618,8 @@ export const erpRouter = router({
       const db = await dbOrThrow();
       const { id, ...rest } = input;
       const set: any = { ...rest };
+      if (rest.startDate !== undefined)
+        set.startDate = rest.startDate ? new Date(rest.startDate) : null;
       if (rest.endDate !== undefined)
         set.endDate = rest.endDate ? new Date(rest.endDate) : null;
       await db
@@ -630,10 +633,32 @@ export const erpRouter = router({
     .input(z.object({ id: z.number() }))
     .mutation(async ({ ctx, input }) => {
       const db = await dbOrThrow();
-      await db.delete(projectTasks).where(eq(projectTasks.projectId, input.id));
+      // SECURITY: every delete MUST be scoped to the caller's tenant.
+      // Verifying ownership first prevents a cross-tenant id from wiping
+      // another institution's tasks/members even though the final projects
+      // delete itself would be a no-op for them.
+      const owned = await db
+        .select({ id: projects.id })
+        .from(projects)
+        .where(and(eq(projects.id, input.id), eq(projects.tenantId, ctx.tenantId!)))
+        .limit(1);
+      if (!owned[0]) return { success: false };
+      await db
+        .delete(projectTasks)
+        .where(
+          and(
+            eq(projectTasks.projectId, input.id),
+            eq(projectTasks.tenantId, ctx.tenantId!)
+          )
+        );
       await db
         .delete(projectMembers)
-        .where(eq(projectMembers.projectId, input.id));
+        .where(
+          and(
+            eq(projectMembers.projectId, input.id),
+            eq(projectMembers.tenantId, ctx.tenantId!)
+          )
+        );
       await db
         .delete(projects)
         .where(
@@ -715,18 +740,25 @@ export const erpRouter = router({
     .input(
       z.object({
         id: z.number(),
+        title: z.string().min(1).optional(),
+        description: z.string().nullish(),
         status: z.string().optional(),
         priority: z.string().optional(),
         assigneeId: z.number().nullish(),
+        dueDate: z.string().nullish(),
+        estimatedHours: z.string().nullish(),
         actualHours: z.string().optional(),
       })
     )
     .mutation(async ({ ctx, input }) => {
       const db = await dbOrThrow();
       const { id, ...rest } = input;
+      const set: any = { ...rest };
+      if (rest.dueDate !== undefined)
+        set.dueDate = rest.dueDate ? new Date(rest.dueDate) : null;
       await db
         .update(projectTasks)
-        .set(rest as any)
+        .set(set)
         .where(
           and(eq(projectTasks.id, id), eq(projectTasks.tenantId, ctx.tenantId!))
         );

@@ -12,15 +12,13 @@ import {
   Menu,
   X,
   Globe,
-  Sun,
-  Moon,
 } from "lucide-react";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
-import { useTheme } from "@/contexts/ThemeContext";
 import { BrandLogo } from "@/components/BrandLogo";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { MARKETING_NAV } from "@/lib/nav";
 import { Zap, ArrowLeft, MessageSquare } from "lucide-react";
 import { uamexDemoLink } from "@/lib/brand";
@@ -35,7 +33,6 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
   const { isOnline, isSyncing } = useOffline();
   const { user, isAuthenticated } = useAuth();
   const { language, setLanguage } = useI18n();
-  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
 
@@ -200,21 +197,8 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
             <span>العربية / EN</span>
           </Button>
 
-          {/* Theme Toggle (Light / Dark) — world-class a11y + persistence */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={toggleTheme}
-            className="text-white/70 hover:text-white hover:bg-white/5 h-8 w-8 p-0 rounded-lg flex items-center justify-center"
-            aria-label={theme === "dark" ? "تبديل للوضع الفاتح" : "تبديل للوضع الداكن"}
-            title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
-          >
-            {theme === "dark" ? (
-              <Sun className="w-3.5 h-3.5 text-brand-300" />
-            ) : (
-              <Moon className="w-3.5 h-3.5 text-brand-300" />
-            )}
-          </Button>
+          {/* Theme Picker — professional multi-theme switcher */}
+          <ThemeSwitcher />
 
           {/* Super-admin tenant switcher (owner only) */}
           <TenantSwitcher />
