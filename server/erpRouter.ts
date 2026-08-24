@@ -24,8 +24,12 @@ import {
   salesInvoices,
   purchaseInvoices,
   notifications,
+  orders,
+  customers,
+  users,
+  recurringExpenses,
 } from "../drizzle/schema";
-import { eq, desc, asc, and, sql, ilike, gte, lte, isNull, ne } from "drizzle-orm";
+import { eq, desc, asc, and, sql, ilike, gte, lte, isNull, ne, isNotNull } from "drizzle-orm";
 import { createNotification } from "./notifications";
 
 async function dbOrThrow() {
@@ -1408,6 +1412,526 @@ export const erpRouter = router({
       openTickets: Number(openTickets ?? 0),
       pendingRequisitions: Number(pendingReqs ?? 0),
       inspections: Number(inspections ?? 0),
+    };
+  }),
+
+  // ═══════════════════════════════════════════════════════════════════
+  //  REPORTS — تحليلات مؤسسية (HR / المشاريع / خدمة العملاء / التوزيع)
+  //  طبقة التقارير المعيارية: تفصيلي + إجمالي + تقييمي لكل مجال.
+  // ═══════════════════════════════════════════════════════════════════
+
+  // ── تقرير الرواتب: دورات مع إجمالياتها + تفصيل الدورة المحددة/الأحدث ──
+  hrPayrollReport: tenantProcedure
+    .input(z.object({ periodName: z.string().optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { runs: [], latestPeriod: null, items: [] };
+      const db = await dbOrThrow();
+      const tid = ctx.tenantId;
+      const runs = await db
+        .select({
+          id: payrollRuns.id,
+          periodName: payrollRuns.periodName,
+          fromDate: payrollRuns.fromDate,
+          toDate: payrollRuns.toDate,
+          totalNet: payrollRuns.totalNet,
+          status: payrollRuns.status,
+          employeesCount: sql<number>`(select count(*) from payroll_items pi where pi."payrollRunId" = ${payrollRuns.id})`,
+          totalBasic: sql<string>`(select coalesce(sum(pi."basicSalary"),0) from payroll_items pi where pi."payrollRunId" = ${payrollRuns.id})`,
+          totalDeductions: sql<string>`(select coalesce(sum(pi."deductions"),0) from payroll_items pi where pi."payrollRunId" = ${payrollRuns.id})`,
+        })
+        .from(payrollRuns)
+        .where(eq(payrollRuns.tenantId, tid))
+        .orderBy(desc(payrollRuns.toDate));
+
+      const targetPeriod =
+        input?.periodName ??
+        (runs[0] as unknown as { periodName?: string } | undefined)?.periodName ??
+        null;
+      let items: Array<{
+        employeeId: number;
+        employeeName: string;
+        employeeCode: string;
+        department: string | null;
+        basicSalary: string;
+        deductions: string;
+        net: string;
+      }> = [];
+      if (targetPeriod) {
+        const [run] = await db
+          .select({ id: payrollRuns.id })
+          .from(payrollRuns)
+          .where(
+            and(
+              eq(payrollRuns.tenantId, tid),
+              eq(payrollRuns.periodName, targetPeriod)
+            )
+          )
+          .limit(1);
+        if (run) {
+          items = await db
+            .select({
+              employeeId: payrollItems.employeeId,
+              employeeName: employees.fullName,
+              employeeCode: employees.code,
+              department: departments.name,
+              basicSalary: payrollItems.basicSalary,
+              deductions: payrollItems.deductions,
+              net: payrollItems.net,
+            })
+            .from(payrollItems)
+            .innerJoin(employees, eq(payrollItems.employeeId, employees.id))
+            .leftJoin(departments, eq(employees.departmentId, departments.id))
+            .where(
+              and(
+                eq(payrollItems.tenantId, tid),
+                eq(payrollItems.payrollRunId, run.id)
+              )
+            )
+            .orderBy(asc(payrollItems.employeeId));
+        }
+      }
+      return { runs, latestPeriod: targetPeriod, items };
+    }),
+
+  // ── ملخص الحضور والانصراف خلال فترة (افتراضياً آخر 30 يوماً) ──
+  hrAttendanceSummary: tenantProcedure
+    .input(
+      z
+        .object({ from: z.string().optional(), to: z.string().optional() })
+        .optional()
+    )
+    .query(async ({ input, ctx }) => {
+      if (!ctx.tenantId)
+        return {
+          perEmployee: [],
+          totals: { present: 0, absent: 0, late: 0, leave: 0, attendanceRate: 0 },
+        };
+      const db = await dbOrThrow();
+      const tid = ctx.tenantId;
+      const to = input?.to ? new Date(input.to) : new Date();
+      const from = input?.from
+        ? new Date(input.from)
+        : new Date(to.getTime() - 30 * 86_400_000);
+      const rows = await db
+        .select({
+          employeeId: attendance.employeeId,
+          employeeName: employees.fullName,
+          code: employees.code,
+          status: attendance.status,
+          c: sql<number>`count(*)`,
+        })
+        .from(attendance)
+        .innerJoin(employees, eq(attendance.employeeId, employees.id))
+        .where(
+          and(
+            eq(attendance.tenantId, tid),
+            gte(attendance.date, from),
+            lte(attendance.date, to)
+          )
+        )
+        .groupBy(
+          attendance.employeeId,
+          employees.fullName,
+          employees.code,
+          attendance.status
+        );
+
+      type PerEmployee = {
+        employeeId: number;
+        name: string;
+        code: string;
+        present: number;
+        absent: number;
+        late: number;
+        leave: number;
+        totalDays: number;
+        attendanceRate: number;
+      };
+      const map = new Map<number, PerEmployee>();
+      const totals = { present: 0, absent: 0, late: 0, leave: 0 };
+      for (const r of rows) {
+        const n = Number(r.c ?? 0);
+        let e = map.get(r.employeeId);
+        if (!e) {
+          e = {
+            employeeId: r.employeeId,
+            name: r.employeeName,
+            code: r.code,
+            present: 0, absent: 0, late: 0, leave: 0,
+            totalDays: 0, attendanceRate: 0,
+          };
+          map.set(r.employeeId, e);
+        }
+        if (r.status === "present") { e.present += n; totals.present += n; }
+        else if (r.status === "absent") { e.absent += n; totals.absent += n; }
+        else if (r.status === "late") { e.late += n; totals.late += n; }
+        else if (r.status === "leave") { e.leave += n; totals.leave += n; }
+        e.totalDays += n;
+      }
+      const perEmployee = [...map.values()].map(e => ({
+        ...e,
+        attendanceRate:
+          e.totalDays > 0
+            ? Math.round(((e.present + e.late) / e.totalDays) * 100)
+            : 0,
+      }));
+      const grandTotal =
+        totals.present + totals.absent + totals.late + totals.leave;
+      return {
+        perEmployee: perEmployee.sort((a, b) => b.attendanceRate - a.attendanceRate),
+        totals: {
+          ...totals,
+          attendanceRate:
+            grandTotal > 0
+              ? Math.round(((totals.present + totals.late) / grandTotal) * 100)
+              : 0,
+        },
+      };
+    }),
+
+  // ── تحليل تكلفة الرواتب حسب القسم ──
+  hrDeptCost: tenantProcedure.query(async ({ ctx }) => {
+    if (!ctx.tenantId)
+      return { byDepartment: [], unassignedCost: 0, unassignedCount: 0 };
+    const db = await dbOrThrow();
+    const rows = await db
+      .select({
+        departmentId: employees.departmentId,
+        deptName: departments.name,
+        headcount: sql<number>`count(*)`,
+        payroll: sql<string>`coalesce(sum(${employees.salary}),0)`,
+      })
+      .from(employees)
+      .leftJoin(departments, eq(employees.departmentId, departments.id))
+      .where(
+        and(
+          eq(employees.tenantId, ctx.tenantId),
+          eq(employees.status, "active"),
+          isNull(employees.deletedAt)
+        )
+      )
+      .groupBy(employees.departmentId, departments.name);
+    const withDept = rows.filter(r => r.departmentId != null);
+    const without = rows.filter(r => r.departmentId == null);
+    const totalPayroll = rows.reduce((s, r) => s + parseFloat(r.payroll || "0"), 0);
+    return {
+      byDepartment: withDept
+        .map(r => ({
+          departmentId: r.departmentId as number,
+          name: r.deptName ?? "—",
+          headcount: Number(r.headcount ?? 0),
+          payroll: parseFloat(r.payroll || "0"),
+          sharePct:
+            totalPayroll > 0
+              ? Math.round((parseFloat(r.payroll || "0") / totalPayroll) * 100)
+              : 0,
+        }))
+        .sort((a, b) => b.payroll - a.payroll),
+      unassignedCost: without.reduce((s, r) => s + parseFloat(r.payroll || "0"), 0),
+      unassignedCount: without.reduce((s, r) => s + Number(r.headcount ?? 0), 0),
+    };
+  }),
+
+  // ── أداء المشاريع: تقدم المهام، الساعات، الصرف الفعلي مقابل الموازنة ──
+  projectPerformance: tenantProcedure
+    .input(z.object({ projectId: z.number().optional() }).optional())
+    .query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { projects: [] };
+      const db = await dbOrThrow();
+      const tid = ctx.tenantId;
+      const conds = [eq(projects.tenantId, tid)];
+      if (input?.projectId) conds.push(eq(projects.id, input.projectId));
+      const projs = await db.select().from(projects).where(and(...conds));
+      if (projs.length === 0) return { projects: [] };
+
+      const taskAgg = await db
+        .select({
+          projectId: projectTasks.projectId,
+          status: projectTasks.status,
+          c: sql<number>`count(*)`,
+          estHours: sql<string>`coalesce(sum(${projectTasks.estimatedHours}),0)`,
+          actHours: sql<string>`coalesce(sum(${projectTasks.actualHours}),0)`,
+          overdue: sql<number>`sum(case when ${projectTasks.dueDate} < now() and ${projectTasks.status} <> 'done' then 1 else 0 end)`,
+        })
+        .from(projectTasks)
+        .where(eq(projectTasks.tenantId, tid))
+        .groupBy(projectTasks.projectId, projectTasks.status);
+
+      // الصرف الفعلي: من المصروفات المتكررة/المرتبطة بالمشروع المنفذة.
+      // (ربط القيود المحاسبية مباشرة بالمشاريع يتطلب عموداً مستقبلاً في transactions)
+      const spendAgg = await db
+        .select({
+          projectId: recurringExpenses.projectId,
+          spent: sql<string>`coalesce(sum(${recurringExpenses.amount} * ${recurringExpenses.occurrencesCount}),0)`,
+        })
+        .from(recurringExpenses)
+        .where(
+          and(
+            eq(recurringExpenses.tenantId, tid),
+            isNotNull(recurringExpenses.projectId),
+            ne(recurringExpenses.status, "draft")
+          )
+        )
+        .groupBy(recurringExpenses.projectId);
+
+      type TaskAgg = {
+        todo: number; in_progress: number; review: number; done: number;
+        estHours: number; actHours: number; overdue: number;
+      };
+      const taskMap = new Map<number, TaskAgg>();
+      for (const t of taskAgg) {
+        let acc = taskMap.get(t.projectId);
+        if (!acc) {
+          acc = { todo: 0, in_progress: 0, review: 0, done: 0, estHours: 0, actHours: 0, overdue: 0 };
+          taskMap.set(t.projectId, acc);
+        }
+        (acc as any)[t.status as string] = Number(t.c ?? 0);
+        acc.estHours += parseFloat(t.estHours || "0");
+        acc.actHours += parseFloat(t.actHours || "0");
+        acc.overdue += Number(t.overdue ?? 0);
+      }
+      const spendMap = new Map<number, number>(
+        spendAgg.map(s => [s.projectId as number, parseFloat(s.spent || "0")])
+      );
+
+      return {
+        projects: projs.map(p => {
+          const t: TaskAgg = taskMap.get(p.id) ?? {
+            todo: 0, in_progress: 0, review: 0, done: 0, estHours: 0, actHours: 0, overdue: 0,
+          };
+          const totalTasks = t.todo + t.in_progress + t.review + t.done;
+          const budget = parseFloat(p.budget || "0");
+          const spent = spendMap.get(p.id) ?? 0;
+          return {
+            id: p.id,
+            code: p.code,
+            name: p.name,
+            status: p.status,
+            startDate: p.startDate,
+            endDate: p.endDate,
+            budget,
+            spent,
+            budgetUsedPct: budget > 0 ? Math.round((spent / budget) * 100) : 0,
+            budgetVariance: budget - spent,
+            tasksTotal: totalTasks,
+            tasksDone: t.done,
+            progressPct: totalTasks > 0 ? Math.round((t.done / totalTasks) * 100) : 0,
+            hoursEstimated: t.estHours,
+            hoursActual: t.actHours,
+            hoursEfficiencyPct:
+              t.estHours > 0 ? Math.round((t.estHours / Math.max(t.actHours, 0.01)) * 100) : 0,
+            overdueTasks: t.overdue,
+          };
+        }),
+      };
+    }),
+
+  // ── تحليلات خدمة العملاء: MTTR، معدل الحل، أعمار التذاكر، أداء المسؤولين ──
+  supportStats: tenantProcedure.query(async ({ ctx }) => {
+    if (!ctx.tenantId)
+      return {
+        byStatus: {}, byPriority: {},
+        mttrHours: null, resolutionRate: 0,
+        openAging: { fresh: 0, week: 0, month: 0, older: 0 },
+        byAgent: [],
+      };
+    const db = await dbOrThrow();
+    const tid = ctx.tenantId;
+    const statusRows = await db
+      .select({ status: tickets.status, c: sql<number>`count(*)` })
+      .from(tickets)
+      .where(eq(tickets.tenantId, tid))
+      .groupBy(tickets.status);
+    const priorityRows = await db
+      .select({ priority: tickets.priority, c: sql<number>`count(*)` })
+      .from(tickets)
+      .where(eq(tickets.tenantId, tid))
+      .groupBy(tickets.priority);
+
+    // MTTR تقريبي: متوسط (updatedAt − createdAt) للتذاكر المحلولة/المغلقة
+    const resolvedRows = await db
+      .select({ createdAt: tickets.createdAt, updatedAt: tickets.updatedAt })
+      .from(tickets)
+      .where(
+        and(
+          eq(tickets.tenantId, tid),
+          sql`${tickets.status} in ('resolved','closed')`
+        )
+      );
+    const durationsH = resolvedRows.map(
+      r =>
+        (new Date(r.updatedAt).getTime() - new Date(r.createdAt).getTime()) /
+        3_600_000
+    );
+    const mttrHours =
+      durationsH.length > 0
+        ? Math.round((durationsH.reduce((a, b) => a + b, 0) / durationsH.length) * 10) / 10
+        : null;
+
+    const total = statusRows.reduce((s, r) => s + Number(r.c ?? 0), 0);
+    const resolvedCount = resolvedRows.length;
+
+    // أعمار التذاكر المفتوحة
+    const openRows = await db
+      .select({ createdAt: tickets.createdAt })
+      .from(tickets)
+      .where(and(eq(tickets.tenantId, tid), sql`${tickets.status} in ('open','in_progress')`));
+    const now = Date.now();
+    const openAging = { fresh: 0, week: 0, month: 0, older: 0 };
+    for (const r of openRows) {
+      const days = (now - new Date(r.createdAt).getTime()) / 86_400_000;
+      if (days <= 2) openAging.fresh++;
+      else if (days <= 7) openAging.week++;
+      else if (days <= 30) openAging.month++;
+      else openAging.older++;
+    }
+
+    const agentRows = await db
+      .select({
+        assignedToId: tickets.assignedToId,
+        agentName: users.name,
+        total: sql<number>`count(*)`,
+        resolved: sql<number>`sum(case when ${tickets.status} in ('resolved','closed') then 1 else 0 end)`,
+      })
+      .from(tickets)
+      .leftJoin(users, eq(tickets.assignedToId, users.id))
+      .where(and(eq(tickets.tenantId, tid), isNotNull(tickets.assignedToId)))
+      .groupBy(tickets.assignedToId, users.name);
+
+    const byStatus: Record<string, number> = {};
+    for (const r of statusRows) byStatus[r.status] = Number(r.c ?? 0);
+    const byPriority: Record<string, number> = {};
+    for (const r of priorityRows) byPriority[r.priority] = Number(r.c ?? 0);
+
+    return {
+      byStatus,
+      byPriority,
+      mttrHours,
+      resolutionRate: total > 0 ? Math.round((resolvedCount / total) * 100) : 0,
+      openAging,
+      byAgent: agentRows.map(a => ({
+        agentId: a.assignedToId,
+        name: a.agentName ?? "—",
+        total: Number(a.total ?? 0),
+        resolved: Number(a.resolved ?? 0),
+        resolutionRate:
+          Number(a.total ?? 0) > 0
+            ? Math.round((Number(a.resolved ?? 0) / Number(a.total ?? 0)) * 100)
+            : 0,
+      })),
+    };
+  }),
+
+  // ── تقرير التوزيع: حالات الطلبات، تسليمات أسبوع، المتأخر، الاتجاه الشهري ──
+  deliveryReport: tenantProcedure.query(async ({ ctx }) => {
+    if (!ctx.tenantId)
+      return {
+        byStatus: {}, upcoming: [], overdue: [],
+        deliveredCount: 0, cancelledCount: 0, fulfillmentRate: 0,
+        monthlyTrend: [],
+      };
+    const db = await dbOrThrow();
+    const tid = ctx.tenantId;
+    const statusRows = await db
+      .select({
+        status: orders.status,
+        c: sql<number>`count(*)`,
+        sum: sql<string>`coalesce(sum(${orders.total}),0)`,
+      })
+      .from(orders)
+      .where(eq(orders.tenantId, tid))
+      .groupBy(orders.status);
+    const byStatus: Record<string, { count: number; total: number }> = {};
+    for (const r of statusRows)
+      byStatus[r.status] = {
+        count: Number(r.c ?? 0),
+        total: parseFloat(r.sum || "0"),
+      };
+
+    const now = new Date();
+    const in7d = new Date(now.getTime() + 7 * 86_400_000);
+
+    const upcoming = await db
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        customerName: customers.name,
+        status: orders.status,
+        total: orders.total,
+        deliveryDate: orders.deliveryDate,
+        deliveryAddress: orders.deliveryAddress,
+        assignedTo: orders.assignedTo,
+      })
+      .from(orders)
+      .leftJoin(customers, eq(orders.customerId, customers.id))
+      .where(
+        and(
+          eq(orders.tenantId, tid),
+          gte(orders.deliveryDate, now),
+          lte(orders.deliveryDate, in7d),
+          sql`${orders.status} not in ('delivered','cancelled')`
+        )
+      )
+      .orderBy(asc(orders.deliveryDate))
+      .limit(50);
+
+    const overdue = await db
+      .select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        customerName: customers.name,
+        status: orders.status,
+        total: orders.total,
+        deliveryDate: orders.deliveryDate,
+        assignedTo: orders.assignedTo,
+      })
+      .from(orders)
+      .leftJoin(customers, eq(orders.customerId, customers.id))
+      .where(
+        and(
+          eq(orders.tenantId, tid),
+          sql`${orders.deliveryDate} < now()`,
+          sql`${orders.status} not in ('delivered','cancelled')`
+        )
+      )
+      .orderBy(asc(orders.deliveryDate))
+      .limit(50);
+
+    const trendRows = await db
+      .select({
+        month: sql<string>`to_char(date_trunc('month', ${orders.createdAt}), 'YYYY-MM')`,
+        c: sql<number>`count(*)`,
+        sum: sql<string>`coalesce(sum(${orders.total}),0)`,
+      })
+      .from(orders)
+      .where(
+        and(
+          eq(orders.tenantId, tid),
+          gte(
+            orders.createdAt,
+            new Date(now.getFullYear(), now.getMonth() - 5, 1)
+          )
+        )
+      )
+      .groupBy(sql`date_trunc('month', ${orders.createdAt})`)
+      .orderBy(sql`date_trunc('month', ${orders.createdAt})`);
+
+    const deliveredCount = byStatus["delivered"]?.count ?? 0;
+    const cancelledCount = byStatus["cancelled"]?.count ?? 0;
+    const fulfilledBase = deliveredCount + cancelledCount;
+    return {
+      byStatus,
+      upcoming,
+      overdue,
+      deliveredCount,
+      cancelledCount,
+      fulfillmentRate:
+        fulfilledBase > 0 ? Math.round((deliveredCount / fulfilledBase) * 100) : 0,
+      monthlyTrend: trendRows.map(r => ({
+        month: r.month,
+        count: Number(r.c ?? 0),
+        total: parseFloat(r.sum || "0"),
+      })),
     };
   }),
 });

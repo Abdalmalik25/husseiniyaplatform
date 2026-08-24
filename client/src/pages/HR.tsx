@@ -32,6 +32,8 @@ import {
   UserCheck,
   UserMinus,
   Clock,
+  BarChart3,
+  Wallet,
 } from "lucide-react";
 
 const EMP_STATUS = {
@@ -86,7 +88,7 @@ const emptyForm = {
 
 export default function HR() {
   const utils = trpc.useUtils();
-  const [tab, setTab] = useState<"overview" | "employees" | "attendance">("overview");
+  const [tab, setTab] = useState<"overview" | "employees" | "attendance" | "reports">("overview");
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
@@ -117,6 +119,17 @@ export default function HR() {
     { employeeId: attFilter === "all" ? undefined : Number(attFilter) },
     { placeholderData: (p) => p }
   );
+
+  // ── تقارير الموارد البشرية (تُحمّل عند فتح التبويب فقط) ──
+  const payrollReportQ = trpc.erp.hrPayrollReport.useQuery(undefined, {
+    enabled: tab === "reports",
+  });
+  const attSummaryQ = trpc.erp.hrAttendanceSummary.useQuery(undefined, {
+    enabled: tab === "reports",
+  });
+  const deptCostQ = trpc.erp.hrDeptCost.useQuery(undefined, {
+    enabled: tab === "reports",
+  });
 
   const createEmp = trpc.erp.createEmployee.useMutation({
     onSuccess: () => utils.erp.listEmployees.invalidate(),
@@ -218,6 +231,7 @@ export default function HR() {
           {tabBtn("overview", "نظرة عامة", <TrendingUp className="h-4 w-4" />)}
           {tabBtn("employees", "الموظفون", <Users className="h-4 w-4" />)}
           {tabBtn("attendance", "الحضور والغياب", <CalendarCheck className="h-4 w-4" />)}
+          {tabBtn("reports", "التقارير", <BarChart3 className="h-4 w-4" />)}
         </div>
       </div>
 
@@ -428,6 +442,141 @@ export default function HR() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {tab === "reports" && (
+          <div className="space-y-6">
+            {/* ── ملخص الحضور ── */}
+            <div className="rounded-2xl border border-line bg-surface/80 p-5">
+              <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
+                <CalendarCheck className="h-5 w-5 text-brand" />
+                ملخص الحضور — آخر 30 يوماً
+              </h2>
+              <p className="mb-4 text-xs text-muted">
+                نسبة الالتزام = (حاضر + متأخر) ÷ إجمالي الأيام المسجلة
+              </p>
+              <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                <StatCard label="نسبة الالتزام العامة" value={`${attSummaryQ.data?.totals.attendanceRate ?? 0}%`} tone="positive" icon={UserCheck} />
+                <StatCard label="أيام حضور" value={attSummaryQ.data?.totals.present ?? 0} tone="info" icon={CalendarCheck} />
+                <StatCard label="تأخيرات" value={attSummaryQ.data?.totals.late ?? 0} tone="warning" icon={Clock} />
+                <StatCard label="أيام غياب" value={attSummaryQ.data?.totals.absent ?? 0} tone="negative" icon={UserMinus} />
+              </div>
+              <div className="overflow-x-auto rounded-xl border border-line">
+                <table className="w-full text-sm">
+                  <thead className="bg-panel/60 text-xs text-muted">
+                    <tr>
+                      <th className="px-3 py-2 text-right">الموظف</th>
+                      <th className="px-3 py-2 text-center">حاضر</th>
+                      <th className="px-3 py-2 text-center">متأخر</th>
+                      <th className="px-3 py-2 text-center">غياب</th>
+                      <th className="px-3 py-2 text-center">إجازة</th>
+                      <th className="px-3 py-2 text-center">الالتزام</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(attSummaryQ.data?.perEmployee ?? []).length === 0 ? (
+                      <tr><td colSpan={6} className="px-3 py-8 text-center text-muted">لا سجلات حضور خلال الفترة.</td></tr>
+                    ) : (
+                      (attSummaryQ.data?.perEmployee ?? []).map(e => (
+                        <tr key={e.employeeId} className="border-t border-line/60">
+                          <td className="px-3 py-2 font-bold">{e.name} · {e.code}</td>
+                          <td className="px-3 py-2 text-center">{e.present}</td>
+                          <td className="px-3 py-2 text-center">{e.late}</td>
+                          <td className="px-3 py-2 text-center">{e.absent}</td>
+                          <td className="px-3 py-2 text-center">{e.leave}</td>
+                          <td className="px-3 py-2 text-center">
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${e.attendanceRate >= 90 ? "bg-emerald-500/15 text-emerald-300" : e.attendanceRate >= 70 ? "bg-amber-500/15 text-amber-300" : "bg-rose-500/15 text-rose-300"}`}>
+                              {e.attendanceRate}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* ── تقرير الرواتب ── */}
+            <div className="rounded-2xl border border-line bg-surface/80 p-5">
+              <h2 className="mb-1 flex items-center gap-2 font-bold text-ink">
+                <Wallet className="h-5 w-5 text-brand" />
+                تقرير الرواتب
+                {payrollReportQ.data?.latestPeriod && (
+                  <span className="text-xs font-normal text-muted">
+                    (تفصيل دورة: {payrollReportQ.data.latestPeriod})
+                  </span>
+                )}
+              </h2>
+              {(payrollReportQ.data?.runs ?? []).length > 0 && (
+                <div className="mt-3 mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
+                  {(payrollReportQ.data?.runs ?? []).slice(0, 4).map(r => (
+                    <div key={r.id} className="rounded-xl border border-line bg-background/60 p-3">
+                      <div className="text-[11px] text-muted">{r.periodName}</div>
+                      <div className="text-sm font-black text-ink">{Number(r.totalNet).toLocaleString()}</div>
+                      <div className="text-[10px] text-muted">{Number(r.employeesCount)} موظف</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="overflow-x-auto rounded-xl border border-line">
+                <table className="w-full text-sm">
+                  <thead className="bg-panel/60 text-xs text-muted">
+                    <tr>
+                      <th className="px-3 py-2 text-right">الموظف</th>
+                      <th className="px-3 py-2 text-right">القسم</th>
+                      <th className="px-3 py-2 text-left">الأساسي</th>
+                      <th className="px-3 py-2 text-left">الاستقطاعات</th>
+                      <th className="px-3 py-2 text-left">الصافي</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(payrollReportQ.data?.items ?? []).length === 0 ? (
+                      <tr><td colSpan={5} className="px-3 py-8 text-center text-muted">لا دورات رواتب بعد.</td></tr>
+                    ) : (
+                      (payrollReportQ.data?.items ?? []).map(it => (
+                        <tr key={it.employeeId} className="border-t border-line/60">
+                          <td className="px-3 py-2 font-bold">{it.employeeName} · {it.employeeCode}</td>
+                          <td className="px-3 py-2 text-muted">{it.department ?? "—"}</td>
+                          <td className="px-3 py-2 text-left font-mono">{Number(it.basicSalary).toLocaleString()}</td>
+                          <td className="px-3 py-2 text-left font-mono text-rose-400">{Number(it.deductions).toLocaleString()}</td>
+                          <td className="px-3 py-2 text-left font-mono font-bold">{Number(it.net).toLocaleString()}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* ── تكلفة التوظيف حسب القسم ── */}
+            <div className="rounded-2xl border border-line bg-surface/80 p-5">
+              <h2 className="mb-4 flex items-center gap-2 font-bold text-ink">
+                <BarChart3 className="h-5 w-5 text-brand" />
+                كلفة التوظيف حسب القسم
+              </h2>
+              <div className="space-y-2">
+                {(deptCostQ.data?.byDepartment ?? []).length === 0 ? (
+                  <p className="py-4 text-center text-sm text-muted">لا بيانات.</p>
+                ) : (
+                  (deptCostQ.data?.byDepartment ?? []).map(d => (
+                    <div key={d.departmentId} className="flex items-center gap-3">
+                      <div className="w-40 shrink-0 truncate text-sm font-bold">{d.name}</div>
+                      <div className="h-6 flex-1 overflow-hidden rounded-lg bg-panel/60">
+                        <div
+                          className="h-full rounded-lg bg-brand/40"
+                          style={{ width: `${Math.min(d.sharePct, 100)}%` }}
+                        />
+                      </div>
+                      <div className="w-48 shrink-0 text-left text-xs text-muted">
+                        {d.headcount} موظف · {d.payroll.toLocaleString()} ({d.sharePct}%)
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         )}

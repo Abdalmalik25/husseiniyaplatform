@@ -32,6 +32,7 @@ import {
   AlertCircle,
   CheckCircle2,
   ClipboardList,
+  TrendingUp,
 } from "lucide-react";
 
 const TICKET_STATUS: Record<string, { label: string; tone: string }> = {
@@ -77,7 +78,7 @@ const emptyInsp = { code: "", title: "", type: "", result: "pass", score: "", no
 
 export default function SupportQuality() {
   const utils = trpc.useUtils();
-  const [tab, setTab] = useState<"overview" | "tickets" | "inspections">("overview");
+  const [tab, setTab] = useState<"overview" | "tickets" | "inspections" | "analytics">("overview");
   const [statusFilter, setStatusFilter] = useState("all");
 
   const [tkOpen, setTkOpen] = useState(false);
@@ -92,6 +93,9 @@ export default function SupportQuality() {
     { placeholderData: (p) => p }
   );
   const inspectionsQ = trpc.erp.listInspections.useQuery(undefined, { placeholderData: (p) => p });
+  const supportStatsQ = trpc.erp.supportStats.useQuery(undefined, {
+    enabled: tab === "analytics",
+  });
 
   const createTk = trpc.erp.createTicket.useMutation({ onSuccess: () => utils.erp.listTickets.invalidate() });
   const updateTk = trpc.erp.updateTicket.useMutation({ onSuccess: () => utils.erp.listTickets.invalidate() });
@@ -172,6 +176,7 @@ export default function SupportQuality() {
           {tabBtn("overview", "نظرة عامة", <ClipboardList className="h-4 w-4" />)}
           {tabBtn("tickets", "تذاكر الدعم", <Ticket className="h-4 w-4" />)}
           {tabBtn("inspections", "التفتيش والجودة", <ShieldCheck className="h-4 w-4" />)}
+          {tabBtn("analytics", "تحليلات الخدمة", <TrendingUp className="h-4 w-4" />)}
         </div>
       </div>
 
@@ -364,6 +369,136 @@ export default function SupportQuality() {
                   )}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {tab === "analytics" && (
+          <div className="space-y-6">
+            {/* ── مؤشرات الأداء الرئيسية ── */}
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+              <StatCard
+                label="متوسط زمن الحل (MTTR)"
+                value={supportStatsQ.data?.mttrHours != null ? `${supportStatsQ.data.mttrHours} ساعة` : "—"}
+                tone="info"
+                icon={ClipboardList}
+                hint="للتذاكر المحلولة/المغلقة"
+              />
+              <StatCard
+                label="معدل الحل الكلي"
+                value={`${supportStatsQ.data?.resolutionRate ?? 0}%`}
+                tone="positive"
+                icon={CheckCircle2}
+              />
+              <StatCard
+                label="تذاكر مفتوحة"
+                value={(supportStatsQ.data?.byStatus as Record<string, number> | undefined)?.open ?? 0}
+                tone="warning"
+                icon={Ticket}
+              />
+              <StatCard
+                label="عاجلة نشطة"
+                value={(supportStatsQ.data?.byPriority as Record<string, number> | undefined)?.urgent ?? 0}
+                tone="negative"
+                icon={AlertCircle}
+              />
+            </div>
+
+            {/* أعمار التذاكر المفتوحة */}
+            <div className="rounded-2xl border border-line bg-surface/80 p-5">
+              <h3 className="mb-4 font-bold text-ink">أعمار التذاكر المفتوحة</h3>
+              {(() => {
+                const a = supportStatsQ.data?.openAging;
+                if (!a) return null;
+                const total = a.fresh + a.week + a.month + a.older || 1;
+                const rows = [
+                  { label: "خلال يومين (جديدة)", v: a.fresh, color: "bg-emerald-500" },
+                  { label: "3–7 أيام", v: a.week, color: "bg-sky-500" },
+                  { label: "8–30 يوماً", v: a.month, color: "bg-amber-500" },
+                  { label: "أكثر من شهر", v: a.older, color: "bg-rose-500" },
+                ];
+                return (
+                  <div className="space-y-3">
+                    {rows.map(r => (
+                      <div key={r.label} className="flex items-center gap-3">
+                        <div className="w-40 shrink-0 text-xs text-muted">{r.label}</div>
+                        <div className="h-4 flex-1 overflow-hidden rounded-full bg-panel/60">
+                          <div className={`h-full rounded-full ${r.color}`} style={{ width: `${Math.round((r.v / total) * 100)}%` }} />
+                        </div>
+                        <div className="w-10 text-left text-sm font-bold">{r.v}</div>
+                      </div>
+                    ))}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-2">
+              {/* أداء المسؤولين */}
+              <div className="rounded-2xl border border-line bg-surface/80 p-5">
+                <h3 className="mb-4 font-bold text-ink">أداء فريق الدعم</h3>
+                <div className="overflow-x-auto rounded-xl border border-line">
+                  <table className="w-full text-sm">
+                    <thead className="bg-panel/60 text-xs text-muted">
+                      <tr>
+                        <th className="px-3 py-2 text-right">المسؤول</th>
+                        <th className="px-3 py-2 text-center">إجمالي</th>
+                        <th className="px-3 py-2 text-center">محلولة</th>
+                        <th className="px-3 py-2 text-center">النسبة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(supportStatsQ.data?.byAgent ?? []).length === 0 ? (
+                        <tr><td colSpan={4} className="px-3 py-6 text-center text-muted">لا تذاكر مسندة بعد.</td></tr>
+                      ) : (
+                        (supportStatsQ.data?.byAgent ?? []).map(a => (
+                          <tr key={a.agentId} className="border-t border-line/60">
+                            <td className="px-3 py-2 font-bold">{a.name}</td>
+                            <td className="px-3 py-2 text-center">{a.total}</td>
+                            <td className="px-3 py-2 text-center">{a.resolved}</td>
+                            <td className="px-3 py-2 text-center font-bold">{a.resolutionRate}%</td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+                <p className="mt-3 text-[11px] text-muted">
+                  يُنصح مستقبلاً بإضافة حقلي firstResponseAt/resolvedAt للمخطط لدقة SLA أعلى.
+                </p>
+              </div>
+
+              {/* التوزيع حسب الحالة والأولوية */}
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-line bg-surface/80 p-5">
+                  <h3 className="mb-3 font-bold text-ink">حسب الحالة</h3>
+                  <div className="space-y-2">
+                    {Object.entries(supportStatsQ.data?.byStatus ?? {}).map(([k, v]) => (
+                      <div key={k} className="flex justify-between rounded-lg border border-line px-3 py-1.5 text-sm">
+                        <span>{TICKET_STATUS[k]?.label ?? k}</span>
+                        <span className="font-bold">{v as number}</span>
+                      </div>
+                    ))}
+                    {Object.keys(supportStatsQ.data?.byStatus ?? {}).length === 0 && (
+                      <p className="py-2 text-center text-sm text-muted">لا بيانات.</p>
+                    )}
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-line bg-surface/80 p-5">
+                  <h3 className="mb-3 font-bold text-ink">حسب الأولوية</h3>
+                  <div className="space-y-2">
+                    {Object.entries(supportStatsQ.data?.byPriority ?? {}).map(([k, v]) => (
+                      <div key={k} className="flex justify-between rounded-lg border border-line px-3 py-1.5 text-sm">
+                        <span>{TICKET_PRIORITY[k]?.label ?? k}</span>
+                        <span className="font-bold">{v as number}</span>
+                      </div>
+                    ))}
+                    {Object.keys(supportStatsQ.data?.byPriority ?? {}).length === 0 && (
+                      <p className="py-2 text-center text-sm text-muted">لا بيانات.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         )}

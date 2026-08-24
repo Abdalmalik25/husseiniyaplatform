@@ -11,6 +11,9 @@ import {
   Trophy,
   Megaphone,
   ArrowLeft,
+  Truck,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
 /**
@@ -23,6 +26,7 @@ import {
 export default function Operations() {
   const [, setLocation] = useLocation();
   const { data, isPending } = trpc.modules.operations.summary.useQuery();
+  const deliveryQ = trpc.erp.deliveryReport.useQuery();
 
   const metrics = [
     {
@@ -173,6 +177,75 @@ export default function Operations() {
               <div className="text-sm text-muted">لا توجد مبيعات بعد.</div>
             )}
           </div>
+        </div>
+
+        {/* ── تقرير التوزيع والتسليم ── */}
+        <div className="rounded-2xl border border-line bg-surface/80 p-5 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h2 className="flex items-center gap-2 font-bold text-ink">
+              <Truck className="h-5 w-5 text-brand" />
+              تقرير التوزيع والتسليم
+            </h2>
+            <span
+              className={`rounded-full px-3 py-1 text-xs font-bold ${
+                (deliveryQ.data?.fulfillmentRate ?? 0) >= 90
+                  ? "bg-emerald-500/15 text-emerald-600"
+                  : (deliveryQ.data?.fulfillmentRate ?? 0) >= 70
+                    ? "bg-amber-500/15 text-amber-600"
+                    : "bg-rose-500/15 text-rose-600"
+              }`}
+            >
+              معدل الإنجاز: {deliveryQ.data?.fulfillmentRate ?? 0}%
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+            <StatCard
+              label="تسليمات هذا الأسبوع"
+              value={deliveryQ.data?.upcoming.length ?? 0}
+              tone="info"
+              icon={CalendarClock}
+              hint="قادمة خلال 7 أيام"
+            />
+            <StatCard
+              label="تسليمات متأخرة"
+              value={deliveryQ.data?.overdue.length ?? 0}
+              tone={(deliveryQ.data?.overdue.length ?? 0) > 0 ? "negative" : "positive"}
+              icon={AlarmClock}
+              hint="تجاوزت تاريخ التسليم"
+            />
+            <StatCard label="طلبات مُسلَّمة" value={deliveryQ.data?.deliveredCount ?? 0} tone="positive" icon={CheckCircle2} />
+            <StatCard label="طلبات ملغاة" value={deliveryQ.data?.cancelledCount ?? 0} tone="negative" icon={AlertCircle} />
+          </div>
+
+          {(deliveryQ.data?.overdue ?? []).length > 0 && (
+            <div className="overflow-x-auto rounded-xl border border-line">
+              <table className="w-full text-sm">
+                <thead className="bg-panel/60 text-xs text-muted">
+                  <tr>
+                    <th className="px-3 py-2 text-right">الطلب</th>
+                    <th className="px-3 py-2 text-right">العميل</th>
+                    <th className="px-3 py-2 text-center">الحالة</th>
+                    <th className="px-3 py-2 text-left">الإجمالي</th>
+                    <th className="px-3 py-2 text-right">تاريخ التسليم</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(deliveryQ.data?.overdue ?? []).slice(0, 8).map(o => (
+                    <tr key={o.id} className="border-t border-line/60">
+                      <td className="px-3 py-2 font-mono font-bold">{o.orderNumber}</td>
+                      <td className="px-3 py-2">{o.customerName ?? "—"}</td>
+                      <td className="px-3 py-2 text-center">{o.status}</td>
+                      <td className="px-3 py-2 text-left font-mono">{Number(o.total).toLocaleString()}</td>
+                      <td className="px-3 py-2 text-rose-600">
+                        {o.deliveryDate ? new Date(o.deliveryDate).toLocaleDateString("ar") : "—"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </main>
     </div>

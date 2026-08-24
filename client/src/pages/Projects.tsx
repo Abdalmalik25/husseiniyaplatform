@@ -46,6 +46,7 @@ import {
   CheckCircle2,
   Clock,
   ArrowLeft,
+  Loader2,
 } from "lucide-react";
 
 const PROJ_STATUS_LABEL: Record<string, string> = {
@@ -105,6 +106,9 @@ export default function Projects() {
 
   const projectsQ = trpc.erp.listProjects.useQuery(undefined, { staleTime: 30_000 });
   const tasksQ = trpc.erp.listTasks.useQuery(undefined, { staleTime: 30_000 });
+  const performanceQ = trpc.erp.projectPerformance.useQuery(undefined, {
+    staleTime: 30_000,
+  });
   const projects = (projectsQ.data ?? []) as any[];
   const tasks = (tasksQ.data ?? []) as any[];
 
@@ -152,6 +156,9 @@ export default function Projects() {
             </TabsTrigger>
             <TabsTrigger value="tasks" className="text-xs">
               المهام
+            </TabsTrigger>
+            <TabsTrigger value="performance" className="text-xs">
+              تقرير الأداء
             </TabsTrigger>
           </TabsList>
 
@@ -281,6 +288,67 @@ export default function Projects() {
               tasks={tasks}
               utils={utils}
             />
+          </TabsContent>
+
+          {/* ───────── Performance Report ───────── */}
+          <TabsContent value="performance" className="space-y-4 mt-4">
+            <div className="overflow-x-auto rounded-2xl border border-line bg-surface/80">
+              <table className="w-full text-sm">
+                <thead className="bg-panel/60 text-xs text-muted">
+                  <tr>
+                    <th className="px-3 py-2 text-right">المشروع</th>
+                    <th className="px-3 py-2 text-center">التقدم</th>
+                    <th className="px-3 py-2 text-left">الموازنة</th>
+                    <th className="px-3 py-2 text-left">الصرف</th>
+                    <th className="px-3 py-2 text-center">استهلاك الموازنة</th>
+                    <th className="px-3 py-2 text-center">ساعات (مخططة/فعلية)</th>
+                    <th className="px-3 py-2 text-center">متأخرة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {performanceQ.isPending ? (
+                    <tr><td colSpan={7} className="px-3 py-10 text-center text-muted"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></td></tr>
+                  ) : (performanceQ.data?.projects ?? []).length === 0 ? (
+                    <tr><td colSpan={7} className="px-3 py-10 text-center text-muted">لا مشاريع بعد.</td></tr>
+                  ) : (
+                    (performanceQ.data?.projects ?? []).map(p => (
+                      <tr key={p.id} className="border-t border-line/60 hover:bg-panel/30">
+                        <td className="px-3 py-2 font-bold">{p.name} · {p.code}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-2">
+                            <div className="h-2 w-16 overflow-hidden rounded-full bg-panel">
+                              <div className={`h-full rounded-full ${p.progressPct >= 75 ? "bg-emerald-500" : p.progressPct >= 40 ? "bg-sky-500" : "bg-amber-500"}`} style={{ width: `${p.progressPct}%` }} />
+                            </div>
+                            <span className="text-xs font-bold">{p.progressPct}%</span>
+                          </div>
+                          <div className="mt-0.5 text-[10px] text-muted">{p.tasksDone}/{p.tasksTotal} مهمة منجزة</div>
+                        </td>
+                        <td className="px-3 py-2 text-left font-mono">{p.budget.toLocaleString()}</td>
+                        <td className="px-3 py-2 text-left font-mono">{p.spent.toLocaleString()}</td>
+                        <td className="px-3 py-2 text-center">
+                          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${p.budgetUsedPct > 100 ? "bg-rose-100 text-rose-700" : p.budgetUsedPct > 80 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                            {p.budgetUsedPct}%
+                          </span>
+                        </td>
+                        <td className="px-3 py-2 text-center text-xs font-mono">
+                          {p.hoursEstimated.toFixed(0)} / {p.hoursActual.toFixed(0)}
+                        </td>
+                        <td className="px-3 py-2 text-center">
+                          {p.overdueTasks > 0 ? (
+                            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">{p.overdueTasks}</span>
+                          ) : (
+                            <span className="text-xs text-muted">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[11px] text-muted">
+              الصرف الفعلي يُحسب من المصروفات المرتبطة بالمشروع المنفذة؛ ربط القيود المحاسبية مباشرة بالمشاريع متاح كتوسعة لاحقة.
+            </p>
           </TabsContent>
         </Tabs>
       </main>
