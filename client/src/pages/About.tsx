@@ -363,22 +363,19 @@ export default function About() {
   };
 
   const handleOpenWhatsApp = () => {
-    const text = encodeURIComponent(
-      `السلام عليكم مؤسسة الحسينية ومكتبة الحسينية الحديثة،\nأود طلب خدمة / استشارة:\n- الخدمة: ${selectedService}\n- الاسم: ${clientName || "عميل"}\n- الهاتف: ${clientPhone}\n- التفاصيل: ${notes || "لا يوجد"}\n- كود الطلب: ${submittedRef || "جديد"}`
-    );
+    const text = `السلام عليكم مؤسسة الحسينية ومكتبة الحسينية الحديثة،\nأود طلب خدمة / استشارة:\n- الخدمة: ${selectedService}\n- الاسم: ${clientName || "عميل"}\n- الهاتف: ${clientPhone}\n- التفاصيل: ${notes || "لا يوجد"}\n- كود الطلب: ${submittedRef || "جديد"}`;
     window.open(whatsappLink(text), "_blank");
   };
 
   const handleSendEngConfiguratorQuote = () => {
     if (!clientPhone.trim()) {
-      toast.error("يرجى أدخل رقم هاتفك لتزويدك بالتسعيرة الرسمية");
+      toast.error("يرجى إدخال رقم هاتفك لتزويدك بالتسعيرة الرسمية");
       return;
     }
-    const msg = encodeURIComponent(
-      `السلام عليكم قسم الاستشارات الهندسية - مؤسسة الحسينية،\nأود طلب عرض سعر رسمي للمشروع الهندسي:\n- نوع المشروع: ${engProjectType}\n- المساحة التقديرية: ${engArea} م²\n- الخدمات المطلوبة:\n  * ${engSelectedServices.join("\n  * ")}\n- الاسم/الجهة: ${clientName || "مالك/مقاول"}\n- الهاتف: ${clientPhone}`
-    );
-    window.open(whatsappLink(msg), "_blank");
+    const msg = `السلام عليكم قسم الاستشارات الهندسية - مؤسسة الحسينية،\nأود طلب عرض سعر رسمي للمشروع الهندسي:\n- نوع المشروع: ${engProjectType}\n- المساحة التقديرية: ${engArea} م²\n- الخدمات المطلوبة:\n  * ${engSelectedServices.join("\n  * ")}\n- الاسم/الجهة: ${clientName || "مالك/مقاول"}\n- الهاتف: ${clientPhone}`;
+    window.open(whatsappLink(msg, brand.contact.whatsapp2), "_blank");
   };
+
 
   return (
     <div
@@ -949,7 +946,7 @@ export default function About() {
                     رقم الهاتف والواتساب:
                   </span>
                   <span className="font-mono text-xs">
-                    +967 770 000 000 / +967 01 200 000
+                    {brand.contact.phone} / {brand.contact.phone2}
                   </span>
                 </div>
               </div>

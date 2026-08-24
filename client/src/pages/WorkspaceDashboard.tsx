@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { keepPreviousData } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
@@ -14,12 +15,19 @@ import {
   Plus,
   Sparkles,
   Zap,
+  AlertTriangle,
+  Truck,
+  FolderKanban,
+  Users,
+  LifeBuoy,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { EngineeringBOQCalculator } from "@/components/EngineeringBOQCalculator";
 import { BusinessLifecycleWizard } from "@/components/BusinessLifecycleWizard";
+import { EnterpriseOnboardingChecklist } from "@/components/EnterpriseOnboardingChecklist";
+import { LiveExecutiveCockpit } from "@/components/LiveExecutiveCockpit";
 import { AppSidebar } from "@/components/AppSidebar";
 import {
   MODULES,
@@ -76,6 +84,38 @@ function AdvisorInsight({ data }: { data: unknown }) {
   return <p>{String(data)}</p>;
 }
 
+function timeAgo(iso?: string): string {
+  if (!iso) return "";
+  const diff = Date.now() - new Date(iso).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return "الآن";
+  if (m < 60) return `قبل ${m} دقيقة`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `قبل ${h} ساعة`;
+  const d = Math.floor(h / 24);
+  return `قبل ${d} يوم`;
+}
+
+function QuickAction({
+  label,
+  icon: Icon,
+  onClick,
+}: {
+  label: string;
+  icon: any;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className="flex items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-3 py-2 text-[11px] font-bold text-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+    >
+      <Icon className="h-3.5 w-3.5 text-brand" />
+      {label}
+    </button>
+  );
+}
+
 export default function WorkspaceDashboard() {
   const [, setLocation] = useLocation();
   const { user } = useAuth();
@@ -106,18 +146,48 @@ export default function WorkspaceDashboard() {
 
   const { data: summaryData } = trpc.accounting.getDashboardSummary.useQuery(
     undefined,
-    { staleTime: 60_000 }
+    { staleTime: 60_000, placeholderData: keepPreviousData }
   );
   const { data: commercialStats } = trpc.commercial.getStats.useQuery(
     undefined,
     {
       staleTime: 60_000,
+      placeholderData: keepPreviousData,
     }
   );
   const { data: aiAdvisorData } =
     trpc.accounting.getAiFinancialAdvisorAnalysis.useQuery(undefined, {
       staleTime: 60_000,
+      placeholderData: keepPreviousData,
     });
+
+  // Real-time operational cockpit metrics.
+  const { data: daily } = trpc.sales.dailySummary.useQuery(undefined, {
+    staleTime: 30_000,
+    placeholderData: keepPreviousData,
+  });
+  const { data: valuation } = trpc.products.valuation.useQuery(undefined, {
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+  const { data: lowStockData } = trpc.products.lowStock.useQuery(undefined, {
+    staleTime: 60_000,
+    placeholderData: keepPreviousData,
+  });
+  const { data: activity, isLoading: activityLoading } =
+    trpc.auth.getActivityLogs.useQuery(undefined, {
+      staleTime: 30_000,
+      placeholderData: keepPreviousData,
+    });
+
+  const lowStockCount = lowStockData?.length ?? 0;
+  const receivables =
+    commercialStats?.topCustomers?.reduce(
+      (s: number, c: any) => s + parseFloat(c.balance || "0"),
+      0
+    ) ?? 0;
+  const isLoading =
+    !summaryData || !daily || !valuation || lowStockData === undefined;
 
   const firstName = (user?.name || "المشرف").split(" ")[0];
   const active = MODULES[activeWorkspace];
@@ -201,6 +271,9 @@ export default function WorkspaceDashboard() {
             </div>
           </motion.section>
 
+          {/* Enterprise Onboarding & Readiness Cockpit */}
+          <EnterpriseOnboardingChecklist />
+
           {/* Modular workspace selector */}
           <div className="surface rounded-2xl p-2">
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2">
@@ -256,59 +329,145 @@ export default function WorkspaceDashboard() {
                     </Button>
                   </div>
 
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div
+                    className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3 ${
+                      isLoading ? "opacity-60 animate-pulse" : ""
+                    }`}
+                  >
                     <StatCard
-                      label="إجمالي الإيرادات"
-                      value={formatMoney(summaryData?.totalRevenue ?? 0)}
+                      label="مبيعات اليوم"
+                      value={formatMoney(daily?.totalSales ?? 0)}
                       tone="positive"
-                      icon={Building2}
-                      hint="هذا العام"
+                      icon={ShoppingCart}
+                      hint={`${daily?.invoiceCount ?? 0} فاتورة`}
                     />
                     <StatCard
-                      label="إجمالي المصروفات"
-                      value={formatMoney(summaryData?.totalExpense ?? 0)}
-                      tone="negative"
-                      icon={Layers}
-                      hint="هذا العام"
-                    />
-                    <StatCard
-                      label="صافي الأرباح"
+                      label="صافي الربح (السنة)"
                       value={formatMoney(summaryData?.netIncome ?? 0)}
                       tone="info"
                       icon={BarChart3}
                       hint="قبل الضريبة"
                     />
                     <StatCard
-                      label="إجمالي الأصول"
-                      value={formatMoney(summaryData?.totalAssets ?? 0)}
+                      label="الذمم المدينة"
+                      value={formatMoney(receivables)}
+                      tone="negative"
+                      icon={Layers}
+                      hint="عملاء"
+                    />
+                    <StatCard
+                      label="قيمة المخزون"
+                      value={formatMoney(valuation?.totalValue ?? 0)}
                       tone="warning"
                       icon={BookIcon}
-                      hint="الرصيد الحالي"
+                      hint="تقييم"
+                    />
+                    <StatCard
+                      label="أصناف منخفضة"
+                      value={`${lowStockCount} صنف`}
+                      tone="warning"
+                      icon={AlertTriangle}
+                      hint="أقل من الحد"
+                    />
+                    <StatCard
+                      label="إجمالي الأصول"
+                      value={formatMoney(summaryData?.totalAssets ?? 0)}
+                      tone="info"
+                      icon={Building2}
+                      hint="الرصيد"
                     />
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <ModuleCard
-                      module={MODULES.accounting}
-                      title="الإدخال السريع للمعاملات"
-                      description="تسجيل قيد مالية في الخزينة أو البنك فورياً."
-                      badge="سريع"
+                  <div className="flex flex-wrap gap-2">
+                    <QuickAction
+                      label="فاتورة بيع"
+                      icon={ShoppingCart}
+                      onClick={() => setLocation("/commercial")}
+                    />
+                    <QuickAction
+                      label="فاتورة شراء"
+                      icon={ShoppingCart}
+                      onClick={() => setLocation("/commercial")}
+                    />
+                    <QuickAction
+                      label="قيد محاسبي"
+                      icon={BookIcon}
                       onClick={() => setLocation("/accounting")}
                     />
-                    <ModuleCard
-                      module={MODULES.accounting}
-                      title="دليل الحسابات الشجري"
-                      description="استعراض وتعديل الحسابات الرئيسية والفرعية."
-                      badge="محاسبي"
-                      onClick={() => setLocation("/accounting")}
+                    <QuickAction
+                      label="صنف جديد"
+                      icon={Plus}
+                      onClick={() => setLocation("/commercial")}
                     />
-                    <ModuleCard
-                      module={MODULES.accounting}
-                      title="التقارير والقوائم المالية"
-                      description="ميزان المراجعة، قائمة الدخل، والميزانية العمومية."
-                      badge="تحليلي"
+                    <QuickAction
+                      label="تقرير مالي"
+                      icon={BarChart3}
                       onClick={() => setLocation("/reports")}
                     />
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <ModuleCard
+                        module={MODULES.accounting}
+                        title="الإدخال السريع للمعاملات"
+                        description="تسجيل قيد مالية في الخزينة أو البنك فورياً."
+                        badge="سريع"
+                        onClick={() => setLocation("/accounting")}
+                      />
+                      <ModuleCard
+                        module={MODULES.accounting}
+                        title="دليل الحسابات الشجري"
+                        description="استعراض وتعديل الحسابات الرئيسية والفرعية."
+                        badge="محاسبي"
+                        onClick={() => setLocation("/accounting")}
+                      />
+                      <ModuleCard
+                        module={MODULES.accounting}
+                        title="التقارير والقوائم المالية"
+                        description="ميزان المراجعة، قائمة الدخل، والميزانية العمومية."
+                        badge="تحليلي"
+                        onClick={() => setLocation("/reports")}
+                      />
+                    </div>
+                    <div className="surface rounded-2xl p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-sm font-bold font-display">
+                          أحدث النشاطات
+                        </h3>
+                        <span className="text-[10px] text-muted-foreground">
+                          مباشر
+                        </span>
+                      </div>
+                      <ul className="space-y-2 max-h-72 overflow-auto">
+                        {activityLoading ? (
+                          <li className="text-xs text-muted-foreground">
+                            جاري التحميل…
+                          </li>
+                        ) : activity && activity.length ? (
+                          activity.slice(0, 7).map((a: any, i: number) => (
+                            <li
+                              key={i}
+                              className="flex items-start gap-2 border-b border-border/50 pb-2 last:border-0"
+                            >
+                              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-brand shrink-0" />
+                              <div className="min-w-0">
+                                <p className="text-[11px] font-medium leading-tight truncate">
+                                  {a.action}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground">
+                                  {timeAgo(a.createdAt)}
+                                </p>
+                              </div>
+                            </li>
+                          ))
+                        ) : (
+                          <li className="text-xs text-muted-foreground">
+                            لا توجد نشاطات بعد.
+                          </li>
+                        )}
+                      </ul>
+                    </div>
                   </div>
                 </>
               )}
@@ -529,6 +688,7 @@ export default function WorkspaceDashboard() {
 }
 
 function ErpWorkspacePanel({ moduleKey }: { moduleKey: ModuleKey }) {
+  const [, setLocation] = useLocation();
   const { data } = trpc.erp.getDashboard.useQuery(undefined, {
     staleTime: 60_000,
   });
@@ -546,18 +706,60 @@ function ErpWorkspacePanel({ moduleKey }: { moduleKey: ModuleKey }) {
   };
   const items = cards[moduleKey] ?? [];
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-      {items.map(c => (
-        <div
-          key={c.label}
-          className="rounded-xl border border-border bg-muted/40 p-4"
-        >
-          <p className="text-[11px] text-muted-foreground">{c.label}</p>
-          <p className="text-2xl font-black" dir="ltr">
-            {c.value}
-          </p>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {items.map(c => (
+          <div
+            key={c.label}
+            className="rounded-xl border border-border bg-muted/40 p-4"
+          >
+            <p className="text-[11px] text-muted-foreground">{c.label}</p>
+            <p className="text-2xl font-black" dir="ltr">
+              {c.value}
+            </p>
+          </div>
+        ))}
+      </div>
+      {moduleKey === "procurement" && (
+        <div className="mt-3">
+          <Button
+            onClick={() => setLocation("/procurement")}
+            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+          >
+            <Truck className="w-4 h-4" /> فتح وحدة المشتريات الكاملة
+          </Button>
         </div>
-      ))}
+      )}
+      {moduleKey === "projects" && (
+        <div className="mt-3">
+          <Button
+            onClick={() => setLocation("/projects")}
+            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+          >
+            <FolderKanban className="w-4 h-4" /> فتح وحدة المشاريع الكاملة
+          </Button>
+        </div>
+      )}
+      {moduleKey === "hr" && (
+        <div className="mt-3">
+          <Button
+            onClick={() => setLocation("/hr")}
+            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+          >
+            <Users className="w-4 h-4" /> فتح وحدة الموارد البشرية الكاملة
+          </Button>
+        </div>
+      )}
+      {moduleKey === "support" && (
+        <div className="mt-3">
+          <Button
+            onClick={() => setLocation("/support")}
+            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+          >
+            <LifeBuoy className="w-4 h-4" /> فتح وحدة الدعم والجودة الكاملة
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

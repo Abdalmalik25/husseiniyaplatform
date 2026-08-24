@@ -1,6 +1,10 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { useDebounce } from "@/hooks/useDebounce";
+import { ProductPicker } from "@/components/ProductPicker";
+import { BarcodeScanner } from "@/components/BarcodeScanner";
+import { CustomFields } from "@/components/CustomFields";
+import { EntityDocuments } from "@/components/EntityDocuments";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -44,6 +48,7 @@ import {
   Upload,
   Download,
   ReceiptText,
+  Tag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
@@ -64,7 +69,8 @@ type Tab =
   | "suppliers"
   | "sales"
   | "purchases"
-  | "orders";
+  | "orders"
+  | "offers";
 
 export default function Commercial() {
   const [activeTab, setActiveTab] = useState<Tab>("products");
@@ -82,15 +88,32 @@ export default function Commercial() {
   );
   const productsData = productsResponse?.items ?? [];
   const [showProductDialog, setShowProductDialog] = useState(false);
-  const [productForm, setProductForm] = useState({
+  const [productForm, setProductForm] = useState<any>({
     code: "",
     name: "",
     category: "",
     unit: "قطعة",
+    productType: "goods",
     purchasePrice: "0",
     salePrice: "0",
     minStock: 0,
     barcode: "",
+    unitOfMeasure: "",
+    secondaryUnit: "",
+    conversionFactor: "1",
+    isComposite: false,
+    bom: "[]",
+    alternativeIds: "[]",
+    attachmentUrl: "",
+    costMethod: "fixed",
+    directCost: "0",
+    indirectCost: "0",
+    productionMinutes: "0",
+    priceMode: "margin",
+    marginPct: "20",
+    salesAccountId: undefined as number | undefined,
+    cogsAccountId: undefined as number | undefined,
+    inventoryAccountId: undefined as number | undefined,
   });
   const createProduct = trpc.products.create.useMutation({
     onSuccess: () => {
@@ -102,10 +125,27 @@ export default function Commercial() {
         name: "",
         category: "",
         unit: "قطعة",
+        productType: "goods",
         purchasePrice: "0",
         salePrice: "0",
         minStock: 0,
         barcode: "",
+        unitOfMeasure: "",
+        secondaryUnit: "",
+        conversionFactor: "1",
+        isComposite: false,
+        bom: "[]",
+        alternativeIds: "[]",
+        attachmentUrl: "",
+        costMethod: "fixed",
+        directCost: "0",
+        indirectCost: "0",
+        productionMinutes: "0",
+        priceMode: "margin",
+        marginPct: "20",
+        salesAccountId: undefined,
+        cogsAccountId: undefined,
+        inventoryAccountId: undefined,
       });
     },
     onError: e => toast.error(e.message),
@@ -113,14 +153,32 @@ export default function Commercial() {
   const isCreatingProduct = createProduct.isPending;
 
   const [editProduct, setEditProduct] = useState<any>(null);
-  const [editProductForm, setEditProductForm] = useState({
+  const [editProductForm, setEditProductForm] = useState<any>({
     id: 0,
     name: "",
     salePrice: "",
     purchasePrice: "",
     minStock: 0,
     barcode: "",
+    productType: "goods",
+    unitOfMeasure: "",
+    secondaryUnit: "",
+    conversionFactor: "1",
+    isComposite: false,
+    bom: "[]",
+    alternativeIds: "[]",
+    attachmentUrl: "",
+    costMethod: "fixed",
+    directCost: "0",
+    indirectCost: "0",
+    productionMinutes: "0",
+    priceMode: "margin",
+    marginPct: "20",
+    salesAccountId: undefined as number | undefined,
+    cogsAccountId: undefined as number | undefined,
+    inventoryAccountId: undefined as number | undefined,
   });
+  const accountsQuery = trpc.accounting.getAccounts.useQuery();
   const updateProduct = trpc.products.update.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث المنتج");
@@ -224,6 +282,14 @@ export default function Commercial() {
   });
   const isCreatingCustomer = createCustomer.isPending;
 
+  // Customer detail dialog (carries custom fields)
+  const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
+  const [customerDetailOpen, setCustomerDetailOpen] = useState(false);
+  const openCustomerDetail = (c: any) => {
+    setSelectedCustomer(c);
+    setCustomerDetailOpen(true);
+  };
+
   // Suppliers
   const {
     data: suppliersResponse,
@@ -261,6 +327,14 @@ export default function Commercial() {
   });
   const isCreatingSupplier = createSupplier.isPending;
 
+  // Supplier detail dialog (carries custom fields)
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
+  const [supplierDetailOpen, setSupplierDetailOpen] = useState(false);
+  const openSupplierDetail = (s: any) => {
+    setSelectedSupplier(s);
+    setSupplierDetailOpen(true);
+  };
+
   // Sales
   const {
     data: salesResponse,
@@ -278,6 +352,7 @@ export default function Commercial() {
       productName: string;
       quantity: number;
       unitPrice: string;
+      discount: string;
     }[]
   >([]);
   const [saleCustomerId, setSaleCustomerId] = useState<number | undefined>();
@@ -285,16 +360,75 @@ export default function Commercial() {
     "cash" | "card" | "transfer" | "credit"
   >("cash");
   const createSale = trpc.sales.create.useMutation({
-    onSuccess: () => {
+    onSuccess: (data: any) => {
       toast.success("تم إنشاء فاتورة المبيعات");
       refetchSales();
       refetchProducts();
-      setShowSaleDialog(false);
       setSaleItems([]);
+      setSaleCoords({});
+      setSaleWorkSiteId(undefined);
+      setSaleDeviceId(undefined);
+      if (data?.zatcaView) {
+        setZatcaView(data.zatcaView);
+        setShowSaleDialog(false);
+      } else {
+        setShowSaleDialog(false);
+      }
     },
     onError: e => toast.error(e.message),
   });
   const isCreatingSale = createSale.isPending;
+
+  // ─── Multi-currency + offers (Module B) ───────────────────────────
+  const currenciesQ = trpc.modules.currencies.list.useQuery();
+  const [saleCurrency, setSaleCurrency] = useState("YER");
+  const [saleCurrencyRate, setSaleCurrencyRate] = useState("1");
+  const applyOffersToSale = () => {
+    if (!offersData) return;
+    const now = new Date();
+    const next = saleItems.map((it) => {
+      const prod: any = (productsData as any[]).find((p) => p.id === it.productId);
+      const catId = prod?.categoryId;
+      const candidates = (offersData as any[]).filter(
+        (o) =>
+          o.isActive &&
+          (!o.startDate || new Date(o.startDate) <= now) &&
+          (!o.endDate || new Date(o.endDate) >= now) &&
+          (o.minQty == null || it.quantity >= Number(o.minQty)) &&
+          (o.productId == null || o.productId === it.productId) &&
+          (o.categoryId == null || o.categoryId === catId)
+      );
+      if (candidates.length === 0) return it;
+      candidates.sort(
+        (a, b) => Number(b.discountPercent) - Number(a.discountPercent)
+      );
+      const best = candidates[0];
+      const lineSub = parseFloat(it.unitPrice) * it.quantity;
+      const disc = (lineSub * (Number(best.discountPercent) || 0)) / 100;
+      return { ...it, discount: disc.toFixed(2) };
+    });
+    setSaleItems(next);
+    toast.success("تم تطبيق العروض المتاحة على الأصناف");
+  };
+
+  // ─── Governance / audit / traceability (work site, device, coords) ───
+  const settingsQ = trpc.accounting.getSettings.useQuery();
+  const workSitesQ = trpc.workSites.list.useQuery();
+  const devicesQ = trpc.devices.list.useQuery();
+  const [saleWorkSiteId, setSaleWorkSiteId] = useState<number | undefined>();
+  const [saleDeviceId, setSaleDeviceId] = useState<number | undefined>();
+  const [saleCoords, setSaleCoords] = useState<{ lat?: string; lng?: string }>({});
+  const [zatcaView, setZatcaView] = useState<any>(null);
+  const pickLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("المتصفح لا يدعم تحديد الموقع");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => setSaleCoords({ lat: pos.coords.latitude.toString(), lng: pos.coords.longitude.toString() }),
+      () => toast.error("تعذر تحديد الموقع")
+    );
+  };
 
   // Purchases
   const {
@@ -313,6 +447,7 @@ export default function Commercial() {
       productName: string;
       quantity: number;
       unitPrice: string;
+      discount: string;
     }[]
   >([]);
   const [purchaseSupplierId, setPurchaseSupplierId] = useState<
@@ -347,6 +482,7 @@ export default function Commercial() {
       productName: string;
       quantity: number;
       unitPrice: string;
+      discount: string;
     }[]
   >([]);
   const [orderCustomerId, setOrderCustomerId] = useState<number | undefined>();
@@ -361,6 +497,113 @@ export default function Commercial() {
     onError: e => toast.error(e.message),
   });
   const isCreatingOrder = createOrder.isPending;
+
+  // ─── Offers / Discounts (Module B) ───
+  const { data: offersData, isPending: loadingOffers } =
+    trpc.modules.offers.list.useQuery(undefined, { staleTime: 60_000 });
+  const productsForOffer = trpc.products.list.useQuery(
+    { limit: 300 },
+    { staleTime: 60_000 }
+  );
+  const catsForOffer = trpc.modules.masterData.listCategories.useQuery(undefined, {
+    staleTime: 60_000,
+  });
+  const createOffer = trpc.modules.offers.create.useMutation({
+    onSuccess: () => {
+      toast.success("تمت إضافة العرض");
+      setShowOfferDialog(false);
+      setOfferForm({
+        name: "",
+        kind: "financial",
+        discountPercent: "0",
+        minQty: "",
+        productId: undefined,
+        categoryId: undefined,
+        startDate: "",
+        endDate: "",
+        isActive: true,
+      });
+      utils.modules.offers.list.invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const updateOffer = trpc.modules.offers.update.useMutation({
+    onSuccess: () => {
+      toast.success("تم التحديث");
+      setEditOffer(null);
+      utils.modules.offers.list.invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const deleteOffer = trpc.modules.offers.delete.useMutation({
+    onSuccess: () => {
+      toast.success("تم الحذف");
+      utils.modules.offers.list.invalidate();
+    },
+    onError: (e: any) => toast.error(e.message),
+  });
+  const [showOfferDialog, setShowOfferDialog] = useState(false);
+  const [offerForm, setOfferForm] = useState<any>({
+    name: "",
+    kind: "financial",
+    discountPercent: "0",
+    minQty: "",
+    productId: undefined as number | undefined,
+    categoryId: undefined as number | undefined,
+    startDate: "",
+    endDate: "",
+    isActive: true,
+  });
+  const [editOffer, setEditOffer] = useState<any>(null);
+
+  // ─── Product Picker (shared by Sale / Purchase / Order dialogs) ───
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerMode, setPickerMode] = useState<
+    "sale" | "purchase" | "order" | null
+  >(null);
+
+  const openPicker = (mode: "sale" | "purchase" | "order") => {
+    setPickerMode(mode);
+    setPickerOpen(true);
+  };
+
+  const handlePick = (p: any) => {
+    if (!p) return;
+    if (pickerMode === "sale") {
+      setSaleItems([
+        ...saleItems,
+        {
+          productId: p.id,
+          productName: p.name,
+          quantity: 1,
+          unitPrice: String(p.salePrice ?? "0"),
+          discount: "0",
+        },
+      ]);
+    } else if (pickerMode === "purchase") {
+      setPurchaseItems([
+        ...purchaseItems,
+        {
+          productId: p.id,
+          productName: p.name,
+          quantity: 1,
+          unitPrice: String(p.purchasePrice ?? "0"),
+          discount: "0",
+        },
+      ]);
+    } else if (pickerMode === "order") {
+      setOrderItems([
+        ...orderItems,
+        {
+          productId: p.id,
+          productName: p.name,
+          quantity: 1,
+          unitPrice: String(p.salePrice ?? "0"),
+          discount: "0",
+        },
+      ]);
+    }
+  };
   const updateOrderStatus = trpc.orders.updateStatus.useMutation({
     onSuccess: () => {
       toast.success("تم تحديث حالة الطلب");
@@ -503,6 +746,15 @@ export default function Commercial() {
       ),
     [saleItems]
   );
+  const saleDiscountTotal = useMemo(
+    () =>
+      saleItems.reduce(
+        (sum, item) => sum + (parseFloat(item.discount) || 0),
+        0
+      ),
+    [saleItems]
+  );
+  const saleGrandTotal = saleTotal - saleDiscountTotal;
   const purchaseTotal = useMemo(
     () =>
       purchaseItems.reduce(
@@ -520,50 +772,12 @@ export default function Commercial() {
     [orderItems]
   );
 
-  const addItemToSale = () => {
-    if (productsData && productsData.length > 0) {
-      const p = productsData[0];
-      setSaleItems([
-        ...saleItems,
-        {
-          productId: p.id,
-          productName: p.name,
-          quantity: 1,
-          unitPrice: p.salePrice || "0",
-        },
-      ]);
-    }
-  };
-
-  const addItemToPurchase = () => {
-    if (productsData && productsData.length > 0) {
-      const p = productsData[0];
-      setPurchaseItems([
-        ...purchaseItems,
-        {
-          productId: p.id,
-          productName: p.name,
-          quantity: 1,
-          unitPrice: p.purchasePrice || "0",
-        },
-      ]);
-    }
-  };
-
-  const addItemToOrder = () => {
-    if (productsData && productsData.length > 0) {
-      const p = productsData[0];
-      setOrderItems([
-        ...orderItems,
-        {
-          productId: p.id,
-          productName: p.name,
-          quantity: 1,
-          unitPrice: p.salePrice || "0",
-        },
-      ]);
-    }
-  };
+  // NOTE: item selection now goes through the shared <ProductPicker/> via
+  // openPicker(...) — the old "add first product" shortcut is intentionally
+  // removed so the cashier always picks the exact item they are selling.
+  const addItemToSale = () => openPicker("sale");
+  const addItemToPurchase = () => openPicker("purchase");
+  const addItemToOrder = () => openPicker("order");
 
   const statusColorsMap = statusColors;
   const statusLabelsMap = statusLabels;
@@ -586,7 +800,7 @@ export default function Commercial() {
         </div>
 
         <Tabs value={activeTab} onValueChange={v => setActiveTab(v as Tab)}>
-          <TabsList className="grid w-full grid-cols-6 h-10 mb-3 bg-white border">
+          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 h-10 mb-3 bg-white border">
             <TabsTrigger value="products" className="text-[10px]">
               <Package className="w-3 h-3 ml-1" />
               المنتجات
@@ -610,6 +824,10 @@ export default function Commercial() {
             <TabsTrigger value="orders" className="text-[10px]">
               <ClipboardList className="w-3 h-3 ml-1" />
               الطلبات
+            </TabsTrigger>
+            <TabsTrigger value="offers" className="text-[10px]">
+              <Tag className="w-3 h-3 ml-1" />
+              العروض
             </TabsTrigger>
           </TabsList>
 
@@ -724,6 +942,23 @@ export default function Commercial() {
                                   purchasePrice: p.purchasePrice,
                                   minStock: p.minStock,
                                   barcode: p.barcode || "",
+                                  productType: (p as any).type || "goods",
+                                  unitOfMeasure: (p as any).unitOfMeasure || "",
+                                  secondaryUnit: (p as any).secondaryUnit || "",
+                                  conversionFactor: String((p as any).conversionFactor ?? "1"),
+                                  isComposite: !!(p as any).isComposite,
+                                  bom: (p as any).bom || "[]",
+                                  alternativeIds: (p as any).alternativeIds || "[]",
+                                  attachmentUrl: (p as any).attachmentUrl || "",
+                                  costMethod: (p as any).costMethod || "fixed",
+                                  directCost: String((p as any).directCost ?? "0"),
+                                  indirectCost: String((p as any).indirectCost ?? "0"),
+                                  productionMinutes: String((p as any).productionMinutes ?? "0"),
+                                  priceMode: (p as any).priceMode || "margin",
+                                  marginPct: String((p as any).marginPct ?? "20"),
+                                  salesAccountId: (p as any).salesAccountId ?? undefined,
+                                  cogsAccountId: (p as any).cogsAccountId ?? undefined,
+                                  inventoryAccountId: (p as any).inventoryAccountId ?? undefined,
                                 });
                                 setEditProduct(p);
                               }}
@@ -818,13 +1053,21 @@ export default function Commercial() {
                             </div>
                           </div>
                         </div>
-                        <div className="text-left">
+                        <div className="text-left flex flex-col items-end gap-1">
                           <p className="text-[10px] text-gray-500">الرصيد</p>
                           <p
                             className={`font-bold text-xs ${parseFloat(c.balance) > 0 ? "text-red-600" : "text-green-600"}`}
                           >
                             {c.balance}
                           </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[10px] h-6"
+                            onClick={() => openCustomerDetail(c)}
+                          >
+                            تفاصيل
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -896,11 +1139,19 @@ export default function Commercial() {
                             </div>
                           </div>
                         </div>
-                        <div className="text-left">
+                        <div className="text-left flex flex-col items-end gap-1">
                           <p className="text-[10px] text-gray-500">الرصيد</p>
                           <p className="font-bold text-xs text-red-600">
                             {s.balance}
                           </p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-[10px] h-6"
+                            onClick={() => openSupplierDetail(s)}
+                          >
+                            تفاصيل
+                          </Button>
                         </div>
                       </div>
                     ))}
@@ -1001,6 +1252,10 @@ export default function Commercial() {
                               <Printer className="w-3 h-3" /> طباعة
                             </Button>
                           )}
+                          <EntityDocuments
+                            entityType="salesInvoice"
+                            entityId={inv.id}
+                          />
                           {inv.status !== "cancelled" && (
                             <Button
                               size="sm"
@@ -1262,6 +1517,83 @@ export default function Commercial() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* ─── Offers Tab (Module B) ─── */}
+          <TabsContent value="offers">
+            <Card className="border-0 shadow-sm bg-white">
+              <CardHeader className="flex flex-row items-center justify-between p-3">
+                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                  العروض المالية والكمية
+                </CardTitle>
+                <Button
+                  size="sm"
+                  className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+                  onClick={() => setShowOfferDialog(true)}
+                >
+                  <Plus className="w-3 h-3 ml-1" />
+                  عرض جديد
+                </Button>
+              </CardHeader>
+              <CardContent className="p-3">
+                <div className="space-y-2">
+                  {(offersData ?? []).map((o: any) => (
+                    <div
+                      key={o.id}
+                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                    >
+                      <div>
+                        <p className="font-bold text-xs text-[#102a2b]">{o.name}</p>
+                        <p className="text-[10px] text-gray-500">
+                          {o.kind === "financial" ? "خصم مالي" : "عرض كمي"} •{" "}
+                          {Number(o.discountPercent)}% خصم
+                          {o.minQty ? ` • حد أدنى ${o.minQty}` : ""}
+                          {!o.isActive && " • غير نشط"}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-[10px] h-7"
+                          onClick={() =>
+                            setEditOffer({
+                              id: o.id,
+                              name: o.name,
+                              kind: o.kind,
+                              discountPercent: String(o.discountPercent),
+                              minQty: o.minQty ?? "",
+                              productId: o.productId ?? undefined,
+                              categoryId: o.categoryId ?? undefined,
+                              startDate: o.startDate ? o.startDate.slice(0, 10) : "",
+                              endDate: o.endDate ? o.endDate.slice(0, 10) : "",
+                              isActive: o.isActive,
+                            })
+                          }
+                        >
+                          تعديل
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="text-[10px] h-7 text-destructive"
+                          onClick={() => {
+                            if (confirm("حذف العرض؟")) deleteOffer.mutate({ id: o.id });
+                          }}
+                        >
+                          حذف
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                  {(!offersData || offersData.length === 0) && (
+                    <p className="text-center text-gray-400 text-sm py-8">
+                      لا توجد عروض
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
 
@@ -1364,14 +1696,121 @@ export default function Commercial() {
                 />
               </div>
               <div>
-                <Label className="text-[10px]">الباركود</Label>
-                <Input
+                <Label className="text-[10px]">الباركود (مسح/إدخال)</Label>
+                <BarcodeScanner
                   value={productForm.barcode}
-                  onChange={e =>
-                    setProductForm({ ...productForm, barcode: e.target.value })
-                  }
-                  className="h-8 text-xs"
+                  onChange={v => setProductForm({ ...productForm, barcode: v })}
                 />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">نوع الصنف</Label>
+                <select
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  value={productForm.productType}
+                  onChange={e => setProductForm({ ...productForm, productType: e.target.value })}
+                >
+                  <option value="goods">سلعة</option>
+                  <option value="service">خدمة</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-[10px]">وحدة القياس</Label>
+                <Input
+                  value={productForm.unitOfMeasure}
+                  onChange={e => setProductForm({ ...productForm, unitOfMeasure: e.target.value })}
+                  className="h-8 text-xs"
+                  placeholder="مثل: كجم، لتر، علبة"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-[10px]">الوحدة الفرعية</Label>
+                <Input value={productForm.secondaryUnit} onChange={e => setProductForm({ ...productForm, secondaryUnit: e.target.value })} className="h-8 text-xs" />
+              </div>
+              <div>
+                <Label className="text-[10px]">معامل التحويل</Label>
+                <Input type="number" value={productForm.conversionFactor} onChange={e => setProductForm({ ...productForm, conversionFactor: e.target.value })} className="h-8 text-xs" />
+              </div>
+              <div className="flex items-end">
+                <label className="flex items-center gap-1 text-[10px]">
+                  <input type="checkbox" checked={productForm.isComposite} onChange={e => setProductForm({ ...productForm, isComposite: e.target.checked })} /> صنف مركب
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">مكونات (BOM) JSON</Label>
+                <Input value={productForm.bom} onChange={e => setProductForm({ ...productForm, bom: e.target.value })} className="h-8 text-xs" placeholder='[{"productId":1,"qty":2}]' />
+              </div>
+              <div>
+                <Label className="text-[10px]">أصناف بديلة (JSON)</Label>
+                <Input value={productForm.alternativeIds} onChange={e => setProductForm({ ...productForm, alternativeIds: e.target.value })} className="h-8 text-xs" placeholder='[2,3]' />
+              </div>
+            </div>
+
+            <div>
+              <Label className="text-[10px]">رابط مرفق (صورة/ملف)</Label>
+              <Input value={productForm.attachmentUrl} onChange={e => setProductForm({ ...productForm, attachmentUrl: e.target.value })} className="h-8 text-xs" placeholder="https://..." />
+            </div>
+
+            {productForm.productType === "service" && (
+              <div className="border rounded-lg p-2 space-y-2 bg-amber-50/50">
+                <p className="text-[10px] font-bold text-[#102a2b]">تسعير الخدمة (تكلفة دقيقة/مرنة)</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-[10px]">طريقة التكلفة</Label>
+                    <select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={productForm.costMethod} onChange={e => setProductForm({ ...productForm, costMethod: e.target.value })}>
+                      <option value="fixed">ثابتة</option>
+                      <option value="calculated">محسوبة</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">تكلفة مباشرة</Label>
+                    <Input type="number" value={productForm.directCost} onChange={e => setProductForm({ ...productForm, directCost: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">تكلفة غير مباشرة</Label>
+                    <Input type="number" value={productForm.indirectCost} onChange={e => setProductForm({ ...productForm, indirectCost: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div>
+                    <Label className="text-[10px]">دقائق إنتاج</Label>
+                    <Input type="number" value={productForm.productionMinutes} onChange={e => setProductForm({ ...productForm, productionMinutes: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">وضع السعر</Label>
+                    <select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={productForm.priceMode} onChange={e => setProductForm({ ...productForm, priceMode: e.target.value })}>
+                      <option value="margin">هامش</option>
+                      <option value="direct">مباشر</option>
+                    </select>
+                  </div>
+                  <div>
+                    <Label className="text-[10px]">نسبة الهامش %</Label>
+                    <Input type="number" value={productForm.marginPct} onChange={e => setProductForm({ ...productForm, marginPct: e.target.value })} className="h-8 text-xs" />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-[10px]">حساب الإيراد</Label>
+                <AcctSelect value={productForm.salesAccountId} onChange={v => setProductForm({ ...productForm, salesAccountId: v })} accounts={accountsQuery.data} />
+              </div>
+              <div>
+                <Label className="text-[10px]">حساب التكلفة</Label>
+                <AcctSelect value={productForm.cogsAccountId} onChange={v => setProductForm({ ...productForm, cogsAccountId: v })} accounts={accountsQuery.data} />
+              </div>
+              <div>
+                <Label className="text-[10px]">حساب المخزون</Label>
+                <AcctSelect value={productForm.inventoryAccountId} onChange={v => setProductForm({ ...productForm, inventoryAccountId: v })} accounts={accountsQuery.data} />
               </div>
             </div>
           </div>
@@ -1388,7 +1827,7 @@ export default function Commercial() {
               size="sm"
               className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
               disabled={isCreatingProduct}
-              onClick={() => createProduct.mutate(productForm)}
+              onClick={() => createProduct.mutate(productForm as any)}
             >
               {isCreatingProduct ? "جاري الحفظ..." : "حفظ"}
             </Button>
@@ -1566,7 +2005,319 @@ export default function Commercial() {
         </DialogContent>
       </Dialog>
 
-      {/* ─── Sale Dialog ─── */}
+      {/* ─── Customer Detail Dialog (custom fields) ─── */}
+      <Dialog open={customerDetailOpen} onOpenChange={setCustomerDetailOpen}>
+        <DialogContent className="bg-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm text-[#102a2b]">
+              تفاصيل العميل: {selectedCustomer?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-[11px] text-gray-500 space-y-1">
+            <p>الكود: {selectedCustomer?.code}</p>
+            <p>الهاتف: {selectedCustomer?.phone}</p>
+            <p>المدينة: {selectedCustomer?.city}</p>
+          </div>
+          {selectedCustomer && (
+            <CustomFields
+              entityType="customer"
+              entityId={selectedCustomer.id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Supplier Detail Dialog (custom fields) ─── */}
+      <Dialog open={supplierDetailOpen} onOpenChange={setSupplierDetailOpen}>
+        <DialogContent className="bg-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm text-[#102a2b]">
+              تفاصيل المورد: {selectedSupplier?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-[11px] text-gray-500 space-y-1">
+            <p>الكود: {selectedSupplier?.code}</p>
+            <p>الهاتف: {selectedSupplier?.phone}</p>
+            <p>المدينة: {selectedSupplier?.city}</p>
+          </div>
+           {selectedSupplier && (
+             <CustomFields
+               entityType="supplier"
+               entityId={selectedSupplier.id}
+             />
+           )}
+         </DialogContent>
+       </Dialog>
+
+       {/* ─── Offers Dialog (Module B) ─── */}
+       <Dialog open={showOfferDialog} onOpenChange={setShowOfferDialog}>
+         <DialogContent className="bg-white max-w-md">
+           <DialogHeader>
+             <DialogTitle className="text-sm text-[#102a2b]">عرض جديد</DialogTitle>
+           </DialogHeader>
+           <div className="space-y-3">
+             <div>
+               <Label className="text-[10px]">الاسم</Label>
+               <Input
+                 value={offerForm.name}
+                 onChange={e => setOfferForm({ ...offerForm, name: e.target.value })}
+                 className="h-8 text-xs"
+               />
+             </div>
+             <div className="grid grid-cols-2 gap-2">
+               <div>
+                 <Label className="text-[10px]">النوع</Label>
+                 <select
+                   className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                   value={offerForm.kind}
+                   onChange={e => setOfferForm({ ...offerForm, kind: e.target.value })}
+                 >
+                   <option value="financial">خصم مالي</option>
+                   <option value="quantity">عرض كمي</option>
+                 </select>
+               </div>
+               <div>
+                 <Label className="text-[10px]">نسبة الخصم %</Label>
+                 <Input
+                   value={offerForm.discountPercent}
+                   onChange={e => setOfferForm({ ...offerForm, discountPercent: e.target.value })}
+                   className="h-8 text-xs"
+                 />
+               </div>
+             </div>
+             <div className="grid grid-cols-2 gap-2">
+               <div>
+                 <Label className="text-[10px]">الحد الأدنى للكمية</Label>
+                 <Input
+                   value={offerForm.minQty}
+                   onChange={e => setOfferForm({ ...offerForm, minQty: e.target.value })}
+                   className="h-8 text-xs"
+                 />
+               </div>
+               <div>
+                 <Label className="text-[10px]">منتج (اختياري)</Label>
+                 <select
+                   className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                   value={offerForm.productId ?? ""}
+                   onChange={e => setOfferForm({ ...offerForm, productId: e.target.value ? Number(e.target.value) : undefined })}
+                 >
+                   <option value="">كل المنتجات</option>
+                   {(productsForOffer.data?.items ?? []).map((p: any) => (
+                     <option key={p.id} value={p.id}>{p.name}</option>
+                   ))}
+                 </select>
+               </div>
+             </div>
+             <div>
+               <Label className="text-[10px]">تصنيف (اختياري)</Label>
+               <select
+                 className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                 value={offerForm.categoryId ?? ""}
+                 onChange={e => setOfferForm({ ...offerForm, categoryId: e.target.value ? Number(e.target.value) : undefined })}
+               >
+                 <option value="">كل التصنيفات</option>
+                 {(catsForOffer.data ?? []).map((c: any) => (
+                   <option key={c.id} value={c.id}>{c.name}</option>
+                 ))}
+               </select>
+             </div>
+             <div className="grid grid-cols-2 gap-2">
+               <div>
+                 <Label className="text-[10px]">تاريخ البداية</Label>
+                 <Input
+                   type="date"
+                   value={offerForm.startDate}
+                   onChange={e => setOfferForm({ ...offerForm, startDate: e.target.value })}
+                   className="h-8 text-xs"
+                 />
+               </div>
+               <div>
+                 <Label className="text-[10px]">تاريخ النهاية</Label>
+                 <Input
+                   type="date"
+                   value={offerForm.endDate}
+                   onChange={e => setOfferForm({ ...offerForm, endDate: e.target.value })}
+                   className="h-8 text-xs"
+                 />
+               </div>
+             </div>
+             <label className="flex items-center gap-2 text-[11px]">
+               <input
+                 type="checkbox"
+                 checked={offerForm.isActive}
+                 onChange={e => setOfferForm({ ...offerForm, isActive: e.target.checked })}
+               />
+               نشط
+             </label>
+             <DialogFooter>
+               <Button
+                 variant="outline"
+                 size="sm"
+                 onClick={() => setShowOfferDialog(false)}
+                 className="h-8 text-xs"
+               >
+                 إلغاء
+               </Button>
+               <Button
+                 size="sm"
+                 className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+                 disabled={!offerForm.name || createOffer.isPending}
+                 onClick={() =>
+                   createOffer.mutate({
+                     name: offerForm.name,
+                     kind: offerForm.kind,
+                     discountPercent: offerForm.discountPercent || "0",
+                     minQty: offerForm.minQty || undefined,
+                     productId: offerForm.productId,
+                     categoryId: offerForm.categoryId,
+                     startDate: offerForm.startDate || undefined,
+                     endDate: offerForm.endDate || undefined,
+                   })
+                 }
+               >
+                 {createOffer.isPending ? "جاري الحفظ..." : "حفظ"}
+               </Button>
+             </DialogFooter>
+           </div>
+         </DialogContent>
+       </Dialog>
+
+       {/* ─── Offers Edit Dialog (Module B) ─── */}
+       <Dialog open={!!editOffer} onOpenChange={(o) => !o && setEditOffer(null)}>
+         <DialogContent className="bg-white max-w-md">
+           <DialogHeader>
+             <DialogTitle className="text-sm text-[#102a2b]">تعديل العرض</DialogTitle>
+           </DialogHeader>
+           {editOffer && (
+             <div className="space-y-3">
+               <div>
+                 <Label className="text-[10px]">الاسم</Label>
+                 <Input
+                   value={editOffer.name}
+                   onChange={e => setEditOffer({ ...editOffer, name: e.target.value })}
+                   className="h-8 text-xs"
+                 />
+               </div>
+               <div className="grid grid-cols-2 gap-2">
+                 <div>
+                   <Label className="text-[10px]">النوع</Label>
+                   <select
+                     className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                     value={editOffer.kind}
+                     onChange={e => setEditOffer({ ...editOffer, kind: e.target.value })}
+                   >
+                     <option value="financial">خصم مالي</option>
+                     <option value="quantity">عرض كمي</option>
+                   </select>
+                 </div>
+                 <div>
+                   <Label className="text-[10px]">نسبة الخصم %</Label>
+                   <Input
+                     value={editOffer.discountPercent}
+                     onChange={e => setEditOffer({ ...editOffer, discountPercent: e.target.value })}
+                     className="h-8 text-xs"
+                   />
+                 </div>
+               </div>
+               <div className="grid grid-cols-2 gap-2">
+                 <div>
+                   <Label className="text-[10px]">الحد الأدنى للكمية</Label>
+                   <Input
+                     value={editOffer.minQty}
+                     onChange={e => setEditOffer({ ...editOffer, minQty: e.target.value })}
+                     className="h-8 text-xs"
+                   />
+                 </div>
+                 <div>
+                   <Label className="text-[10px]">منتج (اختياري)</Label>
+                   <select
+                     className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                     value={editOffer.productId ?? ""}
+                     onChange={e => setEditOffer({ ...editOffer, productId: e.target.value ? Number(e.target.value) : undefined })}
+                   >
+                     <option value="">كل المنتجات</option>
+                     {(productsForOffer.data?.items ?? []).map((p: any) => (
+                       <option key={p.id} value={p.id}>{p.name}</option>
+                     ))}
+                   </select>
+                 </div>
+               </div>
+               <div>
+                 <Label className="text-[10px]">تصنيف (اختياري)</Label>
+                 <select
+                   className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                   value={editOffer.categoryId ?? ""}
+                   onChange={e => setEditOffer({ ...editOffer, categoryId: e.target.value ? Number(e.target.value) : undefined })}
+                 >
+                   <option value="">كل التصنيفات</option>
+                   {(catsForOffer.data ?? []).map((c: any) => (
+                     <option key={c.id} value={c.id}>{c.name}</option>
+                   ))}
+                 </select>
+               </div>
+               <div className="grid grid-cols-2 gap-2">
+                 <div>
+                   <Label className="text-[10px]">تاريخ البداية</Label>
+                   <Input
+                     type="date"
+                     value={editOffer.startDate}
+                     onChange={e => setEditOffer({ ...editOffer, startDate: e.target.value })}
+                     className="h-8 text-xs"
+                   />
+                 </div>
+                 <div>
+                   <Label className="text-[10px]">تاريخ النهاية</Label>
+                   <Input
+                     type="date"
+                     value={editOffer.endDate}
+                     onChange={e => setEditOffer({ ...editOffer, endDate: e.target.value })}
+                     className="h-8 text-xs"
+                   />
+                 </div>
+               </div>
+               <label className="flex items-center gap-2 text-[11px]">
+                 <input
+                   type="checkbox"
+                   checked={editOffer.isActive}
+                   onChange={e => setEditOffer({ ...editOffer, isActive: e.target.checked })}
+                 />
+                 نشط
+               </label>
+               <DialogFooter>
+                 <Button
+                   variant="outline"
+                   size="sm"
+                   onClick={() => setEditOffer(null)}
+                   className="h-8 text-xs"
+                 >
+                   إلغاء
+                 </Button>
+                 <Button
+                   size="sm"
+                   className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+                   disabled={!editOffer.name || updateOffer.isPending}
+                   onClick={() =>
+                     updateOffer.mutate({
+                       id: editOffer.id,
+                       name: editOffer.name,
+                       kind: editOffer.kind,
+                       discountPercent: editOffer.discountPercent || "0",
+                       minQty: editOffer.minQty || undefined,
+                       productId: editOffer.productId,
+                       categoryId: editOffer.categoryId,
+                       isActive: editOffer.isActive,
+                     })
+                   }
+                 >
+                   {updateOffer.isPending ? "جاري الحفظ..." : "حفظ"}
+                 </Button>
+               </DialogFooter>
+             </div>
+           )}
+         </DialogContent>
+       </Dialog>
+
+       {/* ─── Sale Dialog ─── */}
       <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
         <DialogContent className="bg-white max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -1612,6 +2363,80 @@ export default function Commercial() {
                 </Select>
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">العملة</Label>
+                <Select
+                  value={saleCurrency}
+                  onValueChange={(v) => {
+                    setSaleCurrency(v);
+                    const c = (currenciesQ.data || []).find(
+                      (x: any) => x.code === v
+                    );
+                    setSaleCurrencyRate(c ? String(c.rate) : "1");
+                  }}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="العملة" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="YER">ريال يمني (YER)</SelectItem>
+                    {(currenciesQ.data || []).map((c: any) => (
+                      <SelectItem key={c.id} value={c.code}>
+                        {c.code} — {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="text-[10px]">سعر الصرف</Label>
+                <Input
+                  value={saleCurrencyRate}
+                  onChange={(e) => setSaleCurrencyRate(e.target.value)}
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              <div>
+                <Label className="text-[10px]">موقع العمل</Label>
+                <select
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  value={saleWorkSiteId ?? ""}
+                  onChange={e => setSaleWorkSiteId(e.target.value ? Number(e.target.value) : undefined)}
+                >
+                  <option value="">—</option>
+                  {(workSitesQ.data || []).map(w => (
+                    <option key={w.id} value={w.id}>{w.code} - {w.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-[10px]">الجهاز</Label>
+                <select
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  value={saleDeviceId ?? ""}
+                  onChange={e => setSaleDeviceId(e.target.value ? Number(e.target.value) : undefined)}
+                >
+                  <option value="">—</option>
+                  {(devicesQ.data || []).map(d => (
+                    <option key={d.id} value={d.id}>{d.code} - {d.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label className="text-[10px]">الإحداثيات</Label>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-[10px] w-full"
+                  onClick={pickLocation}
+                >
+                  {saleCoords.lat ? `✓ ${saleCoords.lat.slice(0, 6)}` : "تحديد الموقع"}
+                </Button>
+              </div>
+            </div>
             <div className="border rounded-lg p-2">
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-[10px] font-bold">الأصناف</Label>
@@ -1624,50 +2449,102 @@ export default function Commercial() {
                   <Plus className="w-3 h-3" />
                   إضافة صنف
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-6 text-[10px] text-[#b87945] border-[#b87945]/40"
+                  onClick={applyOffersToSale}
+                  disabled={saleItems.length === 0}
+                >
+                  <Tag className="w-3 h-3" />
+                  تطبيق العروض
+                </Button>
               </div>
-              {saleItems.map((item, idx) => (
-                <div key={idx} className="flex items-center gap-2 mb-2">
-                  <Input
-                    value={item.productName}
-                    readOnly
-                    className="h-7 text-[10px] flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={item.quantity}
-                    onChange={e => {
-                      const newItems = [...saleItems];
-                      newItems[idx].quantity = parseInt(e.target.value) || 1;
-                      setSaleItems(newItems);
-                    }}
-                    className="h-7 text-[10px] w-16"
-                  />
-                  <Input
-                    type="number"
-                    value={item.unitPrice}
-                    onChange={e => {
-                      const newItems = [...saleItems];
-                      newItems[idx].unitPrice = e.target.value;
-                      setSaleItems(newItems);
-                    }}
-                    className="h-7 text-[10px] w-20"
-                  />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-7 w-7 p-0"
-                    onClick={() =>
-                      setSaleItems(saleItems.filter((_, i) => i !== idx))
-                    }
+              {saleItems.map((item, idx) => {
+                const lineTotal =
+                  parseFloat(item.unitPrice) * item.quantity -
+                  (parseFloat(item.discount) || 0);
+                return (
+                  <div
+                    key={idx}
+                    className="flex items-center gap-1.5 mb-2"
                   >
-                    <Trash2 className="w-3 h-3 text-red-500" />
-                  </Button>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[10px] font-bold text-[#102a2b] truncate">
+                        {item.productName}
+                      </p>
+                      <p className="text-[9px] text-gray-400">
+                        {(parseFloat(item.unitPrice) * item.quantity).toLocaleString()} −{" "}
+                        خصم {item.discount || "0"} ={" "}
+                        <span className="font-bold text-[#b87945]">
+                          {lineTotal.toLocaleString()} ر.ي
+                        </span>
+                      </p>
+                    </div>
+                    <Input
+                      type="number"
+                      value={item.quantity}
+                      onChange={e => {
+                        const newItems = [...saleItems];
+                        newItems[idx].quantity =
+                          parseInt(e.target.value) || 1;
+                        setSaleItems(newItems);
+                      }}
+                      className="h-7 text-[10px] w-14"
+                    />
+                    <Input
+                      type="number"
+                      value={item.unitPrice}
+                      onChange={e => {
+                        const newItems = [...saleItems];
+                        newItems[idx].unitPrice = e.target.value;
+                        setSaleItems(newItems);
+                      }}
+                      className="h-7 text-[10px] w-20"
+                    />
+                    <Input
+                      type="number"
+                      value={item.discount}
+                      placeholder="خصم"
+                      onChange={e => {
+                        const newItems = [...saleItems];
+                        newItems[idx].discount = e.target.value;
+                        setSaleItems(newItems);
+                      }}
+                      className="h-7 text-[10px] w-16"
+                    />
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 w-7 p-0"
+                      onClick={() =>
+                        setSaleItems(saleItems.filter((_, i) => i !== idx))
+                      }
+                    >
+                      <Trash2 className="w-3 h-3 text-red-500" />
+                    </Button>
+                  </div>
+                );
+              })}
+              <div className="flex flex-col gap-1 pt-2 border-t text-[11px]">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">المجموع الفرعي</span>
+                  <span className="font-bold">
+                    {saleTotal.toLocaleString()} ر.ي
+                  </span>
                 </div>
-              ))}
-              <div className="flex justify-end pt-2 border-t">
-                <p className="text-sm font-bold text-[#102a2b]">
-                  الإجمالي: {saleTotal.toLocaleString()} ر.ي
-                </p>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">إجمالي الخصم</span>
+                  <span className="font-bold text-red-500">
+                    {saleDiscountTotal.toLocaleString()} ر.ي
+                  </span>
+                </div>
+                <div className="flex justify-between border-t pt-1">
+                  <span className="font-bold text-[#102a2b]">الإجمالي النهائي</span>
+                  <span className="font-bold text-[#102a2b]">
+                    {saleGrandTotal.toLocaleString()} ر.ي
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -1689,7 +2566,17 @@ export default function Commercial() {
                   items: saleItems,
                   paymentMethod: salePayment,
                   paidAmount:
-                    salePayment === "cash" ? saleTotal.toString() : "0",
+                    salePayment === "cash"
+                      ? saleGrandTotal.toString()
+                      : "0",
+                  discount: saleDiscountTotal.toString(),
+                  country: (settingsQ.data as any)?.country,
+                  workSiteId: saleWorkSiteId,
+                  deviceId: saleDeviceId,
+                  lat: saleCoords.lat,
+                  lng: saleCoords.lng,
+                  currency: saleCurrency,
+                  currencyRate: saleCurrencyRate,
                 })
               }
               disabled={saleItems.length === 0 || isCreatingSale}
@@ -1699,6 +2586,52 @@ export default function Commercial() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ─── ZATCA e-invoice QR (Saudi) ─── */}
+      <Dialog open={!!zatcaView} onOpenChange={o => !o && setZatcaView(null)}>
+        <DialogContent className="bg-white max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="text-sm text-[#102a2b]">
+              الفاتورة الإلكترونية (ZATCA)
+            </DialogTitle>
+          </DialogHeader>
+          {zatcaView && (
+            <div className="space-y-2 text-center">
+              <p className="text-[11px] text-gray-500">
+                رمز الاستجابة السريعة (TLV Base64) — الصقه في مولّد QR لعرضه
+                للعميل أو خزّنه مع الفاتورة.
+              </p>
+              <textarea
+                readOnly
+                rows={4}
+                className="w-full p-2 rounded border border-gray-200 text-[10px] font-mono bg-gray-50"
+                value={zatcaView.qrBase64 || ""}
+              />
+              <p className="text-[10px] text-gray-400 break-all">
+                UUID: {zatcaView.uuid}
+              </p>
+              <p className="text-[10px] text-gray-400 break-all">
+                Hash: {zatcaView.hash?.slice(0, 32)}…
+              </p>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ─── Shared Product Picker ─── */}
+      <ProductPicker
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={handlePick}
+        title={
+          pickerMode === "purchase"
+            ? "اختر منتجاً للمشتريات"
+            : pickerMode === "order"
+              ? "اختر منتجاً للطلب"
+              : "اختر صنفاً للبيع (نقطة بيع)"
+        }
+        priceField={pickerMode === "purchase" ? "purchasePrice" : "salePrice"}
+      />
 
       {/* ─── Purchase Dialog ─── */}
       <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
@@ -1805,6 +2738,9 @@ export default function Commercial() {
                   supplierId: purchaseSupplierId,
                   items: purchaseItems,
                   paidAmount: "0",
+                  discount: purchaseItems
+                    .reduce((s, i) => s + (parseFloat(i.discount) || 0), 0)
+                    .toString(),
                 })
               }
               disabled={purchaseItems.length === 0 || isCreatingPurchase}
@@ -2157,17 +3093,53 @@ export default function Commercial() {
                 <Label className="text-[11px] font-bold text-slate-700">
                   الباركود
                 </Label>
-                <Input
+                <BarcodeScanner
                   value={editProductForm.barcode}
-                  onChange={e =>
-                    setEditProductForm({
-                      ...editProductForm,
-                      barcode: e.target.value,
-                    })
+                  onChange={v =>
+                    setEditProductForm({ ...editProductForm, barcode: v })
                   }
-                  className="h-8 text-xs font-mono"
-                  dir="ltr"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px]">نوع الصنف</Label>
+                  <select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={editProductForm.productType} onChange={e => setEditProductForm({ ...editProductForm, productType: e.target.value })}>
+                    <option value="goods">سلعة</option>
+                    <option value="service">خدمة</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-[10px]">وحدة القياس</Label>
+                  <Input value={editProductForm.unitOfMeasure} onChange={e => setEditProductForm({ ...editProductForm, unitOfMeasure: e.target.value })} className="h-8 text-xs" />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                <div><Label className="text-[10px]">وحدة فرعية</Label><Input value={editProductForm.secondaryUnit} onChange={e => setEditProductForm({ ...editProductForm, secondaryUnit: e.target.value })} className="h-8 text-xs" /></div>
+                <div><Label className="text-[10px]">معامل التحويل</Label><Input type="number" value={editProductForm.conversionFactor} onChange={e => setEditProductForm({ ...editProductForm, conversionFactor: e.target.value })} className="h-8 text-xs" /></div>
+                <div className="flex items-end"><label className="flex items-center gap-1 text-[10px]"><input type="checkbox" checked={editProductForm.isComposite} onChange={e => setEditProductForm({ ...editProductForm, isComposite: e.target.checked })} /> مركب</label></div>
+              </div>
+
+              {editProductForm.productType === "service" && (
+                <div className="border rounded-lg p-2 space-y-2 bg-amber-50/50">
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><Label className="text-[10px]">طريقة التكلفة</Label><select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={editProductForm.costMethod} onChange={e => setEditProductForm({ ...editProductForm, costMethod: e.target.value })}><option value="fixed">ثابتة</option><option value="calculated">محسوبة</option></select></div>
+                    <div><Label className="text-[10px]">تكلفة مباشرة</Label><Input type="number" value={editProductForm.directCost} onChange={e => setEditProductForm({ ...editProductForm, directCost: e.target.value })} className="h-8 text-xs" /></div>
+                    <div><Label className="text-[10px]">غير مباشرة</Label><Input type="number" value={editProductForm.indirectCost} onChange={e => setEditProductForm({ ...editProductForm, indirectCost: e.target.value })} className="h-8 text-xs" /></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><Label className="text-[10px]">دقائق إنتاج</Label><Input type="number" value={editProductForm.productionMinutes} onChange={e => setEditProductForm({ ...editProductForm, productionMinutes: e.target.value })} className="h-8 text-xs" /></div>
+                    <div><Label className="text-[10px]">وضع السعر</Label><select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={editProductForm.priceMode} onChange={e => setEditProductForm({ ...editProductForm, priceMode: e.target.value })}><option value="margin">هامش</option><option value="direct">مباشر</option></select></div>
+                    <div><Label className="text-[10px]">هامش %</Label><Input type="number" value={editProductForm.marginPct} onChange={e => setEditProductForm({ ...editProductForm, marginPct: e.target.value })} className="h-8 text-xs" /></div>
+                  </div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-3 gap-2">
+                <div><Label className="text-[10px]">حساب الإيراد</Label><AcctSelect value={editProductForm.salesAccountId} onChange={v => setEditProductForm({ ...editProductForm, salesAccountId: v })} accounts={accountsQuery.data} /></div>
+                <div><Label className="text-[10px]">حساب التكلفة</Label><AcctSelect value={editProductForm.cogsAccountId} onChange={v => setEditProductForm({ ...editProductForm, cogsAccountId: v })} accounts={accountsQuery.data} /></div>
+                <div><Label className="text-[10px]">حساب المخزون</Label><AcctSelect value={editProductForm.inventoryAccountId} onChange={v => setEditProductForm({ ...editProductForm, inventoryAccountId: v })} accounts={accountsQuery.data} /></div>
               </div>
             </div>
           </div>
@@ -2190,7 +3162,24 @@ export default function Commercial() {
                   purchasePrice: editProductForm.purchasePrice,
                   minStock: editProductForm.minStock,
                   barcode: editProductForm.barcode || undefined,
-                })
+                  productType: editProductForm.productType,
+                  unitOfMeasure: editProductForm.unitOfMeasure || undefined,
+                  secondaryUnit: editProductForm.secondaryUnit || undefined,
+                  conversionFactor: Number(editProductForm.conversionFactor) || 1,
+                  isComposite: editProductForm.isComposite,
+                  bom: editProductForm.bom,
+                  alternativeIds: editProductForm.alternativeIds,
+                  attachmentUrl: editProductForm.attachmentUrl || undefined,
+                  costMethod: editProductForm.costMethod,
+                  directCost: Number(editProductForm.directCost) || 0,
+                  indirectCost: Number(editProductForm.indirectCost) || 0,
+                  productionMinutes: Number(editProductForm.productionMinutes) || 0,
+                  priceMode: editProductForm.priceMode,
+                  marginPct: Number(editProductForm.marginPct) || 0,
+                  salesAccountId: editProductForm.salesAccountId || undefined,
+                  cogsAccountId: editProductForm.cogsAccountId || undefined,
+                  inventoryAccountId: editProductForm.inventoryAccountId || undefined,
+                } as any)
               }
               disabled={updateProduct.isPending}
               className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold"
@@ -2530,5 +3519,30 @@ export default function Commercial() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function AcctSelect({
+  value,
+  onChange,
+  accounts,
+}: {
+  value?: number;
+  onChange: (v?: number) => void;
+  accounts?: { id: number; code: string; name: string }[];
+}) {
+  return (
+    <select
+      className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+      value={value ?? ""}
+      onChange={e => onChange(e.target.value ? Number(e.target.value) : undefined)}
+    >
+      <option value="">افتراضي</option>
+      {(accounts || []).map(a => (
+        <option key={a.id} value={a.id}>
+          {a.code} - {a.name}
+        </option>
+      ))}
+    </select>
   );
 }

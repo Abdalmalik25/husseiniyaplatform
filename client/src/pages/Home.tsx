@@ -1251,7 +1251,7 @@ export default function Home() {
 
         {/* Operational Tabs */}
         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
-          <TabsList className="grid grid-cols-6 bg-slate-200 h-9 p-1 rounded-xl text-xs mb-3 shadow-inner">
+          <TabsList className="grid grid-cols-3 sm:grid-cols-6 bg-slate-200 h-9 p-1 rounded-xl text-xs mb-3 shadow-inner">
             <TabsTrigger
               value="entry"
               className="text-[10px] sm:text-xs font-semibold"
@@ -1308,7 +1308,7 @@ export default function Home() {
                   />
                 </div>
               </CardHeader>
-              <CardContent className="p-0">
+              <CardContent className="p-0 overflow-x-auto">
                 {loadingAccounts ? (
                   <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
                     <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />{" "}
@@ -1908,7 +1908,7 @@ export default function Home() {
                   )}
 
                 {closingPreview.data && closingPreview.data.rows.length > 0 && (
-                  <div className="max-h-56 overflow-y-auto rounded-lg border border-slate-200">
+                    <div className="max-h-56 overflow-auto rounded-lg border border-slate-200">
                     <table className="w-full text-right text-[11px] border-collapse">
                       <thead className="bg-slate-100 text-slate-600 font-bold sticky top-0">
                         <tr>

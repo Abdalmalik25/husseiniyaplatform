@@ -160,3 +160,43 @@ export function HeroBackground({
     </div>
   );
 }
+
+/**
+ * TechGridBackground — lightweight SVG pattern overlay for technical elegance
+ */
+export function TechGridBackground({
+  className = "",
+  opacity = 0.3,
+}: {
+  className?: string;
+  opacity?: number;
+}) {
+  return (
+    <div
+      className={`absolute inset-0 pointer-events-none tech-grid ${className}`}
+      style={{ opacity }}
+      aria-hidden="true"
+    />
+  );
+}
+
+/**
+ * GlowBlobBackground — ambient glowing radial gradients for atmospheric depth
+ */
+export function GlowBlobBackground({
+  className = "",
+}: {
+  className?: string;
+}) {
+  return (
+    <div
+      className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}
+      aria-hidden="true"
+    >
+      <div className="absolute -top-40 right-1/4 w-96 h-96 rounded-full bg-brand/10 blur-3xl" />
+      <div className="absolute top-1/3 -left-32 w-80 h-80 rounded-full bg-amber-500/8 blur-3xl" />
+      <div className="absolute -bottom-20 right-1/3 w-96 h-96 rounded-full bg-sky-500/8 blur-3xl" />
+    </div>
+  );
+}
+

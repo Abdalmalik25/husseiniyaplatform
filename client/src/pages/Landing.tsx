@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
@@ -9,18 +9,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
 import {
   Accordion,
   AccordionItem,
@@ -30,758 +19,849 @@ import {
 import {
   Building2,
   BookOpen,
-  Compass,
-  Cpu,
   Layers,
   ShieldCheck,
-  Wrench,
-  Smartphone,
-  FileText,
   Sparkles,
   CheckCircle2,
   Phone,
-  Mail,
-  MapPin,
-  Send,
-  ShoppingCart,
   ArrowRight,
-  Award,
   Users,
   Check,
   MessageSquare,
-  Clock,
-  HelpCircle,
-  FileCheck,
-  Search,
   HardHat,
   Map,
   Ruler,
   Calculator,
-  Truck,
-  Scale,
-  Home as HomeIcon,
-  CheckSquare,
-  Lock,
-  UserCheck,
-  Star,
-  Play,
   Zap,
-  Shield,
-  ArrowUpRight,
   Globe,
   TrendingUp,
   BarChart3,
   Wifi,
+  Package,
+  FileText,
+  Star,
+  ChevronDown,
+  Play,
+  ArrowUpRight,
+  Cpu,
+  Database,
+  Lock,
+  RefreshCw,
+  FolderKanban,
+  Wrench,
+  GraduationCap,
+  Home,
+  ClipboardList,
 } from "lucide-react";
-import { toast } from "sonner";
-import { useAuth } from "@/_core/hooks/useAuth";
 import { goLogin } from "@/const";
-import { trpc } from "@/lib/trpc";
 import { SiteFooter } from "@/components/SiteFooter";
-import { brand } from "@/lib/brand";
+import { brand, whatsappLink, uamexDemoLink, engineeringConsultLink } from "@/lib/brand";
 import { HeroBackground } from "@/components/ModernBackground";
 import { HeroAurora } from "@/components/HeroAurora";
-import { HeroShowcase } from "@/components/HeroShowcase";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+
+// ── Typewriter Hook ──────────────────────────────────────────────
+function useTypewriter(phrases: string[], speed = 60, pause = 2200) {
+  const [displayed, setDisplayed] = useState("");
+  const [phraseIdx, setPhraseIdx] = useState(0);
+  const [charIdx, setCharIdx] = useState(0);
+  const [deleting, setDeleting] = useState(false);
+
+  useEffect(() => {
+    const current = phrases[phraseIdx];
+    const delay = deleting
+      ? speed / 2
+      : charIdx === current.length
+        ? pause
+        : speed;
+
+    const t = setTimeout(() => {
+      if (!deleting && charIdx < current.length) {
+        setDisplayed(current.slice(0, charIdx + 1));
+        setCharIdx(c => c + 1);
+      } else if (!deleting && charIdx === current.length) {
+        setDeleting(true);
+      } else if (deleting && charIdx > 0) {
+        setDisplayed(current.slice(0, charIdx - 1));
+        setCharIdx(c => c - 1);
+      } else {
+        setDeleting(false);
+        setPhraseIdx(i => (i + 1) % phrases.length);
+      }
+    }, delay);
+    return () => clearTimeout(t);
+  }, [charIdx, deleting, phraseIdx, phrases, speed, pause]);
+
+  return displayed;
+}
+
+// ── Scroll Reveal Hook ───────────────────────────────────────────
+function useScrollReveal() {
+  useEffect(() => {
+    const els = document.querySelectorAll(".reveal");
+    const obs = new IntersectionObserver(
+      entries => entries.forEach(e => e.isIntersecting && e.target.classList.add("revealed")),
+      { threshold: 0.12 }
+    );
+    els.forEach(el => obs.observe(el));
+    return () => obs.disconnect();
+  }, []);
+}
 
 export default function Landing() {
   const [, setLocation] = useLocation();
-  const { isAuthenticated, user } = useAuth();
-  const [authModalOpen, setAuthModalOpen] = useState(false);
-  const [trialMode, setTrialMode] = useState<"register" | "login">("register");
+  const [activeUamexModule, setActiveUamexModule] = useState(0);
+  useScrollReveal();
 
-  // Registration/Trial Form States
-  const [regName, setRegName] = useState("");
-  const [regPhone, setRegPhone] = useState("");
-  const [regEmail, setRegEmail] = useState("");
-  const [regCompany, setRegCompany] = useState("");
+  const heroPhrase = useTypewriter([
+    "مدير مؤسسة",
+    "مقاول ومهندس",
+    "صاحب أرض",
+    "طالب جامعي",
+    "صاحب مشروع",
+  ]);
 
-  const onboardMutation = trpc.auth.onboard.useMutation({
-    onSuccess: () => {
-      toast.success("تم إنشاء المؤسسة بنجاح! جاري التحويل...");
-      setAuthModalOpen(false);
-      setLocation("/app");
-    },
-    onError: error => {
-      toast.error(error.message || "حدث خطأ أثناء إنشاء المؤسسة");
-    },
-  });
-
-  const handleStartFreeTrial = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!regName.trim() || !regPhone.trim()) {
-      toast.error("يرجى إدخال الاسم ورقم الهاتف لإتاحة الفترة التجريبية");
-      return;
-    }
-    if (!isAuthenticated) {
-      goLogin();
-      return;
-    }
-    onboardMutation.mutate({
-      institutionName: regCompany.trim() || `${regName} - مؤسسة جديدة`,
-    });
-  };
+  const UAMEX_MODULES = brand.uamex.modules;
 
   return (
     <div
-      className="min-h-screen bg-sand text-ink dark:bg-background dark:text-foreground pb-20 font-display"
+      className="min-h-screen bg-sand text-ink dark:bg-background dark:text-foreground font-display"
       dir="rtl"
     >
-      {/* Header Navbar */}
       <HeaderNavbar />
 
-      {/* 🚀 HERO SECTION: التسويق العالمي والتعريفي */}
-      <section className="relative text-white overflow-hidden border-b border-white/10">
+      {/* ═══════════════════════════════════════════════════════════
+          HERO — رسالة قيمة، ليست مجرد عنوان
+      ═══════════════════════════════════════════════════════════ */}
+      <section className="relative text-white overflow-hidden">
         <HeroBackground />
         <HeroAurora />
-        <div className="absolute inset-0 bg-gradient-to-b from-ink/95 via-ink/75 to-ink" />
+        <div className="absolute inset-0 bg-gradient-to-b from-ink/90 via-ink/80 to-ink" />
 
-        <div className="relative z-10">
-          <div className="bg-gradient-to-l from-brand-deep to-ink border-b border-brand/30 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/85">
-            <span className="inline-flex items-center gap-1.5 bg-white/10 px-2.5 py-0.5 rounded-full font-bold">
-              <Sparkles className="w-3 h-3 text-brand-300" /> إصدار 2026
-            </span>
-            <span className="hidden sm:inline">منصة الأعمال الموحدة — منشورة عالمياً</span>
-            <span className="flex items-center gap-1 text-emerald-300"><Wifi className="w-3 h-3" /> مباشر</span>
-          </div>
+        {/* شريط التنبيه */}
+        <div className="relative z-10 bg-gradient-to-l from-brand/20 to-transparent border-b border-brand/20 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/80">
+          <span className="inline-flex items-center gap-1.5 bg-brand/15 border border-brand/30 px-3 py-0.5 rounded-full font-bold text-brand-300">
+            <Sparkles className="w-3 h-3" /> UAMEX v2.0 متاح الآن
+          </span>
+          <span className="hidden sm:inline text-white/60">
+            نظام إدارة الأعمال الموحّد — جاهز للبدء الفوري
+          </span>
         </div>
 
-        <div className="max-w-6xl mx-auto text-center relative z-10 px-4 pt-14 pb-20 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-1000">
-          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur border border-brand/50 text-brand-300 px-4 py-1.5 rounded-full text-xs font-bold shadow-lg animate-in fade-in slide-in-from-bottom-2 duration-700">
-            <Sparkles className="w-4 h-4 text-brand" />
-            {brand.tagline}
+        <div className="max-w-6xl mx-auto text-center relative z-10 px-4 pt-16 pb-24 space-y-8">
+          {/* الوسم الرئيسي */}
+          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur border border-brand/40 text-brand-300 px-4 py-1.5 rounded-full text-xs font-bold shadow-xl">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            مؤسسة الحسينية — خدمات الأعمال والاستشارات
           </div>
 
-          <h1 className="text-4xl sm:text-5xl md:text-6xl font-black font-display tracking-tight leading-[1.1] text-balance animate-in fade-in slide-in-from-bottom-3 duration-700">
-            مؤسسة الحسينية
-            <span className="block text-brand">لخدمات الأعمال</span>
-          </h1>
+          {/* العنوان الرئيسي */}
+          <div className="space-y-3">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.1] text-balance">
+              إذا كنت{" "}
+              <span className="text-brand border-b-2 border-brand/50 pb-1">
+                {heroPhrase}
+                <span className="animate-pulse">|</span>
+              </span>
+            </h1>
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.1] text-white/90">
+              لدينا الحل الذي تبحث عنه
+            </h2>
+          </div>
 
-          <p className="text-[11px] sm:text-xs font-mono tracking-[0.25em] text-brand-300/80 uppercase animate-in fade-in slide-in-from-bottom-3 duration-700">
-            ALHUSAINIA · THE UNIFIED BUSINESS OS
+          {/* الرسالة الداعمة */}
+          <p className="max-w-3xl mx-auto text-base sm:text-xl text-white/65 leading-relaxed font-light text-pretty">
+            استشارات مؤسسية وإدارية · خدمات هندسية وعقارية · خدمات طلابية ومكتبية · نظام{" "}
+            <strong className="text-brand-300 font-bold">UAMEX</strong> لإدارة الأعمال
           </p>
 
-          <p className="text-lg sm:text-2xl font-bold text-brand-300 leading-snug animate-in fade-in slide-in-from-bottom-3 duration-700">
-            هندسة، استشارات، وتقنية — منصة أعمال واحدة موثوقة
-          </p>
-
-          <p className="max-w-3xl mx-auto text-sm sm:text-lg text-white/70 leading-relaxed font-light text-pretty animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {brand.promise}
-          </p>
-
-          {/* Action CTAs */}
-          <div className="flex flex-wrap items-center justify-center gap-4 pt-6 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {/* الـ CTAs */}
+          <div className="flex flex-wrap items-center justify-center gap-4">
             <Button
-              onClick={() => setAuthModalOpen(true)}
-              className="bg-brand hover:bg-brand-deep text-ink font-black text-sm sm:text-base h-12 px-8 shadow-xl rounded-2xl flex items-center gap-2 transition-all hover:scale-105"
+              onClick={() => setLocation("/about")}
+              className="bg-brand hover:bg-brand-deep text-ink font-black text-sm sm:text-base h-12 px-8 shadow-2xl rounded-2xl flex items-center gap-2 transition-all hover:scale-105"
             >
               <Zap className="w-5 h-5 fill-current" />
-              ابدأ الفترة التجريبية المجانية (14 يوماً)
+              اكتشف الحل المناسب لك
             </Button>
-
-            <Button
-              onClick={() => setLocation("/app")}
-              variant="outline"
-              className="border-white/15 bg-white/5 text-white hover:bg-white/10 text-sm h-12 px-6 rounded-2xl flex items-center gap-2"
+            <a
+              href={uamexDemoLink()}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-2 border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm h-12 px-6 rounded-2xl font-medium transition-all"
             >
-              <Building2 className="w-5 h-5 text-brand-300" />
-              استكشاف مساحات العمل والأنظمة
-            </Button>
+              <MessageSquare className="w-5 h-5 text-brand-300" />
+              تحدث إلى خبير الآن
+            </a>
           </div>
 
-          {/* Guarantee Badges */}
-          <div className="flex flex-wrap justify-center items-center gap-6 pt-4 text-xs text-white/70 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          {/* ضمانات */}
+          <div className="flex flex-wrap justify-center items-center gap-6 text-xs text-white/60">
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> بدون بطاقة
-              ائتمان
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              بدون التزامات مسبقة
             </span>
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> تفعيل فوري
-              لكافة الوحدات
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              تجربة UAMEX مجانية 14 يوماً
             </span>
             <span className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" /> تعمل أوفلاين
-              وسحابياً
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              استشارة أولية مجانية
             </span>
           </div>
 
-          {/* Interactive product showcase */}
-          <div className="pt-12 animate-in fade-in slide-in-from-bottom-6 duration-1000">
-            <HeroShowcase />
-          </div>
-
-          {/* KPI Numbers Banner */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto pt-12 text-right">
+          {/* الإحصاءات */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto pt-4">
             {brand.stats.map((stat, i) => (
               <div
                 key={i}
-                className="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl text-center shadow-lg animate-in fade-in slide-in-from-bottom-4 duration-700"
-                style={{ animationDelay: `${i * 100}ms` }}
+                className="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl text-center shadow-lg"
               >
                 <div className="text-2xl font-black text-brand-300 font-mono">
                   <AnimatedCounter value={stat.value} />
                 </div>
-                <div className="text-xs text-white/70 mt-1">{stat.label}</div>
+                <div className="text-[11px] text-white/60 mt-1 leading-tight">{stat.label}</div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 💎 VALUE PROPOSITIONS: Modern consultative messaging */}
-      <section className="max-w-7xl mx-auto px-4 py-16">
-        <div className="text-center space-y-3 max-w-3xl mx-auto mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
-            لماذا تختار الحسينية؟
-          </Badge>
-          <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground">
-            منصة متكاملة تُعيد تعريف إدارة المؤسسات
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            نجمع بين الذكاء الاصطناعي، الأمان المؤسسي، والبنية اللاسلكية الأولى
-            لضمان إنتاجية لا تُضاهى.
-          </p>
+      {/* ═══════════════════════════════════════════════════════════
+          شريط الثقة
+      ═══════════════════════════════════════════════════════════ */}
+      <div className="bg-ink/95 border-y border-white/5 py-4">
+        <div className="max-w-7xl mx-auto px-4 flex flex-wrap items-center justify-center gap-8 text-xs text-white/50">
+          {brand.trustBadges.map((b, i) => (
+            <span key={i} className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-brand-300" />
+              {b}
+            </span>
+          ))}
         </div>
+      </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {brand.valueProps.map((vp, i) => {
-            const IconMap: Record<string, React.ComponentType<any>> = {
-              Zap: Zap,
-              Wifi: Wifi,
-              ShieldCheck: ShieldCheck,
-              Layers: Layers,
-            };
-            const Icon = IconMap[vp.icon] || Zap;
-            return (
-              <Card
-                key={i}
-                className="surface p-6 rounded-2xl text-center hover:-translate-y-1 hover:shadow-xl transition-all animate-in fade-in slide-in-from-bottom-4 duration-700"
-                style={{ animationDelay: `${i * 100}ms` }}
-              >
-                <div className="w-12 h-12 rounded-2xl bg-brand/10 flex items-center justify-center mx-auto mb-4">
-                  <Icon className="w-6 h-6 text-brand" />
-                </div>
-                <h3 className="text-sm font-bold font-display text-foreground mb-2">
-                  {vp.ar}
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {vp.en}
-                </p>
-              </Card>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 🏢 SHOWCASE: الوحدات التشغيلية والمساحات الموزعة (Modular Workspaces Hub) */}
-      <main className="max-w-7xl mx-auto px-4 py-16 space-y-16">
-        <div className="text-center space-y-3 max-w-3xl mx-auto animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
-            معمارية موزعة وتناغم تشغيلي
-          </Badge>
-          <h2 className="text-2xl sm:text-4xl font-extrabold font-display text-foreground">
-            وحدات تشغيلية ومساحات عمل تخصصية (Workspaces)
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            تم تصميم المنصة لتمنح كل قطاع مساحة عمل مستقلة ومتكاملة مع النظام
-            المحاسبي المركزي.
-          </p>
-        </div>
-
-        {/* 4 Workspaces Cards Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Workspace 1: Accounting */}
-          <Card className="surface transition-all overflow-hidden hover:-translate-y-1 group">
-            <CardHeader className="bg-gradient-to-r from-[#102a2b] to-[#1a3d3f] text-white p-6">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-2xl bg-[#b87945] text-[#102a2b] font-bold shadow">
-                  <Building2 className="w-6 h-6" />
-                </div>
-                <Badge className="bg-[#b87945] text-[#102a2b] font-bold text-xs">
-                  الوحدة المحاسبية والمالية
-                </Badge>
-              </div>
-              <CardTitle className="text-xl font-bold font-display text-white mt-4">
-                النظام المحاسبي والمالي المتقدم
-              </CardTitle>
-              <CardDescription className="text-xs text-slate-300 leading-relaxed mt-1">
-                إدارة القيد المزدوج، دليل الحسابات الشجري، ميزان المراجعة، قائمة
-                الدخل، وإقفال السنوات المالية.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <ul className="space-y-2 text-xs text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> دليل
-                  حسابات شجري قابل للتخصيص الكامل
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> إثبات
-                  وإدارة السندات والعمليات بدقة مدين/دائن
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> ميزان
-                  المراجعة والميزانية العمومية والتحليلات
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> إقفال
-                  الدورة المحاسبية السنوية التلقائي
-                </li>
-              </ul>
-              <Button
-                onClick={() => setLocation("/app")}
-                className="w-full bg-ink hover:bg-ink-deep text-white text-xs h-10 font-bold rounded-xl flex items-center justify-center gap-2"
-              >
-                الدخول للمساحة المحاسبية
-                <ArrowRight className="w-4 h-4 rotate-180" />
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Workspace 2: Engineering */}
-          <Card className="border-2 border-[#b87945]/30 shadow-md hover:shadow-xl transition-all overflow-hidden bg-white group">
-            <CardHeader className="bg-gradient-to-r from-[#b87945] to-amber-900 text-white p-6">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-2xl bg-[#102a2b] text-[#d4a574] font-bold shadow">
-                  <HardHat className="w-6 h-6" />
-                </div>
-                <Badge className="bg-[#102a2b] text-[#d4a574] font-bold text-xs">
-                  الوحدة الهندسية والمقاولات
-                </Badge>
-              </div>
-              <CardTitle className="text-xl font-bold font-display text-white mt-4">
-                جناح الاستشارات الهندسية والمقاولات والأراضي
-              </CardTitle>
-              <CardDescription className="text-xs text-[#f5e6d3] leading-relaxed mt-1">
-                مخططات تنفيذي Shop Drawings، رفع مساحي GPS/درون، جداول BOQ،
-                وحساب الحفر والردم.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <ul className="space-y-2 text-xs text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> المخططات
-                  المعمارية والإنشائية 2D/3D ونمذجة BIM
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> الرفع
-                  المساحي الرقمي وتثبيت المحاور والفرز العقاري
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> جداول
-                  الكميات (BOQ) وحصر حديد التسليح والخرسانة
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> الرفع
-                  الطبوغرافي وحساب كميات القطع والردم Cut & Fill
-                </li>
-              </ul>
-              <Button
-                onClick={() => setLocation("/about")}
-                className="w-full bg-brand hover:bg-brand-deep text-ink text-xs h-10 font-bold rounded-xl flex items-center justify-center gap-2"
-              >
-                الدخول للمساحة الهندسية
-                <ArrowRight className="w-4 h-4 rotate-180" />
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Workspace 3: Commercial */}
-          <Card className="border-2 border-emerald-600/30 shadow-md hover:shadow-xl transition-all overflow-hidden bg-white group">
-            <CardHeader className="bg-gradient-to-r from-emerald-800 to-teal-950 text-white p-6">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-2xl bg-white text-emerald-900 font-bold shadow">
-                  <ShoppingCart className="w-6 h-6" />
-                </div>
-                <Badge className="bg-emerald-500 text-slate-950 font-bold text-xs">
-                  وحدة المبيعات والمخزون
-                </Badge>
-              </div>
-              <CardTitle className="text-xl font-bold font-display text-white mt-4">
-                إدارة العمليات التجارية والمخازن والعملاء
-              </CardTitle>
-              <CardDescription className="text-xs text-emerald-100 leading-relaxed mt-1">
-                فواتير المبيعات والمشتريات، ضبط المخزون الفعلي، وإدارة مستحقات
-                العملاء والموردين.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <ul className="space-y-2 text-xs text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> إصدار
-                  فواتير المبيعات والمشتريات والربط المحاسبي
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> حركة
-                  المخزون التلقائية والتنبيه عند انخفاض الكميات
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> ربط
-                  طلبات المتجر الإلكتروني بكتالوج المنتجات
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> إدارة
-                  كشوفات ديون ومستحقات العملاء والموردين
-                </li>
-              </ul>
-              <Button
-                onClick={() => setLocation("/app")}
-                className="w-full bg-emerald-800 hover:bg-emerald-900 text-white text-xs h-10 font-bold rounded-xl flex items-center justify-center gap-2"
-              >
-                الدخول للمساحة التجارية
-                <ArrowRight className="w-4 h-4 rotate-180" />
-              </Button>
-            </CardContent>
-          </Card>
-
-          {/* Workspace 4: Library */}
-          <Card className="border-2 border-sky-600/30 shadow-md hover:shadow-xl transition-all overflow-hidden bg-white group">
-            <CardHeader className="bg-gradient-to-r from-sky-800 to-blue-950 text-white p-6">
-              <div className="flex items-center justify-between">
-                <div className="p-3 rounded-2xl bg-white text-sky-900 font-bold shadow">
-                  <BookOpen className="w-6 h-6" />
-                </div>
-                <Badge className="bg-sky-400 text-slate-950 font-bold text-xs">
-                  وحدة المكتبة والخدمات
-                </Badge>
-              </div>
-              <CardTitle className="text-xl font-bold font-display text-white mt-4">
-                مكتبة الحسينية الحديثة وصيانة الأجهزة
-              </CardTitle>
-              <CardDescription className="text-xs text-sky-100 leading-relaxed mt-1">
-                الخدمات الطلابية والمكتبية، التصاميم الإبداعية، الأبحاث، وصيانة
-                الكمبيوتر والموبايل.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="p-6 space-y-4">
-              <ul className="space-y-2 text-xs text-muted-foreground">
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> طباعة
-                  وتغليف وتنسيق رسائل ومشاريع التخرج
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> تصميم
-                  الهويات البصرية والشعارات والمطبوعات
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> إعداد
-                  الأوراق الأكاديمية والتحليل الإحصائي (SPSS)
-                </li>
-                <li className="flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" /> صيانة
-                  أجهزة الموبايل واللاب توب والبرمجيات
-                </li>
-              </ul>
-              <Button
-                onClick={() => setLocation("/app")}
-                className="w-full bg-sky-800 hover:bg-sky-900 text-white text-xs h-10 font-bold rounded-xl flex items-center justify-center gap-2"
-              >
-                الدخول لمساحة المكتبة والخدمات
-                <ArrowRight className="w-4 h-4 rotate-180" />
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-      </main>
-
-      {/* 🧭 HOW IT WORKS: Familiar 4-step onboarding flow */}
-      <section className="max-w-7xl mx-auto px-4 py-16">
-        <div className="text-center space-y-3 max-w-3xl mx-auto mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
-            كيف نعمل
-          </Badge>
-          <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground">
-            أربع خطوات إلى منصة أعمال متكاملة
-          </h2>
-          <p className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            رحلة بسيطة، آمنة، ومهيأة للنمو — من التسجيل حتى اتخاذ القرار.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {[
-            {
-              icon: UserCheck,
-              title: "أنشئ مؤسستك",
-              desc: "سجّل خلال دقائق وفعّل الفترة التجريبية المجانية 14 يوماً بدون بطاقة ائتمان.",
-            },
-            {
-              icon: Layers,
-              title: "اختر وحداتك",
-              desc: "فعّل المحاسبة، الهندسة، التجارة، والمكتبة وفق ما تحتاجه مؤسستك فقط.",
-            },
-            {
-              icon: Wifi,
-              title: "اعمل أينما كنت",
-              desc: "منصة أوفلاين أولاً مع مزامنة تلقائية عند الاتصال — لا تتوقف أعمالك.",
-            },
-            {
-              icon: BarChart3,
-              title: "قرّر بثقة",
-              desc: "تقارير ولوحات تحكم لحظية متعددة الفروع والعملات لقرارات مبنية على بيانات.",
-            },
-          ].map((s, i) => {
-            const Icon = s.icon;
-            return (
-              <div
-                key={i}
-                className="surface rounded-2xl p-6 text-center hover:-translate-y-1 hover:shadow-xl transition-all"
-              >
-                <div className="w-12 h-12 mx-auto rounded-2xl bg-brand/10 flex items-center justify-center mb-4 text-brand">
-                  <Icon className="w-6 h-6" />
-                </div>
-                <div className="text-[11px] font-bold text-brand-300 mb-1">
-                  الخطوة {i + 1}
-                </div>
-                <h3 className="font-bold text-sm text-foreground mb-2">
-                  {s.title}
-                </h3>
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {s.desc}
-                </p>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* 🏛️ WHY ALHUSAINIA: Enterprise-grade differentiators */}
-      <section className="bg-ink text-white py-16">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="text-center space-y-3 max-w-3xl mx-auto mb-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
-              لماذا الحسينية
+      {/* ═══════════════════════════════════════════════════════════
+          قسم ١: الاستشارات المؤسسية والإدارية
+      ═══════════════════════════════════════════════════════════ */}
+      <section id="corporate" className="py-20 px-4 scroll-mt-20">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
+            <Badge className="bg-brand/10 text-brand border border-brand/30 font-bold text-xs px-3 py-1">
+              ١ · الاستشارات المؤسسية والإدارية
             </Badge>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-white">
-              بنية مؤسسية بمعايير عالمية
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
+              {brand.divisions.corporate.heroQuestion}
             </h2>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              {brand.divisions.corporate.heroAnswer}
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[
-              {
-                icon: ShieldCheck,
-                title: "أمان مؤسسي",
-                desc: "مصادقة JWT، عزل كامل للبيانات، وضوابط مطابقة لمعايير الحوكمة المؤسسية.",
-              },
-              {
-                icon: Wifi,
-                title: "أوفلاين أولاً",
-                desc: "اعمل بلا اتصال ودوّن بياناتك؛ تُزامَن تلقائياً عند عودة الإنترنت.",
-              },
-              {
-                icon: Layers,
-                title: "متعدد المؤسسات",
-                desc: "متعدد المؤسسات والفروع والعملات من اليوم الأول بصلاحيات دقيقة.",
-              },
-              {
-                icon: Sparkles,
-                title: "ذكاء اصطناعي محلّي",
-                desc: "مستشار مالي وإحصائي يعمل محلياً لاقتراحات ذكية وآمنة.",
-              },
-              {
-                icon: MessageSquare,
-                title: "دعم خبراء 24/7",
-                desc: "فريق هندسي ومحاسبي وتقني يجيبك مباشرة عبر الواتساب على مدار الساعة.",
-              },
-              {
-                icon: Globe,
-                title: "نشر سحابي موثوق",
-                desc: "منشورة عبر GitHub & Vercel بأعلى معايير التوفر والأداء العالمية.",
-              },
-            ].map((f, i) => {
-              const Icon = f.icon;
+          {/* المشاكل والحلول */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            {brand.divisions.corporate.problems.map((item, i) => {
+              const icons: Record<string, React.ComponentType<any>> = {
+                TrendingUp, ShieldCheck, Calculator, Building2,
+              };
+              const Icon = icons[item.icon] || TrendingUp;
               return (
                 <div
                   key={i}
-                  className="bg-white/5 border border-white/10 rounded-2xl p-6 hover:bg-white/10 transition-all"
+                  className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group"
+                  style={{ animationDelay: `${i * 100}ms` }}
                 >
-                  <div className="w-11 h-11 rounded-xl bg-brand text-ink flex items-center justify-center mb-4">
-                    <Icon className="w-5 h-5" />
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 group-hover:bg-brand/20 transition-colors">
+                      <Icon className="w-5 h-5 text-brand" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground text-sm mb-2 flex items-start gap-2">
+                        <span className="text-brand mt-0.5">⟵</span>
+                        {item.q}
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">{item.a}</p>
+                    </div>
                   </div>
-                  <h3 className="font-bold text-sm text-white mb-2">{f.title}</h3>
-                  <p className="text-xs text-white/60 leading-relaxed">
-                    {f.desc}
-                  </p>
                 </div>
               );
             })}
           </div>
+
+          {/* الخدمات */}
+          <div className="bg-ink rounded-3xl p-8 reveal">
+            <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-brand" />
+              ما نقدمه في الاستشارات المؤسسية
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {brand.divisions.corporate.services.map((s, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2.5 text-sm text-white/70 bg-white/5 border border-white/10 rounded-xl px-4 py-3"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                  {s}
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href={whatsappLink("السلام عليكم، أود طلب استشارة مؤسسية وإدارية.")}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
+              >
+                <MessageSquare className="w-4 h-4" />
+                اطلب استشارة مجانية
+              </a>
+              <Button
+                onClick={() => goLogin()}
+                variant="outline"
+                className="border-white/20 bg-white/5 text-white hover:bg-white/10 text-sm px-6 py-3 rounded-xl h-auto"
+              >
+                دخول نظام UAMEX
+                <ArrowRight className="w-4 h-4 rotate-180 mr-1" />
+              </Button>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* 🌟 TESTIMONIALS: Social proof from contractors, engineers & students */}
-      <section className="max-w-7xl mx-auto px-4 py-16">
-        <div className="text-center space-y-3 max-w-2xl mx-auto mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
-            ثقة عملائنا ومقاولينا
-          </Badge>
-          <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground text-balance">
-            مؤسسات وطلاب ومقاولون يبنون أعمالهم على منصتنا
-          </h2>
-        </div>
+      {/* ═══════════════════════════════════════════════════════════
+          قسم ٢: الخدمات الهندسية والعقارية والمقاولات
+      ═══════════════════════════════════════════════════════════ */}
+      <section
+        id="engineering"
+        className="py-20 px-4 scroll-mt-20 bg-gradient-to-b from-sand to-[#f5ede0] dark:from-background dark:to-card"
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
+            <Badge className="bg-[#b87945]/10 text-[#b87945] border border-[#b87945]/30 font-bold text-xs px-3 py-1">
+              ٢ · الخدمات الهندسية والعقارية والمقاولات
+            </Badge>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
+              {brand.divisions.engineering.heroQuestion}
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+              {brand.divisions.engineering.heroAnswer}
+            </p>
+            {/* الجمهور المستهدف */}
+            <div className="flex flex-wrap justify-center gap-2 pt-2">
+              {brand.divisions.engineering.personas.map(p => (
+                <span
+                  key={p}
+                  className="text-xs bg-[#b87945]/10 border border-[#b87945]/20 text-[#9a6334] dark:text-brand-300 px-3 py-1 rounded-full font-medium"
+                >
+                  {p}
+                </span>
+              ))}
+            </div>
+          </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {brand.testimonials.map((t, i) => (
-            <Card
-              key={i}
-              className="surface p-6 rounded-2xl hover:-translate-y-1 hover:shadow-xl transition-all"
-            >
-              <div className="flex items-center gap-1 text-brand mb-3">
-                {[1, 2, 3, 4, 5].map(s => (
-                  <Star key={s} className="w-4 h-4 fill-current" />
+          {/* المشاكل والحلول */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            {brand.divisions.engineering.problems.map((item, i) => {
+              const icons: Record<string, React.ComponentType<any>> = {
+                Calculator, Map, Ruler, HardHat,
+              };
+              const Icon = icons[item.icon] || Calculator;
+              return (
+                <div
+                  key={i}
+                  className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group border border-[#b87945]/10"
+                  style={{ animationDelay: `${i * 100}ms` }}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-[#b87945]/10 border border-[#b87945]/20 flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-[#b87945]" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground text-sm mb-2">
+                        <span className="text-[#b87945]">السؤال: </span>
+                        {item.q}
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        <span className="text-emerald-600 font-bold">الجواب: </span>
+                        {item.a}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* بطاقة الخدمات + كيفية التواصل */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 reveal">
+            <div className="lg:col-span-2 bg-gradient-to-br from-[#102a2b] to-[#1a3d3f] rounded-3xl p-8 text-white">
+              <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
+                <HardHat className="w-5 h-5 text-brand" />
+                الخدمات الهندسية والمساحية
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {brand.divisions.engineering.services.map((s, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 text-xs text-white/75 bg-white/5 border border-white/10 rounded-xl px-4 py-3"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                    {s}
+                  </div>
                 ))}
               </div>
-              <p className="text-sm text-muted-foreground leading-relaxed text-pretty">
-                «{t.quote}»
-              </p>
-              <div className="mt-4 pt-4 border-t border-border flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full brand-gradient-warm flex items-center justify-center text-ink font-black text-sm">
-                  {t.author.charAt(0)}
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-foreground">
-                    {t.author}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground">{t.role}</p>
-                </div>
+            </div>
+
+            {/* CTA Card */}
+            <div className="bg-gradient-to-br from-[#b87945] to-[#9a6334] rounded-3xl p-8 text-ink flex flex-col justify-between">
+              <div>
+                <HardHat className="w-10 h-10 mb-4 opacity-80" />
+                <h3 className="font-black text-xl mb-2">
+                  احسب تكلفة مشروعك قبل البدء
+                </h3>
+                <p className="text-[13px] opacity-80 leading-relaxed">
+                  نُعدّ لك جدول الكميات الكامل — حديد، خرسانة، بلوك — بأسعار السوق الحالية.
+                </p>
               </div>
-            </Card>
-          ))}
+              <div className="mt-6 space-y-2.5">
+                <a
+                  href={engineeringConsultLink("تقييم وجدول كميات BOQ لمشروع بناء")}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center justify-center gap-2 bg-ink/90 hover:bg-ink text-white font-bold py-3 rounded-xl text-sm transition-all"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  طلب جدول كميات BOQ
+                </a>
+                <a
+                  href={engineeringConsultLink("رفع مساحي وتحديد حدود الأرض")}
+                  target="_blank"
+                  rel="noopener"
+                  className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-ink font-bold py-3 rounded-xl text-sm transition-all"
+                >
+                  <Map className="w-4 h-4" />
+                  طلب رفع مساحي
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* ❓ FAQ: Common questions — builds familiarity & trust */}
-      <section className="max-w-3xl mx-auto px-4 py-16">
-        <div className="text-center space-y-3 mb-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <Badge className="bg-brand text-ink font-bold text-xs px-3 py-1">
-            أسئلة شائعة
-          </Badge>
-          <h2 className="text-2xl sm:text-3xl font-extrabold font-display text-foreground text-balance">
-            إجابات سريعة عن منصة الحسينية
+      {/* ═══════════════════════════════════════════════════════════
+          قسم ٣: الخدمات الطلابية والمكتبة والصيانة
+      ═══════════════════════════════════════════════════════════ */}
+      <section id="library" className="py-20 px-4 scroll-mt-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
+            <Badge className="bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/30 font-bold text-xs px-3 py-1">
+              ٣ · الخدمات الطلابية والمكتبة والصيانة
+            </Badge>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
+              {brand.divisions.library.heroQuestion}
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              {brand.divisions.library.heroAnswer}
+            </p>
+            <div className="flex flex-wrap justify-center gap-2 pt-2">
+              {brand.divisions.library.personas.map(p => (
+                <span
+                  key={p}
+                  className="text-xs bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-400 px-3 py-1 rounded-full font-medium"
+                >
+                  {p}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* بطاقات المشاكل */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
+            {brand.divisions.library.problems.map((item, i) => {
+              const icons: Record<string, React.ComponentType<any>> = {
+                BookOpen, BarChart3, Sparkles, Wrench,
+              };
+              const Icon = icons[item.icon] || BookOpen;
+              return (
+                <div
+                  key={i}
+                  className="reveal surface rounded-2xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition-all group"
+                  style={{ animationDelay: `${i * 80}ms` }}
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-500/20 transition-colors">
+                    <Icon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
+                  </div>
+                  <p className="font-bold text-foreground text-xs mb-3 leading-snug">{item.q}</p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">{item.a}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* قائمة الخدمات + CTA */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 reveal">
+            <div className="lg:col-span-3 surface rounded-3xl p-8">
+              <h3 className="font-bold text-foreground text-lg mb-5 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-sky-600" />
+                قائمة الخدمات الطلابية والمكتبية
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {brand.divisions.library.services.map((s, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-xs text-muted-foreground bg-sky-500/5 border border-sky-500/10 rounded-xl px-3 py-2.5"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                    {s}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 bg-gradient-to-br from-sky-800 to-blue-950 rounded-3xl p-8 text-white flex flex-col justify-between">
+              <div>
+                <GraduationCap className="w-10 h-10 mb-4 text-sky-300" />
+                <h3 className="font-black text-xl mb-3">
+                  احجز خدمتك الآن
+                </h3>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  نُنجز طلبك في الوقت المحدد. طباعة، تحليل، تصميم، صيانة — بجودة وأمانة.
+                </p>
+              </div>
+              <a
+                href={whatsappLink("السلام عليكم، أود الاستفسار عن الخدمات الطلابية والمكتبية.")}
+                target="_blank"
+                rel="noopener"
+                className="mt-6 flex items-center justify-center gap-2 bg-sky-400 hover:bg-sky-300 text-sky-900 font-black py-3 rounded-xl text-sm transition-all"
+              >
+                <MessageSquare className="w-4 h-4" />
+                تواصل عبر واتساب
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          قسم ٤: UAMEX — هوية النظام ومكوناته
+      ═══════════════════════════════════════════════════════════ */}
+      <section id="uamex" className="py-20 px-4 scroll-mt-20 bg-ink text-white">
+        <div className="max-w-7xl mx-auto">
+          {/* UAMEX Identity */}
+          <div className="text-center space-y-4 max-w-4xl mx-auto mb-16 reveal">
+            <div className="inline-flex items-center gap-3">
+              <div className="h-px w-12 bg-brand/50" />
+              <span className="text-brand-300 font-mono text-xs font-bold tracking-widest uppercase">
+                Enterprise Software
+              </span>
+              <div className="h-px w-12 bg-brand/50" />
+            </div>
+            <div className="flex items-center justify-center gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center shadow-2xl shadow-brand/40">
+                <Cpu className="w-8 h-8 text-ink" />
+              </div>
+              <div className="text-right">
+                <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
+                  UAMEX
+                </h2>
+                <p className="text-brand-300 font-mono text-sm">
+                  Unified Asset Management & Enterprise Exchange
+                </p>
+              </div>
+            </div>
+            <p className="text-base sm:text-xl text-white/70 leading-relaxed font-light max-w-3xl mx-auto">
+              {brand.uamex.tagline}
+            </p>
+            <p className="text-sm text-white/50 leading-relaxed max-w-2xl mx-auto">
+              {brand.uamex.promise}
+            </p>
+          </div>
+
+          {/* مشاكل يحلها UAMEX */}
+          <div className="mb-16 reveal">
+            <h3 className="text-center text-white/60 text-sm font-bold mb-8 uppercase tracking-widest">
+              المشاكل التي يحلها UAMEX كل يوم
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {brand.uamex.problems.map((p, i) => (
+                <div
+                  key={i}
+                  className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-4"
+                >
+                  <span className="text-brand font-black text-lg leading-none mt-0.5">✗</span>
+                  <p className="text-white/75 text-sm leading-relaxed">{p}</p>
+                </div>
+              ))}
+              <div className="flex items-start gap-3 bg-brand/10 border border-brand/30 rounded-2xl px-5 py-4 sm:col-span-2 lg:col-span-1">
+                <span className="text-emerald-400 font-black text-lg leading-none mt-0.5">✓</span>
+                <p className="text-white/90 text-sm leading-relaxed font-medium">
+                  UAMEX يحل كل ما سبق في منصة واحدة آمنة
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* وحدات UAMEX */}
+          <div className="reveal">
+            <h3 className="text-center text-white font-bold text-xl mb-10">
+              وحدات UAMEX — كل ما تحتاجه في نظام واحد
+            </h3>
+
+            {/* Tab selector */}
+            <div className="flex flex-wrap gap-2 justify-center mb-8">
+              {UAMEX_MODULES.map((mod, i) => {
+                const icons: Record<string, React.ComponentType<any>> = {
+                  BarChart3, ShoppingCart: Package, Package, Users, FolderKanban,
+                };
+                const Icon = icons[mod.icon] || BarChart3;
+                return (
+                  <button
+                    key={mod.key}
+                    onClick={() => setActiveUamexModule(i)}
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+                      i === activeUamexModule
+                        ? "text-ink border-transparent shadow-lg shadow-brand/30"
+                        : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
+                    style={
+                      i === activeUamexModule
+                        ? { background: mod.accent }
+                        : {}
+                    }
+                  >
+                    <Icon className="w-4 h-4" />
+                    {mod.name}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Active module detail */}
+            {UAMEX_MODULES[activeUamexModule] && (() => {
+              const mod = UAMEX_MODULES[activeUamexModule];
+              const icons: Record<string, React.ComponentType<any>> = {
+                BarChart3, ShoppingCart: Package, Package, Users, FolderKanban,
+              };
+              const Icon = icons[mod.icon] || BarChart3;
+              return (
+                <div
+                  key={mod.key}
+                  className="rounded-3xl border border-white/10 overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-500"
+                  style={{ background: `linear-gradient(135deg, ${mod.accent}18, ${mod.accent}05)` }}
+                >
+                  <div className="p-8 sm:p-12 flex flex-col sm:flex-row items-start gap-8">
+                    <div
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-xl"
+                      style={{ background: mod.accent }}
+                    >
+                      <Icon className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p
+                        className="text-xs font-bold uppercase tracking-widest mb-2"
+                        style={{ color: mod.accent }}
+                      >
+                        وحدة {mod.name}
+                      </p>
+                      <h4 className="text-white font-black text-xl sm:text-2xl mb-3 leading-tight">
+                        {mod.tagline}
+                      </h4>
+                      <p className="text-white/60 text-sm leading-relaxed mb-6">
+                        {mod.description}
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          onClick={() => goLogin()}
+                          className="inline-flex items-center gap-2 text-ink font-black px-5 py-2.5 rounded-xl text-sm transition-all hover:scale-105"
+                          style={{ background: mod.accent }}
+                        >
+                          <Zap className="w-4 h-4" />
+                          جرّب الوحدة مجاناً
+                        </button>
+                        <a
+                          href={uamexDemoLink()}
+                          target="_blank"
+                          rel="noopener"
+                          className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-all"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          اطلب عرضاً تجريبياً
+                        </a>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+
+          {/* UAMEX CTA */}
+          <div className="mt-16 text-center space-y-6 reveal">
+            <div className="inline-flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl px-6 py-4">
+              <Lock className="w-5 h-5 text-emerald-400" />
+              <span className="text-white/70 text-sm">
+                بياناتك معزولة ومشفّرة — لا أحد يصل إليها غيرك
+              </span>
+              <span className="text-white/30">·</span>
+              <RefreshCw className="w-5 h-5 text-brand-300" />
+              <span className="text-white/70 text-sm">
+                يعمل بدون إنترنت ويتزامن تلقائياً
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-4">
+              <Button
+                onClick={() => goLogin()}
+                className="bg-brand hover:bg-brand-deep text-ink font-black h-14 px-10 rounded-2xl shadow-2xl shadow-brand/40 text-base hover:scale-105 transition-all"
+              >
+                <Zap className="w-5 h-5 ml-2 fill-current" />
+                ابدأ تجربة UAMEX مجاناً — 14 يوماً
+              </Button>
+              <a
+                href={uamexDemoLink()}
+                target="_blank"
+                rel="noopener"
+                className="inline-flex items-center gap-2 border border-white/20 bg-white/5 hover:bg-white/10 text-white font-medium h-14 px-8 rounded-2xl text-sm transition-all"
+              >
+                <MessageSquare className="w-5 h-5 text-brand-300" />
+                تحدث إلى خبير الآن
+              </a>
+            </div>
+            <p className="text-white/40 text-xs">
+              بدون بطاقة ائتمان · تفعيل فوري · دعم مباشر طوال فترة التجربة
+            </p>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          الشهادات
+      ═══════════════════════════════════════════════════════════ */}
+      <section className="py-20 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-2xl mx-auto mb-12 reveal">
+            <Badge className="bg-brand/10 text-brand border border-brand/30 font-bold text-xs px-3 py-1">
+              من عملائنا
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground">
+              ماذا يقول من جرّبوا الخدمة؟
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              تجارب حقيقية من مديرين ومهندسين وطلاب في اليمن
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {brand.testimonials.map((t, i) => (
+              <Card
+                key={i}
+                className="reveal surface p-6 rounded-2xl hover:-translate-y-1 hover:shadow-xl transition-all"
+                style={{ animationDelay: `${i * 100}ms` }}
+              >
+                <div className="flex items-center gap-1 text-brand mb-4">
+                  {[1, 2, 3, 4, 5].map(s => (
+                    <Star key={s} className="w-4 h-4 fill-current" />
+                  ))}
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed text-pretty mb-5">
+                  «{t.quote}»
+                </p>
+                <div className="border-t border-border pt-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-deep flex items-center justify-center text-ink font-black text-sm">
+                    {t.author.charAt(0)}
+                  </div>
+                  <div>
+                    <p className="text-xs font-bold text-foreground">{t.author}</p>
+                    <p className="text-[11px] text-muted-foreground">{t.role}</p>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          FAQ
+      ═══════════════════════════════════════════════════════════ */}
+      <section className="py-20 px-4 bg-gradient-to-b from-sand to-white dark:from-background dark:to-card">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center space-y-3 mb-12 reveal">
+            <Badge className="bg-brand/10 text-brand border border-brand/30 font-bold text-xs px-3 py-1">
+              أسئلة شائعة
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground">
+              إجابات على أكثر الأسئلة شيوعاً
+            </h2>
+          </div>
+
+          <Accordion type="single" collapsible className="w-full space-y-3">
+            {brand.faq.map((item, i) => (
+              <AccordionItem
+                key={i}
+                value={`faq-${i}`}
+                className="reveal surface rounded-xl px-5 border border-border"
+                style={{ animationDelay: `${i * 60}ms` }}
+              >
+                <AccordionTrigger className="text-sm font-bold text-foreground py-4 text-right hover:no-underline">
+                  {item.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-4">
+                  {item.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          CTA النهائي — قوي ولا يُقاوَم
+      ═══════════════════════════════════════════════════════════ */}
+      <section className="py-24 px-4 bg-ink text-white relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(184,121,69,0.12),transparent_65%)]" />
+        <div className="max-w-4xl mx-auto text-center relative z-10 space-y-8">
+          <div className="inline-flex items-center gap-2 bg-brand/10 border border-brand/30 text-brand-300 px-4 py-1.5 rounded-full text-xs font-bold">
+            <Sparkles className="w-4 h-4" />
+            ابدأ رحلتك مع الحسينية
+          </div>
+          <h2 className="text-3xl sm:text-5xl font-black leading-tight text-balance">
+            كل يوم تنتظر
+            <span className="text-brand"> خسارة إضافية </span>
+            يمكن تجنبها
           </h2>
-        </div>
-
-        <Accordion type="single" collapsible className="w-full space-y-3">
-          {[
-            {
-              q: "هل المتجر الإلكتروني متاح لجميع الزوار؟",
-              a: "المتجر الإلكتروني متاح للمشتركين المسجلين داخل النظام فقط؛ تتيح لك المؤسسة عرض كتالوج المنتجات والخدمات وإتمام الطلبات بأمان بعد الدخول.",
-            },
-            {
-              q: "هل أحتاج إلى خبرة تقنية للبدء؟",
-              a: "لا — واجهة عربية موحّدة ورقيقة تتيح لك إنشاء مؤسستك وتفعيل الوحدات خلال دقائق، مع دعم فني مباشر عند الحاجة.",
-            },
-            {
-              q: "كيف تُحفظ بياناتي وكيف تُحمى؟",
-              a: "بياناتك معزولة لكل مؤسسة ومشفّرة، مع جلسة JWT آمنة وصلاحيات دقيقة لكل مستخدم وفرع.",
-            },
-            {
-              q: "هل يعمل النظام دون إنترنت؟",
-              a: "نعم — البنية أوفلاين أولاً؛ يمكنك تسجيل عملياتك ومزامنتها تلقائياً عند عودة الاتصال دون فقدان أي بيانات.",
-            },
-            {
-              q: "ما هي مدة التجربة المجانية؟",
-              a: "14 يوماً كاملة لجميع الوحدات والمساحات، بدون بطاقة ائتمان، مع تفعيل فوري عند التسجيل.",
-            },
-          ].map((item, i) => (
-            <AccordionItem
-              key={i}
-              value={`faq-${i}`}
-              className="surface rounded-xl px-4 border border-border"
+          <p className="text-white/60 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
+            سواء كنت تبحث عن استشارة مالية، تصميم هندسي، خدمة طلابية، أو نظام لإدارة أعمالك —
+            فريق الحسينية جاهز اليوم.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Button
+              onClick={() => goLogin()}
+              className="bg-brand hover:bg-brand-deep text-ink font-black h-14 px-10 rounded-2xl shadow-2xl shadow-brand/40 text-base hover:scale-105 transition-all"
             >
-              <AccordionTrigger className="text-sm font-bold text-foreground py-4">
-                {item.q}
-              </AccordionTrigger>
-              <AccordionContent className="text-xs text-muted-foreground leading-relaxed pb-4">
-                {item.a}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
+              <Zap className="w-5 h-5 ml-2 fill-current" />
+              ابدأ مجاناً الآن
+            </Button>
+            <a
+              href={whatsappLink("السلام عليكم، أود الاستفسار عن خدمات مؤسسة الحسينية.")}
+              target="_blank"
+              rel="noopener"
+              className="inline-flex items-center gap-2 border border-white/20 hover:bg-white/5 text-white font-medium h-14 px-8 rounded-2xl text-sm transition-all"
+            >
+              <MessageSquare className="w-5 h-5 text-brand-300" />
+              تواصل عبر واتساب
+            </a>
+          </div>
+          <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-white/40">
+            <span>✓ استشارة أولى مجانية</span>
+            <span>✓ تجربة UAMEX مجانية 14 يوماً</span>
+            <span>✓ بدون التزامات</span>
+            <span>✓ دعم مباشر على الواتساب</span>
+          </div>
+        </div>
       </section>
 
-      {/* 🚀 MODAL: التسجيل ودخول التجربة المجانية */}
-      <Dialog open={authModalOpen} onOpenChange={setAuthModalOpen}>
-        <DialogContent className="max-w-md font-display" dir="rtl">
-          <DialogHeader>
-            <DialogTitle className="text-base font-bold flex items-center gap-2 text-foreground">
-              <Zap className="w-5 h-5 text-brand" />
-              ابدأ الفترة التجريبية المجانية (14 يوماً)
-            </DialogTitle>
-            <DialogDescription className="text-xs text-muted-foreground pt-1">
-              وصول كامل ومجاني لكافة مساحات العمل والميزات بدون بطاقة ائتمان.
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleStartFreeTrial} className="space-y-3.5 pt-2">
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-foreground">
-                الاسم الكامل *
-              </Label>
-              <Input
-                required
-                placeholder="مثال: المهندس / محمد علي"
-                value={regName}
-                onChange={e => setRegName(e.target.value)}
-                className="h-9 text-xs bg-background"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-foreground">
-                رقم الهاتف / الواتساب *
-              </Label>
-              <Input
-                required
-                placeholder="770000000"
-                value={regPhone}
-                onChange={e => setRegPhone(e.target.value)}
-                className="h-9 text-xs bg-background font-mono text-left"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-xs font-bold text-foreground">
-                اسم المؤسسة / المكتب (اختياري)
-              </Label>
-              <Input
-                placeholder="مثال: مؤسسة الحسينية المقاولات"
-                value={regCompany}
-                onChange={e => setRegCompany(e.target.value)}
-                className="h-9 text-xs bg-background"
-              />
-            </div>
-
-            <div className="p-3 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-900/50 text-[11px] text-amber-900 dark:text-amber-200 space-y-1">
-              <p className="font-bold">✨ مميزات الفترة التجريبية المجانية:</p>
-              <p>• تجربة شمولية 14 يوماً لكل الوحدات والمساحات.</p>
-              <p>• حفظ آمن وحماية كاملة لبياناتك.</p>
-            </div>
-
-            <DialogFooter className="flex gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setAuthModalOpen(false)}
-                className="text-xs h-9"
-              >
-                إلغاء
-              </Button>
-              <Button
-                type="submit"
-                size="sm"
-                className="text-xs h-9 bg-brand hover:bg-brand-deep text-ink font-black flex-1"
-              >
-                تفعيل التجربة المجانية والدخول
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Footer */}
       <SiteFooter />
     </div>
   );

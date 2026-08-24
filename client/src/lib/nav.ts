@@ -3,17 +3,33 @@ import {
   ShoppingCart,
   BarChart3,
   Package,
+  Boxes,
   Download,
   Globe2,
   Info,
   Search,
   Home as HomeIcon,
   LayoutDashboard,
+  LayoutGrid,
+  Gauge,
   Wallet,
   Users,
   Settings,
   CreditCard,
   Phone,
+  Truck,
+  FolderKanban,
+  LifeBuoy,
+  Receipt,
+  ShieldCheck,
+  BookOpen,
+  Scale,
+  SlidersHorizontal,
+  Building2,
+  History,
+  ClipboardList,
+  Calculator,
+  Cpu,
 } from "lucide-react";
 
 export interface NavItem {
@@ -28,7 +44,7 @@ export interface NavItem {
  * Navigation Architecture (Global SaaS B2B Standard)
  * ────────────────────────────────────────────────────────────────────────
  *
- * Layer 1 — MARKETING_NAV: public site header (5 items max, Hick's Law).
+ * Layer 1 — MARKETING_NAV: public site header (Hick's Law compliant).
  * Layer 2 — APP_NAV: sidebar navigation inside the authenticated app shell.
  * Layer 3 — UTILITY_LINKS: helper tools, surfaced contextually (footer,
  *           store page, settings) — never in the primary navigation.
@@ -37,19 +53,46 @@ export interface NavItem {
 /** Public marketing site navigation — shown to visitors in the top bar. */
 export const MARKETING_NAV: NavItem[] = [
   { path: "/", label: "الرئيسية", icon: HomeIcon },
-  { path: "/about", label: "خدماتنا", icon: Info },
+  { path: "/solutions", label: "الحلول البرمجية", icon: Cpu },
+  { path: "/#engineering", label: "الخدمات الهندسية", icon: Info },
+  { path: "/insights", label: "مركز المعرفة", icon: BookOpen },
+  { path: "/tools", label: "حاسبات ذكية", icon: Calculator },
   { path: "/pricing", label: "الأسعار", icon: CreditCard },
-  { path: "/contact", label: "تواصل معنا", icon: Phone },
+  { path: "/contact", label: "تواصل", icon: Phone },
 ];
+
 
 /** Authenticated app shell navigation — rendered inside the sidebar. */
 export const APP_NAV: NavItem[] = [
   { path: "/app", label: "لوحة التحكم", icon: LayoutDashboard },
   { path: "/accounting", label: "المحاسبة", icon: Wallet, highlight: true },
   { path: "/commercial", label: "العمليات التجارية", icon: Package },
+  { path: "/inventory", label: "المخزون", icon: Boxes },
   { path: "/store", label: "المتجر الإلكتروني", icon: ShoppingCart },
+  { path: "/procurement-workspace", label: "Workspace المشتريات", icon: Truck, highlight: true },
+  { path: "/supplier-analytics", label: "تحليل الموردين", icon: BarChart3, highlight: true },
+  { path: "/procurement", label: "المشتريات التنفيذية", icon: Truck },
+  { path: "/projects", label: "المشاريع", icon: FolderKanban },
+  { path: "/hr", label: "الموارد البشرية", icon: Users },
+  { path: "/support", label: "الدعم والجودة", icon: LifeBuoy },
+  { path: "/pos", label: "نقاط البيع", icon: Receipt, highlight: true },
+  { path: "/permissions", label: "الصلاحيات", icon: ShieldCheck },
+  { path: "/basic-data", label: "البيانات الأساسية", icon: Boxes },
+  { path: "/journal", label: "القيود المحاسبية", icon: BookOpen },
+  { path: "/manual-journal", label: "قيد يدوي ذكي", icon: Scale },
+  { path: "/customization", label: "التخصيص والحقول", icon: SlidersHorizontal },
+  { path: "/branches", label: "الفروع والصلاحيات", icon: Building2 },
+  { path: "/audit", label: "سجل التدقيق", icon: History },
+  { path: "/requisitions", label: "طلبات التوريد", icon: ClipboardList },
   { path: "/reports", label: "التقارير", icon: BarChart3 },
-  { path: "/erp", label: "ERP", icon: Users },
+  { path: "/erp", label: "ERP", icon: LayoutGrid },
+  { path: "/operations", label: "لوحة العمليات", icon: Gauge, highlight: true },
+  {
+    path: "/analytics",
+    label: "التحليلات الذكية",
+    icon: BarChart3,
+    highlight: true,
+  },
   { path: "/settings", label: "الإعدادات", icon: Settings },
 ];
 

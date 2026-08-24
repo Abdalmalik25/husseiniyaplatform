@@ -15,9 +15,13 @@ import { Building2, Lock, ShieldCheck, Zap } from "lucide-react";
  * this component only improves UX and hides the interface.
  */
 export function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, user } = useAuth();
 
-  if (loading) {
+  // Don't show loading spinner if we have cached user data
+  // This prevents flash of loading spinner when navigating between protected pages
+  const shouldShowLoading = loading && !user;
+
+  if (shouldShowLoading) {
     return (
       <div
         className="min-h-screen bg-[#0d1b1c] flex items-center justify-center p-4"
@@ -77,7 +81,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
               </li>
             </ul>
             <Button
-              onClick={() => goLogin()}
+              onClick={() => goLogin(window.location.pathname)}
               className="w-full bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-10 font-bold"
             >
               <Zap className="w-4 h-4 fill-current" />

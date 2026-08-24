@@ -1,109 +1,156 @@
+import { useCallback, useEffect } from "react";
 import { goLogin } from "@/const";
-import { trpc } from "@/lib/trpc";
-import { TRPCClientError } from "@trpc/client";
-import { useCallback, useEffect, useMemo } from "react";
+import { trpc, type RouterOutputs } from "@/lib/trpc";
+import {
+  AUTH_GC_TIME_MS,
+  AUTH_MAX_RETRIES,
+  AUTH_STALE_TIME_MS,
+  LOGIN_PATH,
+  clearSessionTokenMirror,
+  isTransientAuthError,
+  isUnauthorizedError,
+  sanitizeRedirectPath,
+  writeRuntimeUserInfo,
+} from "@/_core/auth";
+/** The authenticated user payload as returned by `auth.me`. */
+export type AuthUser = NonNullable<RouterOutputs["auth"]["me"]>;
+
+/**
+ * Disjoint auth status — never collapse these into a single boolean.
+ * `error` covers transient failures too: network failure ≠ logged out.
+ */
+export type AuthStatus =
+  | "loading"
+  | "authenticated"
+  | "unauthenticated"
+  | "logging-out"
+  | "error";
 
 type UseAuthOptions = {
   redirectOnUnauthenticated?: boolean;
   redirectPath?: string;
 };
 
+/**
+ * Public facade for authentication state. Consumers get `user`,
+ * `isAuthenticated`, `loading`, `error`, `refresh` and an idempotent,
+ * race-safe `logout` — without knowing anything about tRPC internals, the
+ * query cache, storage mirrors, or redirect mechanics.
+ *
+ * Source of truth: `auth.me` (server session cookie / Bearer mirror).
+ */
 export function useAuth(options?: UseAuthOptions) {
-  // Login is started via startLogin() in the effect below, only when we actually
-  // navigate — never during render. startLogin() mints a one-time nonce + writes
-  // the state cookie, so calling it per render would overwrite the cookie and
-  // desync it from an in-flight login's `state`.
   const { redirectOnUnauthenticated = false, redirectPath } = options ?? {};
   const utils = trpc.useUtils();
 
   const meQuery = trpc.auth.me.useQuery(undefined, {
-    retry: false,
+    // UNAUTHORIZED is a definitive answer — retrying it is pointless. Transient
+    // transport/server errors ARE retried so a flaky connection never flips
+    // the UI into "logged out".
+    retry: (failureCount, error) =>
+      isTransientAuthError(error) && failureCount < AUTH_MAX_RETRIES,
     refetchOnWindowFocus: false,
+    staleTime: AUTH_STALE_TIME_MS,
+    gcTime: AUTH_GC_TIME_MS,
   });
 
-  const logoutMutation = trpc.auth.logout.useMutation({
-    onSuccess: () => {
-      utils.auth.me.setData(undefined, null);
-    },
-  });
+  // Subscribed only for isPending/error state; mutateAsync comes from the
+  // mutation hook result (the utils proxy does not expose mutation verbs).
+  const logoutMutation = trpc.auth.logout.useMutation();
 
-  const logout = useCallback(async () => {
+  /**
+   * Idempotent logout. Safe in every state:
+   * authenticated / expired session / already logged out (401 → success).
+   * Non-UNAUTHORIZED failures (e.g. network down) propagate to the caller but
+   * local cleanup still runs in `finally` — fail-closed for UX consistency.
+   */
+  const logout = useCallback(async (): Promise<void> => {
     try {
       await logoutMutation.mutateAsync();
     } catch (error: unknown) {
-      if (
-        error instanceof TRPCClientError &&
-        error.data?.code === "UNAUTHORIZED"
-      ) {
-        return;
-      }
-      throw error;
+      if (!isUnauthorizedError(error)) throw error;
     } finally {
-      // Clear the Preview auto-login token mirrored into sessionStorage, so
-      // header-based sessions (Safari ITP / WebView) are logged out too. The
-      // backend cookie is cleared by the logout mutation.
-      try {
-        sessionStorage.removeItem("manus-cookie");
-      } catch {
-        // Clearing sessionStorage may throw in restricted contexts — ignore.
-      }
+      // Critical section against the classic logout/me race:
+      //   me request ──▶ logout ──▶ old me response lands
+      // 1. Abort any in-flight `auth.me` request so a stale response cannot
+      //    write an authenticated user back into the cache after we reset it.
+      await utils.auth.me.cancel().catch(() => undefined);
+      // 2. Reset the cache to server truth: the session token was just cleared
+      //    backend-side, so `null` IS the authoritative value — no refetch or
+      //    broad invalidation needed.
       utils.auth.me.setData(undefined, null);
-      await utils.auth.me.invalidate();
+      // 3. Clear browser-side mirrors of the session (Preview Bearer token +
+      //    runtime user info copy) so nothing survives client-side.
+      clearSessionTokenMirror();
+      writeRuntimeUserInfo(null);
     }
   }, [logoutMutation, utils]);
 
-  const state = useMemo(() => {
-    return {
-      user: meQuery.data ?? null,
-      loading: meQuery.isLoading || logoutMutation.isPending,
-      error: meQuery.error ?? logoutMutation.error ?? null,
-      isAuthenticated: Boolean(meQuery.data),
-    };
-  }, [
-    meQuery.data,
-    meQuery.error,
-    meQuery.isLoading,
-    logoutMutation.error,
-    logoutMutation.isPending,
-  ]);
+  const isLoading = meQuery.isLoading;
+  const isLoggingOut = logoutMutation.isPending;
+  const user = meQuery.data ?? null;
+  const isAuthenticated = Boolean(meQuery.data);
+  // Legacy API preserved (`loading`), plus the finer-grained fields.
+  const loading = isLoading || isLoggingOut;
+  const error = meQuery.error ?? logoutMutation.error ?? null;
 
-  // Mirror the session into localStorage for non-React consumers. Must run as an
-  // effect, never during render (side effects in useMemo are illegal in concurrent mode).
+  let status: AuthStatus;
+  if (isLoggingOut) status = "logging-out";
+  else if (isLoading) status = "loading";
+  else if (isAuthenticated) status = "authenticated";
+  else if (meQuery.error) status = "error";
+  else status = "unauthenticated";
+
+  // Mirror the SETTLED session into localStorage for non-React consumers
+  // (preview runtime). Effect-only: side effects are illegal during render.
+  // Idempotent, so React StrictMode double-invocation is harmless.
   useEffect(() => {
-    try {
-      localStorage.setItem(
-        "manus-runtime-user-info",
-        JSON.stringify(meQuery.data)
-      );
-    } catch {
-      // storage unavailable
-    }
-  }, [meQuery.data]);
+    if (isLoading) return; // don't clobber the mirror with pre-query state
+    writeRuntimeUserInfo(user);
+  }, [isLoading, user]);
 
   useEffect(() => {
     if (!redirectOnUnauthenticated) return;
-    if (meQuery.isLoading || logoutMutation.isPending) return;
-    if (state.user) return;
-    if (typeof window === "undefined") return;
-    if (redirectPath && window.location.pathname === redirectPath) return;
+    // Navigate only once the server gave a DEFINITIVE answer (success with
+    // null). Loading states, transient network errors and in-progress logouts
+    // must never trigger a redirect — network failure ≠ logged out.
+    if (!meQuery.isSuccess || isAuthenticated) return;
 
-    // Navigate at this moment only. startLogin() mints the nonce + cookie itself.
+    if (typeof window === "undefined") return;
+
+    const { pathname } = window.location;
+    // Already on (or under) the login page → prevents redirect loops and
+    // StrictMode double-navigation from re-triggering a full page load.
+    if (pathname === LOGIN_PATH || pathname.startsWith(`${LOGIN_PATH}/`)) return;
+
     if (redirectPath) {
-      window.location.href = redirectPath;
-    } else {
-      goLogin();
+      if (pathname === redirectPath) return;
+      const safeTarget = sanitizeRedirectPath(redirectPath);
+      if (!safeTarget) return; // open-redirect attempt → ignore silently
+      window.location.href = safeTarget;
+      return;
     }
+    goLogin();
   }, [
     redirectOnUnauthenticated,
     redirectPath,
-    logoutMutation.isPending,
-    meQuery.isLoading,
-    state.user,
+    meQuery.isSuccess,
+    isAuthenticated,
   ]);
 
+  // Stable identities: `utils` proxies are stable across renders.
+  const refresh = useCallback(() => utils.auth.me.refetch(), [utils]);
+
   return {
-    ...state,
-    refresh: () => meQuery.refetch(),
+    user,
+    isAuthenticated,
+    isLoading,
+    isLoggingOut,
+    loading,
+    status,
+    error,
+    refresh,
     logout,
   };
 }
+

@@ -20,10 +20,13 @@ export function FloatingSupportWidget() {
   };
 
   return (
-    <div className="fixed bottom-5 left-5 z-50 font-display" dir="rtl">
+    <div
+      className="fixed left-5 z-40 font-display bottom-[calc(1.25rem+env(safe-area-inset-bottom))]"
+      dir="rtl"
+    >
       {/* Floating Menu Card */}
       {isOpen && (
-        <div className="mb-3 w-72 bg-ink text-white border border-white/10 rounded-2xl shadow-2xl p-4 space-y-3 animate-in slide-in-from-bottom-4 duration-200">
+        <div className="mb-3 w-72 max-w-[calc(100vw-2.5rem)] bg-ink text-white border border-white/10 rounded-2xl shadow-2xl p-4 space-y-3 animate-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <div className="flex items-center gap-1.5 font-bold text-xs text-brand-300">
               <Sparkles className="w-4 h-4 text-brand" />

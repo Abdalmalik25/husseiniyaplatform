@@ -37,6 +37,26 @@ export default function Settings() {
   const [period, setPeriod] = useState("السنة المالية 2026");
   const [manager, setManager] = useState("إدارة المؤسسة");
   const [notes, setNotes] = useState("");
+  const [country, setCountry] = useState("اليمن");
+  const [zatca, setZatca] = useState({ enabled: false, sellerName: "", vatNumber: "" });
+  const [wsCode, setWsCode] = useState("");
+  const [wsName, setWsName] = useState("");
+  const [wsAddr, setWsAddr] = useState("");
+  const [devCode, setDevCode] = useState("");
+  const [devName, setDevName] = useState("");
+  const [devType, setDevType] = useState("pos");
+
+  const workSites = trpc.workSites.list.useQuery();
+  const createWs = trpc.workSites.create.useMutation({ onSuccess: () => { setWsCode(""); setWsName(""); setWsAddr(""); workSites.refetch(); } });
+  const removeWs = trpc.workSites.remove.useMutation({ onSuccess: () => workSites.refetch() });
+  const devices = trpc.devices.list.useQuery();
+  const createDev = trpc.devices.create.useMutation({ onSuccess: () => { setDevCode(""); setDevName(""); setDevType("pos"); devices.refetch(); } });
+  const removeDev = trpc.devices.remove.useMutation({ onSuccess: () => devices.refetch() });
+
+  const [posConfig, setPosConfig] = useState("{}");
+  const [salesPolicy, setSalesPolicy] = useState("{}");
+  const [paymentMethods, setPaymentMethods] = useState("[]");
+  const [postingRules, setPostingRules] = useState("{}");
 
   useEffect(() => {
     if (settingsData) {
@@ -47,18 +67,73 @@ export default function Settings() {
       setPeriod(settingsData.accountingPeriod || "السنة المالية 2026");
       setManager(settingsData.managerName || "إدارة المؤسسة");
       setNotes((settingsData as any)?.notes || "");
+      setCountry((settingsData as any)?.country || "اليمن");
+      try {
+        const z = (settingsData as any)?.zatcaConfig;
+        if (z && typeof z === "object") setZatca({ enabled: !!z.enabled, sellerName: z.sellerName || "", vatNumber: z.vatNumber || "" });
+      } catch { /* ignore */ }
+      try {
+        setPosConfig(
+          JSON.stringify((settingsData as any).posConfig ?? {}, null, 2)
+        );
+        setSalesPolicy(
+          JSON.stringify((settingsData as any).salesPolicy ?? {}, null, 2)
+        );
+        setPaymentMethods(
+          JSON.stringify((settingsData as any).paymentMethods ?? [], null, 2)
+        );
+        setPostingRules(
+          JSON.stringify((settingsData as any).postingRules ?? {}, null, 2)
+        );
+      } catch {
+        /* ignore */
+      }
     }
   }, [settingsData]);
 
   const handleSave = (e: React.FormEvent) => {
     e.preventDefault();
+    const pc = posConfig,
+      sp = salesPolicy,
+      pm = paymentMethods,
+      pr = postingRules;
+    try {
+      JSON.parse(pc);
+    } catch {
+      toast.error("إعدادات نقطة البيع ليست JSON صالحاً");
+      return;
+    }
+    try {
+      JSON.parse(sp);
+    } catch {
+      toast.error("سياسة المبيعات ليست JSON صالحاً");
+      return;
+    }
+    try {
+      JSON.parse(pm);
+    } catch {
+      toast.error("طرق الدفع ليست JSON صالحاً");
+      return;
+    }
+    try {
+      JSON.parse(pr);
+    } catch {
+      toast.error("قواعد الترحيل ليست JSON صالحاً");
+      return;
+    }
     updateSettings.mutate({
       institutionName: instName,
       currency,
       accountingPeriod: period,
       managerName: manager,
       notes,
-    });
+      country,
+      posConfig: pc,
+      salesPolicy: sp,
+      paymentMethods: pm,
+      postingRules: pr,
+      zatcaConfig: JSON.stringify(zatca),
+    } as any);
   };
 
   return (
@@ -94,6 +169,23 @@ export default function Settings() {
               </CardDescription>
             </CardHeader>
             <CardContent className="p-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <Label className="text-xs font-bold text-slate-700">الدولة</Label>
+                  <select
+                    value={country}
+                    onChange={e => setCountry(e.target.value)}
+                    className="w-full h-9 rounded-md border border-slate-200 bg-white text-xs px-2"
+                  >
+                    <option value="اليمن">اليمن</option>
+                    <option value="السعودية">السعودية (ZATCA)</option>
+                    <option value="الإمارات">الإمارات</option>
+                    <option value="مصر">مصر</option>
+                    <option value="الكويت">الكويت</option>
+                    <option value="الأردن">الأردن</option>
+                  </select>
+                </div>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs font-bold text-slate-700">
@@ -238,6 +330,148 @@ export default function Settings() {
                 <code className="font-mono text-[#b87945]">currency</code> في
                 مركز التكامل — راجع صفحة «مركز التكامل».
               </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-[#102a2b]/15 shadow-sm bg-white">
+            <CardHeader className="bg-[#102a2b]/5 border-b border-slate-100 p-4">
+              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
+                <Database className="w-5 h-5 text-[#102a2b]" />
+                تكوين نقاط البيع والمخزون (السعودية · اليمن)
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-600">
+                ضبط السياسات، طرق الدفع، العملات، والقنوات والوسطاء، وقواعد
+                الترحيل المحاسبي. تُحرر بصيغة JSON.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">
+                  إعدادات نقطة البيع (posConfig)
+                </Label>
+                <textarea
+                  rows={4}
+                  value={posConfig}
+                  onChange={e => setPosConfig(e.target.value)}
+                  className="w-full p-3 rounded-md border border-slate-200 text-[11px] bg-slate-50 text-slate-800 font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">
+                  سياسة المبيعات (salesPolicy)
+                </Label>
+                <textarea
+                  rows={4}
+                  value={salesPolicy}
+                  onChange={e => setSalesPolicy(e.target.value)}
+                  className="w-full p-3 rounded-md border border-slate-200 text-[11px] bg-slate-50 text-slate-800 font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">
+                  طرق الدفع (paymentMethods) — نقدي/بطاقة/تحويل/مدى/STC Pay…
+                </Label>
+                <textarea
+                  rows={4}
+                  value={paymentMethods}
+                  onChange={e => setPaymentMethods(e.target.value)}
+                  className="w-full p-3 rounded-md border border-slate-200 text-[11px] bg-slate-50 text-slate-800 font-mono"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs font-bold text-slate-700">
+                  قواعد الترحيل المحاسبي (postingRules)
+                </Label>
+                <textarea
+                  rows={4}
+                  value={postingRules}
+                  onChange={e => setPostingRules(e.target.value)}
+                  className="w-full p-3 rounded-md border border-slate-200 text-[11px] bg-slate-50 text-slate-800 font-mono"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card className="border border-[#102a2b]/15 shadow-sm bg-white">
+            <CardHeader className="bg-[#102a2b]/5 border-b border-slate-100 p-4">
+              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
+                <Database className="w-5 h-5 text-[#102a2b]" />
+                الفواتير الإلكترونية السعودية (ZATCA)
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-600">
+                يُفعَّل تلقائياً عند اختيار الدولة «السعودية» ويولّد رمز QR وفق
+                الهيئة العامة للزكاة والضريبة والجمارك عند كل فاتورة بيع.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-3">
+              <label className="flex items-center gap-2 text-xs font-bold text-slate-700">
+                <input
+                  type="checkbox"
+                  checked={zatca.enabled}
+                  onChange={e => setZatca({ ...zatca, enabled: e.target.checked })}
+                />
+                تفعيل ZATCA (الفوترة الإلكترونية)
+              </label>
+              {zatca.enabled && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700">اسم البائع المسجل</Label>
+                    <Input value={zatca.sellerName} onChange={e => setZatca({ ...zatca, sellerName: e.target.value })} className="bg-white border-slate-200 text-xs h-9" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-slate-700">الرقم الضريبي (VAT Number)</Label>
+                    <Input value={zatca.vatNumber} onChange={e => setZatca({ ...zatca, vatNumber: e.target.value })} className="bg-white border-slate-200 text-xs h-9" placeholder="مثل: 300000000000003" />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="border border-[#102a2b]/15 shadow-sm bg-white">
+            <CardHeader className="bg-[#102a2b]/5 border-b border-slate-100 p-4">
+              <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
+                <Globe className="w-5 h-5 text-[#102a2b]" />
+                مواقع العمل والأجهزة (الرقابة وتتبع الأثر)
+              </CardTitle>
+              <CardDescription className="text-xs text-slate-600">
+                تُربط بالمستندات لتتبع موقع التنفيذ والجهاز والإحداثيات وضمان
+                عدم تداخل الترقيم عبر المستخدم والفرع والمؤسسة والمشترك.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-5 space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+                <Input className="h-9 text-xs" placeholder="كود الموقع" value={wsCode} onChange={e => setWsCode(e.target.value)} />
+                <Input className="h-9 text-xs" placeholder="اسم الموقع" value={wsName} onChange={e => setWsName(e.target.value)} />
+                <Input className="h-9 text-xs" placeholder="العنوان" value={wsAddr} onChange={e => setWsAddr(e.target.value)} />
+                <Button size="sm" className="bg-[#102a2b] hover:bg-[#0c2021] text-xs" disabled={!wsCode || !wsName || createWs.isPending} onClick={() => createWs.mutate({ code: wsCode, name: wsName, address: wsAddr })}>إضافة موقع</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(workSites.data || []).map(w => (
+                  <span key={w.id} className="inline-flex items-center text-[11px] bg-slate-100 rounded-full px-2 py-1">
+                    {w.code} - {w.name}
+                    <button className="ml-1 text-rose-600" onClick={() => removeWs.mutate({ id: w.id })}>×</button>
+                  </span>
+                ))}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-2 border-t">
+                <Input className="h-9 text-xs" placeholder="كود الجهاز" value={devCode} onChange={e => setDevCode(e.target.value)} />
+                <Input className="h-9 text-xs" placeholder="اسم الجهاز" value={devName} onChange={e => setDevName(e.target.value)} />
+                <select className="h-9 rounded-md border border-slate-200 bg-white text-xs px-2" value={devType} onChange={e => setDevType(e.target.value)}>
+                  <option value="pos">نقطة بيع</option>
+                  <option value="scanner">ماسح</option>
+                  <option value="scale">ميزان</option>
+                  <option value="other">أخرى</option>
+                </select>
+                <Button size="sm" className="bg-[#102a2b] hover:bg-[#0c2021] text-xs" disabled={!devCode || !devName || createDev.isPending} onClick={() => createDev.mutate({ code: devCode, name: devName, type: devType })}>إضافة جهاز</Button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {(devices.data || []).map(d => (
+                  <span key={d.id} className="inline-flex items-center text-[11px] bg-slate-100 rounded-full px-2 py-1">
+                    {d.code} - {d.name} ({d.type})
+                    <button className="ml-1 text-rose-600" onClick={() => removeDev.mutate({ id: d.id })}>×</button>
+                  </span>
+                ))}
+              </div>
             </CardContent>
           </Card>
 

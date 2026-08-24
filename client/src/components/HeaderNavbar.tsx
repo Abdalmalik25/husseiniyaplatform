@@ -12,13 +12,18 @@ import {
   Menu,
   X,
   Globe,
+  Sun,
+  Moon,
 } from "lucide-react";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
+import { useTheme } from "@/contexts/ThemeContext";
 import { BrandLogo } from "@/components/BrandLogo";
+import { TenantSwitcher } from "@/components/TenantSwitcher";
 import { MARKETING_NAV } from "@/lib/nav";
-import { Zap, ArrowLeft } from "lucide-react";
+import { Zap, ArrowLeft, MessageSquare } from "lucide-react";
+import { uamexDemoLink } from "@/lib/brand";
 
 interface HeaderNavbarProps {
   institutionName?: string;
@@ -30,6 +35,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
   const { isOnline, isSyncing } = useOffline();
   const { user, isAuthenticated } = useAuth();
   const { language, setLanguage } = useI18n();
+  const { theme, toggleTheme } = useTheme();
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [scrolled, setScrolled] = React.useState(false);
 
@@ -104,17 +110,36 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
           {MARKETING_NAV.map(item => {
             const Icon = item.icon;
             const isActive = location === item.path;
+            const isAnchor = item.path.includes("#");
+            const handleNavClick = () => {
+              if (isAnchor) {
+                const [pagePath, hash] = item.path.split("#");
+                if (location !== pagePath && pagePath !== "/") {
+                  setLocation(pagePath);
+                  setTimeout(() => {
+                    document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 300);
+                } else {
+                  document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              } else {
+                setLocation(item.path);
+              }
+            };
             return (
               <Button
                 key={item.path}
                 variant="ghost"
                 size="sm"
-                onClick={() => setLocation(item.path)}
+                onClick={handleNavClick}
                 aria-current={isActive ? "page" : undefined}
                 className={`${baseBtn} ${navClass(isActive, item.highlight)} group relative`}
               >
                 <Icon className="w-3.5 h-3.5" />
                 {item.label}
+                {item.highlight && (
+                  <span className="absolute -top-1 -left-1 w-2 h-2 rounded-full bg-brand animate-pulse" />
+                )}
                 <span
                   className={`absolute bottom-1 left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-brand transition-all duration-300 ${
                     isActive ? "w-2/3" : "w-0 group-hover:w-2/3"
@@ -124,10 +149,23 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
             );
           })}
 
-          {/* Primary CTA — always visible: enter the system */}
+          {/* Free Trial CTA — shown only to visitors */}
+          {!isAuthenticated && (
+            <a
+              href={uamexDemoLink()}
+              target="_blank"
+              rel="noopener"
+              className="hidden lg:inline-flex items-center gap-1.5 bg-white/8 hover:bg-brand/15 border border-brand/40 text-brand-300 hover:text-white font-bold h-9 px-4 rounded-xl text-xs transition-all mr-1 hover:border-brand/60"
+            >
+              <MessageSquare className="w-3.5 h-3.5" />
+              ابدأ مجاناً
+            </a>
+          )}
+
+          {/* Primary CTA — enter the system */}
           <Button
             onClick={() => setLocation("/app")}
-            className="bg-brand hover:bg-brand-deep text-ink font-black h-9 px-4 rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 text-xs mr-2"
+            className="bg-brand hover:bg-brand-deep text-ink font-black h-9 px-4 rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 text-xs mr-1"
           >
             <Zap className="w-4 h-4 fill-current" />
             {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
@@ -162,16 +200,35 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
             <span>العربية / EN</span>
           </Button>
 
-          {/* Role & Language Selector Badge — operators only (hidden from visitors) */}
+          {/* Theme Toggle (Light / Dark) — world-class a11y + persistence */}
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={toggleTheme}
+            className="text-white/70 hover:text-white hover:bg-white/5 h-8 w-8 p-0 rounded-lg flex items-center justify-center"
+            aria-label={theme === "dark" ? "تبديل للوضع الفاتح" : "تبديل للوضع الداكن"}
+            title={theme === "dark" ? "الوضع الفاتح" : "الوضع الداكن"}
+          >
+            {theme === "dark" ? (
+              <Sun className="w-3.5 h-3.5 text-brand-300" />
+            ) : (
+              <Moon className="w-3.5 h-3.5 text-brand-300" />
+            )}
+          </Button>
+
+          {/* Super-admin tenant switcher (owner only) */}
+          <TenantSwitcher />
+
+          {/* Account security — login activity & map (signed-in users only) */}
           {isAuthenticated && (
             <Button
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={() => setLocation("/settings")}
-              className="bg-white/5 border-brand/40 text-brand-300 h-8 text-[11px] px-2.5 hover:bg-white/10 hidden sm:flex items-center gap-1 font-bold"
+              onClick={() => setLocation("/security")}
+              className="text-white/70 hover:text-white hover:bg-white/5 h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium hidden sm:flex"
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>مدير النظام (العربية)</span>
+              <ShieldCheck className="w-3.5 h-3.5 text-brand-300" />
+              <span>الأمان</span>
             </Button>
           )}
 
@@ -206,46 +263,78 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
 
       {/* Mobile Drawer Menu */}
       {mobileOpen && (
-        <div className="md:hidden bg-ink-deep border-t border-white/10 px-4 py-3 space-y-1.5">
+        <div className="md:hidden bg-ink-deep border-t border-white/10 px-4 py-4 space-y-2">
           {/* Primary CTA on mobile */}
           <button
-            onClick={() => {
-              setLocation("/app");
-              setMobileOpen(false);
-            }}
+            onClick={() => { setLocation("/app"); setMobileOpen(false); }}
             className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-brand text-ink font-black text-xs shadow-lg"
           >
             <Zap className="w-4 h-4 fill-current" />
             {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
           </button>
+
+          {/* Free trial CTA for visitors */}
+          {!isAuthenticated && (
+            <a
+              href={uamexDemoLink()}
+              target="_blank"
+              rel="noopener"
+              onClick={() => setMobileOpen(false)}
+              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-brand/40 text-brand-300 font-bold text-xs"
+            >
+              <MessageSquare className="w-4 h-4" />
+              ابدأ بتجربة مجانية
+            </a>
+          )}
+
+          <div className="section-divider" />
+
           {MARKETING_NAV.map(item => {
             const Icon = item.icon;
             const isActive = location === item.path;
+            const isAnchor = item.path.includes("#");
+            const handleClick = () => {
+              if (isAnchor) {
+                const [pagePath, hash] = item.path.split("#");
+                setMobileOpen(false);
+                if (location !== "/" && pagePath === "/") {
+                  setLocation("/");
+                  setTimeout(() => {
+                    document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }, 350);
+                } else {
+                  document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }
+              } else {
+                setLocation(item.path);
+                setMobileOpen(false);
+              }
+            };
             return (
               <button
                 key={item.path}
-                onClick={() => {
-                  setLocation(item.path);
-                  setMobileOpen(false);
-                }}
+                onClick={handleClick}
                 aria-current={isActive ? "page" : undefined}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
                   isActive
                     ? "bg-brand text-ink font-bold"
-                    : "text-white/80 hover:bg-white/5"
+                    : item.highlight
+                      ? "text-brand-300 border border-brand/25 hover:bg-brand/10"
+                      : "text-white/80 hover:bg-white/5"
                 }`}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4 shrink-0" />
                 <span>{item.label}</span>
+                {item.highlight && (
+                  <span className="mr-auto text-[9px] bg-brand/20 text-brand-300 px-2 py-0.5 rounded-full font-black">ERP</span>
+                )}
               </button>
             );
           })}
+
           {onOpenSettings && (
             <button
-              onClick={() => {
-                onOpenSettings();
-                setMobileOpen(false);
-              }}
+              onClick={() => { onOpenSettings(); setMobileOpen(false); }}
               className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/5"
             >
               <Settings className="w-4 h-4" />
@@ -253,10 +342,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
             </button>
           )}
           <button
-            onClick={() => {
-              setLanguage(language === "ar" ? "en" : "ar");
-              setMobileOpen(false);
-            }}
+            onClick={() => { setLanguage(language === "ar" ? "en" : "ar"); setMobileOpen(false); }}
             className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/5"
           >
             <Globe className="w-4 h-4 text-brand-300" />

@@ -133,7 +133,7 @@ export function createApp(): Express {
       dbAvailable,
       service: "alhusainia-platform",
       institution: "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
-      version: "1.2.0",
+      version: "2.0.0",
       status: dbAvailable ? "Operational" : "Degraded (DB unreachable)",
       security: "ISO-Compliant",
       time: new Date().toISOString(),
@@ -150,15 +150,16 @@ export function createApp(): Express {
   registerOAuthRoutes(app);
   registerWebApi(app);
   // tRPC API
-  // GET queries are cacheable at the edge for seconds (single-tenant data set);
-  // mutations (POST/PATCH) are never cached.
+  // IMPORTANT (multi-tenant): responses are tenant-scoped and authenticated,
+  // so they must NEVER be cached at a shared/CDN edge. A public s-maxage would
+  // let one tenant's query result be served to another tenant (the cache key is
+  // the URL only, ignoring the x-tenant-id header and the session cookie).
+  // Mutations (POST/PATCH) are never cached regardless.
   app.use("/api/trpc", apiLimiter);
   app.use("/api/trpc", (req, res, next) => {
     if (req.method === "GET") {
-      res.setHeader(
-        "Cache-Control",
-        "public, s-maxage=30, stale-while-revalidate=90"
-      );
+      res.setHeader("Cache-Control", "no-store, private");
+      res.setHeader("Vary", "x-tenant-id, cookie");
     }
     next();
   });

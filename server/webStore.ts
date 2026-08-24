@@ -1,4 +1,4 @@
-import { eq, and, or, ilike, inArray, asc, gte, sql } from "drizzle-orm";
+import { eq, and, or, ilike, inArray, asc, gte, sql, isNull } from "drizzle-orm";
 import { z } from "zod";
 import {
   products,
@@ -37,9 +37,14 @@ export type PlaceOrderInput = z.infer<typeof placeOrderInputSchema>;
 
 export async function getCatalog(
   db: Db,
+  tenantId: number,
   input?: z.infer<typeof catalogInputSchema>
 ) {
-  const conditions = [eq(products.isActive, true)];
+  const conditions = [
+    eq(products.tenantId, tenantId),
+    eq(products.isActive, true),
+    isNull(products.deletedAt),
+  ];
   if (input?.search) {
     conditions.push(
       or(
@@ -70,7 +75,9 @@ export async function getCatalog(
   const cats = await db
     .selectDistinct({ category: products.category })
     .from(products)
-    .where(eq(products.isActive, true));
+    .where(
+      and(eq(products.tenantId, tenantId), eq(products.isActive, true), isNull(products.deletedAt))
+    );
   return {
     items,
     categories: cats
@@ -80,7 +87,11 @@ export async function getCatalog(
   };
 }
 
-export async function placePublicOrder(db: Db, input: PlaceOrderInput) {
+export async function placePublicOrder(
+  db: Db,
+  tenantId: number,
+  input: PlaceOrderInput
+) {
   // Merge duplicate cart lines before anything else (same product twice in the basket)
   const mergedMap = new Map<number, number>();
   for (const it of input.items)
@@ -96,7 +107,13 @@ export async function placePublicOrder(db: Db, input: PlaceOrderInput) {
   const productRows = await db
     .select()
     .from(products)
-    .where(inArray(products.id, productIds));
+    .where(
+      and(
+        eq(products.tenantId, tenantId),
+        inArray(products.id, productIds),
+        isNull(products.deletedAt)
+      )
+    );
   if (productRows.length !== productIds.length)
     throw new Error("واحد أو أكثر من الأصناف غير متوفر حالياً");
   const productMap = new Map(productRows.map(p => [p.id, p]));
@@ -141,7 +158,7 @@ export async function placePublicOrder(db: Db, input: PlaceOrderInput) {
       const [cust] = await db
         .insert(customers)
         .values({
-          tenantId: 1,
+          tenantId,
           code: `WEB-${datePart}-${randPart}`,
           name: input.customerName.trim(),
           phone,
@@ -160,6 +177,7 @@ export async function placePublicOrder(db: Db, input: PlaceOrderInput) {
     const [order] = await tx
       .insert(orders)
       .values({
+        tenantId,
         orderNumber,
         customerId,
         total: total.toFixed(2),
@@ -191,6 +209,7 @@ export async function placePublicOrder(db: Db, input: PlaceOrderInput) {
           `الكمية المطلوبة من «${it.productName}» تجاوزت المتوفر عند تأكيد الطلب`
         );
       await tx.insert(inventoryMovements).values({
+        tenantId,
         productId: it.productId,
         type: "out",
         quantity: it.quantity,

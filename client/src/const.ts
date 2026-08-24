@@ -34,6 +34,10 @@ export const startLogin = () => {
 // the external OAuth portal (when configured) or the self-contained owner
 // password login. Prefer this over startLogin() at entry points so the system
 // works on independent hosting without the Manus OAuth provider injected.
-export const goLogin = () => {
-  window.location.href = "/login";
+export const goLogin = (redirect?: string) => {
+  const target =
+    redirect && redirect.startsWith("/")
+      ? `/login?redirect=${encodeURIComponent(redirect)}`
+      : "/login";
+  window.location.href = target;
 };

@@ -2,6 +2,7 @@ import js from "@eslint/js";
 import tseslint from "typescript-eslint";
 import reactPlugin from "eslint-plugin-react";
 import reactHooksPlugin from "eslint-plugin-react-hooks";
+import globals from "globals";
 
 export default [
   js.configs.recommended,
@@ -28,6 +29,21 @@ export default [
       },
     },
   },
+    {
+    // Operational scripts (*.mjs, *.cjs at root and in scripts/)
+    // These are standalone Node.js scripts that use console/process globals.
+    files: ["*.mjs", "*.cjs", "scripts/**/*.mjs", "scripts/**/*.cjs"],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+        ...globals.nodeBuiltin,
+      },
+    },
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+      "no-console": "off",
+    },
+  },
   {
     ignores: [
       "dist/**",
@@ -36,23 +52,9 @@ export default [
       "client/public/**",
       "drizzle/**",
       "*.config.*",
+      "scripts/build-server.cjs",
+      "temp/**",
+      "lint-*.txt",
     ],
-  },
-  {
-    // Dev helper scripts (CommonJS) — run under Node, not the app bundle.
-    files: ["scripts/**/*.cjs"],
-    languageOptions: {
-      globals: {
-        require: "readonly",
-        module: "readonly",
-        process: "readonly",
-        console: "readonly",
-        __dirname: "readonly",
-      },
-    },
-    rules: {
-      "@typescript-eslint/no-require-imports": "off",
-      "no-console": "off",
-    },
   },
 ];

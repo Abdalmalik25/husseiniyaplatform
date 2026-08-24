@@ -194,11 +194,15 @@ function openDB(): Promise<IDBDatabase> {
       ];
       for (const storeName of dataStores) {
         if (db.objectStoreNames.contains(storeName)) {
-          const store = request.result
-            .transaction(storeName)
-            .objectStore(storeName);
-          if (!store.indexNames.contains("_status")) {
-            store.createIndex("_status", "_status", { unique: false });
+          try {
+            const transaction = db.transaction(storeName, "versionchange");
+            const store = transaction.objectStore(storeName);
+            if (!store.indexNames.contains("_status")) {
+              store.createIndex("_status", "_status", { unique: false });
+            }
+          } catch (e) {
+            // Index might already exist or store not available in versionchange
+            console.warn(`Could not create _status index for ${storeName}:`, e);
           }
         }
       }

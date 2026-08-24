@@ -18,6 +18,8 @@ import {
   Truck,
   Headset,
   ShieldCheck,
+  Receipt,
+  Package,
   type LucideIcon,
 } from "lucide-react";
 
@@ -31,7 +33,9 @@ export type ModuleKey =
   | "projects"
   | "procurement"
   | "support"
-  | "quality";
+  | "quality"
+  | "pos"
+  | "distribution";
 
 export interface ModuleIdentity {
   key: ModuleKey;
@@ -64,7 +68,7 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#0e2a2b] via-[#16393b] to-[#1d474a]",
     border: "border-[#0e2a2b]",
     icon: Building2,
-    tagline: "قيد مزدوج، دليل شجري، وقوائم مالية وإقفال سنوي.",
+    tagline: "نظام محاسبي مرن يخدم جميع أنواع الأنشطة التجارية والصناعية والخدمية.",
   },
   engineering: {
     key: "engineering",
@@ -75,7 +79,7 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#b87945] via-[#c08e52] to-[#9a6334]",
     border: "border-[#b87945]",
     icon: HardHat,
-    tagline: "مخططات تنفيذية، رفع مساحي، وجداول BOQ.",
+    tagline: "إدارة المشاريع والتنفيذ للأنشطة الصناعية والخدمية والبنية التحتية.",
   },
   commercial: {
     key: "commercial",
@@ -86,7 +90,7 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#0f766e] via-[#0d9488] to-[#115e59]",
     border: "border-[#0f766e]",
     icon: ShoppingCart,
-    tagline: "فواتير، سندات، وحركة مخزون وربط المتجر آلياً.",
+    tagline: "إدارة الفواتير والمخزون لعملك سواء كان تجارياً أو خدمياً أو صناعياً.",
   },
   library: {
     key: "library",
@@ -97,7 +101,7 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#0369a1] via-[#0284c7] to-[#075985]",
     border: "border-[#0369a1]",
     icon: BookOpen,
-    tagline: "خدمات طلابية، تصاميم، أبحاث، وصيانة أجهزة.",
+    tagline: "المعارف والصيانة للدعم المؤسسي لجميع الأنشطة.",
   },
   analytics: {
     key: "analytics",
@@ -108,9 +112,9 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#7c3aed] via-[#8b5cf6] to-[#6d28d9]",
     border: "border-[#7c3aed]",
     icon: Sparkles,
-    tagline: "مستشار مالي بالذكاء الاصطناعي وتحليلات فورية.",
+    tagline: "لوحة تحلل ذكية لأداء أي نشاط تجاري أو صناعي أو طبي.",
   },
-  hr: {
+hr: {
     key: "hr",
     label: "الموارد البشرية",
     en: "hr",
@@ -119,10 +123,9 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#0d9488] via-[#14b8a6] to-[#0f766e]",
     border: "border-[#0d9488]",
     icon: Users,
-    tagline: "أقسام، موظفون، حضور، ورواتب.",
-    roles: ["hr_manager", "admin", "owner"],
+    tagline: "إدارة الأقسام والموظفين والحضور والرواتب لجميع أنواع الأنشطة.",
   },
-  projects: {
+projects: {
     key: "projects",
     label: "إدارة المشاريع",
     en: "projects",
@@ -131,10 +134,9 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#ca8a04] via-[#eab308] to-[#a16207]",
     border: "border-[#ca8a04]",
     icon: FolderKanban,
-    tagline: "مشاريع، مهام، وأعضاء الفريق.",
-    roles: ["project_manager", "construction_engineer", "admin", "owner"],
+    tagline: "متابعة المشاريع والمهام عبر جميع أنواع الأنشطة التجارية.",
   },
-  procurement: {
+procurement: {
     key: "procurement",
     label: "المشتريات والاعتماد",
     en: "procurement",
@@ -143,10 +145,20 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#b45309] via-[#d97706] to-[#92400e]",
     border: "border-[#b45309]",
     icon: Truck,
-    tagline: "أوامر توريد وسير اعتماد متعدد المستويات.",
-    roles: ["procurement_officer", "project_manager", "admin", "owner"],
+    tagline: "سلاسل التوريد والشراء لأنشطة صناعية وطبية وخدمة.",
   },
-  support: {
+distribution: {
+    key: "distribution",
+    label: "التوزيع اللوجستي",
+    en: "distribution",
+    accent: "#dc2626",
+    tint: "bg-[#dc2626]/10",
+    gradient: "from-[#dc2626] via-[#f87171] to-[#ea5873]",
+    border: "border-[#dc2626]",
+    icon: Package,
+    tagline: "التوزيع السريع بين الفروع والمخازن لجميع أنواع الأنشطة.",
+  },
+support: {
     key: "support",
     label: "خدمة العملاء",
     en: "support",
@@ -155,10 +167,9 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#2563eb] via-[#3b82f6] to-[#1d4ed8]",
     border: "border-[#2563eb]",
     icon: Headset,
-    tagline: "تذاكر دعم ومتابعة العملاء.",
-    roles: ["customer_service", "admin", "owner"],
+    tagline: "متابعة العملاء والدعم لجميع أنواع الأنشطة التجارية والخدمية.",
   },
-  quality: {
+quality: {
     key: "quality",
     label: "الجودة والفحص",
     en: "quality",
@@ -167,8 +178,18 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#16a34a] via-[#22c55e] to-[#15803d]",
     border: "border-[#16a34a]",
     icon: ShieldCheck,
-    tagline: "سجل فحوص وجودة الإنتاج.",
-    roles: ["quality_inspector", "construction_engineer", "admin", "owner"],
+    tagline: "فحوصات الجودة والرقابة لجميع الأنشطة الصناعية والطبية والخدمية.",
+  },
+  pos: {
+    key: "pos",
+    label: "نقاط البيع",
+    en: "pos",
+    accent: "#b87945",
+    tint: "bg-[#b87945]/10",
+    gradient: "from-[#b87945] via-[#c08e52] to-[#9a6334]",
+    border: "border-[#b87945]",
+    icon: Receipt,
+    tagline: "محطة بيع للأنشطة التجارية والخدمية والمطاعم.",
   },
 };
 

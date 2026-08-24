@@ -100,7 +100,7 @@ const translations: TranslationResources = {
       "فريق المهندسين والمستشارين والفنيين في مؤسسة ومكتبة الحسينية بانتظاركم لإنجاز مشاريعكم الهندسية والعقارية والمكتبية.",
     aboutContactAddress:
       "المركز الرئيسي — شارع المؤسسة والمكتبة، الفرع الهندسي والتخصصي",
-    aboutContactPhone: "+967 770 000 000 / +967 01 200 000",
+    aboutContactPhone: "+967 778 343 988 / +967 778 332 096",
     aboutContactEmail: "engineering@husseiniya-business.com",
     aboutContactButton: "طلب تسعيرة ودراسة هندسية الآن",
     // Modals
@@ -221,7 +221,7 @@ const translations: TranslationResources = {
       "The team of engineers, consultants, and technicians at Alhusainia Establishment & Library is ready to accomplish your engineering, real estate, and office projects.",
     aboutContactAddress:
       "Main Headquarters — Institution & Library Street, Engineering & Specialty Branch",
-    aboutContactPhone: "+967 770 000 000 / +967 01 200 000",
+    aboutContactPhone: "+967 778 343 988 / +967 778 332 096",
     aboutContactEmail: "engineering@husseiniya-business.com",
     aboutContactButton: "Request Engineering Quote & Study Now",
     // Modals

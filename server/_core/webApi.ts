@@ -49,6 +49,7 @@ export function registerWebApi(app: Express) {
   // GET /api/web/catalog?search=..&category=..  →  { items, categories }
   app.get("/api/web/catalog", async (req, res) => {
     try {
+      res.setHeader("Cache-Control", "no-store, private");
       const db = await getDb();
       if (!db) {
         res.status(503).json({ ok: false, error: "قاعدة البيانات غير متاحة" });
@@ -62,7 +63,13 @@ export function registerWebApi(app: Express) {
             ? req.query.category
             : undefined,
       });
-      const data = await getCatalog(db, parsed.success ? parsed.data : {});
+      const tid =
+        Number.parseInt((req.headers["x-tenant-id"] as string) || "", 10) || 1;
+      const data = await getCatalog(
+        db,
+        tid,
+        parsed.success ? parsed.data : {}
+      );
       res.status(200).json({ ok: true, ...data });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: String(e?.message || e) });
@@ -85,7 +92,9 @@ export function registerWebApi(app: Express) {
         });
         return;
       }
-      const result = await placePublicOrder(db, parsed.data);
+      const tid =
+        Number.parseInt((req.headers["x-tenant-id"] as string) || "", 10) || 1;
+      const result = await placePublicOrder(db, tid, parsed.data);
       res.status(200).json({ ok: true, ...result });
     } catch (e: any) {
       res.status(400).json({ ok: false, error: String(e?.message || e) });

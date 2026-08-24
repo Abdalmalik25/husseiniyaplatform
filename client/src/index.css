@@ -437,3 +437,290 @@
     transition: none;
   }
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Global responsive safety net (v2 cross-device hardening)
+   Applied conservatively so it never breaks layout or sticky positioning.
+   ───────────────────────────────────────────────────────────────────────── */
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  /* Media never forces horizontal overflow on small screens. */
+  img,
+  svg,
+  video,
+  canvas {
+    max-width: 100%;
+    height: auto;
+  }
+  /* Form controls stay within their containers. */
+  input,
+  select,
+  textarea,
+  button {
+    max-width: 100%;
+  }
+  /* Remove the blue tap flash on touch devices for an app-like feel. */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Long tokens (emails, codes, URLs) wrap instead of stretching the page. */
+  p,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  span,
+  a,
+  td,
+  th,
+  div {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+}
+
+/* Tables that are already wrapped in an overflow-x-auto container get a
+   slightly tighter density on phones so more columns fit without clipping. */
+@media (max-width: 640px) {
+  .overflow-x-auto table,
+  div[class*="overflow-x-auto"] table {
+    font-size: 12px;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   MARKETING WEBSITE — World-Class Visual Enhancements
+   Isolated: only applies to public marketing pages.
+   Zero impact on the internal ERP system.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Tech Dot-Grid Background ── */
+.tech-grid {
+  background-image:
+    radial-gradient(circle, rgba(184, 121, 69, 0.14) 1.5px, transparent 1.5px),
+    radial-gradient(circle, rgba(14, 42, 43, 0.05) 1px, transparent 1px);
+  background-size: 32px 32px, 8px 8px;
+  background-position: 0 0, 4px 4px;
+}
+.dark .tech-grid {
+  background-image:
+    radial-gradient(circle, rgba(184, 121, 69, 0.22) 1.5px, transparent 1.5px),
+    radial-gradient(circle, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px, 8px 8px;
+  background-position: 0 0, 4px 4px;
+}
+
+/* ── Animated Moving Grid Lines ── */
+.tech-lines {
+  background-image:
+    linear-gradient(rgba(184, 121, 69, 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(184, 121, 69, 0.06) 1px, transparent 1px);
+  background-size: 60px 60px;
+  animation: grid-drift 24s linear infinite;
+}
+@keyframes grid-drift {
+  0% { background-position: 0 0; }
+  100% { background-position: 60px 60px; }
+}
+.dark .tech-lines {
+  background-image:
+    linear-gradient(rgba(184, 121, 69, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(184, 121, 69, 0.1) 1px, transparent 1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .tech-lines { animation: none; }
+}
+
+/* ── Brand Gradient Text ── */
+.gradient-text {
+  background: linear-gradient(
+    135deg,
+    #d4a574 0%,
+    #b87945 40%,
+    #7a5228 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.gradient-text-white {
+  background: linear-gradient(
+    135deg,
+    rgba(255,255,255,0.95) 0%,
+    #d4a574 60%,
+    #b87945 100%
+  );
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Floating Animations ── */
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  33%       { transform: translateY(-14px) rotate(0.8deg); }
+  66%       { transform: translateY(-7px) rotate(-0.8deg); }
+}
+.animate-float       { animation: float-slow 7s ease-in-out infinite; }
+.animate-float-delay { animation: float-slow 9s ease-in-out infinite 1.8s; }
+.animate-float-slow  { animation: float-slow 13s ease-in-out infinite 3.5s; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-float, .animate-float-delay, .animate-float-slow { animation: none; }
+}
+
+/* ── Shimmer ── */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position:  200% center; }
+}
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    rgba(255,255,255,0.5) 0%,
+    rgba(255,255,255,1) 40%,
+    rgba(212,165,116,1) 55%,
+    rgba(255,255,255,1) 70%,
+    rgba(255,255,255,0.5) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3.5s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .shimmer-text { animation: none; -webkit-text-fill-color: white; }
+}
+
+/* ── Brand Glow ── */
+.glow-brand {
+  box-shadow:
+    0 0 0 1px rgba(184, 121, 69, 0.25),
+    0 4px 24px rgba(184, 121, 69, 0.18),
+    0 16px 64px rgba(184, 121, 69, 0.08);
+}
+.glow-brand-sm {
+  box-shadow: 0 0 16px rgba(184, 121, 69, 0.2);
+}
+.glow-brand-hover {
+  transition: box-shadow 0.4s ease, transform 0.3s ease;
+}
+.glow-brand-hover:hover {
+  box-shadow:
+    0 0 0 1px rgba(184, 121, 69, 0.35),
+    0 8px 32px rgba(184, 121, 69, 0.28),
+    0 24px 80px rgba(184, 121, 69, 0.12);
+  transform: translateY(-2px);
+}
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(5, 150, 105, 0.2), 0 0 60px rgba(5, 150, 105, 0.08);
+}
+.glow-ink {
+  box-shadow: 0 8px 32px rgba(14, 42, 43, 0.3), 0 2px 8px rgba(14, 42, 43, 0.15);
+}
+
+/* ── Reveal Variants ── */
+.reveal-left {
+  opacity: 0;
+  transform: translateX(-32px);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-right {
+  opacity: 0;
+  transform: translateX(32px);
+  transition:
+    opacity 0.8s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-left.revealed,
+.reveal-right.revealed {
+  opacity: 1;
+  transform: translateX(0);
+}
+.reveal-scale {
+  opacity: 0;
+  transform: scale(0.93);
+  transition:
+    opacity 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.reveal-scale.revealed { opacity: 1; transform: scale(1); }
+@media (prefers-reduced-motion: reduce) {
+  .reveal-left, .reveal-right, .reveal-scale {
+    opacity: 1; transform: none; transition: none;
+  }
+}
+
+/* ── Stagger Delays ── */
+.delay-75  { transition-delay:  75ms; }
+.delay-100 { transition-delay: 100ms; }
+.delay-150 { transition-delay: 150ms; }
+.delay-200 { transition-delay: 200ms; }
+.delay-300 { transition-delay: 300ms; }
+.delay-400 { transition-delay: 400ms; }
+.delay-500 { transition-delay: 500ms; }
+.delay-600 { transition-delay: 600ms; }
+
+/* ── Section Divider ── */
+.section-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    var(--brand) 30%,
+    var(--brand-300) 50%,
+    var(--brand) 70%,
+    transparent 100%
+  );
+  opacity: 0.2;
+}
+
+/* ── WhatsApp CTA Button ── */
+.whatsapp-btn {
+  background: linear-gradient(135deg, #25d366 0%, #128c7e 100%);
+  color: white;
+  border-radius: 1rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  font-size: 0.875rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 20px rgba(37, 211, 102, 0.25);
+}
+.whatsapp-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 32px rgba(37, 211, 102, 0.4);
+}
+
+/* ── Scroll Progress Indicator ── */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand), var(--brand-300));
+  transform-origin: left;
+  z-index: 9999;
+}
+
+/* ── Bounce Up ── */
+@keyframes bounce-up {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-5px); }
+}
+.bounce-up { animation: bounce-up 2.2s ease-in-out infinite; }
+
+/* ── Performance ── */
+.will-change-transform { will-change: transform; }
+.will-change-opacity   { will-change: opacity; }
+.gpu { transform: translateZ(0); backface-visibility: hidden; }

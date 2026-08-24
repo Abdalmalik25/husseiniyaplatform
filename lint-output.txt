@@ -1,0 +1,5 @@
+
+> alhusainia-accounting@2.0.0 lint D:\Projects26\ALHUSAINIA\husseiniya-platform
+> eslint . --ext .ts,.tsx ";" "echo" "EXIT=0"
+
+ ELIFECYCLE  Command failed with exit code 2.

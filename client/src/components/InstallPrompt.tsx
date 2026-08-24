@@ -1,49 +1,40 @@
+import { useEffect, useState } from "react";
 import { useInstallPrompt } from "@/lib/use-install-prompt";
-import { brand } from "@/lib/brand";
-import { Button } from "@/components/ui/button";
-import { CheckCircle, Download, Shield } from "lucide-react";
+import { Download, X } from "lucide-react";
 
 export function InstallPrompt() {
   const { hasInstalled, showInstallCTA, handleInstallClick } =
     useInstallPrompt();
+  const [dismissed, setDismissed] = useState(false);
 
-  if (hasInstalled) {
-    return null;
-  }
+  useEffect(() => {
+    if (!showInstallCTA || dismissed) return;
+    const t = setTimeout(() => setDismissed(true), 15000);
+    return () => clearTimeout(t);
+  }, [showInstallCTA, dismissed]);
+
+  if (hasInstalled || dismissed || !showInstallCTA) return null;
 
   return (
-    <div className="fixed top-6 left-1/2 -translate-x-1/2 z-50 font-display flex gap-3 animate-in fade-in-from-bottom duration-300">
-      <div
-        className="bg-ink text-white border border-white/15 rounded-xl p-4 shadow-2xl max-w-md w-full dir:max-w-none"
-        dir="rtl"
-      >
-        <div className="flex items-center gap-3">
-          <Download className="w-5 h-5" />
-          <div>
-            <p className="font-bold text-lg">حمله تطبيق ALHUSAINIA</p>
-            <p className="text-sm text-white/60">
-              لتحقيق أفضل تجربة، قم بتثبيت التطبيق على سطح المكتب أو الشاشة
-              الرئيسية
-            </p>
-          </div>
-        </div>
-        <div className="mt-3 pt-3 border-t border-white/10 flex justify-between">
-          <button
-            onClick={handleInstallClick}
-            className="bg-brand text-ink font-black px-4 py-2 rounded-full text-sm hover:bg-brand-deep transition-colors"
-            aria-label="تثبيت التطبيق"
-          >
-            <span className="hidden sm:inline">تثبيت</span>
-          </button>
-          <button
-            onClick={() => window.open(brand.contact.whatsapp, "_blank")}
-            className="text-white/60 hover:text-white text-sm flex items-center gap-1"
-            aria-label="فتح الواتساب"
-          >
-            <CheckCircle className="w-3.5 h-3.5" />
-            اتصل بنا
-          </button>
-        </div>
+    <div className="fixed left-1/2 z-[70] w-[calc(100vw-2rem)] max-w-sm -translate-x-1/2 bottom-[calc(5rem+env(safe-area-inset-bottom))] font-display">
+      <div className="flex items-center gap-3 rounded-full border border-white/10 bg-ink/95 px-4 py-2 shadow-2xl backdrop-blur">
+        <Download className="h-4 w-4 shrink-0 text-brand" />
+        <p className="flex-1 text-[11px] leading-tight text-white/90">
+          ثبّت تطبيق ALHUSAINIA على جهازك للوصول السريع دون متصفح
+        </p>
+        <button
+          onClick={handleInstallClick}
+          className="shrink-0 rounded-full bg-brand px-3 py-1.5 text-[11px] font-bold text-ink transition-colors hover:bg-brand-deep"
+        >
+          تثبيت
+        </button>
+        <button
+          onClick={() => setDismissed(true)}
+          aria-label="إغلاق"
+          className="shrink-0 p-1 text-white/50 transition-colors hover:text-white"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
     </div>
   );

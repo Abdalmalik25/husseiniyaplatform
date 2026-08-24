@@ -1,4 +1,5 @@
 import { trpc } from "@/lib/trpc";
+import { MotionConfig } from "framer-motion";
 import { COOKIE_NAME, UNAUTHED_ERR_MSG } from "@shared/const";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { httpBatchLink, TRPCClientError } from "@trpc/client";
@@ -8,6 +9,7 @@ import App from "./App";
 import { goLogin } from "./const";
 import "./index.css";
 import { I18nProvider } from "./lib/i18n";
+import { getActiveTenantId } from "./lib/activeTenant";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -69,8 +71,13 @@ const trpcClient = trpc.createClient({
               return { Authorization: `Bearer ${token}` };
             }
           }
+          // Super-admin tenant switch (owner only): forward active tenant id
+          const activeTenant = getActiveTenantId();
+          if (activeTenant != null) {
+            return { "x-tenant-id": String(activeTenant) };
+          }
         } catch {
-          // sessionStorage unavailable
+          // sessionStorage / localStorage unavailable
         }
         return {};
       },
@@ -86,10 +93,19 @@ const trpcClient = trpc.createClient({
 
 createRoot(document.getElementById("root")!).render(
   <I18nProvider>
-    <trpc.Provider client={trpcClient} queryClient={queryClient}>
-      <QueryClientProvider client={queryClient}>
-        <App />
-      </QueryClientProvider>
-    </trpc.Provider>
+    <MotionConfig reducedMotion="user">
+      <trpc.Provider client={trpcClient} queryClient={queryClient}>
+        <QueryClientProvider client={queryClient}>
+          <App />
+        </QueryClientProvider>
+      </trpc.Provider>
+    </MotionConfig>
   </I18nProvider>
 );
+
+// Register service worker for installable PWA + offline shell.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}
