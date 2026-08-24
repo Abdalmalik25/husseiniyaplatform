@@ -24,6 +24,12 @@ build({
   alias: {
     "@shared": path.join(projectRoot, "shared"),
   },
+  // Single source of truth for the app version = package.json
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      require(path.join(projectRoot, "package.json")).version
+    ),
+  },
   logLevel: "info",
   sourcemap: false,
 })

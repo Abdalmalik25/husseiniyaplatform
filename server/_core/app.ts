@@ -133,7 +133,11 @@ export function createApp(): Express {
       dbAvailable,
       service: "alhusainia-platform",
       institution: "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
-      version: "2.0.0",
+      version:
+        typeof __APP_VERSION__ !== "undefined"
+          ? __APP_VERSION__
+          : // dev (tsx) runs without the esbuild define
+            "dev",
       status: dbAvailable ? "Operational" : "Degraded (DB unreachable)",
       security: "ISO-Compliant",
       time: new Date().toISOString(),

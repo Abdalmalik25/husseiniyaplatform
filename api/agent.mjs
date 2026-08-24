@@ -21,7 +21,7 @@
 import "dotenv/config";
 import { getDb } from "../server/db.ts";
 import { tenants, users, activityLogs, loginAttempts } from "../drizzle/schema.ts";
-import { sql, count } from "drizzle-orm";
+import { desc, count, lt } from "drizzle-orm";
 import { runProactiveAlerts, runScheduledJournalEntries } from "../server/automation.ts";
 
 const AGENT_SECRET = process.env.AGENT_SECRET;
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       const logRows = await db
         .select({ id: activityLogs.id })
         .from(activityLogs)
-        .orderBy(activityLogs.createdAt desc)
+        .orderBy(desc(activityLogs.createdAt))
         .limit(10);
 
       res.statusCode = 200;
@@ -131,23 +131,29 @@ export default async function handler(req, res) {
 
       const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
 
+      // Count stale rows first so the response reports real numbers
+      const [{ total: staleAttempts }] = await db
+        .select({ total: count() })
+        .from(loginAttempts)
+        .where(lt(loginAttempts.createdAt, cutoff));
+      const [{ total: staleLogs }] = await db
+        .select({ total: count() })
+        .from(activityLogs)
+        .where(lt(activityLogs.createdAt, cutoff));
+
       // Purge stale login attempts
-      const del1 = await db
-        .delete(loginAttempts)
-        .where(sql`${loginAttempts.createdAt} < ${cutoff}`);
+      await db.delete(loginAttempts).where(lt(loginAttempts.createdAt, cutoff));
 
       // Purge stale activity logs (older than days)
-      const del2 = await db
-        .delete(activityLogs)
-        .where(sql`${activityLogs.createdAt} < ${cutoff}`);
+      await db.delete(activityLogs).where(lt(activityLogs.createdAt, cutoff));
 
       res.statusCode = 200;
       res.setHeader("content-type", "application/json");
       res.end(
         JSON.stringify({
           ok: true,
-          deletedLoginAttempts: del1 ? 0 : 0, // count would need separate query
-          deletedActivityLogs: del2 ? 0 : 0,
+          deletedLoginAttempts: staleAttempts,
+          deletedActivityLogs: staleLogs,
           message: `Purged data older than ${days} days`,
         })
       );

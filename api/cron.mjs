@@ -31,8 +31,20 @@ import { sql, count } from "drizzle-orm";
 
 export default async function handler(req, res) {
   try {
+    // SECURITY: fail closed in production — the cron surface must never be
+    // callable with a well-known default secret. Vercel Cron automatically
+    // sends `Authorization: Bearer ${CRON_SECRET}` when the env var is set.
+    const secret = process.env.CRON_SECRET;
+    if (!secret && process.env.NODE_ENV === "production") {
+      res.statusCode = 503;
+      res.setHeader("content-type", "application/json");
+      res.end(
+        JSON.stringify({ ok: false, error: "CRON_SECRET not configured" })
+      );
+      return;
+    }
     const auth = req.headers["authorization"] || "";
-    const expected = `Bearer ${process.env.CRON_SECRET || "dev-cron"}`;
+    const expected = `Bearer ${secret || "dev-cron"}`;
     if (auth !== expected) {
       res.statusCode = 401;
       res.setHeader("content-type", "application/json");
