@@ -22,11 +22,7 @@ import {
   runScheduledJournalEntries,
   runRecurringExpenses,
 } from "../server/automation";
-import { tenants } from "../drizzle/schema";
-import { featureFlags } from "../drizzle/schema";
-import { activityLogs } from "../drizzle/schema";
-import { loginAttempts } from "../drizzle/schema";
-import { users } from "../drizzle/schema";
+import { tenants, featureFlags, loginAttempts, users } from "../drizzle/schema";
 import { sql, count } from "drizzle-orm";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
