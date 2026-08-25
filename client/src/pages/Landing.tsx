@@ -56,6 +56,7 @@ import {
 import { goLogin } from "@/const";
 import { SiteFooter } from "@/components/SiteFooter";
 import { brand, whatsappLink, uamexDemoLink, engineeringConsultLink } from "@/lib/brand";
+import { methodology } from "@/lib/methodology";
 import { HeroBackground } from "@/components/ModernBackground";
 import { HeroAurora } from "@/components/HeroAurora";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
@@ -870,6 +871,82 @@ export default function Landing() {
             <span>✓ بدون التزامات</span>
             <span>✓ دعم مباشر على الواتساب</span>
           </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════
+          قسم المنهجية والمرجعيات العالمية — للباحثين والمستشارين
+      ═══════════════════════════════════════════════════════ */}
+      <section
+        id="methodology"
+        className="py-20 px-4 bg-[#0a1f20] text-white scroll-mt-20"
+        dir="rtl"
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14">
+            <Badge className="bg-[#d4a574]/10 text-[#d4a574] border border-[#d4a574]/30 font-bold text-xs px-3 py-1">
+              المرجعية المنهجية — Methodology & Standards
+            </Badge>
+            <h2 className="text-2xl sm:text-4xl font-extrabold leading-tight">
+              {methodology.title}
+            </h2>
+            <p className="text-sm sm:text-base text-white/60 leading-relaxed max-w-2xl mx-auto">
+              {methodology.intro}
+            </p>
+          </div>
+
+          {/* المرجعيات المعيارية */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-16">
+            {methodology.frameworks.map(fw => (
+              <div
+                key={fw.code}
+                className="group bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-[#d4a574]/40 rounded-2xl p-5 transition-all duration-300"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="font-mono font-black text-sm bg-[#d4a574]/15 text-[#e8c9a0] border border-[#d4a574]/30 rounded-lg px-2.5 py-1">
+                    {fw.code}
+                  </span>
+                  <span className="text-xs font-bold text-white/85">
+                    {fw.nameAr}
+                  </span>
+                </div>
+                <p className="text-[12px] text-white/55 leading-relaxed">
+                  {fw.application}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* منهجية التنفيذ — أربع مراحل */}
+          <h3 className="text-center text-lg font-black text-white/90 mb-8">
+            دورة عمل موثقة من التشخيص إلى التحسين المستمر
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {methodology.process.map(st => (
+              <div
+                key={st.step}
+                className="relative bg-gradient-to-b from-white/[0.05] to-transparent border border-white/10 rounded-2xl p-5"
+              >
+                <span className="absolute -top-3 right-5 w-8 h-8 rounded-full bg-gradient-to-l from-[#b87945] to-[#d4a574] text-[#0a1f20] font-black text-sm flex items-center justify-center shadow-lg">
+                  {st.step}
+                </span>
+                <div className="pt-3">
+                  <div className="text-sm font-black text-[#e8c9a0] mb-1.5">
+                    {st.title}
+                  </div>
+                  <p className="text-[11px] text-white/55 leading-relaxed">
+                    {st.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <p className="text-center text-[11px] text-white/35 mt-10 max-w-2xl mx-auto leading-relaxed">
+            تُعرض المرجعيات أعلاه كإطار منهجي لعملنا وممارساتنا المعلنة، وتصلح
+            نقطة انطلاق بحثية لمن يرغب في دراسة تطبيق هذه الأطر في سياق
+            المنشآت الصغيرة والمتوسطة.
+          </p>
         </div>
       </section>
 
