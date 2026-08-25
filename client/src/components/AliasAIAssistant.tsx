@@ -6,12 +6,18 @@
  * request fails — it never blocks the app.
  */
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
-import { Sparkles, X } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { trpc } from "@/lib/trpc";
 import { ALIAS_SUGGESTED_PROMPTS } from "../../../shared/aliasAi";
+
+/**
+ * ألياس (ALIAS AI) — premium floating assistant.
+ * Glassmorphism panel, animated typing indicator, auto-scroll, unread badge,
+ * auth-aware dual mode, and a global summon channel (CustomEvent "alias:open").
+ */
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -31,7 +37,38 @@ export function AliasAIAssistant() {
   const [input, setInput] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([GREETING]);
   const [chips, setChips] = useState<ActionChip[]>([]);
+  const [unread, setUnread] = useState(0);
   const [, setLocation] = useLocation();
+
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // ── Global summon channel: CustomEvent("alias:open") from any page ──
+  useEffect(() => {
+    const open = () => setIsOpen(true);
+    window.addEventListener("alias:open", open);
+    return () => window.removeEventListener("alias:open", open);
+  }, []);
+
+  // ── Escape closes + focus input when opened ──
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    const t = setTimeout(() => inputRef.current?.focus(), 250);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      clearTimeout(t);
+    };
+  }, [isOpen]);
+
+  // ── Auto-scroll to the latest message ──
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+  }, [messages, isOpen]);
 
   // Auth state decides the mode: tenant expert vs public website expert.
   const meQuery = trpc.auth.me.useQuery(undefined, { retry: false });
@@ -96,73 +133,102 @@ export function AliasAIAssistant() {
       });
   };
 
+  const toggle = () => {
+    setIsOpen(v => !v);
+    setUnread(0);
+  };
+
   return (
     <div
-      className="fixed right-5 z-40 font-display bottom-[calc(1.25rem+env(safe-area-inset-bottom))]"
+      className="fixed right-5 z-50 font-display bottom-[calc(1.25rem+env(safe-area-inset-bottom))]"
       dir="rtl"
     >
-      {/* Trigger */}
-      <Button
-        onClick={() => setIsOpen(v => !v)}
+      {/* Trigger — premium pill with attention halo + unread badge */}
+      <button
+        onClick={toggle}
         aria-label="فتح المساعد الذكي ألياس"
-        className="bg-gradient-to-l from-[#2a1a08] to-[#3d2812] hover:from-[#3d2812] hover:to-[#4d3418] text-white font-black h-12 px-4 rounded-full shadow-2xl flex items-center gap-2 transition-all hover:scale-105 border-2 border-[#d4a574]/40"
+        className="group relative flex items-center gap-2 h-12 pr-1.5 pl-4 rounded-full shadow-2xl border border-[#d4a574]/40 bg-gradient-to-l from-[#0d2423] to-[#16302f] transition-all duration-300 hover:scale-105 hover:border-[#d4a574]/80"
       >
+        <span className="absolute -inset-0.5 rounded-full ring-2 ring-[#d4a574]/20 group-hover:ring-[#d4a574]/45 animate-pulse pointer-events-none" />
         <img
           src={avatarSmall}
           alt=""
-          className="w-8 h-8 rounded-full object-cover ring-1 ring-[#d4a574]/60"
+          className="relative w-9 h-9 rounded-full object-cover ring-2 ring-[#d4a574]/60 transition-transform duration-300 group-hover:scale-110"
         />
-        <span className="text-xs hidden sm:inline">اسأل ألياس</span>
-      </Button>
+        <span className="absolute top-8 right-10 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0d2423]" />
+        <span className="text-xs font-bold text-white hidden sm:inline">
+          اسأل ألياس
+        </span>
+        {unread > 0 && !isOpen && (
+          <span className="absolute -top-1.5 -left-1.5 min-w-5 h-5 px-1.5 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-lg animate-in zoom-in duration-200">
+            {unread > 9 ? "+9" : unread}
+          </span>
+        )}
+      </button>
 
-      {/* Chat panel */}
+      {/* Chat panel — glassmorphism */}
       {isOpen && (
-        <div className="absolute bottom-14 right-0 w-[min(380px,calc(100vw-2.5rem))] h-[480px] max-h-[calc(100vh-7rem)] bg-ink text-white border border-white/10 rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 duration-200">
-          {/* Header */}
-          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-            <div className="flex items-center gap-2">
-              <img
-                src={avatar}
-                alt="ألياس"
-                className="w-9 h-9 rounded-full object-cover ring-2 ring-[#d4a574]/50"
-              />
+        <div className="absolute bottom-16 right-0 w-[min(380px,calc(100vw-2.5rem))] h-[500px] max-h-[calc(100vh-7rem)] bg-[#0d2423]/95 backdrop-blur-xl text-white border border-white/10 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 fade-in duration-300">
+          {/* Header — gradient identity */}
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-l from-[#b87945]/25 via-transparent to-transparent border-b border-white/10">
+            <div className="flex items-center gap-2.5">
+              <div className="relative">
+                <img
+                  src={avatar}
+                  alt="ألياس"
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-[#d4a574]/60"
+                />
+                <span className="absolute bottom-0 left-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0d2423] animate-pulse" />
+              </div>
               <div>
-                <div className="text-xs font-bold text-[#d4a574] leading-tight">
-                  ألياس — ALIAS AI
+                <div className="text-sm font-black text-[#e8c9a0] leading-tight">
+                  ألياس <span className="text-[10px] font-mono text-white/40">ALIAS AI</span>
                 </div>
                 <div className="text-[10px] text-white/50 leading-tight">
-                  {isAuthed ? "متصل ببيانات مؤسستك" : "وضع الزائر — خبير المنصة"}
-                  {statusQuery.data?.enabled === false && " • محرك الذكاء غير مهيأ"}
+                  {isAuthed ? "متصل ببيانات مؤسستك الآن" : "وضع الزائر — خبير المنصة"}
+                  {statusQuery.data?.enabled === false && " • وضع محلي"}
                 </div>
               </div>
             </div>
             <button
               onClick={() => setIsOpen(false)}
-              className="text-white/60 hover:text-white p-1 rounded"
+              className="text-white/50 hover:text-white hover:bg-white/10 p-1.5 rounded-lg transition-colors"
               aria-label="إغلاق ألياس"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+          {/* Messages — auto-scrolled, entrance-animated */}
+          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 scroll-smooth">
             {messages.map((m, i) => (
-              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+              <div
+                key={i}
+                className={`flex animate-in fade-in slide-in-from-bottom-2 duration-300 ${
+                  m.role === "user" ? "justify-end" : "justify-start"
+                }`}
+              >
                 <div
-                  className={`max-w-[85%] rounded-xl px-3 py-2 text-xs leading-relaxed whitespace-pre-wrap ${
+                  className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap ${
                     m.role === "user"
-                      ? "bg-white/90 text-[#102a2b] font-medium"
-                      : "bg-white/5 border border-white/10 text-white/90"
+                      ? "bg-gradient-to-l from-[#d4a574] to-[#c4956a] text-[#1a1008] font-bold shadow-md rounded-br-sm"
+                      : "bg-white/[0.07] border border-white/10 text-white/90 rounded-bl-sm backdrop-blur-sm"
                   }`}
                 >
                   {m.content}
                 </div>
               </div>
             ))}
-            {chatMutation.isPending || publicMutation.isPending ? (
-              <div className="text-[11px] text-white/40 animate-pulse">ألياس يفكر…</div>
-            ) : null}
+            {/* Animated typing indicator */}
+            {pending && (
+              <div className="flex justify-start animate-in fade-in duration-200">
+                <div className="bg-white/[0.07] border border-white/10 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#d4a574] animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#d4a574] animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#d4a574] animate-bounce [animation-delay:300ms]" />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Contextual action chips — starter prompts or intent-driven links */}
@@ -198,24 +264,25 @@ export function AliasAIAssistant() {
               e.preventDefault();
               send(input);
             }}
-            className="border-t border-white/10 p-3 flex gap-2"
+            className="border-t border-white/10 p-3 flex gap-2 bg-black/20"
           >
             <input
+              ref={inputRef}
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="اكتب سؤالك لألياس…"
-              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-[#b87945]"
+              className="flex-1 bg-white/[0.06] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-[#d4a574]/60 focus:bg-white/[0.09] transition-colors"
               maxLength={4000}
               aria-label="رسالتك إلى ألياس"
             />
             <Button
               type="submit"
               size="sm"
-              disabled={!input.trim() || chatMutation.isPending}
-              className="bg-[#d4a574] hover:bg-[#b87945] text-[#2a1a08] h-9 px-3 rounded-xl"
+              disabled={!input.trim() || pending}
+              className="bg-gradient-to-l from-[#d4a574] to-[#c4956a] hover:from-[#e0b585] hover:to-[#d4a574] text-[#1a1008] h-9 w-9 p-0 rounded-xl shadow-md disabled:opacity-30 transition-all"
               aria-label="إرسال"
             >
-              <Sparkles className="w-4 h-4" />
+              <Send className="w-4 h-4 -scale-x-100" />
             </Button>
           </form>
         </div>

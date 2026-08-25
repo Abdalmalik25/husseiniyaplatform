@@ -193,6 +193,17 @@ export default function Landing() {
               <MessageSquare className="w-5 h-5 text-brand-300" />
               تحدث إلى خبير الآن
             </a>
+            <button
+              onClick={() => window.dispatchEvent(new CustomEvent("alias:open"))}
+              className="inline-flex items-center gap-2 border border-[#d4a574]/40 bg-[#d4a574]/10 hover:bg-[#d4a574]/20 text-[#e8c9a0] text-sm h-12 px-6 rounded-2xl font-bold transition-all hover:scale-105"
+            >
+              <img
+                src="/elias-avatar-sm.jpg"
+                alt=""
+                className="w-7 h-7 rounded-full object-cover ring-1 ring-[#d4a574]/60"
+              />
+              اسأل ألياس — الذكاء الاصطناعي
+            </button>
           </div>
 
           {/* ضمانات */}
