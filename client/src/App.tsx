@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useRef } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -53,6 +53,13 @@ const Operations = lazy(() => import("@/pages/Operations"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Billing = lazy(() => import("@/pages/Billing"));
 
+/**
+ * Full splash — ONLY for the initial application boot.
+ * Deliberately single-indicator (one thin line + brand mark): the previous
+ * version stacked three progress elements and re-appeared on every route
+ * change, which users read as duplicated/broken loading. Route-level chunk
+ * loads now use the lightweight <RouteLoader /> below instead.
+ */
 function PageSplash() {
   return (
     <div
@@ -61,9 +68,6 @@ function PageSplash() {
       role="status"
       aria-label="جاري التحميل"
     >
-      {/* Top sleek animated progress line */}
-      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand via-amber-400 to-sky-400 animate-pulse" />
-
       <div className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/[0.02] border border-white/[0.08] shadow-2xl backdrop-blur-xl max-w-xs w-[88%] text-center">
         <div className="relative">
           <div className="w-12 h-12 rounded-2xl bg-brand/15 border border-brand/40 flex items-center justify-center text-brand-300 font-black text-lg animate-pulse shadow-lg">
@@ -79,22 +83,48 @@ function PageSplash() {
           </div>
         </div>
 
-        {/* Indeterminate micro progress line */}
+        {/* Single indeterminate progress line */}
         <div className="w-36 h-1 bg-white/10 rounded-full overflow-hidden mt-2 relative">
           <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-brand to-amber-300 rounded-full animate-bounce-up" />
-        </div>
-
-        <div className="text-[10px] text-brand-300 font-semibold tracking-wide">
-          جاري تحميل بيئة العمل...
         </div>
       </div>
     </div>
   );
 }
 
-function Router() {
+/**
+ * RouteLoader — minimal inline loader for subsequent lazy-route navigations.
+ * No full-screen takeover: the previous page stays visible underneath, so
+ * navigation feels continuous instead of "loading screen → loading screen".
+ */
+function RouteLoader() {
   return (
-    <Suspense fallback={<PageSplash />}>
+    <div
+      className="min-h-[60vh] flex items-center justify-center"
+      role="status"
+      aria-label="جاري تحميل الصفحة"
+    >
+      <div className="flex flex-col items-center gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-brand/25 border-t-brand animate-spin" />
+        <span className="text-[11px] text-muted-foreground font-semibold">
+          جاري تحميل الصفحة…
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Router() {
+  // The heavy splash belongs to the first boot only; every later Suspense
+  // suspension (lazy route chunk) gets the light loader.
+  const initialBootRef = useRef(true);
+  useEffect(() => {
+    initialBootRef.current = false;
+  }, []);
+  const BootFallback = initialBootRef.current ? PageSplash : RouteLoader;
+
+  return (
+    <Suspense fallback={<BootFallback />}>
       <Switch>
         {/* ── Public marketing & guest pages (no session required) ── */}
         <Route path={"/"} component={Landing} />
@@ -270,7 +300,8 @@ function App() {
     }
   }, []);
 
-  // Prefetch sibling page chunks after first paint so navigation feels instant.
+  // Prefetch ALL sibling page chunks after first paint so navigation never
+  // shows a loader in practice — every lazy import below is warm by idle time.
   useEffect(() => {
     const idle =
       (window as any).requestIdleCallback ??
@@ -293,6 +324,19 @@ function App() {
       import("@/pages/Audit").catch(() => {});
       import("@/pages/Requisitions").catch(() => {});
       import("@/pages/Operations").catch(() => {});
+      import("@/pages/Home").catch(() => {});
+      import("@/pages/WorkspaceDashboard").catch(() => {});
+      import("@/pages/Analytics").catch(() => {});
+      import("@/pages/Billing").catch(() => {});
+      import("@/pages/Settings").catch(() => {});
+      import("@/pages/Inventory").catch(() => {});
+      import("@/pages/Security").catch(() => {});
+      import("@/pages/ErpPage").catch(() => {});
+      import("@/pages/Store").catch(() => {});
+      import("@/pages/Integrate").catch(() => {});
+      import("@/pages/Portal").catch(() => {});
+      import("@/pages/Pricing").catch(() => {});
+      import("@/pages/Login").catch(() => {});
     });
     return () => {
       if (typeof t === "number") clearTimeout(t);

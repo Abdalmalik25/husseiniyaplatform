@@ -21,25 +21,37 @@ const queryClient = new QueryClient({
   },
 });
 
-// Only redirect on UNAUTHORIZED when we're not already on the login page and we
-// haven't redirected during this page session. This prevents redirect loops and
-// hijacking the UI during background refetches / mutations. Auth-gated pages that
-// need a hard redirect use useAuth({ redirectOnUnauthenticated: true }) instead.
-let redirectedThisSession = false;
-const maybeRedirectToLogin = (error: unknown) => {
+// Session-expiry handling — RESPECTFUL edition:
+// A 401 from any background query must NEVER hijack the user with a forced
+// full-page redirect (that destroyed in-progress work and context). Instead we
+// surface a non-blocking toast; navigation to login happens only when the user
+// clicks the action. Protected pages additionally gate themselves via
+// RequireAuth's branded prompt, so nothing leaks while logged out.
+let sessionToastShown = false;
+const notifySessionExpired = (error: unknown) => {
   if (!(error instanceof TRPCClientError)) return;
-  if (typeof window === "undefined") return;
   if (error.message !== UNAUTHED_ERR_MSG) return;
-  if (redirectedThisSession) return;
+  if (sessionToastShown) return;
+  if (typeof window === "undefined") return;
   if (window.location.pathname.startsWith("/login")) return;
-  redirectedThisSession = true;
-  goLogin();
+  sessionToastShown = true;
+  // Lazy import avoids pulling sonner into the critical boot path.
+  import("sonner").then(({ toast }) => {
+    toast.error("انتهت صلاحية الجلسة", {
+      description: "يرجى تسجيل الدخول للمتابعة — لن تفقد مكانك في الصفحة.",
+      duration: 8000,
+      action: {
+        label: "تسجيل الدخول",
+        onClick: () => goLogin(window.location.pathname),
+      },
+    });
+  });
 };
 
 queryClient.getQueryCache().subscribe(event => {
   if (event.type === "updated" && event.action.type === "error") {
     const error = event.query.state.error;
-    maybeRedirectToLogin(error);
+    notifySessionExpired(error);
     console.error("[API Query Error]", error);
   }
 });
