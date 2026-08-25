@@ -1,9 +1,0 @@
-feat: ALIAS AI v2 - grounded intelligence layer, encrypted nightly backups, resilience primitives
-
-- aliasBrain: intent classification + live tenant KPI grounding (finance/sales/inventory/partners)
-- aliasAiRouter: tenant chat with live context, public visitor chat for marketing site, action chips
-- shared/aliasAi: v2 persona (5 expert roles), analytical methodology, public prompt
-- Encrypted backup system: AES-256-GCM/scrypt, SHA-256 manifests, verify/dry-run restore, nightly cron
-- resilience primitives: withRetry/withTimeout/CircuitBreaker (no-failure policy)
-- AliasAIAssistant widget: brand avatar, auth-aware mode, navigable suggestion chips
-- docs: BACKUP_AND_DR.md runbook; production checklist updated
