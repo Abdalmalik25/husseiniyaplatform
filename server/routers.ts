@@ -9,6 +9,8 @@ import { getClientIp, geolocate, parseDevice } from "./_core/geo";
 import { genGlobalCode, isSaudiCountry, buildZatcaQr, invoiceHash } from "./_core/governance";
 import { erpRouter } from "./erpRouter";
 import { modulesRouter } from "./modulesRouter";
+import { aliasAiRouter } from "./aliasAiRouter";
+import { backupRouter } from "./backupRouter";
 import {
   publicProcedure,
   protectedProcedure,
@@ -701,6 +703,8 @@ export const appRouter = router({
   system: systemRouter,
   erp: erpRouter,
   modules: modulesRouter,
+  aliasAi: aliasAiRouter,
+  backup: backupRouter,
   auth: router({
     me: publicProcedure.query(opts => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -3848,7 +3852,7 @@ ${input.rawText || input.fileUrl || "لا يوجد نص"}
             messages: [
               {
                 role: "user",
-                content: `أنت مساعد مالي خبير لنظام ALHUSAINIA المحاسبي. إليك بيانات مالية محسوبة بدقة تشغيلية، فقدم تحليلاً أعمق مبنياً عليها حصراً (بالعربية، أسلوب مهني):
+                content: `أنت «ألياس» (ALIAS AI)، المساعد الذكي الرسمي لنظام ALHUSAINIA المحاسبي. إليك بيانات مالية محسوبة بدقة تشغيلية، فقدم تحليلاً أعمق مبنياً عليها حصراً (بالعربية، أسلوب مهني):
 ${analysisText}
 ملاحظة: لا تختلق أرقاماً؛ اعتمد على ما ورد فقط.`,
               },

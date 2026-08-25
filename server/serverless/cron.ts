@@ -21,6 +21,7 @@ import {
 } from "../automation";
 import { tenants, featureFlags, loginAttempts, users } from "../../drizzle/schema";
 import { sql, count } from "drizzle-orm";
+import { runNightlyBackupIfDue } from "../_core/backup";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export default async function handler(req: any, res: any) {
@@ -108,6 +109,9 @@ export default async function handler(req: any, res: any) {
       ran++;
     }
 
+    // 7. Nightly encrypted backup — at most once/day, never fails the tick.
+    const backup = await runNightlyBackupIfDue();
+
     res.statusCode = 200;
     res.setHeader("content-type", "application/json");
     res.end(
@@ -115,6 +119,7 @@ export default async function handler(req: any, res: any) {
         ok: true,
         ran,
         perTenant,
+        backup,
       })
     );
   } catch (e) {

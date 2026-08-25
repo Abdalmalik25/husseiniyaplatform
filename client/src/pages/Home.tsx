@@ -1066,7 +1066,7 @@ export default function Home() {
             className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
           >
             <BarChart3 className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> التحليلات
-            والمساعد الذكي
+            والمساعد ألياس
           </Button>
         </div>
 

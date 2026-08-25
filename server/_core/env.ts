@@ -8,4 +8,9 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  /** Master secret for encrypted backups (AES-256-GCM). Required in production. */
+  backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY ?? "",
+  /** Local directory for backup blobs when S3 is not configured. */
+  backupDir: process.env.BACKUP_DIR ?? "",
 };
+

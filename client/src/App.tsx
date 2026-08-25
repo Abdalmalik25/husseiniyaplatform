@@ -7,6 +7,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { OfflineProvider } from "./lib/offline/OfflineContext";
 import { FloatingSupportWidget } from "@/components/FloatingSupportWidget";
+import { AliasAIAssistant } from "@/components/AliasAIAssistant";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { CommandPalette } from "@/components/CommandPalette";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -308,6 +309,7 @@ function App() {
               <Router />
               <CommandPalette />
               <FloatingSupportWidget />
+              <AliasAIAssistant />
               <InstallPrompt />
             </TooltipProvider>
           </OfflineProvider>
