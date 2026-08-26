@@ -17,6 +17,12 @@ import {
 } from "lucide-react";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { openPrintableInvoiceWindow } from "@/lib/pdfInvoiceGenerator";
+import {
+  buildAccountBalances,
+  computeBalanceSheet,
+  computeIncomeStatement,
+  computeTrialBalance,
+} from "@/lib/accountingReports";
 import { toast } from "sonner";
 
 type ReportType = 
@@ -65,93 +71,36 @@ export default function Reports() {
       { periodName: settingsData?.accountingPeriod || "السنة المالية 2026" },
       { enabled: !!settingsData }
     );
-  const obMap = useMemo(
-    () =>
-      new Map((openingBalancesData || []).map((ob: any) => [ob.accountId, ob])),
-    [openingBalancesData]
-  );
-
   const isLoading = loadingAccounts || loadingTx;
 
   const accountBalances = useMemo(() => {
     if (!accountsData || !transactionsData) return [];
-    return accountsData
-      .map(acc => {
-        const accTxs = transactionsData.filter(
-          t => t.accountId === acc.id && !t.isReversed
-        );
-        let debit = 0;
-        let credit = 0;
-        const ob = obMap.get(acc.id);
-        if (ob) {
-          const oa = parseFloat(String(ob.amount ?? "0"));
-          if (!isNaN(oa) && oa > 0) {
-            if (ob.type === "debit") debit += oa;
-            else credit += oa;
-          }
-        }
-        for (const tx of accTxs) {
-          const amt = parseFloat(tx.amount || "0");
-          if (tx.type === "debit") debit += amt;
-          else credit += amt;
-        }
-        return { ...acc, debit, credit, balance: debit - credit };
-      })
-      .filter(a => a.debit !== 0 || a.credit !== 0);
-  }, [accountsData, transactionsData, obMap]);
-
-  const trialBalance = useMemo(() => {
-    const totalDebits = accountBalances
-      .filter(a => a.balance > 0)
-      .reduce((s, a) => s + a.balance, 0);
-    const totalCredits = accountBalances
-      .filter(a => a.balance < 0)
-      .reduce((s, a) => s + Math.abs(a.balance), 0);
-    return {
-      accounts: accountBalances,
-      totalDebits,
-      totalCredits,
-      isBalanced: Math.abs(totalDebits - totalCredits) < 0.01,
-    };
-  }, [accountBalances]);
-
-  const incomeStatement = useMemo(() => {
-    const revenues = accountBalances.filter(a => a.type === "revenue");
-    const expenses = accountBalances.filter(a => a.type === "expense");
-    const totalRevenue = revenues.reduce((s, a) => s + a.balance, 0);
-    const totalExpenses = expenses.reduce((s, a) => s + Math.abs(a.balance), 0);
-    return {
-      revenues,
-      expenses,
-      totalRevenue,
-      totalExpenses,
-      netIncome: totalRevenue - totalExpenses,
-    };
-  }, [accountBalances]);
-
-  const balanceSheet = useMemo(() => {
-    const assets = accountBalances.filter(a => a.type === "asset");
-    const liabilities = accountBalances.filter(a => a.type === "liability");
-    const equity = accountBalances.filter(a => a.type === "equity");
-    const totalAssets = assets.reduce((s, a) => s + a.balance, 0);
-    const totalLiabilities = liabilities.reduce(
-      (s, a) => s + Math.abs(a.balance),
-      0
+    return buildAccountBalances(
+      accountsData,
+      transactionsData,
+      Object.fromEntries(
+        (openingBalancesData || []).map((ob: any) => [
+          ob.accountId,
+          { amount: ob.amount, type: ob.type },
+        ])
+      )
     );
-    const totalEquity =
-      equity.reduce((s, a) => s + a.balance, 0) + incomeStatement.netIncome;
-    return {
-      assets,
-      liabilities,
-      equity: [
-        ...equity,
-        { name: "أرباح الفترة", balance: incomeStatement.netIncome },
-      ],
-      totalAssets,
-      totalLiabilities,
-      totalEquity,
-    };
-  }, [accountBalances, incomeStatement]);
+  }, [accountsData, transactionsData, openingBalancesData]);
+
+  const trialBalance = useMemo(
+    () => computeTrialBalance(accountBalances),
+    [accountBalances]
+  );
+
+  const incomeStatement = useMemo(
+    () => computeIncomeStatement(accountBalances),
+    [accountBalances]
+  );
+
+  const balanceSheet = useMemo(
+    () => computeBalanceSheet(accountBalances, incomeStatement.netIncome),
+    [accountBalances, incomeStatement.netIncome]
+  );
 
   const formatNum = (n: number) =>
     n.toLocaleString("ar-EG", {
@@ -395,11 +344,13 @@ export default function Reports() {
                               </Badge>
                             </td>
                             <td className="p-2 text-left font-mono">
-                              {a.balance > 0 ? formatNum(a.balance) : "-"}
+                              {(a.balance ?? 0) > 0
+                                ? formatNum(a.balance ?? 0)
+                                : "-"}
                             </td>
                             <td className="p-2 text-left font-mono">
-                              {a.balance < 0
-                                ? formatNum(Math.abs(a.balance))
+                              {(a.balance ?? 0) < 0
+                                ? formatNum(Math.abs(a.balance ?? 0))
                                 : "-"}
                             </td>
                           </tr>
