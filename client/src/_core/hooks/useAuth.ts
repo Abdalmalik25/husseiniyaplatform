@@ -49,7 +49,12 @@ export function useAuth(options?: UseAuthOptions) {
     // the UI into "logged out".
     retry: (failureCount, error) =>
       isTransientAuthError(error) && failureCount < AUTH_MAX_RETRIES,
-    refetchOnWindowFocus: false,
+    // Self-healing after exhaustion of inline retries: refetching on window
+    // focus ONLY when the last attempt failed with a transient error gives a
+    // zero-effort recovery path ("switch away and back") without reintroducing
+    // the refetch storms the global `refetchOnWindowFocus: false` prevents.
+    // A definitive UNAUTHORIZED never refocus-refetches.
+    refetchOnWindowFocus: query => isTransientAuthError(query.state.error),
     staleTime: AUTH_STALE_TIME_MS,
     gcTime: AUTH_GC_TIME_MS,
   });

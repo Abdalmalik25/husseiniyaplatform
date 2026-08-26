@@ -661,8 +661,10 @@ ALTER TABLE "work_sites" ADD COLUMN "serverVersion" integer DEFAULT 1 NOT NULL;-
 ALTER TABLE "work_sites" ADD COLUMN "lastSyncAt" timestamp;--> statement-breakpoint
 ALTER TABLE "work_sites" ADD COLUMN "conflictState" varchar(20) DEFAULT 'none';--> statement-breakpoint
 ALTER TABLE "work_sites" ADD COLUMN "aggregateId" uuid;--> statement-breakpoint
-ALTER TABLE "sales_reps" ADD CONSTRAINT "sales_reps_currencyId_currencies_id_fk" FOREIGN KEY ("currencyId") REFERENCES "public"."currencies"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "scheduled_journal_entries" ADD CONSTRAINT "scheduled_journal_entries_currencyId_currencies_id_fk" FOREIGN KEY ("currencyId") REFERENCES "public"."currencies"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+-- NOTE: removed sales_reps + scheduled_journal_entries currencyId FKs —
+-- neither table defines a "currencyId" column in drizzle/schema.ts or the live
+-- database; these statements failed with 42703 and blocked this migration from
+-- being marked applied on every deploy.
 CREATE INDEX "idx_biometric_tenant" ON "biometric_templates" USING btree ("tenantId");--> statement-breakpoint
 CREATE INDEX "idx_biometric_user" ON "biometric_templates" USING btree ("userId");--> statement-breakpoint
 CREATE INDEX "idx_biometric_type" ON "biometric_templates" USING btree ("type");--> statement-breakpoint
@@ -678,7 +680,8 @@ CREATE INDEX "idx_offers_category" ON "offers" USING btree ("categoryId");--> st
 CREATE INDEX "idx_productUnits_tenant" ON "product_units" USING btree ("tenantId");--> statement-breakpoint
 CREATE INDEX "idx_productUnits_product" ON "product_units" USING btree ("productId");--> statement-breakpoint
 CREATE INDEX "idx_sales_reps_tenant" ON "sales_reps" USING btree ("tenantId");--> statement-breakpoint
-CREATE INDEX "idx_sales_reps_currency" ON "sales_reps" USING btree ("currencyId");--> statement-breakpoint
+-- NOTE: removed idx_sales_reps_currency — sales_reps has no "currencyId"
+-- column (see note above).
 CREATE INDEX "idx_scheduledJournal_tenant" ON "scheduled_journal_entries" USING btree ("tenantId");--> statement-breakpoint
 CREATE INDEX "idx_scheduledJournal_nextRun" ON "scheduled_journal_entries" USING btree ("nextRunAt");--> statement-breakpoint
 CREATE INDEX "idx_sync_metadata_tenant" ON "sync_metadata" USING btree ("tenantId");--> statement-breakpoint

@@ -4,7 +4,15 @@ import { goLogin } from "@/const";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { BrandMark } from "@/components/BrandLogo";
-import { Building2, Lock, ShieldCheck, Zap } from "lucide-react";
+import {
+  Building2,
+  Lock,
+  ShieldAlert,
+  ShieldCheck,
+  Zap,
+  AlertTriangle,
+  RefreshCw,
+} from "lucide-react";
 
 /**
  * RequireAuth — route-level access gate for operational pages.
@@ -15,7 +23,7 @@ import { Building2, Lock, ShieldCheck, Zap } from "lucide-react";
  * this component only improves UX and hides the interface.
  */
 export function RequireAuth({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated, loading, user } = useAuth();
+  const { isAuthenticated, loading, user, status, refresh } = useAuth();
 
   // Don't show loading spinner if we have cached user data
   // This prevents flash of loading spinner when navigating between protected pages
@@ -32,6 +40,49 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
           <p className="text-xs text-slate-400 font-bold">
             جاري التحقق من الجلسة…
           </p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Verification FAILURE ≠ logged out ────────────────────────────────
+  // A network drop, Neon cold-start/scale-to-zero timeout, or server 5xx
+  // must NEVER be presented as "تسجيل الدخول مطلوب". Showing the login wall
+  // here throws already-authenticated users out of the product whenever the
+  // backend hiccups (the reported "فرض الدخول" regression). Instead we show
+  // an explicit retry state that recovers without losing page context.
+  if (status === "error") {
+    return (
+      <div
+        className="min-h-screen bg-[#0d1b1c] flex items-center justify-center p-4"
+        dir="rtl"
+      >
+        <div className="w-full max-w-md space-y-6 text-center">
+          <div className="bg-amber-500/15 border border-amber-500/30 w-14 h-14 rounded-2xl mx-auto flex items-center justify-center shadow-lg">
+            <ShieldAlert className="w-7 h-7 text-amber-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold font-display text-white">
+              تعذّر التحقق من الجلسة
+            </h1>
+            <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+              لا يمكن الوصول إلى خدمة المصادقة حالياً (انقطاع شبكة أو صيانة
+              قاعدة البيانات). جلستك لم تُفقد — أعد المحاولة بعد لحظات.
+            </p>
+          </div>
+          <Card className="bg-[#162e30] border-[#1e3a3c] text-white p-6 space-y-4 shadow-xl text-right">
+            <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
+              <AlertTriangle className="w-4 h-4" />
+              هذه مشكلة اتصال مؤقتة وليست انتهاء للجلسة
+            </div>
+            <Button
+              onClick={() => refresh().catch(() => undefined)}
+              className="w-full bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-10 font-bold"
+            >
+              <RefreshCw className="w-4 h-4" />
+              إعادة المحاولة الآن
+            </Button>
+          </Card>
         </div>
       </div>
     );
