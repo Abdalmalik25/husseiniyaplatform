@@ -26,7 +26,7 @@ export const PAGE_TITLES: Record<string, string> = {
   "/commercial": "العمليات التجارية | alhusainiaye",
   "/reports": "التقارير المالية | alhusainiaye",
   "/settings": "إعدادات المؤسسة | alhusainiaye",
-  "/erp": "نظام UAMEX | alhusainiaye",
+  "/erp": "نظام Uamex_erp | alhusainiaye",
   "/inventory": "إدارة المخزون | alhusainiaye",
   "/store": "المتجر الإلكتروني | alhusainiaye",
   "/security": "الأمان والصلاحيات | alhusainiaye",
@@ -57,7 +57,7 @@ export const PAGE_TITLES: Record<string, string> = {
 const DYNAMIC_PREFIXES: ReadonlyArray<readonly [string, string]> = [
   ["/commercial/invoice/", "إنشاء فاتورة | alhusainiaye"],
   ["/commercial/", "العمليات التجارية | alhusainiaye"],
-  ["/erp/", "نظام UAMEX | alhusainiaye"],
+  ["/erp/", "نظام Uamex_erp | alhusainiaye"],
   ["/pos/", "نقاط البيع | alhusainiaye"],
 ];
 

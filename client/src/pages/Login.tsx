@@ -284,8 +284,8 @@ export default function Login() {
         {/* Left / Info Column */}
         <div className="lg:col-span-5 space-y-6 text-right">
           <div className="inline-flex items-center gap-2 bg-white/5 border border-brand/40 text-brand-300 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            بوابة نظام UAMEX ERP الموحدة
+            <img src="/uamex-favicon-32.png" alt="" width={16} height={16} className="rounded-[4px]" />
+            بوابة نظام Uamex_erp ERP الموحدة
           </div>
           <h2 className="text-2xl sm:text-4xl font-black font-display text-white leading-tight">
             منظومة الأعمال المتكاملة
@@ -293,7 +293,7 @@ export default function Login() {
             <span className="text-brand-300">المهيأة لبيئة عملك الحقيقية</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-light">
-            سواء كنت تسجل لأول مرة أو تدخل لمتابعة أعمالك، يوفر لك UAMEX شجرة
+            سواء كنت تسجل لأول مرة أو تدخل لمتابعة أعمالك، يوفر لك Uamex_erp شجرة
             حسابات مهيأة، مخازن مضبوطة، وتقارير فورية تدعم اتخاذ قراراتك.
           </p>
 

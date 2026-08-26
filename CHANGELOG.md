@@ -4,6 +4,12 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.0.2] — 2026-08 Unreleased · Brand Unification
+
+### Changed
+- **Unified system name to `Uamex_erp`** across all marketing screens, work surfaces (login, landing, footer, boot splash), page titles, and reference documentation.
+- **Official `Uamex_erp` logo** (`uamex-erp.png` / `uamex-favicon-32.png`) adopted across the boot splash, login gate, footer, landing UAMEX identity, and as a branded favicon.
+- Internal identifiers, storage keys, and CSV/upgrade filenames intentionally left unchanged for backward compatibility.
 ## [2.0.1] — 2026-08-24 · Production Hardening Release
 
 ### Fixed

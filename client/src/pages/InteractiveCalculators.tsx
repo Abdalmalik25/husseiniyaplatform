@@ -75,7 +75,7 @@ export default function InteractiveCalculators() {
   const academicEstDays = isUrgent ? "24 - 48 ساعة" : academicServiceType === "pc_maintenance" ? "يوم واحد" : "3 - 5 أيام عمل";
 
   const sendRoiQuoteToWhatsApp = () => {
-    const msg = "السلام عليكم مؤسسة الحسينية،\nأجريت حساب العائد الاستثماري لنظام UAMEX:\n- الفروع: " + branches + "\n- الفواتير اليومية: " + invoicesPerDay + "\n- الموظفون: " + staffCount + "\n- الوفر السنوي التقديري: " + annualSavedCost.toLocaleString() + " دولار\nأود مناقشة خطة التطبيق.";
+    const msg = "السلام عليكم مؤسسة الحسينية،\nأجريت حساب العائد الاستثماري لنظام Uamex_erp:\n- الفروع: " + branches + "\n- الفواتير اليومية: " + invoicesPerDay + "\n- الموظفون: " + staffCount + "\n- الوفر السنوي التقديري: " + annualSavedCost.toLocaleString() + " دولار\nأود مناقشة خطة التطبيق.";
     window.open(whatsappLink(msg), "_blank");
   };
 
@@ -139,7 +139,7 @@ export default function InteractiveCalculators() {
             <span className="block gradient-text-white"> مبنية على الواقع الميداني</span>
           </h1>
           <p className="max-w-2xl mx-auto text-base text-white/65 leading-relaxed font-light">
-            قدّر حجم الوفر المالي لنظام UAMEX، أو احسب التقدير الأولي لكميات وتكاليف البناء لمشروعك بضغطة زر.
+            قدّر حجم الوفر المالي لنظام Uamex_erp، أو احسب التقدير الأولي لكميات وتكاليف البناء لمشروعك بضغطة زر.
           </p>
         </div>
       </section>
@@ -157,7 +157,7 @@ export default function InteractiveCalculators() {
             }
           >
             <BarChart3 className="w-4 h-4 text-brand" />
-            وفر وعائد UAMEX ERP
+            وفر وعائد Uamex_erp ERP
           </button>
           <button
             onClick={() => setActiveTab("structural")}

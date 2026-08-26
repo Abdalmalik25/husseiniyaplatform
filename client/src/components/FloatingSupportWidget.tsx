@@ -106,7 +106,7 @@ export function FloatingSupportWidget() {
 
             <button
               onClick={() =>
-                handleOpenWhatsApp("تجربة ونظام UAMEX ERP والحلول البرمجية")
+                handleOpenWhatsApp("تجربة ونظام Uamex_erp ERP والحلول البرمجية")
               }
               className="w-full bg-white/5 hover:bg-white/10 text-white p-2.5 rounded-xl border border-white/10 flex items-center gap-2.5 transition-all text-right"
             >
@@ -115,7 +115,7 @@ export function FloatingSupportWidget() {
               </div>
               <div>
                 <span className="font-bold block text-white">
-                  الحلول البرمجية وتجربة UAMEX
+                  الحلول البرمجية وتجربة Uamex_erp
                 </span>
                 <span className="text-[10px] text-white/50">
                   تجربة النظام، الربط البرمجي، السحابة

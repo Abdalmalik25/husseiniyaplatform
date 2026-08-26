@@ -149,7 +149,7 @@ export default function KnowledgeHub() {
       ctaAction: () =>
         window.open(
           whatsappLink(
-            "السلام عليكم، أود استشارة حول اختيار النظام البرمجي ونظام UAMEX الأنسب لنشاطنا."
+            "السلام عليكم، أود استشارة حول اختيار النظام البرمجي ونظام Uamex_erp الأنسب لنشاطنا."
           ),
           "_blank"
         ),

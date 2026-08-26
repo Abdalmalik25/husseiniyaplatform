@@ -79,7 +79,7 @@ export default function Pricing() {
         <div className="max-w-5xl mx-auto text-center space-y-6 relative z-10">
           <div className="inline-flex items-center gap-2 bg-brand/15 border border-brand/30 text-brand-300 px-4 py-1.5 rounded-full text-xs font-bold">
             <Cpu className="w-4 h-4" />
-            أسعار نظام UAMEX
+            أسعار نظام Uamex_erp
           </div>
           <h1 className="text-3xl sm:text-5xl font-black tracking-tight leading-tight">
             ابدأ مجاناً، ادفع فقط عندما تنمو

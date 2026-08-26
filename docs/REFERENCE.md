@@ -2,6 +2,7 @@
 
 > وثيقة معتمدة للبنية والقرارات المعمارية وطرق الربط والنشر.
 > تاريخ الاعتماد: أغسطس 2026 — المستودع: `husseiniya-platform` (النسخة المطوَّرة الفعّالة).
+> **نظام الإدارة الموحّد المعتمد: `Uamex_erp`** (Unified Asset Management &amp; Enterprise Exchange) — الشعار الرسمي في `public/UAMEX_ERP/` ونسخة الويب `client/public/uamex-erp.png`.
 
 ---
 

@@ -9,6 +9,7 @@ import { OfflineProvider } from "./lib/offline/OfflineContext";
 import { FloatingSupportWidget } from "@/components/FloatingSupportWidget";
 import { AliasAIAssistant } from "@/components/AliasAIAssistant";
 import { InstallPrompt } from "@/components/InstallPrompt";
+import { BrandLogo } from "@/components/BrandLogo";
 import { CommandPalette } from "@/components/CommandPalette";
 import { SWUpdateToast } from "@/components/SWUpdateToast";
 import { ScrollProgress } from "@/components/ScrollProgress";
@@ -76,16 +77,14 @@ function PageSplash() {
     >
       <div className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/[0.02] border border-white/[0.08] shadow-2xl backdrop-blur-xl max-w-xs w-[88%] text-center">
         <div className="relative">
-          <div className="w-12 h-12 rounded-2xl bg-brand/15 border border-brand/40 flex items-center justify-center text-brand-300 font-black text-lg animate-pulse shadow-lg">
-            H
-          </div>
+          <BrandLogo size={36} />
           <div className="absolute -inset-1 rounded-2xl bg-brand/20 blur-md -z-10 animate-pulse" />
         </div>
 
         <div>
           <div className="text-sm font-black text-white">مؤسسة الحسينية</div>
           <div className="text-[10px] text-white/50 tracking-wider font-mono mt-0.5">
-            UAMEX ERP ECOSYSTEM
+            Uamex_erp ERP ECOSYSTEM
           </div>
         </div>
 

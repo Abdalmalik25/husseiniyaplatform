@@ -54,10 +54,10 @@ const SERVICE_CHANNELS = [
   {
     id: "uamex",
     icon: Cpu,
-    title: "نظام UAMEX — عروض واشتراك",
+    title: "نظام Uamex_erp — عروض واشتراك",
     sub: "للشركات والمؤسسات الراغبة في تطبيق النظام",
     color: "bg-sky-500/10 text-sky-400",
-    msg: "السلام عليكم، أود طلب عرض تجريبي لنظام UAMEX.",
+    msg: "السلام عليكم، أود طلب عرض تجريبي لنظام Uamex_erp.",
     phoneKey: "phone" as const,
   },
 ];
@@ -119,7 +119,7 @@ export default function Contact() {
           </h1>
           <p className="max-w-2xl mx-auto text-base text-white/60 leading-relaxed font-light">
             سواء كنت مقاولاً تحتاج BOQ، أو طالباً تبحث عن مراجع، أو مديراً يريد
-            تطبيق UAMEX — فريقنا يردّ عليك خلال دقائق.
+            تطبيق Uamex_erp — فريقنا يردّ عليك خلال دقائق.
           </p>
           <div className="flex flex-wrap justify-center gap-3 pt-2">
             <a
@@ -291,7 +291,7 @@ export default function Contact() {
                           خدمات هندسية ومساحية
                         </option>
                         <option value="library">خدمات طلابية ومكتبية</option>
-                        <option value="uamex">نظام UAMEX</option>
+                        <option value="uamex">نظام Uamex_erp</option>
                         <option value="other">أخرى</option>
                       </select>
                     </div>

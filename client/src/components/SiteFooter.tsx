@@ -24,7 +24,7 @@ import { toast } from "sonner";
 /**
  * SiteFooter — World-class marketing footer.
  * Marketing-only component. Does NOT affect the internal ERP system.
- * Includes real contact info, UAMEX branding, and full service sections.
+ * Includes real contact info, Uamex_erp branding, and full service sections.
  */
 export function SiteFooter() {
   const [, setLocation] = useLocation();
@@ -69,7 +69,7 @@ export function SiteFooter() {
               جاهز للبدء؟ فريقنا ينتظر مكالمتك
             </h3>
             <p className="text-white/55 text-sm">
-              تواصل معنا الآن للحصول على استشارة مجانية أو عرض UAMEX التجريبي
+              تواصل معنا الآن للحصول على استشارة مجانية أو عرض Uamex_erp التجريبي
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0">
@@ -161,8 +161,8 @@ export function SiteFooter() {
           {/* Services Column */}
           <div className="space-y-3">
             <h4 className="text-[12px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-              <Cpu className="w-3.5 h-3.5 text-brand" />
-              نظام UAMEX
+              <img src="/uamex-favicon-32.png" alt="" width={18} height={18} className="rounded-[5px]" />
+              نظام Uamex_erp
             </h4>
             <ul className="space-y-2">
               {brand.uamex.modules.map(mod => (
@@ -231,7 +231,7 @@ export function SiteFooter() {
             ) : (
               <form onSubmit={handleSubscribe} className="space-y-2">
                 <p className="text-[11px] text-white/45 leading-relaxed">
-                  سجّل بريدك لتصلك عروض UAMEX وتحديثات الخدمات أولاً.
+                  سجّل بريدك لتصلك عروض Uamex_erp وتحديثات الخدمات أولاً.
                 </p>
                 <div className="flex flex-col gap-2">
                   <Input
@@ -277,7 +277,7 @@ export function SiteFooter() {
             {" "}© {new Date().getFullYear()} — جميع الحقوق محفوظة
           </p>
           <div className="flex items-center gap-4">
-            <span>نظام UAMEX مبني ومستضاف على بنية سحابية</span>
+            <span>نظام Uamex_erp مبني ومستضاف على بنية سحابية</span>
             <span className="text-brand/60">·</span>
             <button
               onClick={() => setLocation("/contact")}

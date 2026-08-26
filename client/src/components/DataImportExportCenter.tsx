@@ -70,19 +70,19 @@ export function DataImportExportCenter() {
   const handleDownloadTemplate = () => {
     if (activeTab === "accounts") {
       const template = "code,name,type,parentCode,notes\n101,الصندوق الرئيسي,asset,,صندوق النقدية الرئيسي\n102,البنك الأهلي - جاري,asset,,حساب البنك الرئيسي\n103,العملاء التجاريون,asset,,الذمم المدينة\n201,الموردون التجاريون,liability,,الذمم الدائنة\n301,رأس المال,equity,,حقوق الملكية\n401,إيرادات المبيعات,revenue,,المبيعات العامة\n501,تكلفة البضاعة المباعة,expense,,تكلفة المبيعات\n502,مصروفات الرواتب والأجور,expense,,المصاريف الإدارية";
-      downloadCsv("قالب_دليل_الحسابات_UAMEX.csv", template);
+      downloadCsv("قالب_دليل_الحسابات_Uamex_erp.csv", template);
       toast.success("تم تحميل قالب دليل الحسابات بنجاح");
     } else if (activeTab === "products") {
       const template = "code,name,type,category,unit,purchasePrice,salePrice,wholesalePrice,currentStock,minStock,barcode\nITM-001,شاشة سامسونج 27 بوصة,goods,إلكترونيات,قطعة,120,160,145,15,3,880123456789\nITM-002,كابل شبكة Cat6 10m,goods,شبكات,حبة,4,8,6,50,10,880123456790\nSRV-001,استشارة ودراسة جدول كميات BOQ,service,خدمات هندسية,خدمة,0,250,200,0,0,";
-      downloadCsv("قالب_دليل_الأصناف_والخدمات_UAMEX.csv", template);
+      downloadCsv("قالب_دليل_الأصناف_والخدمات_Uamex_erp.csv", template);
       toast.success("تم تحميل قالب الأصناف والخدمات بنجاح");
     } else if (activeTab === "opening_accounts") {
       const template = "accountCode,accountName,debit,credit,notes\n101,الصندوق الرئيسي,50000,0,رصيد أول المدة النقدي\n102,البنك الأهلي,120000,0,رصيد أول المدة البنكي\n103,العميل شركة النور,15000,0,ذمم مدينة رصيد افتتاحي\n201,المورد شركة العالمية,0,35000,ذمم دائنة رصيد افتتاحي\n301,رأس المال,0,150000,رأس المال الافتتاحي المتزن";
-      downloadCsv("قالب_الأرصدة_الافتتاحية_للحسابات_UAMEX.csv", template);
+      downloadCsv("قالب_الأرصدة_الافتتاحية_للحسابات_Uamex_erp.csv", template);
       toast.success("تم تحميل قالب الأرصدة الافتتاحية بنجاح");
     } else if (activeTab === "opening_inventory") {
       const template = "productCode,productName,warehouse,quantity,unitCost,notes\nITM-001,شاشة سامسونج 27 بوصة,MAIN,15,120,بضاعة أول المدة جرد فعلي\nITM-002,كابل شبكة Cat6 10m,MAIN,50,4,بضاعة أول المدة جرد فعلي";
-      downloadCsv("قالب_أرصدة_أول_المدة_للمخزون_UAMEX.csv", template);
+      downloadCsv("قالب_أرصدة_أول_المدة_للمخزون_Uamex_erp.csv", template);
       toast.success("تم تحميل قالب مخزون أول المدة بنجاح");
     }
   };

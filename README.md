@@ -1,6 +1,8 @@
 # منصة الحسينية | ALHUSAINIA Platform
 
 > نظام الحسابات المتقدم والمنصة المتكاملة لمؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة
+>
+> **اسم نظام الإدارة الموحّد: [`Uamex_erp`](public/UAMEX_ERP/UAMEX_ERPLOGO.png)** — وحدة الأعمال/المحاسبة الرسمية المتكاملة (Unified Asset Management &amp; Enterprise Exchange).
 
 [![CI](https://github.com/alhusainia/husseiniya-platform/actions/workflows/ci.yml/badge.svg)](https://github.com/alhusainia/husseiniya-platform/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

@@ -189,7 +189,7 @@ export default function Landing() {
         {/* شريط التنبيه */}
         <div className="relative z-10 bg-gradient-to-l from-brand/20 to-transparent border-b border-brand/20 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/80">
           <span className="inline-flex items-center gap-1.5 bg-brand/15 border border-brand/30 px-3 py-0.5 rounded-full font-bold text-brand-300">
-            <Sparkles className="w-3 h-3" /> UAMEX v2.0 متاح الآن
+            <Sparkles className="w-3 h-3" /> Uamex_erp v2.0 متاح الآن
           </span>
           <span className="hidden sm:inline text-white/60">
             نظام إدارة الأعمال الموحّد — جاهز للبدء الفوري
@@ -223,7 +223,7 @@ export default function Landing() {
             وعمليات تُدار من جيبك بأمان —{" "}
             <strong className="text-brand-300 font-bold">شريك واحد</strong> يتكفّل بالتعقيد كي
             تتفرّغ أنت للنمو، مع نظام{" "}
-            <strong className="text-brand-300 font-bold">UAMEX</strong> الذي يوحّد كل ذلك في
+            <strong className="text-brand-300 font-bold">Uamex_erp</strong> الذي يوحّد كل ذلك في
             مكان واحد.
           </p>
 
@@ -267,7 +267,7 @@ export default function Landing() {
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-              تجربة UAMEX مجانية 14 يوماً
+              تجربة Uamex_erp مجانية 14 يوماً
             </span>
             <span className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -485,7 +485,7 @@ export default function Landing() {
                 variant="outline"
                 className="border-white/20 bg-white/5 text-white hover:bg-white/10 text-sm px-6 py-3 rounded-xl h-auto"
               >
-                دخول نظام UAMEX
+                دخول نظام Uamex_erp
                 <ArrowRight className="w-4 h-4 rotate-180 mr-1" />
               </Button>
             </div>
@@ -708,11 +708,11 @@ export default function Landing() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
-          قسم ٤: UAMEX — هوية النظام ومكوناته
+          قسم ٤: Uamex_erp — هوية النظام ومكوناته
       ═══════════════════════════════════════════════════════════ */}
       <section id="uamex" className="py-20 px-4 scroll-mt-20 bg-ink text-white">
         <div className="max-w-7xl mx-auto">
-          {/* UAMEX Identity */}
+          {/* Uamex_erp Identity */}
           <div className="text-center space-y-4 max-w-4xl mx-auto mb-16 reveal">
             <div className="inline-flex items-center gap-3">
               <div className="h-px w-12 bg-brand/50" />
@@ -722,15 +722,18 @@ export default function Landing() {
               <div className="h-px w-12 bg-brand/50" />
             </div>
             <div className="flex items-center justify-center gap-4">
-              <div className="w-16 h-16 rounded-2xl bg-brand flex items-center justify-center shadow-2xl shadow-brand/40">
-                <Cpu className="w-8 h-8 text-ink" />
+              <div className="relative">
+                <img src="/uamex-erp.png" alt="شعار نظام Uamex_erp" width={72} height={72}
+                  className="rounded-2xl shadow-2xl shadow-brand/40 ring-1 ring-brand/30"
+                  loading="lazy" decoding="async" />
+                <span className="absolute -inset-1 rounded-2xl bg-brand/20 blur-md -z-10" />
               </div>
               <div className="text-right">
                 <h2 className="text-4xl sm:text-5xl font-black tracking-tight text-white">
-                  UAMEX
+                  Uamex_erp
                 </h2>
                 <p className="text-brand-300 font-mono text-sm">
-                  Unified Asset Management & Enterprise Exchange
+                  Unified Asset Management &amp; Enterprise Exchange
                 </p>
               </div>
             </div>
@@ -742,10 +745,10 @@ export default function Landing() {
             </p>
           </div>
 
-          {/* مشاكل يحلها UAMEX */}
+          {/* مشاكل يحلها Uamex_erp */}
           <div className="mb-16 reveal">
             <h3 className="text-center text-white/60 text-sm font-bold mb-8 uppercase tracking-widest">
-              المشاكل التي يحلها UAMEX كل يوم
+              المشاكل التي يحلها Uamex_erp كل يوم
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {brand.uamex.problems.map((p, i) => (
@@ -760,16 +763,16 @@ export default function Landing() {
               <div className="flex items-start gap-3 bg-brand/10 border border-brand/30 rounded-2xl px-5 py-4 sm:col-span-2 lg:col-span-1">
                 <span className="text-emerald-400 font-black text-lg leading-none mt-0.5">✓</span>
                 <p className="text-white/90 text-sm leading-relaxed font-medium">
-                  UAMEX يحل كل ما سبق في منصة واحدة آمنة
+                  Uamex_erp يحل كل ما سبق في منصة واحدة آمنة
                 </p>
               </div>
             </div>
           </div>
 
-          {/* وحدات UAMEX */}
+          {/* وحدات Uamex_erp */}
           <div className="reveal">
             <h3 className="text-center text-white font-bold text-xl mb-10">
-              وحدات UAMEX — كل ما تحتاجه في نظام واحد
+              وحدات Uamex_erp — كل ما تحتاجه في نظام واحد
             </h3>
 
             {/* Tab selector */}
@@ -860,7 +863,7 @@ export default function Landing() {
             })()}
           </div>
 
-          {/* UAMEX CTA */}
+          {/* Uamex_erp CTA */}
           <div className="mt-16 text-center space-y-6 reveal">
             <div className="inline-flex items-center gap-4 bg-white/5 border border-white/10 rounded-2xl px-6 py-4">
               <Lock className="w-5 h-5 text-emerald-400" />
@@ -879,7 +882,7 @@ export default function Landing() {
                 className="bg-brand hover:bg-brand-deep text-ink font-black h-14 px-10 rounded-2xl shadow-2xl shadow-brand/40 text-base hover:scale-105 transition-all"
               >
                 <Zap className="w-5 h-5 ml-2 fill-current" />
-                ابدأ تجربة UAMEX مجاناً — 14 يوماً
+                ابدأ تجربة Uamex_erp مجاناً — 14 يوماً
               </Button>
               <a
                 href={uamexDemoLink()}
@@ -1099,7 +1102,7 @@ export default function Landing() {
           </div>
           <div className="flex flex-wrap justify-center gap-x-8 gap-y-2 text-xs text-white/40">
             <span>✓ استشارة أولى مجانية</span>
-            <span>✓ تجربة UAMEX مجانية 14 يوماً</span>
+            <span>✓ تجربة Uamex_erp مجانية 14 يوماً</span>
             <span>✓ بدون التزامات</span>
             <span>✓ دعم مباشر على الواتساب</span>
           </div>

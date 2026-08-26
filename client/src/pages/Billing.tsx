@@ -83,10 +83,10 @@ export default function Billing() {
 
   const renewalText =
     status === "trial"
-      ? "السلام عليكم، أودّ تفعيل اشتراك UAMEX بعد التجربة المجانية."
+      ? "السلام عليكم، أودّ تفعيل اشتراك Uamex_erp بعد التجربة المجانية."
       : status === "grace"
         ? "السلام عليكم، أودّ تجديد اشتراك مؤسستي بعد فترة التجربة."
-        : "السلام عليكم، أودّ الترقية إلى خطة أعلى في نظام UAMEX.";
+        : "السلام عليكم، أودّ الترقية إلى خطة أعلى في نظام Uamex_erp.";
 
   return (
     <div className="min-h-screen bg-background text-foreground font-display flex">
@@ -172,7 +172,7 @@ export default function Billing() {
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-sm font-black flex items-center gap-2">
               <Crown className="w-4 h-4 text-brand" />
-              <span>باقات UAMEX</span>
+              <span>باقات Uamex_erp</span>
             </h3>
             <span className="text-[10px] text-muted-foreground">{brand.pricing.note}</span>
           </div>
@@ -209,7 +209,7 @@ export default function Billing() {
                       plan.key === "starter"
                         ? uamexDemoLink()
                         : whatsappLink(
-                            `السلام عليكم، أودّ الاشتراك/التعرّف على باقة «${plan.name}» في UAMEX.`
+                            `السلام عليكم، أودّ الاشتراك/التعرّف على باقة «${plan.name}» في Uamex_erp.`
                           )
                     }
                     target="_blank"
@@ -248,7 +248,7 @@ export default function Billing() {
               نستقبل الدفع عبر التحويل البنكي والمحافظ والتمويل المحلية — يحدد فريقنا التفاصيل معك مباشرة.
             </p>
             <a
-              href={whatsappLink("السلام عليكم، أودّ الاستفسار عن وسائل الدفع المتاحة للاشتراك UAMEX.")}
+              href={whatsappLink("السلام عليكم، أودّ الاستفسار عن وسائل الدفع المتاحة للاشتراك Uamex_erp.")}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand hover:text-brand-deep"
