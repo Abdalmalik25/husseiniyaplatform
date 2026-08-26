@@ -7,9 +7,13 @@ import { createRoot } from "react-dom/client";
 import superjson from "superjson";
 import App from "./App";
 import { goLogin } from "./const";
+import { installGlobalErrorCapture } from "./lib/globalErrorCapture";
 import "./index.css";
 import { I18nProvider } from "./lib/i18n";
 import { getActiveTenantId } from "./lib/activeTenant";
+
+// شبكة الأمان الأخيرة: تُركَّب قبل أي شيء آخر لالتقاط أخطاء الإقلاع نفسها.
+installGlobalErrorCapture();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -116,9 +120,24 @@ createRoot(document.getElementById("root")!).render(
   </I18nProvider>
 );
 
-// Register service worker for installable PWA + offline shell.
+// Register service worker for installable PWA + offline shell, then keep the
+ // running build fresh: browsers only check for a new SW on navigation and at
+ // most once per day — long-lived sessions (our PWA's main use case) would sit
+ // on stale builds. We poll explicitly every 30 minutes and whenever the tab
+ // becomes visible again. The update-detection toast (SWUpdateToast) handles UX.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {});
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then(reg => {
+        const UPDATE_POLL_MS = 30 * 60 * 1000;
+        setInterval(() => reg.update().catch(() => {}), UPDATE_POLL_MS);
+        document.addEventListener("visibilitychange", () => {
+          if (document.visibilityState === "visible") {
+            reg.update().catch(() => {});
+          }
+        });
+      })
+      .catch(() => {});
   });
 }
