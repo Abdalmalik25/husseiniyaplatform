@@ -1,17 +1,18 @@
 import React from "react";
 import { useLocation } from "wouter";
+import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  Wifi,
-  WifiOff,
   RefreshCw,
-  UserCheck,
   ShieldCheck,
   Settings,
   Search,
   Menu,
   X,
   Globe,
+  ChevronDown,
+  Layers,
+  Compass,
 } from "lucide-react";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -19,7 +20,7 @@ import { useI18n } from "@/lib/i18n";
 import { BrandLogo } from "@/components/BrandLogo";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { MARKETING_NAV } from "@/lib/nav";
+import { MARKETING_NAV, type NavItem } from "@/lib/nav";
 import { Zap, ArrowLeft, MessageSquare } from "lucide-react";
 import { uamexDemoLink } from "@/lib/brand";
 
@@ -28,13 +29,70 @@ interface HeaderNavbarProps {
   onOpenSettings?: () => void;
 }
 
+/**
+ * مجموعات القائمة المنسدلة (Mega Menu) — نمط SaaS العالمي:
+ * تجميع الروابط في عنقودين غنيين بدل سبعة أزرار مسطّحة (Hick's Law).
+ */
+const MEGA_CLUSTERS: ReadonlyArray<{
+  key: string;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  paths: string[];
+}> = [
+  {
+    key: "products",
+    label: "المنتجات",
+    icon: Layers,
+    paths: ["/solutions", "/#engineering"],
+  },
+  {
+    key: "resources",
+    label: "الموارد",
+    icon: Compass,
+    paths: ["/insights", "/tools"],
+  },
+];
+/** روابط مباشرة تُعرض كأزرار علوية. */
+const DIRECT_NAV_PATHS = ["/", "/pricing", "/contact"];
+const NAV_BY_PATH = new Map(MARKETING_NAV.map(item => [item.path, item]));
+
+/**
+ * جلب مسبق عند النية (Hover/Focus Intent Prefetch):
+ * المستخدم الذي يمرّر فوق رابط يُرجَّح أنه سينقر — نحمّل الحزمة مسبقًا
+ * فيبدو التنقل فوريًا، بينما الزائر العادي لا يدفع بايتًا واحدًا إضافيًا.
+ */
+const ROUTE_PREFETCHERS: Record<string, () => Promise<unknown>> = {
+  "/solutions": () => import("@/pages/TechSolutions"),
+  "/insights": () => import("@/pages/KnowledgeHub"),
+  "/tools": () => import("@/pages/InteractiveCalculators"),
+  "/pricing": () => import("@/pages/Pricing"),
+  "/contact": () => import("@/pages/Contact"),
+};
+const prefetchedRoutes = new Set<string>();
+function prefetchRoute(path: string) {
+  const clean = path.split("#")[0] || "/";
+  const loader = ROUTE_PREFETCHERS[clean];
+  if (!loader || prefetchedRoutes.has(clean)) return;
+  prefetchedRoutes.add(clean);
+  void loader().catch(() => {});
+}
+
 export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
   const [location, setLocation] = useLocation();
   const { isOnline, isSyncing } = useOffline();
   const { user, isAuthenticated } = useAuth();
   const { language, setLanguage } = useI18n();
   const [mobileOpen, setMobileOpen] = React.useState(false);
+  const [openCluster, setOpenCluster] = React.useState<string | null>(null);
   const [scrolled, setScrolled] = React.useState(false);
+
+  /* شريط تقدّم التمرير — فيزياء نابضة ناعمة */
+  const { scrollYProgress } = useScroll();
+  const progress = useSpring(scrollYProgress, {
+    stiffness: 140,
+    damping: 28,
+    mass: 0.4,
+  });
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -43,130 +101,231 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const baseBtn = "h-9 px-3 text-xs font-medium transition-all gap-1.5";
-  const navClass = (active: boolean, highlight?: boolean) =>
-    active
-      ? "bg-brand text-ink font-bold shadow"
-      : highlight
-        ? "bg-white/5 text-brand-300 hover:bg-white/10 border border-brand/30"
-        : "text-white/75 hover:bg-white/5 hover:text-white";
+  /* إغلاق كل الطبقات بمفتاح Escape (وصولية لوحة مفاتيح كاملة) */
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setOpenCluster(null);
+        setMobileOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  /* إغلاق أي طبقة مفتوحة عند تغيّر المسار */
+  React.useEffect(() => {
+    setOpenCluster(null);
+    setMobileOpen(false);
+  }, [location]);
+
+  /* قفل تمرير الصفحة خلف درج الجوال المفتوح */
+  React.useEffect(() => {
+    document.body.style.overflow = mobileOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileOpen]);
+
+  /* تنقّل موحّد: روابط عادية أو مراسي تمرير سلس */
+  const navigateOrScroll = React.useCallback(
+    (path: string) => {
+      setMobileOpen(false);
+      if (!path.includes("#")) {
+        setLocation(path);
+        return;
+      }
+      const [pagePath, hash] = path.split("#");
+      const scrollToHash = () =>
+        document
+          .getElementById(hash)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      if (location !== pagePath && pagePath !== "/") {
+        setLocation(pagePath);
+        window.setTimeout(scrollToHash, 380);
+      } else if (location !== "/" && pagePath === "/") {
+        setLocation("/");
+        window.setTimeout(scrollToHash, 380);
+      } else {
+        scrollToHash();
+      }
+    },
+    [location, setLocation]
+  );
 
   const handleLanguageToggle = () => {
     setLanguage(language === "ar" ? "en" : "ar");
   };
 
+  const baseBtn =
+    "h-9 px-3 text-xs font-medium transition-all gap-1.5 focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:outline-none";
+  const navClass = (active: boolean, highlight?: boolean) =>
+    active
+      ? "bg-brand/15 text-brand-300 font-bold border border-brand/40 shadow-inner"
+      : highlight
+        ? "bg-white/5 text-brand-300 hover:bg-white/10 border border-brand/30"
+        : "text-white/75 hover:bg-white/5 hover:text-white border border-transparent";
+
   return (
     <header
-      className={`text-white sticky top-0 z-50 border-b border-white/10 transition-all duration-300 ${
+      className={`text-white sticky top-0 z-50 transition-all duration-500 ${
         scrolled
-          ? "bg-ink/80 backdrop-blur-xl shadow-2xl shadow-black/40"
-          : "bg-ink/95"
+          ? "bg-ink/85 backdrop-blur-2xl border-b border-white/10 shadow-2xl shadow-black/40"
+          : "bg-gradient-to-b from-ink/95 to-ink/80 backdrop-blur-md border-b border-transparent"
       }`}
       dir="rtl"
     >
-      <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between gap-3">
-        {/* Brand — the logo lockup is the identity; no repeated names */}
+      {/* ── Scroll progress indicator ── */}
+      <motion.div
+        style={{ scaleX: progress, transformOrigin: "100% 50%" }}
+        className="absolute top-0 inset-x-0 h-[3px] z-20 bg-gradient-to-l from-[#b87945] via-[#e2b17a] to-[#38bdf8]"
+      />
+
+      <div
+        className={`max-w-7xl mx-auto px-4 flex items-center justify-between gap-3 transition-all duration-300 ${
+          scrolled ? "py-1.5" : "py-2.5"
+        }`}
+      >
+        {/* Brand — identity lockup */}
         <div
-          className="flex items-center gap-3 cursor-pointer"
+          className="flex items-center gap-3 cursor-pointer group/brand shrink-0"
           onClick={() => setLocation("/")}
+          role="link"
+          aria-label="alhusainiaye — الصفحة الرئيسية"
         >
-          <BrandLogo size={38} />
-          <div className="flex items-center gap-2 text-[10px] text-brand font-mono">
+          <BrandLogo
+            size={scrolled ? 32 : 38}
+            className="transition-transform duration-300 group-hover/brand:scale-105 drop-shadow-[0_2px_10px_rgba(184,121,69,0.35)]"
+          />
+          <div className="hidden lg:flex items-center gap-2">
+            <span
+              className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border font-mono font-bold text-[10px] transition-colors ${
+                isOnline
+                  ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                  : "border-rose-400/30 bg-rose-400/10 text-rose-300"
+              }`}
+              title={
+                isOnline
+                  ? "متصل بالخادم"
+                  : "وضع عدم الاتصال — ستتم المزامنة تلقائياً"
+              }
+            >
+              {isSyncing ? (
+                <RefreshCw className="w-3 h-3 animate-spin" />
+              ) : (
+                <span
+                  className={`w-1.5 h-1.5 rounded-full ${
+                    isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-400"
+                  }`}
+                />
+              )}
+              {isSyncing ? "مزامنة…" : isOnline ? "متصل" : "أوفلاين"}
+            </span>
             {isAuthenticated && (
-              <span className="hidden sm:inline-flex items-center gap-1">
-                <UserCheck className="w-3 h-3 text-brand-300" />{" "}
+              <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border border-brand/30 bg-brand/10 text-brand-300 font-mono font-bold text-[10px]">
+                <ShieldCheck className="w-3 h-3" />
                 {user?.name || "مشرف المنصة"}
-              </span>
-            )}
-            {isOnline ? (
-              <span className="text-emerald-400 flex items-center gap-0.5">
-                {isSyncing ? (
-                  <>
-                    <RefreshCw className="w-2.5 h-2.5 animate-spin" /> جاري
-                    المزامنة...
-                  </>
-                ) : (
-                  <>
-                    <Wifi className="w-2.5 h-2.5" /> متصل
-                  </>
-                )}
-              </span>
-            ) : (
-              <span className="text-rose-400 flex items-center gap-0.5">
-                <WifiOff className="w-2.5 h-2.5" /> أوفلاين
               </span>
             )}
           </div>
         </div>
 
-        {/* Desktop Navigation Links — marketing layer (5 items max) */}
-        <nav
-          className="hidden md:flex items-center gap-1"
-          aria-label="التنقل الرئيسي"
-        >
-          {MARKETING_NAV.map(item => {
+        {/* Desktop Navigation — عناقيد Mega Menu بأسلوب SaaS العالمي */}
+        <nav className="hidden md:flex items-center gap-1" aria-label="التنقل الرئيسي">
+          {DIRECT_NAV_PATHS.map(p => {
+            const item = NAV_BY_PATH.get(p);
+            if (!item) return null;
             const Icon = item.icon;
             const isActive = location === item.path;
-            const isAnchor = item.path.includes("#");
-            const handleNavClick = () => {
-              if (isAnchor) {
-                const [pagePath, hash] = item.path.split("#");
-                if (location !== pagePath && pagePath !== "/") {
-                  setLocation(pagePath);
-                  setTimeout(() => {
-                    document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 300);
-                } else {
-                  document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }
-              } else {
-                setLocation(item.path);
-              }
-            };
             return (
-              <Button
-                key={item.path}
-                variant="ghost"
-                size="sm"
-                onClick={handleNavClick}
+              <Button key={item.path} variant="ghost" size="sm"
+                onClick={() => navigateOrScroll(item.path)}
+                onMouseEnter={() => prefetchRoute(item.path)}
+                onFocus={() => prefetchRoute(item.path)}
                 aria-current={isActive ? "page" : undefined}
-                className={`${baseBtn} ${navClass(isActive, item.highlight)} group relative`}
-              >
-                <Icon className="w-3.5 h-3.5" />
+                className={`${baseBtn} ${navClass(isActive, item.highlight)} group relative`}>
+                <Icon className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-translate-y-0.5" />
                 {item.label}
-                {item.highlight && (
-                  <span className="absolute -top-1 -left-1 w-2 h-2 rounded-full bg-brand animate-pulse" />
-                )}
-                <span
-                  className={`absolute bottom-1 left-1/2 h-0.5 -translate-x-1/2 rounded-full bg-brand transition-all duration-300 ${
-                    isActive ? "w-2/3" : "w-0 group-hover:w-2/3"
-                  }`}
-                />
+                <span className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-gradient-to-l from-[#b87945] to-[#e2b17a] transition-all duration-300 ${isActive ? "w-2/3" : "w-0 group-hover:w-2/3"}`} />
               </Button>
             );
           })}
 
-          {/* Free Trial CTA — shown only to visitors */}
+          {/* القوائم المنسدلة الغنية */}
+          {MEGA_CLUSTERS.map(cluster => {
+            const ClusterIcon = cluster.icon;
+            const items = cluster.paths.map(p => NAV_BY_PATH.get(p)).filter((i): i is NavItem => Boolean(i));
+            const isOpen = openCluster === cluster.key;
+            const containsActive = items.some(i => location === i.path);
+            return (
+              <div key={cluster.key} className="relative"
+                onMouseEnter={() => { setOpenCluster(cluster.key); cluster.paths.forEach(p => prefetchRoute(p)); }}
+                onMouseLeave={() => setOpenCluster(null)}>
+                <Button variant="ghost" size="sm"
+                  onClick={() => setOpenCluster(isOpen ? null : cluster.key)}
+                  aria-haspopup="true" aria-expanded={isOpen}
+                  className={`${baseBtn} ${navClass(containsActive)} group`}>
+                  <ClusterIcon className="w-3.5 h-3.5 text-brand-300" />
+                  {cluster.label}
+                  <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`} />
+                </Button>
+                <AnimatePresence>
+                  {isOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.97 }}
+                      transition={{ duration: 0.18, ease: "easeOut" }}
+                      className="absolute top-full right-0 mt-2 min-w-[320px] rounded-2xl border border-brand/25 bg-ink-deep/95 backdrop-blur-2xl shadow-2xl shadow-black/60 p-2 origin-top">
+                      {items.map(item => {
+                        const Icon = item.icon;
+                        const isActive = location === item.path;
+                        return (
+                          <button key={item.path} onClick={() => navigateOrScroll(item.path)}
+                            onMouseEnter={() => prefetchRoute(item.path)}
+                            onFocus={() => prefetchRoute(item.path)}
+                            aria-current={isActive ? "page" : undefined}
+                            className={`w-full flex items-start gap-3 rounded-xl px-3 py-2.5 text-right transition-colors duration-200 group/item ${isActive ? "bg-brand/10" : "hover:bg-white/5"}`}>
+                            <span className="mt-0.5 w-9 h-9 shrink-0 rounded-lg bg-brand/10 border border-brand/25 text-brand-300 flex items-center justify-center transition-colors duration-300 group-hover/item:bg-brand group-hover/item:text-ink">
+                              <Icon className="w-4 h-4" />
+                            </span>
+                            <span className="flex flex-col gap-0.5">
+                              <span className="text-xs font-bold text-white flex items-center gap-2">
+                                {item.label}
+                                {item.highlight && (
+                                  <span className="text-[9px] bg-brand/20 text-brand-300 px-1.5 py-0.5 rounded-full font-black">ERP</span>
+                                )}
+                              </span>
+                              {item.description && (
+                                <span className="text-[10px] text-white/50 leading-relaxed">{item.description}</span>
+                              )}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            );
+          })}
+
+          {/* Free Trial CTA — للزوار فقط */}
           {!isAuthenticated && (
-            <a
-              href={uamexDemoLink()}
-              target="_blank"
-              rel="noopener"
-              className="hidden lg:inline-flex items-center gap-1.5 bg-white/8 hover:bg-brand/15 border border-brand/40 text-brand-300 hover:text-white font-bold h-9 px-4 rounded-xl text-xs transition-all mr-1 hover:border-brand/60"
-            >
+            <a href={uamexDemoLink()} target="_blank" rel="noopener"
+              className="hidden lg:inline-flex items-center gap-1.5 bg-white/5 hover:bg-brand/15 border border-brand/40 text-brand-300 hover:text-white font-bold h-9 px-4 rounded-xl text-xs transition-all mr-1 hover:border-brand/60 hover:shadow-[0_0_20px_rgba(184,121,69,0.25)]">
               <MessageSquare className="w-3.5 h-3.5" />
               ابدأ مجاناً
             </a>
           )}
 
-          {/* Primary CTA — enter the system */}
-          <Button
-            onClick={() => setLocation("/app")}
-            className="bg-brand hover:bg-brand-deep text-ink font-black h-9 px-4 rounded-xl shadow-lg hover:scale-105 transition-all flex items-center gap-1.5 text-xs mr-1"
-          >
+          {/* Primary CTA — تأثير Shine انسيابي عند المرور */}
+          <Button onClick={() => setLocation("/app")}
+            className="relative overflow-hidden group/cta bg-brand hover:bg-brand-deep text-ink font-black h-9 px-4 rounded-xl shadow-lg shadow-brand/25 hover:shadow-brand/40 hover:-translate-y-px transition-all flex items-center gap-1.5 text-xs mr-1">
+            <span className="pointer-events-none absolute inset-0 -translate-x-full group-hover/cta:translate-x-full transition-transform duration-700 ease-out bg-gradient-to-l from-transparent via-white/40 to-transparent" />
             <Zap className="w-4 h-4 fill-current" />
             {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
-            <ArrowLeft className="w-3.5 h-3.5" />
+            <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-300 group-hover/cta:-translate-x-0.5" />
           </Button>
         </nav>
 
@@ -245,95 +404,91 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
-      {mobileOpen && (
-        <div className="md:hidden bg-ink-deep border-t border-white/10 px-4 py-4 space-y-2">
-          {/* Primary CTA on mobile */}
-          <button
-            onClick={() => { setLocation("/app"); setMobileOpen(false); }}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-brand text-ink font-black text-xs shadow-lg"
-          >
-            <Zap className="w-4 h-4 fill-current" />
-            {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
-          </button>
-
-          {/* Free trial CTA for visitors */}
-          {!isAuthenticated && (
-            <a
-              href={uamexDemoLink()}
-              target="_blank"
-              rel="noopener"
+      {/* ── Mobile Drawer — لوحة منزلقة متحركة فوق خلفية معتمة ── */}
+      <AnimatePresence>
+        {mobileOpen && (
+          <>
+            <motion.div key="backdrop"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
               onClick={() => setMobileOpen(false)}
-              className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-brand/40 text-brand-300 font-bold text-xs"
-            >
-              <MessageSquare className="w-4 h-4" />
-              ابدأ بتجربة مجانية
-            </a>
-          )}
-
-          <div className="section-divider" />
-
-          {MARKETING_NAV.map(item => {
-            const Icon = item.icon;
-            const isActive = location === item.path;
-            const isAnchor = item.path.includes("#");
-            const handleClick = () => {
-              if (isAnchor) {
-                const [pagePath, hash] = item.path.split("#");
-                setMobileOpen(false);
-                if (location !== "/" && pagePath === "/") {
-                  setLocation("/");
-                  setTimeout(() => {
-                    document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }, 350);
-                } else {
-                  document.getElementById(hash)?.scrollIntoView({ behavior: "smooth", block: "start" });
-                }
-              } else {
-                setLocation(item.path);
-                setMobileOpen(false);
-              }
-            };
-            return (
+              className="md:hidden fixed inset-0 top-[64px] z-40 bg-black/60 backdrop-blur-sm"
+              aria-hidden="true" />
+            <motion.div key="panel"
+              initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }}
+              transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
+              className="md:hidden absolute inset-x-3 top-full z-50 mt-2 rounded-2xl border border-white/10 bg-ink-deep/95 backdrop-blur-2xl shadow-2xl shadow-black/60 p-3 space-y-1.5 max-h-[calc(100dvh-110px)] overflow-y-auto"
+              aria-label="قائمة التنقل">
+              {/* Primary CTA */}
               <button
-                key={item.path}
-                onClick={handleClick}
-                aria-current={isActive ? "page" : undefined}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
-                  isActive
-                    ? "bg-brand text-ink font-bold"
-                    : item.highlight
-                      ? "text-brand-300 border border-brand/25 hover:bg-brand/10"
-                      : "text-white/80 hover:bg-white/5"
-                }`}
-              >
-                <Icon className="w-4 h-4 shrink-0" />
-                <span>{item.label}</span>
-                {item.highlight && (
-                  <span className="mr-auto text-[9px] bg-brand/20 text-brand-300 px-2 py-0.5 rounded-full font-black">ERP</span>
-                )}
+                onClick={() => { setLocation("/app"); setMobileOpen(false); }}
+                className="relative overflow-hidden w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-brand text-ink font-black text-xs shadow-lg">
+                <Zap className="w-4 h-4 fill-current" />
+                {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
               </button>
-            );
-          })}
 
-          {onOpenSettings && (
-            <button
-              onClick={() => { onOpenSettings(); setMobileOpen(false); }}
-              className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/5"
-            >
-              <Settings className="w-4 h-4" />
-              <span>إعدادات المؤسسة</span>
-            </button>
-          )}
-          <button
-            onClick={() => { setLanguage(language === "ar" ? "en" : "ar"); setMobileOpen(false); }}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/5"
-          >
-            <Globe className="w-4 h-4 text-brand-300" />
-            <span>العربية / English</span>
-          </button>
-        </div>
-      )}
+              {/* Free trial CTA للزوار */}
+              {!isAuthenticated && (
+                <a href={uamexDemoLink()} target="_blank" rel="noopener"
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl border border-brand/40 text-brand-300 font-bold text-xs">
+                  <MessageSquare className="w-4 h-4" />
+                  ابدأ بتجربة مجانية
+                </a>
+              )}
+
+              <div className="section-divider" />
+
+              {MARKETING_NAV.map((item, index) => {
+                const Icon = item.icon;
+                const isActive = location === item.path;
+                return (
+                  <motion.button key={item.path}
+                    initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.03 * index, duration: 0.22 }}
+                    onClick={() => navigateOrScroll(item.path)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
+                      isActive
+                        ? "bg-brand/15 text-brand-300 font-bold border border-brand/30"
+                        : item.highlight
+                          ? "text-brand-300 border border-brand/25 hover:bg-brand/10"
+                          : "text-white/80 hover:bg-white/5 border border-transparent"
+                    }`}>
+                    <Icon className="w-4 h-4 shrink-0" />
+                    <span className="flex flex-col items-start gap-0.5">
+                      <span>{item.label}</span>
+                      {item.description && (
+                        <span className="text-[10px] text-white/40 font-normal">{item.description}</span>
+                      )}
+                    </span>
+                    {item.highlight && (
+                      <span className="mr-auto text-[9px] bg-brand/20 text-brand-300 px-2 py-0.5 rounded-full font-black">ERP</span>
+                    )}
+                  </motion.button>
+                );
+              })}
+
+              <div className="section-divider" />
+
+              {onOpenSettings && (
+                <button
+                  onClick={() => { onOpenSettings(); setMobileOpen(false); }}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/5">
+                  <Settings className="w-4 h-4" />
+                  <span>إعدادات المؤسسة</span>
+                </button>
+              )}
+              <button
+                onClick={() => { setLanguage(language === "ar" ? "en" : "ar"); setMobileOpen(false); }}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-white/70 hover:bg-white/5">
+                <Globe className="w-4 h-4 text-brand-300" />
+                <span>العربية / English</span>
+              </button>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

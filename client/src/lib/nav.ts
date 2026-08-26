@@ -37,6 +37,8 @@ export interface NavItem {
   label: string;
   icon: ComponentType<{ className?: string }>;
   highlight?: boolean;
+  /** سطر وصفي يظهر تحت العنصر في القوائم المنسدلة ودرج الجوال. */
+  description?: string;
 }
 
 /**
@@ -52,13 +54,13 @@ export interface NavItem {
 
 /** Public marketing site navigation — shown to visitors in the top bar. */
 export const MARKETING_NAV: NavItem[] = [
-  { path: "/", label: "الرئيسية", icon: HomeIcon },
-  { path: "/solutions", label: "الحلول البرمجية", icon: Cpu },
-  { path: "/#engineering", label: "الخدمات الهندسية", icon: Info },
-  { path: "/insights", label: "مركز المعرفة", icon: BookOpen },
-  { path: "/tools", label: "حاسبات ذكية", icon: Calculator },
-  { path: "/pricing", label: "الأسعار", icon: CreditCard },
-  { path: "/contact", label: "تواصل", icon: Phone },
+  { path: "/", label: "الرئيسية", icon: HomeIcon, description: "نظرة شاملة على المنصة والخدمات" },
+  { path: "/solutions", label: "الحلول البرمجية", icon: Cpu, description: "أنظمة محاسبية وتجارية جاهزة للعمل فوراً" },
+  { path: "/#engineering", label: "الخدمات الهندسية", icon: Info, description: "رفع مساحي، جداول BOQ، وحلول المقاولات" },
+  { path: "/insights", label: "مركز المعرفة", icon: BookOpen, description: "مقالات وأدلة عملية ودورات متخصصة" },
+  { path: "/tools", label: "حاسبات ذكية", icon: Calculator, description: "حسابات مقاولات وفواتير ورواتب فورية" },
+  { path: "/pricing", label: "الأسعار", icon: CreditCard, description: "باقات مرنة تنمو مع مؤسستك" },
+  { path: "/contact", label: "تواصل", icon: Phone, description: "فريق الدعم جاهز للإجابة خلال دقائق" },
 ];
 
 
