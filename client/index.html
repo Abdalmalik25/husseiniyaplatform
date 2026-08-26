@@ -4,6 +4,20 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
+    <!--
+      Apply the saved language direction BEFORE first paint so returning
+      English visitors never see an RTL flash. Mirrors resolveInitialLanguage()
+      in client/src/lib/i18n.ts — keep them in sync.
+    -->
+    <script>
+      try {
+        var i18nLang = localStorage.getItem("i18n_lang");
+        if (i18nLang === "en") {
+          document.documentElement.lang = "en";
+          document.documentElement.dir = "ltr";
+        }
+      } catch (e) {}
+    </script>
     <meta name="author" content="مؤسسة الحسينية لخدمات الأعمال" />
     <title>منصة الحسينية | مؤسسة الحسينية لخدمات الأعمال</title>
     <meta
@@ -40,12 +54,15 @@
     <meta property="og:url" content="https://alhusainiaye.vercel.app/" />
     <meta property="og:site_name" content="منصة الحسينية" />
     <meta property="og:locale" content="ar" />
+    <meta property="og:image" content="https://alhusainiaye.vercel.app/icon-512.png" />
+    <meta property="og:image:alt" content="منصة الحسينية — مؤسسة الحسينية لخدمات الأعمال" />
     <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="منصة الحسينية" />
     <meta
       name="twitter:description"
       content="مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة — نظام الحسابات والاستشارات والخدمات."
     />
+    <meta name="twitter:image" content="https://alhusainiaye.vercel.app/icon-512.png" />
 
     <link rel="manifest" href="/manifest.webmanifest" />
     <!-- Favicon & PWA icons — official ALHUSAINIA logo set -->

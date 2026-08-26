@@ -23,7 +23,7 @@ import { tenants, featureFlags, loginAttempts, users } from "../../drizzle/schem
 import { sql, count } from "drizzle-orm";
 import { runNightlyBackupIfDue } from "../_core/backup";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export default async function handler(req: any, res: any) {
   try {
     // SECURITY: fail closed in production — the cron surface must never be

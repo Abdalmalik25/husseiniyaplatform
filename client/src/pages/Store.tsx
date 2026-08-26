@@ -590,7 +590,7 @@ export default function Store() {
               className="w-full inline-flex items-center justify-center bg-green-600 hover:bg-green-700 text-white text-xs font-bold h-9 rounded-md"
               href={`https://wa.me/?text=${encodeURIComponent(`طلب جديد ${placed?.orderNumber} من متجر الحسينة — بانتظار التأكيد ${lastPhone ? `at ${lastPhone}` : ``}`)}`}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
             >
               متابعة عبر واتساب
             </a>

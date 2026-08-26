@@ -140,7 +140,7 @@ export default function Billing() {
               <a
                 href={whatsappLink(renewalText)}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-ink text-xs font-bold h-9 px-4 rounded-xl transition-all hover:scale-105"
               >
                 <Sparkles className="w-4 h-4" />
@@ -213,7 +213,7 @@ export default function Billing() {
                           )
                     }
                     target="_blank"
-                    rel="noopener"
+                    rel="noopener noreferrer"
                     className={`mt-5 inline-flex w-full items-center justify-center gap-1.5 rounded-xl h-9 text-xs font-black transition-all hover:scale-[1.02] ${
                       plan.highlight
                         ? "bg-brand hover:bg-brand-deep text-ink shadow"
@@ -250,7 +250,7 @@ export default function Billing() {
             <a
               href={whatsappLink("السلام عليكم، أودّ الاستفسار عن وسائل الدفع المتاحة للاشتراك UAMEX.")}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand hover:text-brand-deep"
             >
               <MessageSquare className="w-3.5 h-3.5" />

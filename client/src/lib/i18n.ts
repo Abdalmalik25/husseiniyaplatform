@@ -264,31 +264,48 @@ export const useI18n = () => {
   return useContext(I18nContext);
 };
 
+/**
+ * Synchronously resolve the saved language preference so the very first render
+ * uses the right locale — no flash of default-language content for returning
+ * visitors. Falls back to "ar" (the native RTL language) when nothing is stored
+ * or when localStorage is unavailable (SSR / private mode).
+ */
+function resolveInitialLanguage(): Language {
+  if (typeof window === "undefined") return "ar";
+  try {
+    const saved = window.localStorage.getItem("i18n_lang");
+    if (saved === "ar" || saved === "en") return saved;
+  } catch {
+    /* localStorage unavailable — fall back to default */
+  }
+  return "ar";
+}
+
 export const I18nProvider = ({ children }: { children: ReactNode }) => {
-  const [language, setLanguage] = useState<Language>("ar");
+  const [language, setLanguage] = useState<Language>(resolveInitialLanguage);
 
   useEffect(() => {
-    const saved = localStorage.getItem("i18n_lang") as Language | null;
-    if (saved && ["ar", "en"].includes(saved)) {
-      setLanguage(saved);
-    }
     document.documentElement.lang = language;
     document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
   }, [language]);
 
   useEffect(() => {
-    localStorage.setItem("i18n_lang", language);
+    try {
+      localStorage.setItem("i18n_lang", language);
+    } catch {
+      /* localStorage unavailable — ignore */
+    }
   }, [language]);
 
   const t = (key: string): string => {
     // Support nested keys like "landing.heroTitle"
     const keys = key.split(".");
-    let res: any = translations[language];
+    let res: unknown = translations[language];
     for (const k of keys) {
       if (res == null) return key;
-      res = res[k];
+      res = (res as Record<string, unknown>)[k];
     }
-    return res !== null && res !== undefined ? res : key;
+    return typeof res === "string" ? res : key;
   };
 
   return React.createElement(

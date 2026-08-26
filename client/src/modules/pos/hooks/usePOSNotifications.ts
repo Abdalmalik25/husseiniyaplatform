@@ -165,6 +165,9 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
   const [error, setError] = useState<string | null>(null);
   const timerRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const lastRunRef = useRef<Map<string, number>>(new Map());
+  const scheduleTaskRef = useRef<(task: ScheduledTask) => void>(() => {});
+  const unscheduleTaskRef = useRef<(id: string) => void>(() => {});
+  const executeTaskRef = useRef<(task: ScheduledTask) => Promise<void>>(async () => {});
 
   const fetchTasks = useCallback(async () => {
     setIsLoading(true);
@@ -189,7 +192,7 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
       const updated = [...tasks, newTask];
       setTasks(updated);
       localStorage.setItem("pos_scheduled_tasks", JSON.stringify(updated));
-      scheduleTask(newTask);
+      scheduleTaskRef.current(newTask);
       return newTask;
     } catch (err) {
       setError(err instanceof Error ? err.message : "فشل إنشاء المهمة");
@@ -202,9 +205,9 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
       const updatedTasks = tasks.map(t => t.id === id ? { ...t, ...updates } : t);
       setTasks(updatedTasks);
       localStorage.setItem("pos_scheduled_tasks", JSON.stringify(updatedTasks));
-      unscheduleTask(id);
+      unscheduleTaskRef.current(id);
       const updatedTask = updatedTasks.find(t => t.id === id);
-      if (updatedTask?.enabled) scheduleTask(updatedTask);
+      if (updatedTask?.enabled) scheduleTaskRef.current(updatedTask);
       return updatedTask || null;
     } catch (err) {
       setError(err instanceof Error ? err.message : "فشل تحديث المهمة");
@@ -217,7 +220,7 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
       const updatedTasks = tasks.filter(t => t.id !== id);
       setTasks(updatedTasks);
       localStorage.setItem("pos_scheduled_tasks", JSON.stringify(updatedTasks));
-      unscheduleTask(id);
+      unscheduleTaskRef.current(id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "فشل حذف المهمة");
     }
@@ -227,14 +230,14 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
     const task = tasks.find(t => t.id === id);
     if (!task) return;
     try {
-      await executeTask(task);
+      await executeTaskRef.current(task);
     } catch (err) {
       setError(err instanceof Error ? err.message : "فشل تشغيل المهمة");
     }
   }, [tasks]);
 
   const scheduleTask = useCallback((task: ScheduledTask) => {
-    unscheduleTask(task.id);
+    unscheduleTaskRef.current(task.id);
 
     const calculateNextRun = (task: ScheduledTask): number => {
       const now = Date.now();
@@ -295,7 +298,7 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
     const delay = Math.max(0, nextRun - Date.now());
 
     const timeout = setTimeout(() => {
-      executeTask(task);
+      executeTaskRef.current(task);
     }, delay);
 
     timerRefs.current.set(task.id, timeout);
@@ -347,7 +350,7 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
           });
           break;
         case "email":
-          console.log("Email not implemented:", task.action.config);
+          console.warn("Email channel not yet implemented:", task.action.type);
           break;
       }
 
@@ -362,24 +365,32 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
       localStorage.setItem("pos_scheduled_tasks", JSON.stringify(updatedTasks));
 
       if (task.schedule.frequency !== "once") {
-        scheduleTask(task);
+        scheduleTaskRef.current(task);
       } else {
         setTasks(prev => prev.map(t => t.id === task.id ? { ...t, enabled: false } : t));
       }
     } catch (err) {
       console.error("Task execution failed:", err);
     }
-  }, [scheduleTask, onTaskTriggered, tasks]);
+  }, [onTaskTriggered, tasks]);
+
+  // Keep the latest callback refs in sync so the scheduleTask ↔ executeTask
+  // cycle stays stable (no redundant re-creation, no stale-closure timers).
+  scheduleTaskRef.current = scheduleTask;
+  unscheduleTaskRef.current = unscheduleTask;
+  executeTaskRef.current = executeTask;
 
   useEffect(() => {
+    // Snapshot the ref so the cleanup holds a stable reference.
+    const timers = timerRefs.current;
     if (autoFetch) {
       fetchTasks().then(() => {
         tasks.filter(t => t.enabled).forEach(scheduleTask);
       });
     }
     return () => {
-      timerRefs.current.forEach(timeout => clearTimeout(timeout));
-      timerRefs.current.clear();
+      timers.forEach(timeout => clearTimeout(timeout));
+      timers.clear();
     };
   }, [autoFetch, fetchTasks, tasks, scheduleTask]);
 

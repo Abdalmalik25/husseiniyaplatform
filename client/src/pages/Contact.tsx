@@ -141,7 +141,7 @@ export default function Contact() {
                 "السلام عليكم مؤسسة الحسينية، أود الاستفسار عن خدماتكم."
               )}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="whatsapp-btn"
             >
               <MessageSquare className="w-4 h-4" />
@@ -168,7 +168,7 @@ export default function Contact() {
                 key={id}
                 href={whatsappLink(msg)}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className="group surface rounded-3xl p-6 flex flex-col gap-4 hover:-translate-y-1 hover:shadow-xl hover:border-brand/30 transition-all glow-brand-hover"
               >
                 <div
@@ -220,7 +220,7 @@ export default function Contact() {
                       "السلام عليكم، أرسلت نموذج التواصل وأود متابعته."
                     )}
                     target="_blank"
-                    rel="noopener"
+                    rel="noopener noreferrer"
                     className="whatsapp-btn mt-2"
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -424,7 +424,7 @@ export default function Contact() {
                   "السلام عليكم مؤسسة الحسينية، أود الحصول على استشارة سريعة."
                 )}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className="whatsapp-btn w-full justify-center mt-5"
               >
                 <MessageSquare className="w-4 h-4" />

@@ -1102,6 +1102,10 @@ var salesInvoices = pgTable(
     index("idx_salesInvoices_customer").on(t.customerId),
     index("idx_salesInvoices_status").on(t.status),
     index("idx_salesInvoices_currency").on(t.currencyId),
+    index("idx_salesInvoices_salesRep").on(t.salesRepId),
+    index("idx_salesInvoices_tenant_salesrep").on(t.tenantId, t.salesRepId),
+    index("idx_salesInvoices_tenant_status_date").on(t.tenantId, t.status, t.invoiceDate),
+    index("idx_salesInvoices_tenant_customer_date").on(t.tenantId, t.customerId, t.invoiceDate),
     unique("salesInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
     check("chk_sales_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
     check("chk_sales_invoice_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
@@ -1112,8 +1116,8 @@ var salesInvoices = pgTable(
     check("chk_sales_invoice_currency_rate_positive", sql`${t.currencyRate} > 0`),
     check("chk_sales_invoice_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
     check("chk_sales_invoice_status_posted_immutable", sql`
-      CASE WHEN ${t.status} IN ('paid', 'cancelled') THEN 
-        ${t.postedAt} IS NOT NULL 
+      CASE WHEN ${t.status} IN ('paid', 'cancelled') THEN
+        ${t.postedAt} IS NOT NULL
       ELSE TRUE END
     `)
   ]
@@ -3423,7 +3427,11 @@ var ENV = {
   ownerPassword: process.env.OWNER_PASSWORD ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? ""
+  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  /** Master secret for encrypted backups (AES-256-GCM). Required in production. */
+  backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY ?? "",
+  /** Local directory for backup blobs when S3 is not configured. */
+  backupDir: process.env.BACKUP_DIR ?? ""
 };
 
 // server/db.ts
@@ -4139,6 +4147,356 @@ async function runRecurringExpenses(tenantId, userId = null) {
 
 // server/serverless/cron.ts
 import { sql as sql3, count } from "drizzle-orm";
+
+// server/_core/backup.ts
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  randomBytes,
+  scryptSync
+} from "crypto";
+import { gzipSync, gunzipSync } from "zlib";
+import { promises as fs } from "fs";
+import path from "path";
+import { eq as eq3, getTableColumns } from "drizzle-orm";
+
+// server/storage.ts
+function getForgeConfig() {
+  const forgeUrl = ENV.forgeApiUrl;
+  const forgeKey = ENV.forgeApiKey;
+  if (!forgeUrl || !forgeKey) {
+    throw new Error(
+      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
+    );
+  }
+  return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
+}
+function normalizeKey(relKey) {
+  return relKey.replace(/^\/+/, "");
+}
+function appendHashSuffix(relKey) {
+  const hash = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  const lastDot = relKey.lastIndexOf(".");
+  if (lastDot === -1) return `${relKey}_${hash}`;
+  return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
+}
+async function storagePut(relKey, data, contentType = "application/octet-stream") {
+  const { forgeUrl, forgeKey } = getForgeConfig();
+  const key = appendHashSuffix(normalizeKey(relKey));
+  const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
+  presignUrl.searchParams.set("path", key);
+  const presignResp = await fetch(presignUrl, {
+    headers: { Authorization: `Bearer ${forgeKey}` }
+  });
+  if (!presignResp.ok) {
+    const msg = await presignResp.text().catch(() => presignResp.statusText);
+    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
+  }
+  const { url: s3Url } = await presignResp.json();
+  if (!s3Url) throw new Error("Forge returned empty presign URL");
+  const blob = typeof data === "string" ? new Blob([data], { type: contentType }) : new Blob([data], { type: contentType });
+  const uploadResp = await fetch(s3Url, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
+    body: blob
+  });
+  if (!uploadResp.ok) {
+    throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
+  }
+  return { key, url: `/manus-storage/${key}` };
+}
+
+// server/_core/resilience.ts
+var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function isRetryable(error) {
+  if (error instanceof Error) {
+    const msg = error.message || "";
+    return error.name === "AbortError" || error.name === "TimeoutError" || /timeout|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|fetch failed|socket|5\d\d/i.test(
+      msg
+    );
+  }
+  return false;
+}
+async function withRetry(fn, options = {}) {
+  const retries = Math.max(0, options.retries ?? 3);
+  const baseDelayMs = Math.max(1, options.baseDelayMs ?? 300);
+  const maxDelayMs = Math.max(baseDelayMs, options.maxDelayMs ?? 5e3);
+  let lastError;
+  for (let attempt = 1; attempt <= retries + 1; attempt++) {
+    try {
+      return await fn(attempt);
+    } catch (error) {
+      lastError = error;
+      if (attempt > retries || !isRetryable(error)) throw error;
+      const jittered = baseDelayMs * Math.pow(2, attempt - 1) * (0.5 + Math.random());
+      const delayMs = Math.min(maxDelayMs, Math.round(jittered));
+      options.onRetry?.(error, attempt, delayMs);
+      if (options.label) {
+        console.warn(
+          `[resilience] retry #${attempt}/${retries} for ${options.label} in ${delayMs}ms:`,
+          error instanceof Error ? error.message : error
+        );
+      }
+      await sleep(delayMs);
+    }
+  }
+  throw lastError;
+}
+async function withTimeout(promise, ms, label = "operation") {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error(`${label} timed out after ${ms}ms`);
+      err.name = "TimeoutError";
+      reject(err);
+    }, ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+// server/_core/backup.ts
+var MAGIC = Buffer.from("ALSBK1\n", "utf8");
+var SALT_LEN = 16;
+var IV_LEN = 12;
+var KEY_LEN = 32;
+var SCRYPT_COST = 16384;
+var PAYLOAD_VERSION = 1;
+var MAX_ROWS_PER_TABLE = 1e5;
+var BACKUP_TABLES = [
+  { name: "tenants", table: tenants, tenantScoped: false },
+  { name: "branches", table: branches, tenantScoped: true },
+  { name: "accounts", table: accounts, tenantScoped: true },
+  { name: "transactions", table: transactions, tenantScoped: true },
+  { name: "journalEntries", table: journalEntries, tenantScoped: true },
+  { name: "openingBalances", table: openingBalances, tenantScoped: true },
+  { name: "budgets", table: budgets, tenantScoped: true },
+  { name: "fiscalPeriods", table: fiscalPeriods, tenantScoped: true },
+  { name: "settings", table: settings, tenantScoped: true },
+  { name: "currencies", table: currencies, tenantScoped: true },
+  { name: "exchangeRates", table: exchangeRates, tenantScoped: true },
+  { name: "categories", table: categories, tenantScoped: true },
+  { name: "units", table: units, tenantScoped: true },
+  { name: "products", table: products, tenantScoped: true },
+  { name: "warehouses", table: warehouses, tenantScoped: true },
+  { name: "warehouseStock", table: warehouseStock, tenantScoped: true },
+  { name: "inventoryMovements", table: inventoryMovements, tenantScoped: true },
+  { name: "inventoryBatches", table: inventoryBatches, tenantScoped: true },
+  { name: "stockAdjustments", table: stockAdjustments, tenantScoped: true },
+  { name: "customers", table: customers, tenantScoped: true },
+  { name: "suppliers", table: suppliers, tenantScoped: true },
+  { name: "salesInvoices", table: salesInvoices, tenantScoped: true },
+  { name: "salesInvoiceItems", table: salesInvoiceItems, tenantScoped: true },
+  { name: "purchaseInvoices", table: purchaseInvoices, tenantScoped: true },
+  { name: "purchaseInvoiceItems", table: purchaseInvoiceItems, tenantScoped: true },
+  { name: "payments", table: payments, tenantScoped: true },
+  { name: "posSessions", table: posSessions, tenantScoped: true },
+  { name: "posOrders", table: posOrders, tenantScoped: true },
+  { name: "employees", table: employees, tenantScoped: true },
+  { name: "payrollRuns", table: payrollRuns, tenantScoped: true },
+  { name: "payrollItems", table: payrollItems, tenantScoped: true },
+  { name: "procurements", table: procurements, tenantScoped: true },
+  { name: "procurementApprovals", table: procurementApprovals, tenantScoped: true }
+];
+function deriveKey(secret, salt) {
+  return scryptSync(secret, salt, KEY_LEN, { N: SCRYPT_COST });
+}
+function sha256Hex(data) {
+  return createHash("sha256").update(data).digest("hex");
+}
+function encryptPayload(plain, secret) {
+  const salt = randomBytes(SALT_LEN);
+  const iv = randomBytes(IV_LEN);
+  const key = deriveKey(secret, salt);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const ct = Buffer.concat([cipher.update(plain), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return Buffer.concat([MAGIC, salt, iv, tag, ct]);
+}
+async function exportTables(tenantId) {
+  const db = await getDb();
+  if (!db) throw new Error("database unavailable for backup export");
+  const tables = {};
+  const counts = {};
+  for (const entry of BACKUP_TABLES) {
+    let query = db.select().from(entry.table);
+    if (entry.tenantScoped && tenantId != null) {
+      query = query.where(eq3(entry.table.tenantId, tenantId));
+    }
+    const rows = await withTimeout(
+      query.limit(MAX_ROWS_PER_TABLE),
+      6e4,
+      `export:${entry.name}`
+    );
+    tables[entry.name] = rows;
+    counts[entry.name] = rows.length;
+  }
+  return { tables, counts };
+}
+async function runBackup(tenantId) {
+  const secret = resolveBackupSecret();
+  if (!secret) throw new Error("BACKUP_ENCRYPTION_KEY is required in production");
+  const startedAt = (/* @__PURE__ */ new Date()).toISOString();
+  const { tables, counts } = await withRetry(() => exportTables(tenantId), {
+    label: "backup-export",
+    retries: 2
+  });
+  const payload = JSON.stringify({
+    version: PAYLOAD_VERSION,
+    createdAt: startedAt,
+    scope: tenantId == null ? "all" : `tenant:${tenantId}`,
+    tables
+  });
+  const plain = Buffer.from(payload, "utf8");
+  const compressed = gzipSync(plain);
+  const blob = encryptPayload(compressed, secret);
+  const id = `${Date.now()}-${randomBytes(4).toString("hex")}`;
+  const manifest = {
+    id,
+    createdAt: startedAt,
+    scope: tenantId == null ? "all" : `tenant:${tenantId}`,
+    encrypted: true,
+    algorithm: "aes-256-gcm/scrypt",
+    payloadVersion: PAYLOAD_VERSION,
+    originalSize: plain.length,
+    compressedSize: compressed.length,
+    encryptedSize: blob.length,
+    sha256: sha256Hex(blob),
+    keyFingerprint: fingerprint(secret),
+    tableCounts: counts,
+    totalRows: Object.values(counts).reduce((a, b) => a + b, 0),
+    storage: {}
+  };
+  try {
+    await ensureDir(backupDir());
+    const localFile = path.join(backupDir(), `${id}.alsbk`);
+    await fs.writeFile(localFile, blob);
+    manifest.storage.localFile = localFile;
+  } catch (e) {
+    console.warn("[backup] local write failed (continuing):", e);
+  }
+  if (ENV.forgeApiUrl && ENV.forgeApiKey) {
+    try {
+      const put = await withTimeout(
+        withRetry(() => storagePut(`backups/${id}.alsbk`, blob), {
+          label: "backup-upload",
+          retries: 3
+        }),
+        12e4,
+        "backup-upload"
+      );
+      manifest.storage.remoteKey = put.key;
+      manifest.storage.remoteUrl = put.url;
+    } catch (e) {
+      console.warn("[backup] remote upload failed (local copy retained):", e);
+    }
+  }
+  await saveManifest(manifest);
+  console.log(
+    `[backup] created ${id} scope=${manifest.scope} rows=${manifest.totalRows} sha256=${manifest.sha256.slice(0, 12)}\u2026`
+  );
+  return manifest;
+}
+async function runNightlyBackupIfDue() {
+  try {
+    if (!resolveBackupSecret()) {
+      return { attempted: false, skippedReason: "encryption key not configured" };
+    }
+    const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    const markerPath = path.join(backupDir(), "lastNightlyRun.txt");
+    let lastRun = "";
+    try {
+      lastRun = (await fs.readFile(markerPath, "utf8")).trim();
+    } catch {
+    }
+    if (lastRun === today) {
+      return { attempted: false, skippedReason: "already ran today" };
+    }
+    const manifest = await runBackup(null);
+    await ensureDir(backupDir());
+    await fs.writeFile(markerPath, today, "utf8");
+    const index2 = await readIndex();
+    if (index2.length > 30) {
+      const removed = index2.splice(30);
+      await writeIndex(index2);
+      for (const m of removed) {
+        if (m.storage.localFile) {
+          await fs.rm(m.storage.localFile, { force: true }).catch(() => {
+          });
+          await fs.rm(`${m.storage.localFile}.manifest.json`, { force: true }).catch(() => {
+          });
+        }
+      }
+    }
+    return { attempted: true, ok: true, id: manifest.id };
+  } catch (e) {
+    console.error("[backup] nightly backup failed:", e);
+    return {
+      attempted: true,
+      ok: false,
+      error: e instanceof Error ? e.message : String(e)
+    };
+  }
+}
+var DEV_FALLBACK_KEY = "alhusainia-dev-backup-key-do-not-use-in-production";
+function resolveBackupSecret() {
+  const configured = ENV.backupEncryptionKey?.trim();
+  if (configured && configured.length >= 16) return configured;
+  if (!ENV.isProduction) {
+    console.warn(
+      "[backup] BACKUP_ENCRYPTION_KEY not set \u2014 using INSECURE dev fallback key."
+    );
+    return DEV_FALLBACK_KEY;
+  }
+  console.error(
+    "[backup] BACKUP_ENCRYPTION_KEY missing in production \u2014 backups are disabled (fail closed)."
+  );
+  return null;
+}
+function backupDir() {
+  return ENV.backupDir || path.join(process.cwd(), ".backups");
+}
+async function ensureDir(dir) {
+  await fs.mkdir(dir, { recursive: true });
+}
+function fingerprint(secret) {
+  return sha256Hex(Buffer.from(secret, "utf8")).slice(0, 8);
+}
+async function readIndex() {
+  try {
+    const raw = await fs.readFile(path.join(backupDir(), "index.json"), "utf8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+async function writeIndex(list) {
+  await ensureDir(backupDir());
+  await fs.writeFile(
+    path.join(backupDir(), "index.json"),
+    JSON.stringify(list, null, 2),
+    "utf8"
+  );
+}
+async function saveManifest(manifest) {
+  const list = await readIndex();
+  list.unshift(manifest);
+  await writeIndex(list.slice(0, 500));
+  if (manifest.storage.localFile) {
+    await fs.writeFile(
+      `${manifest.storage.localFile}.manifest.json`,
+      JSON.stringify(manifest, null, 2),
+      "utf8"
+    );
+  }
+}
+
+// server/serverless/cron.ts
 async function handler(req, res) {
   try {
     const secret = process.env.CRON_SECRET;
@@ -4194,13 +4552,15 @@ async function handler(req, res) {
       });
       ran++;
     }
+    const backup = await runNightlyBackupIfDue();
     res.statusCode = 200;
     res.setHeader("content-type", "application/json");
     res.end(
       JSON.stringify({
         ok: true,
         ran,
-        perTenant
+        perTenant,
+        backup
       })
     );
   } catch (e) {

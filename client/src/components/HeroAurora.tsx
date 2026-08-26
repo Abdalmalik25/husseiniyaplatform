@@ -16,28 +16,62 @@ export function HeroAurora({ className = "" }: { className?: string }) {
 
     // Spring physics state
     let rx = 0, ry = 0, tx = 0, ty = 0;
+    // PERFORMANCE BUDGET: the spring loop only runs while (a) the hero is on
+    // screen AND (b) there is residual motion to settle. A permanently-running
+    // rAF for a purely mouse-reactive effect wastes battery at idle.
     let raf = 0;
+    let visible = true;
 
-    const onMove = (e: MouseEvent) => {
-      const r = el.getBoundingClientRect();
-      tx = ((e.clientX - r.left) / r.width - 0.5) * 44;
-      ty = ((e.clientY - r.top)  / r.height - 0.5) * 44;
-    };
+    const step = () => {
+      raf = 0;
+      if (!visible) return;
 
-    const loop = () => {
       // Exponential smoothing (spring feel)
       rx += (tx - rx) * 0.055;
       ry += (ty - ry) * 0.055;
       el.style.setProperty("--mx", `${rx.toFixed(2)}px`);
       el.style.setProperty("--my", `${ry.toFixed(2)}px`);
-      raf = requestAnimationFrame(loop);
+
+      // Settled? Stop the loop until the next mouse move wakes it up.
+      const settled =
+        Math.abs(tx - rx) < 0.05 && Math.abs(ty - ry) < 0.05;
+      if (!settled) {
+        raf = requestAnimationFrame(step);
+      }
     };
 
+    const wake = () => {
+      if (!visible || raf) return;
+      raf = requestAnimationFrame(step);
+    };
+
+    const onMove = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      tx = ((e.clientX - r.left) / r.width - 0.5) * 44;
+      ty = ((e.clientY - r.top) / r.height - 0.5) * 44;
+      wake();
+    };
+
+    // Pause entirely when the hero scrolls out of view.
+    const io = new IntersectionObserver(
+      entries => {
+        visible = entries[0]?.isIntersecting ?? true;
+        if (!visible && raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        } else if (visible) {
+          wake();
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(el);
+
     window.addEventListener("mousemove", onMove, { passive: true });
-    raf = requestAnimationFrame(loop);
     return () => {
+      io.disconnect();
+      if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("mousemove", onMove);
-      cancelAnimationFrame(raf);
     };
   }, []);
 

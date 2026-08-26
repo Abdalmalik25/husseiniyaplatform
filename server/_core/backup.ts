@@ -153,7 +153,7 @@ async function exportTables(tenantId: number | null): Promise<{
   const counts: Record<string, number> = {};
 
   for (const entry of BACKUP_TABLES) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     let query: any = db.select().from(entry.table);
     if (entry.tenantScoped && tenantId != null) {
       query = query.where(eq((entry.table as any).tenantId, tenantId));
@@ -394,7 +394,7 @@ export async function restoreBackup(
   for (const entry of BACKUP_TABLES) {
     const rows = parsed.tables[entry.name];
     if (!Array.isArray(rows) || rows.length === 0) continue;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     const cols = getTableColumns(entry.table as any) as Record<
       string,
       { dataType?: string }
@@ -405,7 +405,7 @@ export async function restoreBackup(
         .slice(i, i + RESTORE_CHUNK)
         .map(row => reviveDates(row as Record<string, unknown>, cols));
       await withRetry(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+         
         () => db.insert(entry.table as any).values(chunk).onConflictDoNothing(),
         { label: `restore:${entry.name}`, retries: 2 }
       );

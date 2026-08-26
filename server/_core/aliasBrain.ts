@@ -76,7 +76,7 @@ function monthStart(): Date {
 }
 
 async function financeContext(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   db: any,
   tenantId: number
 ): Promise<string> {
@@ -108,7 +108,7 @@ async function financeContext(
 }
 
 async function salesContext(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   db: any,
   tenantId: number
 ): Promise<string> {
@@ -153,7 +153,7 @@ async function salesContext(
 }
 
 async function inventoryContext(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   db: any,
   tenantId: number
 ): Promise<string> {
@@ -188,7 +188,7 @@ async function inventoryContext(
 }
 
 async function partnersContext(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+   
   db: any,
   tenantId: number
 ): Promise<string> {

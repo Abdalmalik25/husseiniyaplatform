@@ -120,7 +120,7 @@ export default function ProjectGovernance() {
                 "السلام عليكم مؤسسة الحسينية، أود استشارة حول متابعة وإشراف على مشروعي."
               )}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="whatsapp-btn"
             >
               <MessageSquare className="w-4 h-4" />

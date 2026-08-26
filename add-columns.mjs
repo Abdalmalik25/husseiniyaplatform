@@ -26,13 +26,13 @@ async function addGlobalIdAndSyncColumns() {
   for (const table of tablesWithGlobalId) {
     try {
       // Add GlobalId column
-      await sql.unsafe(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "GlobalId" uuid DEFAULT gen_random_uuid() NOT NULL`);
+      await sql.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "GlobalId" uuid DEFAULT gen_random_uuid() NOT NULL`);
       
       // Add sync columns
-      await sql.unsafe(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "serverVersion" integer DEFAULT 1 NOT NULL`);
-      await sql.unsafe(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "lastSyncAt" timestamp`);
-      await sql.unsafe(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "conflictState" varchar(20) DEFAULT 'none'`);
-      await sql.unsafe(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "aggregateId" uuid`);
+      await sql.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "serverVersion" integer DEFAULT 1 NOT NULL`);
+      await sql.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "lastSyncAt" timestamp`);
+      await sql.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "conflictState" varchar(20) DEFAULT 'none'`);
+      await sql.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "aggregateId" uuid`);
       
       console.log(`✓ ${table}`);
     } catch (e) {
@@ -53,9 +53,9 @@ async function addGlobalIdAndSyncColumns() {
   
   for (const table of currencyTables) {
     try {
-      await sql.unsafe(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "currencyId" integer`);
-      await sql.unsafe(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "exchangeRate" numeric(18, 8) DEFAULT '1' NOT NULL`);
-      await sql.unsafe(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "baseAmount" numeric(15, 2) DEFAULT '0' NOT NULL`);
+      await sql.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "currencyId" integer`);
+      await sql.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "exchangeRate" numeric(18, 8) DEFAULT '1' NOT NULL`);
+      await sql.query(`ALTER TABLE "${table}" ADD COLUMN IF NOT EXISTS "baseAmount" numeric(15, 2) DEFAULT '0' NOT NULL`);
       console.log(`✓ ${table} (currency)`);
     } catch (e) {
       console.log(`✗ ${table} (currency): ${e.message}`);
@@ -66,7 +66,7 @@ async function addGlobalIdAndSyncColumns() {
   console.log('\nAdding FK constraints...\n');
   for (const table of currencyTables) {
     try {
-      await sql.unsafe(`ALTER TABLE "${table}" ADD CONSTRAINT "${table}_currencyId_fk" FOREIGN KEY ("currencyId") REFERENCES "currencies"("id") ON DELETE SET NULL`);
+      await sql.query(`ALTER TABLE "${table}" ADD CONSTRAINT "${table}_currencyId_fk" FOREIGN KEY ("currencyId") REFERENCES "currencies"("id") ON DELETE SET NULL`);
       console.log(`✓ ${table} FK`);
     } catch (e) {
       if (e.message.includes('already exists')) {

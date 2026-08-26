@@ -11,7 +11,7 @@ const llmAvailable = () =>
 
 type AuthenticatedUser = NonNullable<TrpcContext["user"]>;
 
-function createTestContext(): TrpcContext {
+function createTestContext(tenantId: number = 1): TrpcContext {
   const user: AuthenticatedUser = {
     id: 1,
     openId: "test-user-husainia",
@@ -19,6 +19,7 @@ function createTestContext(): TrpcContext {
     name: "مسؤول الحسينية",
     loginMethod: "manus",
     role: "admin",
+    tenantId,
     createdAt: new Date(),
     updatedAt: new Date(),
     lastSignedIn: new Date(),
@@ -26,6 +27,8 @@ function createTestContext(): TrpcContext {
 
   return {
     user,
+    tenantId,
+    isSuperAdmin: true,
     req: {
       protocol: "https",
       headers: {},
@@ -39,6 +42,9 @@ function createTestContext(): TrpcContext {
 describe("Al-Husainia Accounting System Routers", () => {
   it.skipIf(!dbAvailable())(
     "retrieves settings successfully",
+    // Remote Neon HTTP can hiccup on cold connects (~10s timeout per attempt),
+    // so integration tests get an extended timeout plus retries.
+    { timeout: 45000, retry: 2 },
     async () => {
       const ctx = createTestContext();
       const caller = appRouter.createCaller(ctx);
@@ -46,12 +52,12 @@ describe("Al-Husainia Accounting System Routers", () => {
 
       expect(settings).toBeDefined();
       expect(settings.institutionName).toBe("مؤسسة الحسينية لخدمات الأعمال");
-    },
-    15000
+    }
   );
 
   it.skipIf(!dbAvailable())(
     "retrieves chart of accounts successfully",
+    { timeout: 45000, retry: 2 },
     async () => {
       const ctx = createTestContext();
       const caller = appRouter.createCaller(ctx);
@@ -59,12 +65,12 @@ describe("Al-Husainia Accounting System Routers", () => {
 
       expect(Array.isArray(accounts)).toBe(true);
       expect(accounts.length).toBeGreaterThan(0);
-    },
-    15000
+    }
   );
 
   it.skipIf(!dbAvailable() || !llmAvailable())(
     "retrieves smart suggestions and insights",
+    { timeout: 45000, retry: 2 },
     async () => {
       const ctx = createTestContext();
       const caller = appRouter.createCaller(ctx);
@@ -74,12 +80,12 @@ describe("Al-Husainia Accounting System Routers", () => {
 
       expect(suggestions).toBeDefined();
       expect(suggestions.insights.length).toBeGreaterThan(0);
-    },
-    15000
+    }
   );
 
   it.skipIf(!dbAvailable())(
     "adds and retrieves financial transactions successfully",
+    { timeout: 60000, retry: 2 },
     async () => {
       const ctx = createTestContext();
       const caller = appRouter.createCaller(ctx);
@@ -101,7 +107,6 @@ describe("Al-Husainia Accounting System Routers", () => {
       expect(txs.length).toBeGreaterThan(0);
       const found = txs.find(t => t.narration === "اختبار إدخال وحدة محاسبية");
       expect(found).toBeDefined();
-    },
-    15000
+    }
   );
 });

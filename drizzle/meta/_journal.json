@@ -36,6 +36,20 @@
       "when": 1787517002938,
       "tag": "0004_right_marvel_zombies",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787688400000,
+      "tag": "0005_nuclear_perf_indexes",
+      "breakpoints": false
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1787774800000,
+      "tag": "0006_data_fixes_posted_at",
+      "breakpoints": true
     }
   ]
 }

@@ -42,7 +42,7 @@ export function ProductCard({
       >
         <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+            <img src={product.imageUrl} alt={product.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
           ) : (
             <Package className="h-6 w-6 text-muted-foreground" />
           )}
@@ -94,7 +94,7 @@ export function ProductCard({
     >
       <div className="relative w-full aspect-square rounded-xl bg-muted/50 overflow-hidden flex items-center justify-center">
         {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} className="w-full h-full object-cover" />
+          <img src={product.imageUrl} alt={product.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
         ) : (
           <Package className="h-10 w-10 text-muted-foreground" />
         )}

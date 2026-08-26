@@ -31,7 +31,7 @@ if (!AGENT_SECRET) {
   console.error("[agent] AGENT_SECRET is not defined in .env — endpoint disabled");
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export default async function handler(req: any, res: any) {
   try {
     // --- Authentication ---

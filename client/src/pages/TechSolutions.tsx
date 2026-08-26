@@ -116,7 +116,7 @@ export default function TechSolutions() {
                 "السلام عليكم مؤسسة الحسينية، أود مناقشة مشروع تطوير برمجي أو أتمتة لنشاطنا."
               )}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="whatsapp-btn"
             >
               <MessageSquare className="w-4 h-4" />

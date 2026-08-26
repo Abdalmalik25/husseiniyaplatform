@@ -14,10 +14,14 @@ import {
   AlertCircle,
   Building,
   Coins,
+  BookOpen,
+  GraduationCap,
+  Clock,
+  Wrench,
 } from "lucide-react";
 
 export default function InteractiveCalculators() {
-  const [activeTab, setActiveTab] = useState<"roi" | "structural" | "costPerMeter">("roi");
+  const [activeTab, setActiveTab] = useState<"roi" | "structural" | "costPerMeter" | "academic">("roi");
 
   // ── Calculator 1: ERP ROI & Waste Estimator States ──
   const [branches, setBranches] = useState<number>(2);
@@ -52,6 +56,24 @@ export default function InteractiveCalculators() {
   const ratePerMeter = currency === "USD" ? Math.round(ratePerMeterSar / 3.75) : ratePerMeterSar;
   const totalCost = buaArea * ratePerMeter;
 
+  // ── Calculator 4: Academic Research & Student Services Estimator States ──
+  const [academicServiceType, setAcademicServiceType] = useState<"thesis" | "spss" | "presentation" | "pc_maintenance">("thesis");
+  const [academicUnits, setAcademicUnits] = useState<number>(30); // pages or slides or samples
+  const [isUrgent, setIsUrgent] = useState<boolean>(false);
+
+  const academicBaseRate =
+    academicServiceType === "thesis"
+      ? 12
+      : academicServiceType === "spss"
+      ? 15
+      : academicServiceType === "presentation"
+      ? 8
+      : 120; // fixed maintenance
+
+  const academicRawCost = academicServiceType === "pc_maintenance" ? academicBaseRate : academicUnits * academicBaseRate;
+  const academicTotalCost = Math.round(isUrgent ? academicRawCost * 1.35 : academicRawCost);
+  const academicEstDays = isUrgent ? "24 - 48 ساعة" : academicServiceType === "pc_maintenance" ? "يوم واحد" : "3 - 5 أيام عمل";
+
   const sendRoiQuoteToWhatsApp = () => {
     const msg = "السلام عليكم مؤسسة الحسينية،\nأجريت حساب العائد الاستثماري لنظام UAMEX:\n- الفروع: " + branches + "\n- الفواتير اليومية: " + invoicesPerDay + "\n- الموظفون: " + staffCount + "\n- الوفر السنوي التقديري: " + annualSavedCost.toLocaleString() + " دولار\nأود مناقشة خطة التطبيق.";
     window.open(whatsappLink(msg), "_blank");
@@ -66,6 +88,28 @@ export default function InteractiveCalculators() {
     const finishLabel = finishLevel === "skeleton" ? "عظم فقط" : finishLevel === "semi" ? "نصف تشطيب" : "تشطيب ديلوكس";
     const msg = "السلام عليكم قسم الاستشارات الهندسية - مؤسسة الحسينية،\nأجريت تقدير تكلفة البناء التقريبية:\n- إجمالي مساحة البناء: " + buaArea + " م²\n- مستوى التشطيب: " + finishLabel + "\n- التكلفة التقديرية: " + totalCost.toLocaleString() + " " + (currency === "SAR" ? "ريال سعودي" : "دولار") + "\nأود طلب دراسة هندسية وجدول كميات مفصل.";
     window.open(engineeringConsultLink(msg), "_blank");
+  };
+
+  const sendAcademicQuote = () => {
+    const serviceLabel =
+      academicServiceType === "thesis"
+        ? "مساعدة وإعداد أبحاث/رسائل علمية"
+        : academicServiceType === "spss"
+        ? "تحليل إحصائي SPSS / AMOS"
+        : academicServiceType === "presentation"
+        ? "تصميم وتنسيق عروض تقديمية وحصولات"
+        : "صيانة وتجهيز حاسوب ولابتوب";
+    const msg =
+      "السلام عليكم قسم الخدمات الأكاديمية - مكتبة الحسينية الحديثة،\nأود طلب الخدمة التالية:\n- الخدمة: " +
+      serviceLabel +
+      "\n- الكمية/الصفحات: " +
+      (academicServiceType === "pc_maintenance" ? "جهاز واحد" : academicUnits) +
+      "\n- الأولوية: " +
+      (isUrgent ? "عاجل (خلال 24-48 ساعة)" : "عادي") +
+      "\n- التكلفة التقديرية: " +
+      academicTotalCost.toLocaleString() +
+      " ر.س\nأود البدء في التجهيز.";
+    window.open(whatsappLink(msg), "_blank");
   };
 
   return (
@@ -102,7 +146,7 @@ export default function InteractiveCalculators() {
 
       {/* ── Tabs Navigation ─────────────────────────── */}
       <section className="max-w-5xl mx-auto px-4 pt-12">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-muted/60 p-2 rounded-2xl border border-border">
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 bg-muted/60 p-2 rounded-2xl border border-border">
           <button
             onClick={() => setActiveTab("roi")}
             className={
@@ -138,6 +182,18 @@ export default function InteractiveCalculators() {
           >
             <Coins className="w-4 h-4 text-emerald-500" />
             تكلفة البناء والتشطيب
+          </button>
+          <button
+            onClick={() => setActiveTab("academic")}
+            className={
+              "flex items-center justify-center gap-2 py-3 px-3 rounded-xl text-xs font-extrabold transition-all " +
+              (activeTab === "academic"
+                ? "bg-card text-foreground shadow-sm border border-border"
+                : "text-muted-foreground hover:text-foreground")
+            }
+          >
+            <BookOpen className="w-4 h-4 text-sky-500" />
+            أبحاث وخدمات الطلاب
           </button>
         </div>
       </section>
@@ -362,7 +418,7 @@ export default function InteractiveCalculators() {
               </Card>
             </div>
           </div>
-        ) : (
+        ) : activeTab === "costPerMeter" ? (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             <Card className="lg:col-span-7 rounded-3xl border-border bg-card p-6 sm:p-8 space-y-6 shadow-sm">
               <div>
@@ -470,6 +526,141 @@ export default function InteractiveCalculators() {
                   >
                     <MessageSquare className="w-4 h-4" />
                     طلب تسعيرة وجدول كميات تفصيلي
+                  </Button>
+                </div>
+              </Card>
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <Card className="lg:col-span-7 rounded-3xl border-border bg-card p-6 sm:p-8 space-y-6 shadow-sm">
+              <div>
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-sky-500/10 text-sky-500 text-xs font-bold mb-2">
+                  <GraduationCap className="w-4 h-4" />
+                  مكتبة الحسينية الحديثة - الدعم الأكاديمي والطلابي
+                </div>
+                <h3 className="text-xl font-black text-foreground mb-1">
+                  تقدير تكلفة وزمن الخدمات العلمية والطلابية
+                </h3>
+                <p className="text-xs text-muted-foreground">
+                  حدد نوع الخدمة والحجم المطلوب لحساب التكلفة والزمن المتوقع للتسليم:
+                </p>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-xs font-bold">نوع الخدمة المطلوب التجهيز لها:</Label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {[
+                    { id: "thesis", label: "مساعدة أبحاث ورسائل علمية", icon: GraduationCap },
+                    { id: "spss", label: "تحليل إحصائي (SPSS / AMOS)", icon: BarChart3 },
+                    { id: "presentation", label: "تصميم وتنسيق عروض وأبحاث", icon: BookOpen },
+                    { id: "pc_maintenance", label: "صيانة وتجهيز كمبيوتر/لابتوب", icon: Wrench },
+                  ].map(({ id, label, icon: Icon }) => (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setAcademicServiceType(id as any)}
+                      className={
+                        "flex items-center gap-2.5 p-3 rounded-xl text-xs font-bold border transition-all text-right " +
+                        (academicServiceType === id
+                          ? "bg-sky-500/15 border-sky-500 text-sky-600 dark:text-sky-400"
+                          : "border-border text-muted-foreground hover:bg-muted/40")
+                      }
+                    >
+                      <Icon className="w-4 h-4 shrink-0" />
+                      <span>{label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {academicServiceType !== "pc_maintenance" && (
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center text-xs">
+                    <Label className="font-bold">
+                      {academicServiceType === "spss"
+                        ? "عدد الاستبيانات أو العينات الإحصائية:"
+                        : academicServiceType === "presentation"
+                        ? "عدد الشرائح أو الصفحات:"
+                        : "عدد صفحات البحث / الدراسة:"}
+                    </Label>
+                    <span className="font-mono font-bold text-sky-500 text-sm">
+                      {academicUnits} {academicServiceType === "presentation" ? "صفحة/شريحة" : "وحدة/صفحة"}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="5"
+                    max="150"
+                    step="5"
+                    value={academicUnits}
+                    onChange={(e) => setAcademicUnits(Number(e.target.value))}
+                    className="w-full accent-sky-500 cursor-pointer"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2 pt-2 border-t border-border">
+                <Label className="text-xs font-bold">أولوية التسليم المطلوب:</Label>
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsUrgent(false)}
+                    className={
+                      "flex-1 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all " +
+                      (!isUrgent
+                        ? "bg-brand/15 border-brand text-brand"
+                        : "border-border text-muted-foreground hover:bg-muted/40")
+                    }
+                  >
+                    عادي (3 - 5 أيام عمل)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsUrgent(true)}
+                    className={
+                      "flex-1 py-2.5 px-3 rounded-xl text-xs font-bold border transition-all " +
+                      (isUrgent
+                        ? "bg-rose-500/15 border-rose-500 text-rose-500"
+                        : "border-border text-muted-foreground hover:bg-muted/40")
+                    }
+                  >
+                    ⚡ عاجل جداً (24 - 48 ساعة)
+                  </button>
+                </div>
+              </div>
+            </Card>
+
+            <div className="lg:col-span-5 space-y-5">
+              <Card className="rounded-3xl bg-ink text-white p-6 sm:p-8 space-y-6 border-0 shadow-xl relative overflow-hidden">
+                <div className="absolute inset-0 tech-grid opacity-15 pointer-events-none" />
+                <div className="relative z-10 space-y-4">
+                  <div className="inline-flex items-center gap-1.5 text-xs text-sky-400 font-bold">
+                    <GraduationCap className="w-4 h-4" />
+                    التكلفة والزمن المتوقع للطلب
+                  </div>
+
+                  <div className="space-y-1">
+                    <div className="text-3xl sm:text-4xl font-black text-sky-400 font-mono">
+                      {academicTotalCost.toLocaleString()} ر.س
+                    </div>
+                    <div className="text-xs text-white/60 flex items-center gap-1">
+                      <Clock className="w-3.5 h-3.5 text-sky-400 inline" /> الزمن المتوقع: {academicEstDays}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2.5 pt-4 border-t border-white/10 text-xs text-white/80">
+                    <p className="leading-relaxed">
+                      يشمل العمل: التدقيق اللغوي، التنسيق وفق الدليل المعتمد (APA/Harvard)، مراجعة خلو الانتحال، والتوثيق العلمي المعتمد من مكتبة الحسينية الحديثة.
+                    </p>
+                  </div>
+
+                  <Button
+                    onClick={sendAcademicQuote}
+                    className="w-full h-12 bg-sky-500 hover:bg-sky-600 text-ink font-black text-xs gap-2 rounded-xl mt-4"
+                  >
+                    <MessageSquare className="w-4 h-4" />
+                    طلب الخدمة مباشرة عبر واتساب المكتبة
                   </Button>
                 </div>
               </Card>

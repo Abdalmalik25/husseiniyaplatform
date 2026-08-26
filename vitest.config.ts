@@ -14,11 +14,14 @@ export default defineConfig({
   },
   test: {
     environment: "node",
-    include: [
+        include: [
       "server/**/*.test.ts",
       "server/**/*.spec.ts",
       "client/src/**/*.test.ts",
       "client/src/**/*.spec.ts",
     ],
+    // Load .env so the DB-backed integration tests (guarded by
+    // `!process.env.DATABASE_URL`) actually execute against the live database.
+    setupFiles: ["./vitest.setup.ts"],
   },
 });

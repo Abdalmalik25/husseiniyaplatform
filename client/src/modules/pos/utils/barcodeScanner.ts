@@ -207,8 +207,8 @@ class BarcodeScannerService {
           }
         }
       }
-    } catch (error) {
-      console.debug("Scan frame error:", error);
+    } catch {
+      // Scan frames fail routinely on blurry feeds — expected, stay silent.
     }
 
     if (this.isScanning) {

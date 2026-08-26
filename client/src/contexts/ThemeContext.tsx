@@ -162,14 +162,15 @@ export function ThemeProvider({
 
   const setTheme = useMemo(() => (next: ThemeId) => setThemeId(next), []);
 
-  const toggleTheme = switchable
-    ? () =>
-        setThemeId((prev) => {
-          const cur = THEMES.find((t) => t.id === prev) ?? THEMES[0];
-          // Flip between the light flagship and the dark flagship.
-          return cur.mode === "dark" ? THEMES[0].id : THEMES[1].id;
-        })
-    : undefined;
+  const toggleTheme = useMemo(() => {
+    if (!switchable) return undefined;
+    return () =>
+      setThemeId((prev) => {
+        const cur = THEMES.find((t) => t.id === prev) ?? THEMES[0];
+        // Flip between the light flagship and the dark flagship.
+        return cur.mode === "dark" ? THEMES[0].id : THEMES[1].id;
+      });
+  }, [switchable]);
 
   const value = useMemo<ThemeContextType>(
     () => ({ theme: themeId, meta, themes: THEMES, setTheme, toggleTheme, switchable }),

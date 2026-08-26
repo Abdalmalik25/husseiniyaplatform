@@ -62,23 +62,41 @@ async function trpcMutate<T>(procedure: string, input: unknown): Promise<T> {
 
 // ─── Conflict Resolution ──────────────────────────────────────────
 
+/**
+ * Resolves a pull-time conflict between a server record and a local record
+ * that still has UNSYNCED edits (`_status === "pending"`).
+ *
+ * Production semantics (financial-grade):
+ * - The copy with the strictly higher edit-version wins.
+ * - On a version tie, the most recently edited copy wins.
+ * - When the CLIENT wins, the result must stay "pending" so the push phase
+ *   re-delivers the unsynced intent on the next cycle — marking it "synced"
+ *   here would silently drop the operator's offline edit.
+ * - When the SERVER wins, the authoritative copy becomes synced locally and
+ *   the overridden local edit is reported in `conflicts` for review.
+ */
 function resolveConflict(
   serverRecord: any,
   clientRecord: any
-): { winner: "server" | "client"; merged: any } {
+): {
+  winner: "server" | "client";
+  merged: any;
+  /** true → keep _status:"pending" so push re-delivers this intent. */
+  preservePending: boolean;
+} {
   const serverVersion = serverRecord?._version || 0;
   const clientVersion = clientRecord?._version || 0;
 
   if (clientVersion > serverVersion) {
-    return { winner: "client", merged: clientRecord };
+    return { winner: "client", merged: clientRecord, preservePending: true };
   }
   if (serverVersion > clientVersion) {
-    return { winner: "server", merged: serverRecord };
+    return { winner: "server", merged: serverRecord, preservePending: false };
   }
   if ((clientRecord?._syncedAt || 0) > (serverRecord?._syncedAt || 0)) {
-    return { winner: "client", merged: clientRecord };
+    return { winner: "client", merged: clientRecord, preservePending: true };
   }
-  return { winner: "server", merged: serverRecord };
+  return { winner: "server", merged: serverRecord, preservePending: false };
 }
 
 // ─── Pull (Server → Client) ───────────────────────────────────────
@@ -174,16 +192,23 @@ export async function pullFromServer(
           _deviceId: "server",
         });
       } else if (localRec._status === "pending") {
-        const { winner } = resolveConflict(srvRec, localRec);
+        const { winner, merged, preservePending } = resolveConflict(
+          srvRec,
+          localRec
+        );
         conflicts.push({
           tableName,
           recordId: id,
-          resolution: winner === "server" ? "server-wins" : "client-wins",
+          resolution:
+            winner === "server"
+              ? "server-canonical (local override reported)"
+              : "client-pending-preserved (will re-push)",
         });
         toUpsert.push({
-          ...(winner === "server" ? srvRec : localRec),
-          _syncedAt: Date.now(),
-          _status: "synced",
+          ...merged,
+          // Client-winner keeps "pending" so the push phase re-delivers the
+          // operator's offline intent — it is NOT yet acknowledged by server.
+          _status: preservePending ? "pending" : "synced",
         });
       } else {
         toUpsert.push({
@@ -220,7 +245,10 @@ export async function pushPendingChanges(): Promise<{
 
   for (const entry of pending) {
     if (entry.retries >= MAX_RETRIES) {
-      await removeSyncEntry(entry.id!);
+      // Never silently discard unsynced mutations. The entry stays queued and
+      // is counted as failed so the UI can surface it for manual attention —
+      // dropping it here is exactly how financial data disappears.
+      failed++;
       continue;
     }
 

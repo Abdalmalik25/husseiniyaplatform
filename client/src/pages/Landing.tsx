@@ -188,7 +188,7 @@ export default function Landing() {
             <a
               href={uamexDemoLink()}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm h-12 px-6 rounded-2xl font-medium transition-all"
             >
               <MessageSquare className="w-5 h-5 text-brand-300" />
@@ -201,6 +201,7 @@ export default function Landing() {
               <img
                 src="/elias-avatar-sm.jpg"
                 alt=""
+                decoding="async"
                 className="w-7 h-7 rounded-full object-cover ring-1 ring-[#d4a574]/60"
               />
               اسأل ألياس — الذكاء الاصطناعي
@@ -323,7 +324,7 @@ export default function Landing() {
               <a
                 href={whatsappLink("السلام عليكم، أود طلب استشارة مؤسسية وإدارية.")}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
               >
                 <MessageSquare className="w-4 h-4" />
@@ -441,7 +442,7 @@ export default function Landing() {
                 <a
                   href={engineeringConsultLink("تقييم وجدول كميات BOQ لمشروع بناء")}
                   target="_blank"
-                  rel="noopener"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 bg-ink/90 hover:bg-ink text-white font-bold py-3 rounded-xl text-sm transition-all"
                 >
                   <MessageSquare className="w-4 h-4" />
@@ -450,7 +451,7 @@ export default function Landing() {
                 <a
                   href={engineeringConsultLink("رفع مساحي وتحديد حدود الأرض")}
                   target="_blank"
-                  rel="noopener"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-ink font-bold py-3 rounded-xl text-sm transition-all"
                 >
                   <Map className="w-4 h-4" />
@@ -545,7 +546,7 @@ export default function Landing() {
               <a
                 href={whatsappLink("السلام عليكم، أود الاستفسار عن الخدمات الطلابية والمكتبية.")}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className="mt-6 flex items-center justify-center gap-2 bg-sky-400 hover:bg-sky-300 text-sky-900 font-black py-3 rounded-xl text-sm transition-all"
               >
                 <MessageSquare className="w-4 h-4" />
@@ -695,7 +696,7 @@ export default function Landing() {
                         <a
                           href={uamexDemoLink()}
                           target="_blank"
-                          rel="noopener"
+                          rel="noopener noreferrer"
                           className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-all"
                         >
                           <MessageSquare className="w-4 h-4" />
@@ -733,7 +734,7 @@ export default function Landing() {
               <a
                 href={uamexDemoLink()}
                 target="_blank"
-                rel="noopener"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 border border-white/20 bg-white/5 hover:bg-white/10 text-white font-medium h-14 px-8 rounded-2xl text-sm transition-all"
               >
                 <MessageSquare className="w-5 h-5 text-brand-300" />
@@ -858,7 +859,7 @@ export default function Landing() {
             <a
               href={whatsappLink("السلام عليكم، أود الاستفسار عن خدمات مؤسسة الحسينية.")}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 border border-white/20 hover:bg-white/5 text-white font-medium h-14 px-8 rounded-2xl text-sm transition-all"
             >
               <MessageSquare className="w-5 h-5 text-brand-300" />

@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v3) — installable PWA + robust offline shell.
+// ALHUSAINIA service worker (v4) — installable PWA + robust offline shell.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v3";
+const CACHE = "alhusainia-v4";
 const SHELL = [
   "/",
   "/index.html",
@@ -16,8 +16,18 @@ self.addEventListener("install", (event) => {
     caches
       .open(CACHE)
       .then((c) => c.addAll(SHELL).catch(() => {}))
-      .then(() => self.skipWaiting())
+    // NOTE: we deliberately do NOT call self.skipWaiting() here. Letting a new
+    // worker wait gives the app a chance to notify the user (SWUpdateToast) and
+    // apply the update when *they* choose — instead of silently switching to a
+    // fresh worker mid-session. SKIP_WAITING is honoured on request below.
   );
+});
+
+// Honour the app's "تحديث الآن" request (see client/src/lib/use-sw-update.ts).
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener("activate", (event) => {

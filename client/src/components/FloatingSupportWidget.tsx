@@ -8,6 +8,7 @@ import {
   BookOpen,
   X,
   Sparkles,
+  Cpu,
 } from "lucide-react";
 import { brand, whatsappLink } from "@/lib/brand";
 
@@ -98,7 +99,26 @@ export function FloatingSupportWidget() {
                   مكتبة الحسينية الحديثة
                 </span>
                 <span className="text-[10px] text-white/50">
-                  أبحاث، تصاميم، صيانة كمبيوتر وموبايل
+                  أبحاث، تصاميم، صيانة كمبيوتر ولابتوب
+                </span>
+              </div>
+            </button>
+
+            <button
+              onClick={() =>
+                handleOpenWhatsApp("تجربة ونظام UAMEX ERP والحلول البرمجية")
+              }
+              className="w-full bg-white/5 hover:bg-white/10 text-white p-2.5 rounded-xl border border-white/10 flex items-center gap-2.5 transition-all text-right"
+            >
+              <div className="p-1.5 bg-amber-500 rounded-lg text-ink">
+                <Cpu className="w-4 h-4" />
+              </div>
+              <div>
+                <span className="font-bold block text-white">
+                  الحلول البرمجية وتجربة UAMEX
+                </span>
+                <span className="text-[10px] text-white/50">
+                  تجربة النظام، الربط البرمجي، السحابة
                 </span>
               </div>
             </button>

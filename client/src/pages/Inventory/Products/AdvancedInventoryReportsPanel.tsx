@@ -47,7 +47,7 @@ interface InventoryMovementItem {
 export function AdvancedInventoryReportsPanel() {
   const { data: warehouses } = trpc.warehouses.list.useQuery();
   const { data: productsData } = trpc.products.list.useQuery({ limit: 1000 });
-  const products = productsData?.items ?? [];
+  const products = useMemo(() => productsData?.items ?? [], [productsData]);
   const { data: inventoryMovements } = trpc.products.movements.useQuery({}, { staleTime: 60_000 });
 
   const [selectedWarehouseId, setSelectedWarehouseId] = useState<number | null>(null);

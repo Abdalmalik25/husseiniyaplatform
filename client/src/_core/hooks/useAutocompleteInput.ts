@@ -58,7 +58,10 @@ export function useAutocompleteInput<T = any>(options: UseAutocompleteInputOptio
   const effectiveSelectedIndex = selectedIndex ?? internalSelectedIndex;
   const effectiveSetSelectedIndex = setSelectedIndex ?? setInternalSelectedIndex;
   const effectiveSetIsOpen = setIsOpen ?? setInternalIsOpen;
-  const effectiveSetSearchQuery = setSearchQuery ?? ((q: string) => {});
+  const effectiveSetSearchQuery = useMemo(
+    () => setSearchQuery ?? ((q: string) => {}),
+    [setSearchQuery]
+  );
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -179,14 +182,13 @@ export function useAutocompleteInput<T = any>(options: UseAutocompleteInputOptio
   }, [
     effectiveIsOpen,
     effectiveSelectedIndex,
+    effectiveSetIsOpen,
+    effectiveSetSelectedIndex,
     filteredItems,
     onClose,
     onOpen,
     onSelect,
     onChange,
-    setInternalSelectedIndex,
-    setInternalIsOpen,
-    debouncedQuery,
   ]);
 
   useEffect(() => {

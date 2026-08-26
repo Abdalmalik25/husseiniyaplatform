@@ -290,7 +290,7 @@ export function useDataGridKeyboard(options: UseDataGridKeyboardOptions) {
         break;
     }
     return false;
-  }, [selection, rows, columns, editableColumns, columnKeys, isEditing, onSelectionChange, onCellEdit, onCopy, onPaste, onUndo, onRedo, onRowAction, setIsEditing]);
+  }, [selection, rows, editableColumns, columnKeys, isEditing, onSelectionChange, onCellEdit, onCopy, onPaste, onUndo, onRedo, setIsEditing]);
 
   return useInputIntent({
     onIntent: handleIntent,

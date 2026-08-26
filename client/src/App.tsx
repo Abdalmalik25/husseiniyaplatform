@@ -10,8 +10,14 @@ import { FloatingSupportWidget } from "@/components/FloatingSupportWidget";
 import { AliasAIAssistant } from "@/components/AliasAIAssistant";
 import { InstallPrompt } from "@/components/InstallPrompt";
 import { CommandPalette } from "@/components/CommandPalette";
+import { SWUpdateToast } from "@/components/SWUpdateToast";
+import { ScrollProgress } from "@/components/ScrollProgress";
+import { ScrollManager } from "@/components/ScrollManager";
+import { PageTitle } from "@/components/PageTitle";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { I18nProvider } from "@/lib/i18n";
+import { useWebVitals } from "@/lib/use-web-vitals";
 
 const Landing = lazy(() => import("@/pages/Landing"));
 const Login = lazy(() => import("@/pages/Login"));
@@ -124,7 +130,16 @@ function Router() {
   const BootFallback = initialBootRef.current ? PageSplash : RouteLoader;
 
   return (
-    <Suspense fallback={<BootFallback />}>
+    <>
+      {/* Live document.title per route (SEO + tab readability) + native-style
+          scroll restoration (back/forward returns to the exact position). */}
+      <PageTitle />
+      <ScrollManager />
+
+      {/* #main-content anchors the skip-to-content link at the very top of
+          App for keyboard & screen-reader users (WCAG 2.4.1). */}
+      <div id="main-content" tabIndex={-1} className="focus:outline-none">
+        <Suspense fallback={<BootFallback />}>
       <Switch>
         {/* ── Public marketing & guest pages (no session required) ── */}
         <Route path={"/"} component={Landing} />
@@ -278,8 +293,10 @@ function Router() {
         </Route>
         <Route path={"/404"} component={NotFound} />
         <Route component={NotFound} />
-      </Switch>
-    </Suspense>
+        </Switch>
+        </Suspense>
+      </div>
+    </>
   );
 }
 
@@ -290,7 +307,6 @@ function App() {
       navigator.serviceWorker
         .register("/sw.js")
         .then(reg => {
-          console.log("[SW] Registered:", reg.scope);
           updateInterval = setInterval(() => reg.update(), 300_000);
         })
         .catch(err => console.warn("[SW] Registration failed:", err));
@@ -304,7 +320,10 @@ function App() {
   // shows a loader in practice — every lazy import below is warm by idle time.
   useEffect(() => {
     const idle =
-      (window as any).requestIdleCallback ??
+      (window as Window &
+        typeof globalThis & {
+          requestIdleCallback: (cb: () => void) => number;
+        }).requestIdleCallback ??
       ((cb: () => void) => window.setTimeout(cb, 2000));
     const t = idle(() => {
       import("@/pages/Reports").catch(() => {});
@@ -343,18 +362,33 @@ function App() {
     };
   }, []);
 
+  // Collect Core Web Vitals (CLS, INP, LCP) for real-user monitoring.
+  useWebVitals({ reportOnce: true });
+
   return (
     <I18nProvider>
       <ErrorBoundary>
+        {/* Keyboard/screen-reader shortcut to jump straight to the page content,
+            skipping the header & floating widgets (WCAG 2.4.1 "Bypass Blocks"). */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:right-3 focus:z-[95] focus:bg-brand focus:text-ink focus:px-4 focus:py-2 focus:rounded-lg focus:font-black focus:text-xs focus:shadow-xl"
+        >
+          تخطّ إلى المحتوى الرئيسي
+        </a>
+
         <ThemeProvider defaultTheme="light" switchable>
           <OfflineProvider>
+            <OfflineBanner />
             <TooltipProvider>
               <Toaster />
               <Router />
+              <ScrollProgress />
               <CommandPalette />
               <FloatingSupportWidget />
               <AliasAIAssistant />
               <InstallPrompt />
+              <SWUpdateToast />
             </TooltipProvider>
           </OfflineProvider>
         </ThemeProvider>

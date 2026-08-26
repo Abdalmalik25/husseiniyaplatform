@@ -166,7 +166,7 @@ export default function Pricing() {
                   <a
                     href={uamexDemoLink()}
                     target="_blank"
-                    rel="noopener"
+                    rel="noopener noreferrer"
                     className="flex items-center justify-center gap-2 w-full h-11 font-bold rounded-xl bg-brand hover:bg-brand-deep text-ink transition-all"
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -272,7 +272,7 @@ export default function Pricing() {
             <a
               href={whatsappLink("السلام عليكم، أود الاستفسار عن أسعار الخدمات الهندسية.")}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
             >
               <MessageSquare className="w-4 h-4" />
@@ -281,7 +281,7 @@ export default function Pricing() {
             <a
               href={whatsappLink("السلام عليكم، أود الاستفسار عن أسعار الخدمات الطلابية والمكتبية.")}
               target="_blank"
-              rel="noopener"
+              rel="noopener noreferrer"
               className="inline-flex items-center gap-2 border border-white/20 hover:bg-white/10 text-white font-medium px-6 py-3 rounded-xl text-sm transition-all"
             >
               <MessageSquare className="w-4 h-4" />

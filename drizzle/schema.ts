@@ -1291,6 +1291,10 @@ export const salesInvoices = pgTable(
     index("idx_salesInvoices_customer").on(t.customerId),
     index("idx_salesInvoices_status").on(t.status),
     index("idx_salesInvoices_currency").on(t.currencyId),
+    index("idx_salesInvoices_salesRep").on(t.salesRepId),
+    index("idx_salesInvoices_tenant_salesrep").on(t.tenantId, t.salesRepId),
+    index("idx_salesInvoices_tenant_status_date").on(t.tenantId, t.status, t.invoiceDate),
+    index("idx_salesInvoices_tenant_customer_date").on(t.tenantId, t.customerId, t.invoiceDate),
     unique("salesInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
     check("chk_sales_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
     check("chk_sales_invoice_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
@@ -1301,8 +1305,8 @@ export const salesInvoices = pgTable(
     check("chk_sales_invoice_currency_rate_positive", sql`${t.currencyRate} > 0`),
     check("chk_sales_invoice_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
     check("chk_sales_invoice_status_posted_immutable", sql`
-      CASE WHEN ${t.status} IN ('paid', 'cancelled') THEN 
-        ${t.postedAt} IS NOT NULL 
+      CASE WHEN ${t.status} IN ('paid', 'cancelled') THEN
+        ${t.postedAt} IS NOT NULL
       ELSE TRUE END
     `),
   ]

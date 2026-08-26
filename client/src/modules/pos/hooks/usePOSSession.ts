@@ -148,7 +148,7 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
     } finally {
       setIsLoading(false);
     }
-  }, [openSessionMutation, openingFloat, branchId, deviceId]);
+  }, [openSessionMutation, openingFloat, branchId]);
 
   const closeSession = useCallback(async () => {
     if (!activeSession) return;

@@ -59,9 +59,16 @@ export function ModernBackground({
     }
 
     let frame = 0;
-    let raf: number;
+    // PERFORMANCE BUDGET: the render loop only runs while this canvas is on
+    // screen. Off-screen hero sections used to burn a 60fps loop forever —
+    // invisible work that drained mobile battery for zero visual value.
+    let raf = 0;
+    let isVisible = true;
 
     const draw = () => {
+      raf = 0;
+      if (!isVisible) return; // paused by IntersectionObserver
+
       if (width !== canvas.offsetWidth || height !== canvas.offsetHeight) {
         width = canvas.offsetWidth;
         height = canvas.offsetHeight;
@@ -111,7 +118,33 @@ export function ModernBackground({
       raf = requestAnimationFrame(draw);
     };
 
-    raf = requestAnimationFrame(draw);
+    // Pause when scrolled away / hidden, resume on re-entry.
+    const io = new IntersectionObserver(
+      entries => {
+        const visible = entries[0]?.isIntersecting ?? true;
+        if (visible === isVisible) return;
+        isVisible = visible;
+        if (isVisible && !raf && !prefersReduced) {
+          raf = requestAnimationFrame(draw);
+        } else if (!isVisible && raf) {
+          cancelAnimationFrame(raf);
+          raf = 0;
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(canvas);
+
+    // Respect reduced motion: draw one static frame, never animate.
+    if (!prefersReduced) {
+      raf = requestAnimationFrame(draw);
+    } else {
+      isVisible = false;
+      // One static frame so the section isn't blank.
+      frame = 1;
+      draw();
+      isVisible = true; // allow IO to control future scheduling
+    }
 
     const handleResize = () => {
       width = canvas.offsetWidth;
@@ -122,7 +155,8 @@ export function ModernBackground({
     window.addEventListener("resize", handleResize);
 
     return () => {
-      cancelAnimationFrame(raf);
+      io.disconnect();
+      if (raf) cancelAnimationFrame(raf);
       window.removeEventListener("resize", handleResize);
     };
   }, [density, accentColor]);

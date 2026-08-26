@@ -119,7 +119,7 @@ async function addConstraintsAndIndexes() {
   
   for (const c of checkConstraints) {
     try {
-      await sql.unsafe(`ALTER TABLE "${c.table}" ADD CONSTRAINT "${c.name}" CHECK (${c.sql})`);
+      await sql.query(`ALTER TABLE "${c.table}" ADD CONSTRAINT "${c.name}" CHECK (${c.sql})`);
       console.log(`✓ ${c.name}`);
     } catch (e) {
       if (e.message.includes('already exists')) {
@@ -208,7 +208,7 @@ async function addConstraintsAndIndexes() {
   
   for (const u of uniqueConstraints) {
     try {
-      await sql.unsafe(`ALTER TABLE "${u.table}" ADD CONSTRAINT "${u.name}" UNIQUE (${u.cols.join(', ')})`);
+      await sql.query(`ALTER TABLE "${u.table}" ADD CONSTRAINT "${u.name}" UNIQUE (${u.cols.join(', ')})`);
       console.log(`✓ ${u.name}`);
     } catch (e) {
       if (e.message.includes('already exists')) {
@@ -269,7 +269,7 @@ async function addConstraintsAndIndexes() {
   
   for (const idx of indexes) {
     try {
-      await sql.unsafe(`CREATE INDEX IF NOT EXISTS "${idx.name}" ON "${idx.table}" USING btree (${idx.cols.join(', ')})`);
+      await sql.query(`CREATE INDEX IF NOT EXISTS "${idx.name}" ON "${idx.table}" USING btree (${idx.cols.join(', ')})`);
       console.log(`✓ ${idx.name}`);
     } catch (e) {
       if (e.message.includes('already exists')) {

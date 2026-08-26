@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { ArrowLeft, Download, Printer, RefreshCw, TrendingDown, TrendingUp, Users, Wallet } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -20,8 +20,8 @@ export default function SupplierAnalytics() {
   const purchasesQ = trpc.purchases.list.useQuery({ limit: 500 }, { staleTime: 30_000 });
   const suppliersQ = trpc.suppliers.list.useQuery({ limit: 500 }, { staleTime: 30_000 });
   const purchases = purchasesQ.data?.items ?? [];
-  const suppliers = suppliersQ.data?.items ?? [];
-  const supplierName = (id?: number | null) => suppliers.find(s => s.id === id)?.name ?? "بدون مورد";
+  const suppliers = useMemo(() => suppliersQ.data?.items ?? [], [suppliersQ.data]);
+  const supplierName = useCallback((id?: number | null) => suppliers.find(s => s.id === id)?.name ?? "بدون مورد", [suppliers]);
   const filtered = purchases.filter(p => {
     const date = p.createdAt ? new Date(p.createdAt) : null;
     if (from && date && date < new Date(from)) return false;
@@ -46,7 +46,7 @@ export default function SupplierAnalytics() {
     const totalSpend = filtered.reduce((s, p) => s + Number(p.total || 0), 0);
     const totalPaid = filtered.reduce((s, p) => s + Number(p.paidAmount || 0), 0);
     return { suppliersRows, months, totalSpend, totalPaid, outstanding: Math.max(0, totalSpend - totalPaid), averageInvoice: filtered.length ? totalSpend / filtered.length : 0 };
-  }, [filtered, suppliers]);
+  }, [filtered, supplierName]);
   const maxMonth = Math.max(...analysis.months.map(m => m.spend), 1);
   const exportCsv = () => { const rows = [["المورد", "عدد الفواتير", "إجمالي المشتريات", "المدفوع", "المستحق"], ...analysis.suppliersRows.map(r => [r.name, r.invoices, r.spend, r.paid, r.outstanding])]; const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n"); const url = URL.createObjectURL(new Blob([`\ufeff${csv}`], { type: "text/csv;charset=utf-8" })); const a = document.createElement("a"); a.href = url; a.download = `supplier-performance-${new Date().toISOString().slice(0, 10)}.csv`; a.click(); URL.revokeObjectURL(url); toast.success("تم تنزيل تقرير أداء الموردين"); };
   return <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900"><header className="bg-[#102a2c] text-white"><div className="mx-auto max-w-7xl px-5 py-6"><Button variant="ghost" className="px-0 text-slate-300 hover:bg-transparent hover:text-white" onClick={() => setLocation("/procurement-workspace")}><ArrowLeft className="ml-2 h-4 w-4" /> العودة إلى Workspace المشتريات</Button><div className="mt-4 flex flex-wrap items-end justify-between gap-4"><div><p className="text-sm text-amber-300">Supplier Intelligence</p><h1 className="mt-1 text-3xl font-black">تحليل أداء الموردين والمشتريات</h1><p className="mt-2 text-sm text-slate-300">مقارنة الإنفاق، الالتزامات، متوسط قيمة الفاتورة والاتجاه الشهري من واقع فواتير المشتريات.</p></div><div className="flex gap-2"><Button variant="outline" className="border-white/30 bg-transparent text-white hover:bg-white/10" onClick={() => window.print()}><Printer className="ml-2 h-4 w-4" /> طباعة</Button><Button className="bg-amber-400 text-slate-950 hover:bg-amber-300" onClick={exportCsv}><Download className="ml-2 h-4 w-4" /> تنزيل CSV</Button></div></div></div></header><main className="mx-auto max-w-7xl space-y-6 px-5 py-6"><Card className="border-slate-200 shadow-sm"><CardContent className="flex flex-wrap items-end gap-3 p-4"><div><label className="mb-1 block text-xs font-bold">من تاريخ</label><Input type="date" value={from} onChange={e => setFrom(e.target.value)} className="h-9 w-40" /></div><div><label className="mb-1 block text-xs font-bold">إلى تاريخ</label><Input type="date" value={to} onChange={e => setTo(e.target.value)} className="h-9 w-40" /></div><div><label className="mb-1 block text-xs font-bold">المورد</label><Select value={supplierFilter} onValueChange={setSupplierFilter}><SelectTrigger className="h-9 w-52"><SelectValue placeholder="كل الموردين" /></SelectTrigger><SelectContent><SelectItem value="all">كل الموردين</SelectItem>{suppliers.map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent></Select></div><Button variant="outline" className="h-9" onClick={() => { setFrom(""); setTo(""); setSupplierFilter("all"); purchasesQ.refetch(); suppliersQ.refetch(); }}><RefreshCw className="ml-2 h-3.5 w-3.5" /> إعادة ضبط</Button></CardContent></Card><section className="grid grid-cols-2 gap-3 lg:grid-cols-5">{[

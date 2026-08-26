@@ -1,46 +1,12 @@
-// server/prod-entry.ts
-import "dotenv/config";
-import { createServer } from "http";
-import net from "net";
-
-// server/_core/app.ts
-import "dotenv/config";
-import express from "express";
-import helmet from "helmet";
-import rateLimit from "express-rate-limit";
-import compression from "compression";
-import { createExpressMiddleware } from "@trpc/server/adapters/express";
-
-// shared/const.ts
-var COOKIE_NAME = "app_session_id";
-var ONE_MONTH_MS = 1e3 * 60 * 60 * 24 * 30;
-var ONE_YEAR_MS = 1e3 * 60 * 60 * 24 * 365;
-var AXIOS_TIMEOUT_MS = 3e4;
-var UNAUTHED_ERR_MSG = "Please login (10001)";
-var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
-var OAUTH_STATE_COOKIE = "__Host-oauth_state";
-var decodeOAuthState = (state) => {
-  let decoded;
-  try {
-    decoded = atob(state);
-  } catch {
-    return { redirectUri: "" };
-  }
-  try {
-    const parsed = JSON.parse(decoded);
-    if (parsed && typeof parsed.redirectUri === "string") return parsed;
-  } catch {
-  }
-  return { redirectUri: decoded };
+var __defProp = Object.defineProperty;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __esm = (fn, res) => function __init() {
+  return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
-
-// server/_core/oauth.ts
-import { parse as parseCookieHeader2 } from "cookie";
-
-// server/db.ts
-import { eq } from "drizzle-orm";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
 
 // drizzle/schema.ts
 import {
@@ -61,418 +27,6 @@ import {
   check
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-var userRoleEnum = pgEnum("role", [
-  "admin",
-  "auditor",
-  "accountant",
-  "owner",
-  "user"
-]);
-var accountTypeEnum = pgEnum("account_type", [
-  "asset",
-  "liability",
-  "equity",
-  "revenue",
-  "expense"
-]);
-var transactionTypeEnum = pgEnum("transaction_type", [
-  "debit",
-  "credit"
-]);
-var lifecycleStatusEnum = pgEnum("lifecycle_status", [
-  "saved",
-  "approved",
-  "sent",
-  "posted",
-  "completed"
-]);
-var subscriptionStatusEnum = pgEnum("subscription_status", [
-  "trial",
-  "active",
-  "grace",
-  "suspended"
-]);
-var users = pgTable(
-  "users",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    openId: varchar("openId", { length: 255 }).notNull().unique(),
-    tenantId: integer("tenantId"),
-    name: varchar("name", { length: 255 }),
-    email: varchar("email", { length: 255 }),
-    loginMethod: varchar("loginMethod", { length: 50 }),
-    username: varchar("username", { length: 120 }),
-    passwordHash: text("passwordHash"),
-    role: userRoleEnum("role").default("user").notNull(),
-    themePreference: varchar("themePreference", { length: 20 }).default("dark").notNull(),
-    emailNotifications: boolean("emailNotifications").default(true).notNull(),
-    whatsappNotifications: boolean("whatsappNotifications").default(true).notNull(),
-    compactMode: boolean("compactMode").default(false).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
-    // Security & session tracking
-    currentSessionId: uuid("currentSessionId"),
-    failedLoginAttempts: integer("failedLoginAttempts").default(0).notNull(),
-    lockedUntil: timestamp("lockedUntil"),
-    passwordChangedAt: timestamp("passwordChangedAt").defaultNow().notNull(),
-    mfaEnabled: boolean("mfaEnabled").default(false).notNull(),
-    mfaSecret: varchar("mfaSecret", { length: 255 })
-  },
-  (t2) => [
-    // PERFORMANCE: Index for tenant-scoped user lookups
-    index("idx_users_tenant").on(t2.tenantId),
-    index("idx_users_session").on(t2.currentSessionId)
-  ]
-);
-var loginAttempts = pgTable(
-  "login_attempts",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId"),
-    userId: integer("userId"),
-    username: varchar("username", { length: 120 }),
-    success: boolean("success").notNull(),
-    ip: varchar("ip", { length: 64 }),
-    userAgent: text("userAgent"),
-    device: varchar("device", { length: 120 }),
-    deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
-    country: varchar("country", { length: 100 }),
-    city: varchar("city", { length: 120 }),
-    lat: decimal("lat", { precision: 10, scale: 7 }),
-    lng: decimal("lng", { precision: 10, scale: 7 }),
-    riskScore: integer("riskScore").default(0).notNull(),
-    riskFactors: jsonb("riskFactors"),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
-  },
-  (t2) => [
-    index("idx_login_attempts_username").on(t2.username),
-    index("idx_login_attempts_user").on(t2.userId),
-    index("idx_login_attempts_created").on(t2.createdAt),
-    index("idx_login_attempts_tenant_created").on(t2.tenantId, t2.createdAt),
-    index("idx_login_attempts_ip").on(t2.ip),
-    index("idx_login_attempts_device").on(t2.deviceFingerprint)
-  ]
-);
-var tenants = pgTable("tenants", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  name: varchar("name", { length: 255 }).notNull(),
-  code: varchar("code", { length: 50 }).notNull().unique(),
-  ownerUserId: integer("ownerUserId"),
-  currency: varchar("currency", { length: 20 }).default("YER").notNull(),
-  country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646").notNull(),
-  subscriptionPlan: varchar("subscriptionPlan", { length: 50 }).default("standard").notNull(),
-  sector: varchar("sector", { length: 50 }).default("general").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t2) => [
-  check("chk_tenant_currency_valid", sql`${t2.currency} ~ '^[A-Z]{3}$'`)
-]);
-var branches = pgTable("branches", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId").default(1).notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  code: varchar("code", { length: 50 }).notNull(),
-  city: varchar("city", { length: 100 }),
-  isMain: boolean("isMain").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t2) => [
-  unique("branches_code_tenant_unique").on(t2.code, t2.tenantId),
-  check("chk_branch_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-]);
-var userBranchPermissions = pgTable("user_branch_permissions", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId").notNull(),
-  userId: integer("userId").notNull(),
-  branchId: integer("branchId").notNull(),
-  canView: boolean("canView").default(true).notNull(),
-  canInsert: boolean("canInsert").default(true).notNull(),
-  canApprove: boolean("canApprove").default(false).notNull(),
-  canPost: boolean("canPost").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t2) => [
-  unique("userBranchPermissions_tenant_user_branch_unique").on(t2.tenantId, t2.userId, t2.branchId)
-]);
-var accounts = pgTable(
-  "accounts",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 50 }).notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    type: accountTypeEnum("type").notNull(),
-    parentAccountId: integer("parentAccountId"),
-    category: varchar("category", { length: 100 }),
-    description: text("description"),
-    isActive: boolean("isActive").default(true).notNull(),
-    isCustom: boolean("isCustom").default(false).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_accounts_tenant").on(t2.tenantId),
-    index("idx_accounts_tenant_type").on(t2.tenantId, t2.type),
-    unique("accounts_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_account_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var transactions = pgTable(
-  "transactions",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    accountId: integer("accountId").notNull(),
-    branchId: integer("branchId"),
-    amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-    type: transactionTypeEnum("type").default("debit").notNull(),
-    transactionDate: timestamp("transactionDate").notNull(),
-    narration: varchar("narration", { length: 500 }),
-    notes: text("notes"),
-    lifecycleStatus: lifecycleStatusEnum("lifecycleStatus").default("saved").notNull(),
-    isReversed: boolean("isReversed").default(false).notNull(),
-    reversalReason: varchar("reversalReason", { length: 255 }),
-    referenceType: varchar("referenceType", { length: 50 }),
-    referenceId: integer("referenceId"),
-    journalEntryId: integer("journalEntryId"),
-    sourceModule: varchar("sourceModule", { length: 50 }),
-    userId: integer("userId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    // Financial constraints
-    currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull()
-  },
-  (t2) => [
-    index("idx_transactions_tenant").on(t2.tenantId),
-    index("idx_transactions_account").on(t2.accountId),
-    index("idx_transactions_date").on(t2.transactionDate),
-    index("idx_transactions_branch").on(t2.branchId),
-    index("idx_transactions_reference").on(t2.referenceType, t2.referenceId),
-    index("idx_transactions_currency").on(t2.currencyId),
-    // PERFORMANCE: Composite indexes for frequently filtered queries
-    index("idx_transactions_tenant_status").on(t2.tenantId, t2.lifecycleStatus),
-    index("idx_transactions_tenant_reversed").on(t2.tenantId, t2.isReversed),
-    index("idx_transactions_tenant_date").on(t2.tenantId, t2.transactionDate),
-    index("idx_transactions_tenant_account_date").on(t2.tenantId, t2.accountId, t2.transactionDate),
-    check("chk_transaction_amount_not_negative", sql`${t2.amount} >= 0`),
-    check("chk_transaction_base_amount_not_negative", sql`${t2.baseAmount} >= 0`),
-    check("chk_transaction_exchange_rate_positive", sql`${t2.exchangeRate} > 0`),
-    check("chk_transaction_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
-    check("chk_transaction_account_not_null", sql`${t2.accountId} IS NOT NULL`)
-  ]
-);
-var openingBalances = pgTable(
-  "opening_balances",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    accountId: integer("accountId").notNull(),
-    amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-    type: transactionTypeEnum("type").default("debit").notNull(),
-    notes: text("notes"),
-    periodName: varchar("periodName", { length: 50 }).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull()
-  },
-  (t2) => [
-    index("idx_openingBalances_tenant").on(t2.tenantId),
-    unique("openingBalances_account_period_tenant_unique").on(t2.accountId, t2.periodName, t2.tenantId),
-    check("chk_opening_balance_amount_not_negative", sql`${t2.amount} >= 0`),
-    check("chk_opening_balance_exchange_rate_positive", sql`${t2.exchangeRate} > 0`)
-  ]
-);
-var budgets = pgTable(
-  "budgets",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    periodName: varchar("periodName", { length: 50 }).notNull(),
-    targetRevenue: decimal("targetRevenue", {
-      precision: 15,
-      scale: 2
-    }).notNull(),
-    targetExpense: decimal("targetExpense", {
-      precision: 15,
-      scale: 2
-    }).notNull(),
-    notes: text("notes"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_budgets_tenant").on(t2.tenantId),
-    unique("budgets_tenant_period_unique").on(t2.tenantId, t2.periodName),
-    check("chk_budget_revenue_not_negative", sql`${t2.targetRevenue} >= 0`),
-    check("chk_budget_expense_not_negative", sql`${t2.targetExpense} >= 0`)
-  ]
-);
-var fiscalPeriodStatusEnum = pgEnum("fiscal_period_status", [
-  "open",
-  "closing",
-  "closed",
-  "reopened"
-]);
-var fiscalPeriods = pgTable(
-  "fiscal_periods",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    name: varchar("name", { length: 50 }).notNull(),
-    // e.g., "2026", "Q1-2026"
-    label: varchar("label", { length: 100 }),
-    // e.g., "السنة المالية 2026"
-    startDate: timestamp("startDate").notNull(),
-    endDate: timestamp("endDate").notNull(),
-    status: fiscalPeriodStatusEnum("status").default("open").notNull(),
-    closedAt: timestamp("closedAt"),
-    closedById: integer("closedById"),
-    reopenedAt: timestamp("reopenedAt"),
-    reopenedById: integer("reopenedById"),
-    reopenReason: varchar("reopenReason", { length: 255 }),
-    closingEntryId: integer("closingEntryId"),
-    // FK to journal_entries
-    retainedEarningsAccountId: integer("retainedEarningsAccountId"),
-    notes: text("notes"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_fiscal_periods_tenant").on(t2.tenantId),
-    index("idx_fiscal_periods_status").on(t2.status),
-    unique("fiscal_periods_tenant_name_unique").on(t2.tenantId, t2.name),
-    check("chk_fiscal_period_dates", sql`${t2.startDate} <= ${t2.endDate}`),
-    check("chk_fiscal_period_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId").notNull().unique(),
-  institutionName: varchar("institutionName", { length: 255 }).default("\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644").notNull(),
-  currency: varchar("currency", { length: 50 }).default("\u0631\u064A\u0627\u0644 \u064A\u0645\u0646\u064A (YER)").notNull(),
-  country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646").notNull(),
-  accountingPeriod: varchar("accountingPeriod", { length: 50 }).default("2026").notNull(),
-  managerName: varchar("managerName", { length: 255 }).default("\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629").notNull(),
-  notes: text("notes"),
-  subscriptionStatus: subscriptionStatusEnum("subscriptionStatus").default("trial").notNull(),
-  trialEndsAt: timestamp("trialEndsAt"),
-  // ─── POS / Sales configuration (stored as JSON text) ─────────────
-  posConfig: text("posConfig"),
-  salesPolicy: text("salesPolicy"),
-  paymentMethods: text("paymentMethods"),
-  postingRules: text("postingRules"),
-  // ─── ZATCA (Saudi e-invoicing) configuration ────────────────────
-  zatcaConfig: text("zatcaConfig"),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t2) => [
-  check("chk_settings_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-]);
-var activityLogs = pgTable(
-  "activity_logs",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId"),
-    userId: integer("userId"),
-    sessionId: uuid("sessionId"),
-    userName: varchar("userName", { length: 255 }),
-    action: varchar("action", { length: 255 }).notNull(),
-    entityType: varchar("entityType", { length: 100 }),
-    entityId: integer("entityId"),
-    details: text("details"),
-    // Device & geo context
-    ipAddress: varchar("ipAddress", { length: 45 }),
-    userAgent: varchar("userAgent", { length: 500 }),
-    deviceId: integer("deviceId"),
-    deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
-    country: varchar("country", { length: 100 }),
-    city: varchar("city", { length: 120 }),
-    lat: decimal("lat", { precision: 10, scale: 7 }),
-    lng: decimal("lng", { precision: 10, scale: 7 }),
-    // Audit chain
-    previousHash: varchar("previousHash", { length: 64 }),
-    currentHash: varchar("currentHash", { length: 64 }).default("").notNull(),
-    chainSequence: integer("chainSequence").default(0).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
-  },
-  (t2) => [
-    index("idx_activityLogs_tenant").on(t2.tenantId),
-    index("idx_activityLogs_user").on(t2.userId),
-    index("idx_activityLogs_session").on(t2.sessionId),
-    index("idx_activityLogs_entity").on(t2.entityType, t2.entityId),
-    index("idx_activityLogs_created").on(t2.createdAt),
-    index("idx_activityLogs_chain").on(t2.tenantId, t2.chainSequence)
-  ]
-);
-var productTypeEnum = pgEnum("product_type", ["goods", "service"]);
-var inventoryMovementTypeEnum = pgEnum("inventory_movement_type", [
-  "in",
-  "out",
-  "transfer",
-  "adjustment"
-]);
 function govColumns() {
   return {
     country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646"),
@@ -488,2987 +42,3434 @@ function govColumns() {
     aggregateId: uuid("aggregateId")
   };
 }
-var products = pgTable(
-  "products",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 50 }).notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    nameAr: varchar("nameAr", { length: 255 }),
-    type: productTypeEnum("type").default("goods").notNull(),
-    category: varchar("category", { length: 100 }),
-    country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646"),
-    unit: varchar("unit", { length: 50 }).default("\u0642\u0637\u0639\u0629").notNull(),
-    purchasePrice: decimal("purchasePrice", { precision: 15, scale: 2 }).default("0").notNull(),
-    salePrice: decimal("salePrice", { precision: 15, scale: 2 }).default("0").notNull(),
-    wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 }).default("0").notNull(),
-    minStock: integer("minStock").default(0).notNull(),
-    currentStock: integer("currentStock").default(0).notNull(),
-    barcode: varchar("barcode", { length: 100 }),
-    supplierId: integer("supplierId"),
-    unitId: integer("unitId"),
-    categoryId: integer("categoryId"),
-    description: text("description"),
-    // Per-item account linkage (overrides tenant default posting rules)
-    salesAccountId: integer("salesAccountId"),
-    cogsAccountId: integer("cogsAccountId"),
-    inventoryAccountId: integer("inventoryAccountId"),
-    // ─── Inventory / unit flexibility ──────────────────────────────
-    unitOfMeasure: varchar("unitOfMeasure", { length: 50 }).default("\u0642\u0637\u0639\u0629").notNull(),
-    secondaryUnit: varchar("secondaryUnit", { length: 50 }),
-    conversionFactor: decimal("conversionFactor", { precision: 15, scale: 4 }).default("1").notNull(),
-    // ─── Composite / bundled items (Bill of Materials) ────────────
-    isComposite: boolean("isComposite").default(false).notNull(),
-    bom: text("bom"),
-    // JSON: [{ componentProductId, quantity }]
-    alternativeIds: text("alternativeIds"),
-    // JSON: number[]
-    attachmentUrl: text("attachmentUrl"),
-    // ─── Services costing & pricing ───────────────────────────────
-    costMethod: varchar("costMethod", { length: 30 }).default("average").notNull(),
-    directCost: decimal("directCost", { precision: 15, scale: 2 }).default("0").notNull(),
-    indirectCost: decimal("indirectCost", { precision: 15, scale: 2 }).default("0").notNull(),
-    productionMinutes: integer("productionMinutes"),
-    priceMode: varchar("priceMode", { length: 20 }).default("direct").notNull(),
-    // direct | costPlus
-    marginPct: decimal("marginPct", { precision: 6, scale: 2 }).default("0").notNull(),
-    isActive: boolean("isActive").default(true).notNull(),
-    // ─── Reorder automation (Module C) ─────────────────────────────
-    reorderPoint: decimal("reorderPoint", { precision: 15, scale: 2 }).default("0").notNull(),
-    reorderQty: decimal("reorderQty", { precision: 15, scale: 2 }).default("0").notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    deletedAt: timestamp("deleted_at"),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_products_tenant").on(t2.tenantId),
-    index("idx_products_tenant_deleted").on(t2.tenantId, t2.deletedAt),
-    index("idx_products_category").on(t2.category),
-    index("idx_products_supplier").on(t2.supplierId),
-    index("idx_products_currency").on(t2.currencyId),
-    unique("products_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_product_purchase_price_not_negative", sql`${t2.purchasePrice} >= 0`),
-    check("chk_product_sale_price_not_negative", sql`${t2.salePrice} >= 0`),
-    check("chk_product_wholesale_price_not_negative", sql`${t2.wholesalePrice} >= 0`),
-    check("chk_product_conversion_factor_positive", sql`${t2.conversionFactor} > 0`),
-    check("chk_product_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var warehouses = pgTable(
-  "warehouses",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 50 }).notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    location: varchar("location", { length: 255 }),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_warehouses_tenant").on(t2.tenantId),
-    unique("warehouses_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_warehouse_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var workSites = pgTable(
-  "work_sites",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 50 }).notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    address: text("address"),
-    lat: decimal("lat", { precision: 10, scale: 7 }),
-    lng: decimal("lng", { precision: 10, scale: 7 }),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_workSites_tenant").on(t2.tenantId),
-    unique("workSites_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_workSite_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var devices = pgTable(
-  "devices",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 50 }).notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    type: varchar("type", { length: 30 }).default("pos").notNull(),
-    // pos | scanner | scale | other
-    workSiteId: integer("workSiteId"),
-    location: varchar("location", { length: 255 }),
-    lastSeenAt: timestamp("lastSeenAt"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    // Device fingerprinting
-    fingerprint: varchar("fingerprint", { length: 255 }).unique(),
-    os: varchar("os", { length: 100 }),
-    osVersion: varchar("osVersion", { length: 50 }),
-    appVersion: varchar("appVersion", { length: 50 }),
-    publicKey: text("publicKey")
-    // For device attestation
-  },
-  (t2) => [
-    index("idx_devices_tenant").on(t2.tenantId),
-    unique("devices_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_device_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var inventoryMovements = pgTable(
-  "inventory_movements",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    productId: integer("productId").notNull(),
-    warehouseId: integer("warehouseId"),
-    type: inventoryMovementTypeEnum("type").notNull(),
-    quantity: integer("quantity").notNull(),
-    referenceId: integer("referenceId"),
-    referenceType: varchar("referenceType", { length: 50 }),
-    notes: text("notes"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_inventoryMovements_tenant").on(t2.tenantId),
-    index("idx_inventoryMovements_product").on(t2.productId),
-    index("idx_inventoryMovements_warehouse").on(t2.warehouseId),
-    check("chk_inventory_movement_quantity_not_zero", sql`${t2.quantity} != 0`),
-    check("chk_inventory_movement_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var stockAdjustments = pgTable(
-  "stock_adjustments",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    ...govColumns(),
-    productId: integer("productId").notNull(),
-    warehouseId: integer("warehouseId"),
-    previousQty: integer("previousQty").notNull(),
-    newQty: integer("newQty").notNull(),
-    reason: varchar("reason", { length: 100 }).default("\u062A\u0633\u0648\u064A\u0629"),
-    notes: text("notes"),
-    userId: integer("userId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_stockAdjustments_tenant").on(t2.tenantId),
-    unique("stockAdjustments_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
-    check("chk_stock_adjustment_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var warehouseTransfers = pgTable(
-  "warehouse_transfers",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    ...govColumns(),
-    productId: integer("productId").notNull(),
-    fromWarehouseId: integer("fromWarehouseId").notNull(),
-    toWarehouseId: integer("toWarehouseId").notNull(),
-    quantity: integer("quantity").notNull(),
-    notes: text("notes"),
-    userId: integer("userId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_warehouseTransfers_tenant").on(t2.tenantId),
-    unique("warehouseTransfers_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
-    check("chk_warehouse_transfer_quantity_positive", sql`${t2.quantity} > 0`),
-    check("chk_warehouse_transfer_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
-    check("chk_warehouse_transfer_from_to_different", sql`${t2.fromWarehouseId} != ${t2.toWarehouseId}`)
-  ]
-);
-var warehouseStock = pgTable(
-  "warehouse_stock",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    productId: integer("productId").notNull(),
-    warehouseId: integer("warehouseId").notNull(),
-    quantity: integer("quantity").default(0).notNull(),
-    reservedQty: integer("reservedQty").default(0).notNull(),
-    availableQty: integer("availableQty").default(0).notNull(),
-    lastMovementAt: timestamp("lastMovementAt"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_warehouseStock_tenant").on(t2.tenantId),
-    index("idx_warehouseStock_product").on(t2.productId),
-    index("idx_warehouseStock_warehouse").on(t2.warehouseId),
-    unique("warehouseStock_product_warehouse_tenant_unique").on(t2.productId, t2.warehouseId, t2.tenantId),
-    check("chk_warehouse_stock_qty_not_negative", sql`${t2.quantity} >= 0`),
-    check("chk_warehouse_stock_reserved_not_negative", sql`${t2.reservedQty} >= 0`),
-    check("chk_warehouse_stock_available_not_negative", sql`${t2.availableQty} >= 0`),
-    check("chk_warehouse_stock_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var batchTrackingMethodEnum = pgEnum("batch_tracking_method", [
-  "none",
-  "batch",
-  "lot",
-  "serial"
-]);
-var inventoryBatches = pgTable(
-  "inventory_batches",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    productId: integer("productId").notNull(),
-    warehouseId: integer("warehouseId").notNull(),
-    batchNumber: varchar("batchNumber", { length: 100 }).notNull(),
-    lotNumber: varchar("lotNumber", { length: 100 }),
-    serialNumber: varchar("serialNumber", { length: 100 }),
-    manufacturingDate: timestamp("manufacturingDate"),
-    expiryDate: timestamp("expiryDate"),
-    quantity: integer("quantity").default(0).notNull(),
-    reservedQty: integer("reservedQty").default(0).notNull(),
-    unitCost: decimal("unitCost", { precision: 15, scale: 4 }).default("0").notNull(),
-    purchaseInvoiceId: integer("purchaseInvoiceId"),
-    purchaseInvoiceItemId: integer("purchaseInvoiceItemId"),
-    notes: text("notes"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_inventoryBatches_tenant").on(t2.tenantId),
-    index("idx_inventoryBatches_product").on(t2.productId),
-    index("idx_inventoryBatches_warehouse").on(t2.warehouseId),
-    index("idx_inventoryBatches_expiry").on(t2.expiryDate),
-    index("idx_inventoryBatches_batchNumber").on(t2.batchNumber),
-    unique("inventoryBatches_product_warehouse_batch_tenant_unique").on(t2.productId, t2.warehouseId, t2.batchNumber, t2.tenantId),
-    check("chk_inventory_batch_qty_not_negative", sql`${t2.quantity} >= 0`),
-    check("chk_inventory_batch_reserved_not_negative", sql`${t2.reservedQty} >= 0`),
-    check("chk_inventory_batch_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var reservationStatusEnum = pgEnum("reservation_status", [
-  "active",
-  "fulfilled",
-  "released",
-  "expired"
-]);
-var reservationSourceEnum = pgEnum("reservation_source", [
-  "sales_order",
-  "purchase_order",
-  "production_order",
-  "transfer_order",
-  "manual"
-]);
-var stockReservations = pgTable(
-  "stock_reservations",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    productId: integer("productId").notNull(),
-    warehouseId: integer("warehouseId"),
-    batchId: integer("batchId"),
-    quantity: integer("quantity").notNull(),
-    status: reservationStatusEnum("status").default("active").notNull(),
-    source: reservationSourceEnum("source").default("manual").notNull(),
-    sourceId: integer("sourceId"),
-    sourceType: varchar("sourceType", { length: 50 }),
-    customerId: integer("customerId"),
-    expiresAt: timestamp("expiresAt"),
-    notes: text("notes"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    fulfilledAt: timestamp("fulfilledAt"),
-    releasedAt: timestamp("releasedAt"),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_stockReservations_tenant").on(t2.tenantId),
-    index("idx_stockReservations_product").on(t2.productId),
-    index("idx_stockReservations_warehouse").on(t2.warehouseId),
-    index("idx_stockReservations_batch").on(t2.batchId),
-    index("idx_stockReservations_status").on(t2.status),
-    index("idx_stockReservations_source").on(t2.source, t2.sourceId),
-    index("idx_stockReservations_expires").on(t2.expiresAt),
-    check("chk_stock_reservation_qty_positive", sql`${t2.quantity} > 0`),
-    check("chk_stock_reservation_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var cycleCountStatusEnum = pgEnum("cycle_count_status", [
-  "planned",
-  "in_progress",
-  "completed",
-  "cancelled",
-  "approved"
-]);
-var cycleCounts = pgTable(
-  "cycle_counts",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    ...govColumns(),
-    countNumber: varchar("countNumber", { length: 50 }).notNull(),
-    warehouseId: integer("warehouseId").notNull(),
-    status: cycleCountStatusEnum("status").default("planned").notNull(),
-    plannedDate: timestamp("plannedDate").notNull(),
-    startedAt: timestamp("startedAt"),
-    completedAt: timestamp("completedAt"),
-    approvedAt: timestamp("approvedAt"),
-    approvedById: integer("approvedById"),
-    assignedToId: integer("assignedToId"),
-    varianceThreshold: decimal("varianceThreshold", { precision: 5, scale: 2 }).default("5").notNull(),
-    notes: text("notes"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_cycleCounts_tenant").on(t2.tenantId),
-    index("idx_cycleCounts_warehouse").on(t2.warehouseId),
-    index("idx_cycleCounts_status").on(t2.status),
-    index("idx_cycleCounts_plannedDate").on(t2.plannedDate),
-    unique("cycleCounts_countNumber_tenant_unique").on(t2.countNumber, t2.tenantId),
-    check("chk_cycle_count_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var cycleCountLines = pgTable(
-  "cycle_count_lines",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    cycleCountId: integer("cycleCountId").notNull(),
-    productId: integer("productId").notNull(),
-    warehouseId: integer("warehouseId").notNull(),
-    batchId: integer("batchId"),
-    systemQty: integer("systemQty").default(0).notNull(),
-    countedQty: integer("countedQty"),
-    varianceQty: integer("varianceQty"),
-    variancePct: decimal("variancePct", { precision: 5, scale: 2 }),
-    varianceValue: decimal("varianceValue", { precision: 15, scale: 2 }),
-    unitCost: decimal("unitCost", { precision: 15, scale: 4 }),
-    status: varchar("status", { length: 20 }).default("pending"),
-    countedById: integer("countedById"),
-    countedAt: timestamp("countedAt"),
-    notes: text("notes"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_cycleCountLines_tenant").on(t2.tenantId),
-    index("idx_cycleCountLines_cycleCount").on(t2.cycleCountId),
-    index("idx_cycleCountLines_product").on(t2.productId),
-    unique("cycleCountLines_cycleCount_product_warehouse_batch_unique").on(t2.cycleCountId, t2.productId, t2.warehouseId, t2.batchId),
-    check("chk_cycle_count_line_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var inventoryValuationLayers = pgTable(
-  "inventory_valuation_layers",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    productId: integer("productId").notNull(),
-    warehouseId: integer("warehouseId"),
-    batchId: integer("batchId"),
-    layerDate: timestamp("layerDate").notNull(),
-    quantity: integer("quantity").notNull(),
-    remainingQty: integer("remainingQty").notNull(),
-    unitCost: decimal("unitCost", { precision: 15, scale: 4 }).notNull(),
-    totalCost: decimal("totalCost", { precision: 15, scale: 2 }).notNull(),
-    sourceType: varchar("sourceType", { length: 50 }).notNull(),
-    sourceId: integer("sourceId"),
-    referenceType: varchar("referenceType", { length: 50 }),
-    referenceId: integer("referenceId"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_valuationLayers_tenant").on(t2.tenantId),
-    index("idx_valuationLayers_product").on(t2.productId),
-    index("idx_valuationLayers_warehouse").on(t2.warehouseId),
-    index("idx_valuationLayers_batch").on(t2.batchId),
-    index("idx_valuationLayers_layerDate").on(t2.layerDate),
-    index("idx_valuationLayers_active").on(t2.isActive),
-    check("chk_valuation_layer_qty_positive", sql`${t2.quantity} > 0`),
-    check("chk_valuation_layer_remaining_not_negative", sql`${t2.remainingQty} >= 0`),
-    check("chk_valuation_layer_unit_cost_positive", sql`${t2.unitCost} > 0`),
-    check("chk_valuation_layer_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var customers = pgTable(
-  "customers",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 50 }).notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    phone: varchar("phone", { length: 50 }),
-    email: varchar("email", { length: 255 }),
-    address: text("address"),
-    city: varchar("city", { length: 100 }),
-    taxNumber: varchar("taxNumber", { length: 100 }),
-    balance: decimal("balance", { precision: 15, scale: 2 }).default("0").notNull(),
-    creditLimit: decimal("creditLimit", { precision: 15, scale: 2 }).default("0").notNull(),
-    notes: text("notes"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    deletedAt: timestamp("deleted_at"),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_customers_tenant").on(t2.tenantId),
-    index("idx_customers_tenant_deleted").on(t2.tenantId, t2.deletedAt),
-    index("idx_customers_currency").on(t2.currencyId),
-    unique("customers_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_customer_credit_limit_not_negative", sql`${t2.creditLimit} >= 0`),
-    check("chk_customer_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var suppliers = pgTable(
-  "suppliers",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 50 }).notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    phone: varchar("phone", { length: 50 }),
-    email: varchar("email", { length: 255 }),
-    address: text("address"),
-    city: varchar("city", { length: 100 }),
-    taxNumber: varchar("taxNumber", { length: 100 }),
-    balance: decimal("balance", { precision: 15, scale: 2 }).default("0").notNull(),
-    notes: text("notes"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    deletedAt: timestamp("deleted_at"),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_suppliers_tenant").on(t2.tenantId),
-    index("idx_suppliers_tenant_deleted").on(t2.tenantId, t2.deletedAt),
-    index("idx_suppliers_currency").on(t2.currencyId),
-    unique("suppliers_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_supplier_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var salesInvoiceStatusEnum = pgEnum("sales_invoice_status", [
-  "draft",
-  "confirmed",
-  "paid",
-  "partial",
-  "cancelled"
-]);
-var purchaseInvoiceStatusEnum = pgEnum("purchase_invoice_status", [
-  "draft",
-  "confirmed",
-  "paid",
-  "partial",
-  "cancelled"
-]);
-var orderStatusEnum = pgEnum("order_status", [
-  "pending",
-  "confirmed",
-  "processing",
-  "shipped",
-  "delivered",
-  "cancelled"
-]);
-var paymentMethodEnum = pgEnum("payment_method", [
-  "cash",
-  "card",
-  "transfer",
-  "credit",
-  "online",
-  // ─── وسائل الدفع المحلية (اليمن) ───
-  "cash_yer",
-  // كاش بالريال اليمني
-  "cash_sar",
-  // كاش بالريال السعودي
-  "hawala",
-  // حوالة (صرافة)
-  "shabab",
-  // شباب (أي شبكة محلية)
-  "mobile_money",
-  // محفظة إلكترونية (فليكسي / أمين)
-  "bank_transfer"
-  // حوالة بنكية محلية
-]);
-var salesInvoices = pgTable(
-  "sales_invoices",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    ...govColumns(),
-    invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
-    customerId: integer("customerId"),
-    branchId: integer("branchId"),
-    status: salesInvoiceStatusEnum("status").default("draft").notNull(),
-    subtotal: decimal("subtotal", { precision: 15, scale: 2 }).default("0").notNull(),
-    taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
-    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
-    total: decimal("total", { precision: 15, scale: 2 }).default("0").notNull(),
-    paidAmount: decimal("paidAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    paymentMethod: paymentMethodEnum("paymentMethod").default("cash"),
-    notes: text("notes"),
-    // ZATCA (Saudi e-invoicing) payload: { uuid, qrBase64, hash, stampedAt }
-    zatca: text("zatca"),
-    invoiceDate: timestamp("invoiceDate").defaultNow().notNull(),
-    dueDate: timestamp("dueDate"),
-    userId: integer("userId"),
-    // ─── Sales rep linkage (Module A: commissions) ────────────────
-    salesRepId: text("salesRepId"),
-    // ─── Multi-currency (Module B) ─────────────────────────────────
-    currency: varchar("currency", { length: 10 }).default("YER").notNull(),
-    currencyRate: decimal("currencyRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id),
-    // Posted/Reversed immutable tracking
-    postedAt: timestamp("postedAt"),
-    postedById: integer("postedById"),
-    reversedAt: timestamp("reversedAt"),
-    reversedById: integer("reversedById"),
-    reversalReason: varchar("reversalReason", { length: 255 })
-  },
-  (t2) => [
-    index("idx_salesInvoices_tenant").on(t2.tenantId),
-    index("idx_salesInvoices_customer").on(t2.customerId),
-    index("idx_salesInvoices_status").on(t2.status),
-    index("idx_salesInvoices_currency").on(t2.currencyId),
-    unique("salesInvoices_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
-    check("chk_sales_invoice_subtotal_not_negative", sql`${t2.subtotal} >= 0`),
-    check("chk_sales_invoice_tax_rate_not_negative", sql`${t2.taxRate} >= 0`),
-    check("chk_sales_invoice_tax_amount_not_negative", sql`${t2.taxAmount} >= 0`),
-    check("chk_sales_invoice_discount_not_negative", sql`${t2.discount} >= 0`),
-    check("chk_sales_invoice_total_not_negative", sql`${t2.total} >= 0`),
-    check("chk_sales_invoice_paid_not_negative", sql`${t2.paidAmount} >= 0`),
-    check("chk_sales_invoice_currency_rate_positive", sql`${t2.currencyRate} > 0`),
-    check("chk_sales_invoice_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
-    check("chk_sales_invoice_status_posted_immutable", sql`
-      CASE WHEN ${t2.status} IN ('paid', 'cancelled') THEN 
-        ${t2.postedAt} IS NOT NULL 
+var userRoleEnum, accountTypeEnum, transactionTypeEnum, lifecycleStatusEnum, subscriptionStatusEnum, users, loginAttempts, tenants, branches, userBranchPermissions, accounts, transactions, openingBalances, budgets, fiscalPeriodStatusEnum, fiscalPeriods, settings, activityLogs, productTypeEnum, inventoryMovementTypeEnum, products, warehouses, workSites, devices, inventoryMovements, stockAdjustments, warehouseTransfers, warehouseStock, batchTrackingMethodEnum, inventoryBatches, reservationStatusEnum, reservationSourceEnum, stockReservations, cycleCountStatusEnum, cycleCounts, cycleCountLines, inventoryValuationLayers, customers, suppliers, salesInvoiceStatusEnum, purchaseInvoiceStatusEnum, orderStatusEnum, paymentMethodEnum, salesInvoices, salesInvoiceItems, purchaseInvoices, purchaseInvoiceItems, orders, orderItems, paymentSourceEnum, payments, subscriptionPlans, tenantSubscriptions, billingInvoices, paymentHistory, auditLogs, notifications, teamInvitations, currencies, exchangeRates, fileUploads, apiKeys, webhooks, webhookDeliveries, featureFlags, employeeStatusEnum, projectStatusEnum, taskStatusEnum, taskPriorityEnum, requisitionStatusEnum, approvalDecisionEnum, ticketStatusEnum, ticketPriorityEnum, inspectionResultEnum, attendanceStatusEnum, payrollStatusEnum, departments, employees, attendance, payrollRuns, payrollItems, projects, projectTasks, projectMembers, procurements, procurementApprovals, tickets, qualityInspections, journalEntries, scheduledJournalEntries, recurringExpenseStatusEnum, recurringExpenseFrequencyEnum, expenseBasisEnum, expenseApprovalStatusEnum, recurringExpenses, recurringExpenseRuns, units, productUnits, categories, roles, userRoles, permissions, documents, messages, posSessions, posOrders, customFieldDefs, customFieldValues, salesReps, offers, translations, biometricTemplates, syncMetadata, costCenterTypeEnum, costCenters, allocationMethodEnum, allocationRules, allocationRuns, budgetVersionEnum, budgetScenarios, budgetLines, varianceAnalyses, kpiDataTypeEnum, kpiFrequencyEnum, kpis, kpiMeasurements, reportTypeEnum, reportDefinitions, reportExecutions, consolidationMethodEnum, consolidationEntities, consolidationAdjustments;
+var init_schema = __esm({
+  "drizzle/schema.ts"() {
+    "use strict";
+    userRoleEnum = pgEnum("role", [
+      "admin",
+      "auditor",
+      "accountant",
+      "owner",
+      "user"
+    ]);
+    accountTypeEnum = pgEnum("account_type", [
+      "asset",
+      "liability",
+      "equity",
+      "revenue",
+      "expense"
+    ]);
+    transactionTypeEnum = pgEnum("transaction_type", [
+      "debit",
+      "credit"
+    ]);
+    lifecycleStatusEnum = pgEnum("lifecycle_status", [
+      "saved",
+      "approved",
+      "sent",
+      "posted",
+      "completed"
+    ]);
+    subscriptionStatusEnum = pgEnum("subscription_status", [
+      "trial",
+      "active",
+      "grace",
+      "suspended"
+    ]);
+    users = pgTable(
+      "users",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        openId: varchar("openId", { length: 255 }).notNull().unique(),
+        tenantId: integer("tenantId"),
+        name: varchar("name", { length: 255 }),
+        email: varchar("email", { length: 255 }),
+        loginMethod: varchar("loginMethod", { length: 50 }),
+        username: varchar("username", { length: 120 }),
+        passwordHash: text("passwordHash"),
+        role: userRoleEnum("role").default("user").notNull(),
+        themePreference: varchar("themePreference", { length: 20 }).default("dark").notNull(),
+        emailNotifications: boolean("emailNotifications").default(true).notNull(),
+        whatsappNotifications: boolean("whatsappNotifications").default(true).notNull(),
+        compactMode: boolean("compactMode").default(false).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        lastSignedIn: timestamp("lastSignedIn").defaultNow().notNull(),
+        // Security & session tracking
+        currentSessionId: uuid("currentSessionId"),
+        failedLoginAttempts: integer("failedLoginAttempts").default(0).notNull(),
+        lockedUntil: timestamp("lockedUntil"),
+        passwordChangedAt: timestamp("passwordChangedAt").defaultNow().notNull(),
+        mfaEnabled: boolean("mfaEnabled").default(false).notNull(),
+        mfaSecret: varchar("mfaSecret", { length: 255 })
+      },
+      (t2) => [
+        // PERFORMANCE: Index for tenant-scoped user lookups
+        index("idx_users_tenant").on(t2.tenantId),
+        index("idx_users_session").on(t2.currentSessionId)
+      ]
+    );
+    loginAttempts = pgTable(
+      "login_attempts",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId"),
+        userId: integer("userId"),
+        username: varchar("username", { length: 120 }),
+        success: boolean("success").notNull(),
+        ip: varchar("ip", { length: 64 }),
+        userAgent: text("userAgent"),
+        device: varchar("device", { length: 120 }),
+        deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
+        country: varchar("country", { length: 100 }),
+        city: varchar("city", { length: 120 }),
+        lat: decimal("lat", { precision: 10, scale: 7 }),
+        lng: decimal("lng", { precision: 10, scale: 7 }),
+        riskScore: integer("riskScore").default(0).notNull(),
+        riskFactors: jsonb("riskFactors"),
+        createdAt: timestamp("createdAt").defaultNow().notNull()
+      },
+      (t2) => [
+        index("idx_login_attempts_username").on(t2.username),
+        index("idx_login_attempts_user").on(t2.userId),
+        index("idx_login_attempts_created").on(t2.createdAt),
+        index("idx_login_attempts_tenant_created").on(t2.tenantId, t2.createdAt),
+        index("idx_login_attempts_ip").on(t2.ip),
+        index("idx_login_attempts_device").on(t2.deviceFingerprint)
+      ]
+    );
+    tenants = pgTable("tenants", {
+      id: serial("id").primaryKey(),
+      GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+      name: varchar("name", { length: 255 }).notNull(),
+      code: varchar("code", { length: 50 }).notNull().unique(),
+      ownerUserId: integer("ownerUserId"),
+      currency: varchar("currency", { length: 20 }).default("YER").notNull(),
+      country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646").notNull(),
+      subscriptionPlan: varchar("subscriptionPlan", { length: 50 }).default("standard").notNull(),
+      sector: varchar("sector", { length: 50 }).default("general").notNull(),
+      createdAt: timestamp("createdAt").defaultNow().notNull(),
+      updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+      // Sync columns
+      serverVersion: integer("serverVersion").default(1).notNull(),
+      lastSyncAt: timestamp("lastSyncAt"),
+      conflictState: varchar("conflictState", { length: 20 }).default("none"),
+      aggregateId: uuid("aggregateId")
+    }, (t2) => [
+      check("chk_tenant_currency_valid", sql`${t2.currency} ~ '^[A-Z]{3}$'`)
+    ]);
+    branches = pgTable("branches", {
+      id: serial("id").primaryKey(),
+      GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+      tenantId: integer("tenantId").default(1).notNull(),
+      name: varchar("name", { length: 255 }).notNull(),
+      code: varchar("code", { length: 50 }).notNull(),
+      city: varchar("city", { length: 100 }),
+      isMain: boolean("isMain").default(false).notNull(),
+      createdAt: timestamp("createdAt").defaultNow().notNull(),
+      updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+      // Sync columns
+      serverVersion: integer("serverVersion").default(1).notNull(),
+      lastSyncAt: timestamp("lastSyncAt"),
+      conflictState: varchar("conflictState", { length: 20 }).default("none"),
+      aggregateId: uuid("aggregateId")
+    }, (t2) => [
+      unique("branches_code_tenant_unique").on(t2.code, t2.tenantId),
+      check("chk_branch_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+    ]);
+    userBranchPermissions = pgTable("user_branch_permissions", {
+      id: serial("id").primaryKey(),
+      GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+      tenantId: integer("tenantId").notNull(),
+      userId: integer("userId").notNull(),
+      branchId: integer("branchId").notNull(),
+      canView: boolean("canView").default(true).notNull(),
+      canInsert: boolean("canInsert").default(true).notNull(),
+      canApprove: boolean("canApprove").default(false).notNull(),
+      canPost: boolean("canPost").default(false).notNull(),
+      createdAt: timestamp("createdAt").defaultNow().notNull(),
+      updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+      // Sync columns
+      serverVersion: integer("serverVersion").default(1).notNull(),
+      lastSyncAt: timestamp("lastSyncAt"),
+      conflictState: varchar("conflictState", { length: 20 }).default("none"),
+      aggregateId: uuid("aggregateId")
+    }, (t2) => [
+      unique("userBranchPermissions_tenant_user_branch_unique").on(t2.tenantId, t2.userId, t2.branchId)
+    ]);
+    accounts = pgTable(
+      "accounts",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 50 }).notNull(),
+        name: varchar("name", { length: 255 }).notNull(),
+        type: accountTypeEnum("type").notNull(),
+        parentAccountId: integer("parentAccountId"),
+        category: varchar("category", { length: 100 }),
+        description: text("description"),
+        isActive: boolean("isActive").default(true).notNull(),
+        isCustom: boolean("isCustom").default(false).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_accounts_tenant").on(t2.tenantId),
+        index("idx_accounts_tenant_type").on(t2.tenantId, t2.type),
+        unique("accounts_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_account_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    transactions = pgTable(
+      "transactions",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        accountId: integer("accountId").notNull(),
+        branchId: integer("branchId"),
+        amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+        type: transactionTypeEnum("type").default("debit").notNull(),
+        transactionDate: timestamp("transactionDate").notNull(),
+        narration: varchar("narration", { length: 500 }),
+        notes: text("notes"),
+        lifecycleStatus: lifecycleStatusEnum("lifecycleStatus").default("saved").notNull(),
+        isReversed: boolean("isReversed").default(false).notNull(),
+        reversalReason: varchar("reversalReason", { length: 255 }),
+        referenceType: varchar("referenceType", { length: 50 }),
+        referenceId: integer("referenceId"),
+        journalEntryId: integer("journalEntryId"),
+        sourceModule: varchar("sourceModule", { length: 50 }),
+        userId: integer("userId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        // Financial constraints
+        currencyId: integer("currencyId").references(() => currencies.id),
+        exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
+        baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull()
+      },
+      (t2) => [
+        index("idx_transactions_tenant").on(t2.tenantId),
+        index("idx_transactions_account").on(t2.accountId),
+        index("idx_transactions_date").on(t2.transactionDate),
+        index("idx_transactions_branch").on(t2.branchId),
+        index("idx_transactions_reference").on(t2.referenceType, t2.referenceId),
+        index("idx_transactions_currency").on(t2.currencyId),
+        // PERFORMANCE: Composite indexes for frequently filtered queries
+        index("idx_transactions_tenant_status").on(t2.tenantId, t2.lifecycleStatus),
+        index("idx_transactions_tenant_reversed").on(t2.tenantId, t2.isReversed),
+        index("idx_transactions_tenant_date").on(t2.tenantId, t2.transactionDate),
+        index("idx_transactions_tenant_account_date").on(t2.tenantId, t2.accountId, t2.transactionDate),
+        check("chk_transaction_amount_not_negative", sql`${t2.amount} >= 0`),
+        check("chk_transaction_base_amount_not_negative", sql`${t2.baseAmount} >= 0`),
+        check("chk_transaction_exchange_rate_positive", sql`${t2.exchangeRate} > 0`),
+        check("chk_transaction_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
+        check("chk_transaction_account_not_null", sql`${t2.accountId} IS NOT NULL`)
+      ]
+    );
+    openingBalances = pgTable(
+      "opening_balances",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        accountId: integer("accountId").notNull(),
+        amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+        type: transactionTypeEnum("type").default("debit").notNull(),
+        notes: text("notes"),
+        periodName: varchar("periodName", { length: 50 }).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id),
+        exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
+        baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull()
+      },
+      (t2) => [
+        index("idx_openingBalances_tenant").on(t2.tenantId),
+        unique("openingBalances_account_period_tenant_unique").on(t2.accountId, t2.periodName, t2.tenantId),
+        check("chk_opening_balance_amount_not_negative", sql`${t2.amount} >= 0`),
+        check("chk_opening_balance_exchange_rate_positive", sql`${t2.exchangeRate} > 0`)
+      ]
+    );
+    budgets = pgTable(
+      "budgets",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        periodName: varchar("periodName", { length: 50 }).notNull(),
+        targetRevenue: decimal("targetRevenue", {
+          precision: 15,
+          scale: 2
+        }).notNull(),
+        targetExpense: decimal("targetExpense", {
+          precision: 15,
+          scale: 2
+        }).notNull(),
+        notes: text("notes"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_budgets_tenant").on(t2.tenantId),
+        unique("budgets_tenant_period_unique").on(t2.tenantId, t2.periodName),
+        check("chk_budget_revenue_not_negative", sql`${t2.targetRevenue} >= 0`),
+        check("chk_budget_expense_not_negative", sql`${t2.targetExpense} >= 0`)
+      ]
+    );
+    fiscalPeriodStatusEnum = pgEnum("fiscal_period_status", [
+      "open",
+      "closing",
+      "closed",
+      "reopened"
+    ]);
+    fiscalPeriods = pgTable(
+      "fiscal_periods",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        name: varchar("name", { length: 50 }).notNull(),
+        // e.g., "2026", "Q1-2026"
+        label: varchar("label", { length: 100 }),
+        // e.g., "السنة المالية 2026"
+        startDate: timestamp("startDate").notNull(),
+        endDate: timestamp("endDate").notNull(),
+        status: fiscalPeriodStatusEnum("status").default("open").notNull(),
+        closedAt: timestamp("closedAt"),
+        closedById: integer("closedById"),
+        reopenedAt: timestamp("reopenedAt"),
+        reopenedById: integer("reopenedById"),
+        reopenReason: varchar("reopenReason", { length: 255 }),
+        closingEntryId: integer("closingEntryId"),
+        // FK to journal_entries
+        retainedEarningsAccountId: integer("retainedEarningsAccountId"),
+        notes: text("notes"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_fiscal_periods_tenant").on(t2.tenantId),
+        index("idx_fiscal_periods_status").on(t2.status),
+        unique("fiscal_periods_tenant_name_unique").on(t2.tenantId, t2.name),
+        check("chk_fiscal_period_dates", sql`${t2.startDate} <= ${t2.endDate}`),
+        check("chk_fiscal_period_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    settings = pgTable("settings", {
+      id: serial("id").primaryKey(),
+      GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+      tenantId: integer("tenantId").notNull().unique(),
+      institutionName: varchar("institutionName", { length: 255 }).default("\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644").notNull(),
+      currency: varchar("currency", { length: 50 }).default("\u0631\u064A\u0627\u0644 \u064A\u0645\u0646\u064A (YER)").notNull(),
+      country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646").notNull(),
+      accountingPeriod: varchar("accountingPeriod", { length: 50 }).default("2026").notNull(),
+      managerName: varchar("managerName", { length: 255 }).default("\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629").notNull(),
+      notes: text("notes"),
+      subscriptionStatus: subscriptionStatusEnum("subscriptionStatus").default("trial").notNull(),
+      trialEndsAt: timestamp("trialEndsAt"),
+      // ─── POS / Sales configuration (stored as JSON text) ─────────────
+      posConfig: text("posConfig"),
+      salesPolicy: text("salesPolicy"),
+      paymentMethods: text("paymentMethods"),
+      postingRules: text("postingRules"),
+      // ─── ZATCA (Saudi e-invoicing) configuration ────────────────────
+      zatcaConfig: text("zatcaConfig"),
+      updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+      // Sync columns
+      serverVersion: integer("serverVersion").default(1).notNull(),
+      lastSyncAt: timestamp("lastSyncAt"),
+      conflictState: varchar("conflictState", { length: 20 }).default("none"),
+      aggregateId: uuid("aggregateId")
+    }, (t2) => [
+      check("chk_settings_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+    ]);
+    activityLogs = pgTable(
+      "activity_logs",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId"),
+        userId: integer("userId"),
+        sessionId: uuid("sessionId"),
+        userName: varchar("userName", { length: 255 }),
+        action: varchar("action", { length: 255 }).notNull(),
+        entityType: varchar("entityType", { length: 100 }),
+        entityId: integer("entityId"),
+        details: text("details"),
+        // Device & geo context
+        ipAddress: varchar("ipAddress", { length: 45 }),
+        userAgent: varchar("userAgent", { length: 500 }),
+        deviceId: integer("deviceId"),
+        deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
+        country: varchar("country", { length: 100 }),
+        city: varchar("city", { length: 120 }),
+        lat: decimal("lat", { precision: 10, scale: 7 }),
+        lng: decimal("lng", { precision: 10, scale: 7 }),
+        // Audit chain
+        previousHash: varchar("previousHash", { length: 64 }),
+        currentHash: varchar("currentHash", { length: 64 }).default("").notNull(),
+        chainSequence: integer("chainSequence").default(0).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull()
+      },
+      (t2) => [
+        index("idx_activityLogs_tenant").on(t2.tenantId),
+        index("idx_activityLogs_user").on(t2.userId),
+        index("idx_activityLogs_session").on(t2.sessionId),
+        index("idx_activityLogs_entity").on(t2.entityType, t2.entityId),
+        index("idx_activityLogs_created").on(t2.createdAt),
+        index("idx_activityLogs_chain").on(t2.tenantId, t2.chainSequence)
+      ]
+    );
+    productTypeEnum = pgEnum("product_type", ["goods", "service"]);
+    inventoryMovementTypeEnum = pgEnum("inventory_movement_type", [
+      "in",
+      "out",
+      "transfer",
+      "adjustment"
+    ]);
+    products = pgTable(
+      "products",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 50 }).notNull(),
+        name: varchar("name", { length: 255 }).notNull(),
+        nameAr: varchar("nameAr", { length: 255 }),
+        type: productTypeEnum("type").default("goods").notNull(),
+        category: varchar("category", { length: 100 }),
+        country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646"),
+        unit: varchar("unit", { length: 50 }).default("\u0642\u0637\u0639\u0629").notNull(),
+        purchasePrice: decimal("purchasePrice", { precision: 15, scale: 2 }).default("0").notNull(),
+        salePrice: decimal("salePrice", { precision: 15, scale: 2 }).default("0").notNull(),
+        wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 }).default("0").notNull(),
+        minStock: integer("minStock").default(0).notNull(),
+        currentStock: integer("currentStock").default(0).notNull(),
+        barcode: varchar("barcode", { length: 100 }),
+        supplierId: integer("supplierId"),
+        unitId: integer("unitId"),
+        categoryId: integer("categoryId"),
+        description: text("description"),
+        // Per-item account linkage (overrides tenant default posting rules)
+        salesAccountId: integer("salesAccountId"),
+        cogsAccountId: integer("cogsAccountId"),
+        inventoryAccountId: integer("inventoryAccountId"),
+        // ─── Inventory / unit flexibility ──────────────────────────────
+        unitOfMeasure: varchar("unitOfMeasure", { length: 50 }).default("\u0642\u0637\u0639\u0629").notNull(),
+        secondaryUnit: varchar("secondaryUnit", { length: 50 }),
+        conversionFactor: decimal("conversionFactor", { precision: 15, scale: 4 }).default("1").notNull(),
+        // ─── Composite / bundled items (Bill of Materials) ────────────
+        isComposite: boolean("isComposite").default(false).notNull(),
+        bom: text("bom"),
+        // JSON: [{ componentProductId, quantity }]
+        alternativeIds: text("alternativeIds"),
+        // JSON: number[]
+        attachmentUrl: text("attachmentUrl"),
+        // ─── Services costing & pricing ───────────────────────────────
+        costMethod: varchar("costMethod", { length: 30 }).default("average").notNull(),
+        directCost: decimal("directCost", { precision: 15, scale: 2 }).default("0").notNull(),
+        indirectCost: decimal("indirectCost", { precision: 15, scale: 2 }).default("0").notNull(),
+        productionMinutes: integer("productionMinutes"),
+        priceMode: varchar("priceMode", { length: 20 }).default("direct").notNull(),
+        // direct | costPlus
+        marginPct: decimal("marginPct", { precision: 6, scale: 2 }).default("0").notNull(),
+        isActive: boolean("isActive").default(true).notNull(),
+        // ─── Reorder automation (Module C) ─────────────────────────────
+        reorderPoint: decimal("reorderPoint", { precision: 15, scale: 2 }).default("0").notNull(),
+        reorderQty: decimal("reorderQty", { precision: 15, scale: 2 }).default("0").notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        deletedAt: timestamp("deleted_at"),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_products_tenant").on(t2.tenantId),
+        index("idx_products_tenant_deleted").on(t2.tenantId, t2.deletedAt),
+        index("idx_products_category").on(t2.category),
+        index("idx_products_supplier").on(t2.supplierId),
+        index("idx_products_currency").on(t2.currencyId),
+        unique("products_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_product_purchase_price_not_negative", sql`${t2.purchasePrice} >= 0`),
+        check("chk_product_sale_price_not_negative", sql`${t2.salePrice} >= 0`),
+        check("chk_product_wholesale_price_not_negative", sql`${t2.wholesalePrice} >= 0`),
+        check("chk_product_conversion_factor_positive", sql`${t2.conversionFactor} > 0`),
+        check("chk_product_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    warehouses = pgTable(
+      "warehouses",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 50 }).notNull(),
+        name: varchar("name", { length: 255 }).notNull(),
+        location: varchar("location", { length: 255 }),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_warehouses_tenant").on(t2.tenantId),
+        unique("warehouses_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_warehouse_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    workSites = pgTable(
+      "work_sites",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 50 }).notNull(),
+        name: varchar("name", { length: 255 }).notNull(),
+        address: text("address"),
+        lat: decimal("lat", { precision: 10, scale: 7 }),
+        lng: decimal("lng", { precision: 10, scale: 7 }),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_workSites_tenant").on(t2.tenantId),
+        unique("workSites_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_workSite_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    devices = pgTable(
+      "devices",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 50 }).notNull(),
+        name: varchar("name", { length: 255 }).notNull(),
+        type: varchar("type", { length: 30 }).default("pos").notNull(),
+        // pos | scanner | scale | other
+        workSiteId: integer("workSiteId"),
+        location: varchar("location", { length: 255 }),
+        lastSeenAt: timestamp("lastSeenAt"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        // Device fingerprinting
+        fingerprint: varchar("fingerprint", { length: 255 }).unique(),
+        os: varchar("os", { length: 100 }),
+        osVersion: varchar("osVersion", { length: 50 }),
+        appVersion: varchar("appVersion", { length: 50 }),
+        publicKey: text("publicKey")
+        // For device attestation
+      },
+      (t2) => [
+        index("idx_devices_tenant").on(t2.tenantId),
+        unique("devices_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_device_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    inventoryMovements = pgTable(
+      "inventory_movements",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        productId: integer("productId").notNull(),
+        warehouseId: integer("warehouseId"),
+        type: inventoryMovementTypeEnum("type").notNull(),
+        quantity: integer("quantity").notNull(),
+        referenceId: integer("referenceId"),
+        referenceType: varchar("referenceType", { length: 50 }),
+        notes: text("notes"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_inventoryMovements_tenant").on(t2.tenantId),
+        index("idx_inventoryMovements_product").on(t2.productId),
+        index("idx_inventoryMovements_warehouse").on(t2.warehouseId),
+        check("chk_inventory_movement_quantity_not_zero", sql`${t2.quantity} != 0`),
+        check("chk_inventory_movement_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    stockAdjustments = pgTable(
+      "stock_adjustments",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        ...govColumns(),
+        productId: integer("productId").notNull(),
+        warehouseId: integer("warehouseId"),
+        previousQty: integer("previousQty").notNull(),
+        newQty: integer("newQty").notNull(),
+        reason: varchar("reason", { length: 100 }).default("\u062A\u0633\u0648\u064A\u0629"),
+        notes: text("notes"),
+        userId: integer("userId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_stockAdjustments_tenant").on(t2.tenantId),
+        unique("stockAdjustments_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
+        check("chk_stock_adjustment_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    warehouseTransfers = pgTable(
+      "warehouse_transfers",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        ...govColumns(),
+        productId: integer("productId").notNull(),
+        fromWarehouseId: integer("fromWarehouseId").notNull(),
+        toWarehouseId: integer("toWarehouseId").notNull(),
+        quantity: integer("quantity").notNull(),
+        notes: text("notes"),
+        userId: integer("userId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_warehouseTransfers_tenant").on(t2.tenantId),
+        unique("warehouseTransfers_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
+        check("chk_warehouse_transfer_quantity_positive", sql`${t2.quantity} > 0`),
+        check("chk_warehouse_transfer_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
+        check("chk_warehouse_transfer_from_to_different", sql`${t2.fromWarehouseId} != ${t2.toWarehouseId}`)
+      ]
+    );
+    warehouseStock = pgTable(
+      "warehouse_stock",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        productId: integer("productId").notNull(),
+        warehouseId: integer("warehouseId").notNull(),
+        quantity: integer("quantity").default(0).notNull(),
+        reservedQty: integer("reservedQty").default(0).notNull(),
+        availableQty: integer("availableQty").default(0).notNull(),
+        lastMovementAt: timestamp("lastMovementAt"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_warehouseStock_tenant").on(t2.tenantId),
+        index("idx_warehouseStock_product").on(t2.productId),
+        index("idx_warehouseStock_warehouse").on(t2.warehouseId),
+        unique("warehouseStock_product_warehouse_tenant_unique").on(t2.productId, t2.warehouseId, t2.tenantId),
+        check("chk_warehouse_stock_qty_not_negative", sql`${t2.quantity} >= 0`),
+        check("chk_warehouse_stock_reserved_not_negative", sql`${t2.reservedQty} >= 0`),
+        check("chk_warehouse_stock_available_not_negative", sql`${t2.availableQty} >= 0`),
+        check("chk_warehouse_stock_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    batchTrackingMethodEnum = pgEnum("batch_tracking_method", [
+      "none",
+      "batch",
+      "lot",
+      "serial"
+    ]);
+    inventoryBatches = pgTable(
+      "inventory_batches",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        productId: integer("productId").notNull(),
+        warehouseId: integer("warehouseId").notNull(),
+        batchNumber: varchar("batchNumber", { length: 100 }).notNull(),
+        lotNumber: varchar("lotNumber", { length: 100 }),
+        serialNumber: varchar("serialNumber", { length: 100 }),
+        manufacturingDate: timestamp("manufacturingDate"),
+        expiryDate: timestamp("expiryDate"),
+        quantity: integer("quantity").default(0).notNull(),
+        reservedQty: integer("reservedQty").default(0).notNull(),
+        unitCost: decimal("unitCost", { precision: 15, scale: 4 }).default("0").notNull(),
+        purchaseInvoiceId: integer("purchaseInvoiceId"),
+        purchaseInvoiceItemId: integer("purchaseInvoiceItemId"),
+        notes: text("notes"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_inventoryBatches_tenant").on(t2.tenantId),
+        index("idx_inventoryBatches_product").on(t2.productId),
+        index("idx_inventoryBatches_warehouse").on(t2.warehouseId),
+        index("idx_inventoryBatches_expiry").on(t2.expiryDate),
+        index("idx_inventoryBatches_batchNumber").on(t2.batchNumber),
+        unique("inventoryBatches_product_warehouse_batch_tenant_unique").on(t2.productId, t2.warehouseId, t2.batchNumber, t2.tenantId),
+        check("chk_inventory_batch_qty_not_negative", sql`${t2.quantity} >= 0`),
+        check("chk_inventory_batch_reserved_not_negative", sql`${t2.reservedQty} >= 0`),
+        check("chk_inventory_batch_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    reservationStatusEnum = pgEnum("reservation_status", [
+      "active",
+      "fulfilled",
+      "released",
+      "expired"
+    ]);
+    reservationSourceEnum = pgEnum("reservation_source", [
+      "sales_order",
+      "purchase_order",
+      "production_order",
+      "transfer_order",
+      "manual"
+    ]);
+    stockReservations = pgTable(
+      "stock_reservations",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        productId: integer("productId").notNull(),
+        warehouseId: integer("warehouseId"),
+        batchId: integer("batchId"),
+        quantity: integer("quantity").notNull(),
+        status: reservationStatusEnum("status").default("active").notNull(),
+        source: reservationSourceEnum("source").default("manual").notNull(),
+        sourceId: integer("sourceId"),
+        sourceType: varchar("sourceType", { length: 50 }),
+        customerId: integer("customerId"),
+        expiresAt: timestamp("expiresAt"),
+        notes: text("notes"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        fulfilledAt: timestamp("fulfilledAt"),
+        releasedAt: timestamp("releasedAt"),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_stockReservations_tenant").on(t2.tenantId),
+        index("idx_stockReservations_product").on(t2.productId),
+        index("idx_stockReservations_warehouse").on(t2.warehouseId),
+        index("idx_stockReservations_batch").on(t2.batchId),
+        index("idx_stockReservations_status").on(t2.status),
+        index("idx_stockReservations_source").on(t2.source, t2.sourceId),
+        index("idx_stockReservations_expires").on(t2.expiresAt),
+        check("chk_stock_reservation_qty_positive", sql`${t2.quantity} > 0`),
+        check("chk_stock_reservation_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    cycleCountStatusEnum = pgEnum("cycle_count_status", [
+      "planned",
+      "in_progress",
+      "completed",
+      "cancelled",
+      "approved"
+    ]);
+    cycleCounts = pgTable(
+      "cycle_counts",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        ...govColumns(),
+        countNumber: varchar("countNumber", { length: 50 }).notNull(),
+        warehouseId: integer("warehouseId").notNull(),
+        status: cycleCountStatusEnum("status").default("planned").notNull(),
+        plannedDate: timestamp("plannedDate").notNull(),
+        startedAt: timestamp("startedAt"),
+        completedAt: timestamp("completedAt"),
+        approvedAt: timestamp("approvedAt"),
+        approvedById: integer("approvedById"),
+        assignedToId: integer("assignedToId"),
+        varianceThreshold: decimal("varianceThreshold", { precision: 5, scale: 2 }).default("5").notNull(),
+        notes: text("notes"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_cycleCounts_tenant").on(t2.tenantId),
+        index("idx_cycleCounts_warehouse").on(t2.warehouseId),
+        index("idx_cycleCounts_status").on(t2.status),
+        index("idx_cycleCounts_plannedDate").on(t2.plannedDate),
+        unique("cycleCounts_countNumber_tenant_unique").on(t2.countNumber, t2.tenantId),
+        check("chk_cycle_count_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    cycleCountLines = pgTable(
+      "cycle_count_lines",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        cycleCountId: integer("cycleCountId").notNull(),
+        productId: integer("productId").notNull(),
+        warehouseId: integer("warehouseId").notNull(),
+        batchId: integer("batchId"),
+        systemQty: integer("systemQty").default(0).notNull(),
+        countedQty: integer("countedQty"),
+        varianceQty: integer("varianceQty"),
+        variancePct: decimal("variancePct", { precision: 5, scale: 2 }),
+        varianceValue: decimal("varianceValue", { precision: 15, scale: 2 }),
+        unitCost: decimal("unitCost", { precision: 15, scale: 4 }),
+        status: varchar("status", { length: 20 }).default("pending"),
+        countedById: integer("countedById"),
+        countedAt: timestamp("countedAt"),
+        notes: text("notes"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_cycleCountLines_tenant").on(t2.tenantId),
+        index("idx_cycleCountLines_cycleCount").on(t2.cycleCountId),
+        index("idx_cycleCountLines_product").on(t2.productId),
+        unique("cycleCountLines_cycleCount_product_warehouse_batch_unique").on(t2.cycleCountId, t2.productId, t2.warehouseId, t2.batchId),
+        check("chk_cycle_count_line_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    inventoryValuationLayers = pgTable(
+      "inventory_valuation_layers",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        productId: integer("productId").notNull(),
+        warehouseId: integer("warehouseId"),
+        batchId: integer("batchId"),
+        layerDate: timestamp("layerDate").notNull(),
+        quantity: integer("quantity").notNull(),
+        remainingQty: integer("remainingQty").notNull(),
+        unitCost: decimal("unitCost", { precision: 15, scale: 4 }).notNull(),
+        totalCost: decimal("totalCost", { precision: 15, scale: 2 }).notNull(),
+        sourceType: varchar("sourceType", { length: 50 }).notNull(),
+        sourceId: integer("sourceId"),
+        referenceType: varchar("referenceType", { length: 50 }),
+        referenceId: integer("referenceId"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_valuationLayers_tenant").on(t2.tenantId),
+        index("idx_valuationLayers_product").on(t2.productId),
+        index("idx_valuationLayers_warehouse").on(t2.warehouseId),
+        index("idx_valuationLayers_batch").on(t2.batchId),
+        index("idx_valuationLayers_layerDate").on(t2.layerDate),
+        index("idx_valuationLayers_active").on(t2.isActive),
+        check("chk_valuation_layer_qty_positive", sql`${t2.quantity} > 0`),
+        check("chk_valuation_layer_remaining_not_negative", sql`${t2.remainingQty} >= 0`),
+        check("chk_valuation_layer_unit_cost_positive", sql`${t2.unitCost} > 0`),
+        check("chk_valuation_layer_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    customers = pgTable(
+      "customers",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 50 }).notNull(),
+        name: varchar("name", { length: 255 }).notNull(),
+        phone: varchar("phone", { length: 50 }),
+        email: varchar("email", { length: 255 }),
+        address: text("address"),
+        city: varchar("city", { length: 100 }),
+        taxNumber: varchar("taxNumber", { length: 100 }),
+        balance: decimal("balance", { precision: 15, scale: 2 }).default("0").notNull(),
+        creditLimit: decimal("creditLimit", { precision: 15, scale: 2 }).default("0").notNull(),
+        notes: text("notes"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        deletedAt: timestamp("deleted_at"),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_customers_tenant").on(t2.tenantId),
+        index("idx_customers_tenant_deleted").on(t2.tenantId, t2.deletedAt),
+        index("idx_customers_currency").on(t2.currencyId),
+        unique("customers_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_customer_credit_limit_not_negative", sql`${t2.creditLimit} >= 0`),
+        check("chk_customer_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    suppliers = pgTable(
+      "suppliers",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 50 }).notNull(),
+        name: varchar("name", { length: 255 }).notNull(),
+        phone: varchar("phone", { length: 50 }),
+        email: varchar("email", { length: 255 }),
+        address: text("address"),
+        city: varchar("city", { length: 100 }),
+        taxNumber: varchar("taxNumber", { length: 100 }),
+        balance: decimal("balance", { precision: 15, scale: 2 }).default("0").notNull(),
+        notes: text("notes"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        deletedAt: timestamp("deleted_at"),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_suppliers_tenant").on(t2.tenantId),
+        index("idx_suppliers_tenant_deleted").on(t2.tenantId, t2.deletedAt),
+        index("idx_suppliers_currency").on(t2.currencyId),
+        unique("suppliers_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_supplier_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    salesInvoiceStatusEnum = pgEnum("sales_invoice_status", [
+      "draft",
+      "confirmed",
+      "paid",
+      "partial",
+      "cancelled"
+    ]);
+    purchaseInvoiceStatusEnum = pgEnum("purchase_invoice_status", [
+      "draft",
+      "confirmed",
+      "paid",
+      "partial",
+      "cancelled"
+    ]);
+    orderStatusEnum = pgEnum("order_status", [
+      "pending",
+      "confirmed",
+      "processing",
+      "shipped",
+      "delivered",
+      "cancelled"
+    ]);
+    paymentMethodEnum = pgEnum("payment_method", [
+      "cash",
+      "card",
+      "transfer",
+      "credit",
+      "online",
+      // ─── وسائل الدفع المحلية (اليمن) ───
+      "cash_yer",
+      // كاش بالريال اليمني
+      "cash_sar",
+      // كاش بالريال السعودي
+      "hawala",
+      // حوالة (صرافة)
+      "shabab",
+      // شباب (أي شبكة محلية)
+      "mobile_money",
+      // محفظة إلكترونية (فليكسي / أمين)
+      "bank_transfer"
+      // حوالة بنكية محلية
+    ]);
+    salesInvoices = pgTable(
+      "sales_invoices",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        ...govColumns(),
+        invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
+        customerId: integer("customerId"),
+        branchId: integer("branchId"),
+        status: salesInvoiceStatusEnum("status").default("draft").notNull(),
+        subtotal: decimal("subtotal", { precision: 15, scale: 2 }).default("0").notNull(),
+        taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
+        taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+        total: decimal("total", { precision: 15, scale: 2 }).default("0").notNull(),
+        paidAmount: decimal("paidAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        paymentMethod: paymentMethodEnum("paymentMethod").default("cash"),
+        notes: text("notes"),
+        // ZATCA (Saudi e-invoicing) payload: { uuid, qrBase64, hash, stampedAt }
+        zatca: text("zatca"),
+        invoiceDate: timestamp("invoiceDate").defaultNow().notNull(),
+        dueDate: timestamp("dueDate"),
+        userId: integer("userId"),
+        // ─── Sales rep linkage (Module A: commissions) ────────────────
+        salesRepId: text("salesRepId"),
+        // ─── Multi-currency (Module B) ─────────────────────────────────
+        currency: varchar("currency", { length: 10 }).default("YER").notNull(),
+        currencyRate: decimal("currencyRate", { precision: 18, scale: 8 }).default("1").notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id),
+        // Posted/Reversed immutable tracking
+        postedAt: timestamp("postedAt"),
+        postedById: integer("postedById"),
+        reversedAt: timestamp("reversedAt"),
+        reversedById: integer("reversedById"),
+        reversalReason: varchar("reversalReason", { length: 255 })
+      },
+      (t2) => [
+        index("idx_salesInvoices_tenant").on(t2.tenantId),
+        index("idx_salesInvoices_customer").on(t2.customerId),
+        index("idx_salesInvoices_status").on(t2.status),
+        index("idx_salesInvoices_currency").on(t2.currencyId),
+        index("idx_salesInvoices_salesRep").on(t2.salesRepId),
+        index("idx_salesInvoices_tenant_salesrep").on(t2.tenantId, t2.salesRepId),
+        index("idx_salesInvoices_tenant_status_date").on(t2.tenantId, t2.status, t2.invoiceDate),
+        index("idx_salesInvoices_tenant_customer_date").on(t2.tenantId, t2.customerId, t2.invoiceDate),
+        unique("salesInvoices_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
+        check("chk_sales_invoice_subtotal_not_negative", sql`${t2.subtotal} >= 0`),
+        check("chk_sales_invoice_tax_rate_not_negative", sql`${t2.taxRate} >= 0`),
+        check("chk_sales_invoice_tax_amount_not_negative", sql`${t2.taxAmount} >= 0`),
+        check("chk_sales_invoice_discount_not_negative", sql`${t2.discount} >= 0`),
+        check("chk_sales_invoice_total_not_negative", sql`${t2.total} >= 0`),
+        check("chk_sales_invoice_paid_not_negative", sql`${t2.paidAmount} >= 0`),
+        check("chk_sales_invoice_currency_rate_positive", sql`${t2.currencyRate} > 0`),
+        check("chk_sales_invoice_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
+        check("chk_sales_invoice_status_posted_immutable", sql`
+      CASE WHEN ${t2.status} IN ('paid', 'cancelled') THEN
+        ${t2.postedAt} IS NOT NULL
       ELSE TRUE END
     `)
-  ]
-);
-var salesInvoiceItems = pgTable(
-  "sales_invoice_items",
-  {
-    id: serial("id").primaryKey(),
-    invoiceId: integer("invoiceId").notNull(),
-    productId: integer("productId").notNull(),
-    productName: varchar("productName", { length: 255 }).notNull(),
-    quantity: integer("quantity").notNull(),
-    unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
-    discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
-    total: decimal("total", { precision: 15, scale: 2 }).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
-  },
-  (t2) => [index("idx_sales_items_invoice").on(t2.invoiceId)]
-);
-var purchaseInvoices = pgTable(
-  "purchase_invoices",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    ...govColumns(),
-    invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
-    supplierId: integer("supplierId"),
-    branchId: integer("branchId"),
-    status: purchaseInvoiceStatusEnum("status").default("draft").notNull(),
-    subtotal: decimal("subtotal", { precision: 15, scale: 2 }).default("0").notNull(),
-    taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
-    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
-    total: decimal("total", { precision: 15, scale: 2 }).default("0").notNull(),
-    paidAmount: decimal("paidAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    paymentMethod: paymentMethodEnum("paymentMethod").default("cash"),
-    notes: text("notes"),
-    zatca: text("zatca"),
-    invoiceDate: timestamp("invoiceDate").defaultNow().notNull(),
-    dueDate: timestamp("dueDate"),
-    userId: integer("userId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    // Posted/Reversed immutable tracking
-    postedAt: timestamp("postedAt"),
-    postedById: integer("postedById"),
-    reversedAt: timestamp("reversedAt"),
-    reversedById: integer("reversedById"),
-    reversalReason: varchar("reversalReason", { length: 255 })
-  },
-  (t2) => [
-    index("idx_purchaseInvoices_tenant").on(t2.tenantId),
-    index("idx_purchaseInvoices_supplier").on(t2.supplierId),
-    index("idx_purchaseInvoices_status").on(t2.status),
-    index("idx_purchaseInvoices_currency").on(t2.currencyId),
-    unique("purchaseInvoices_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
-    check("chk_purchase_invoice_subtotal_not_negative", sql`${t2.subtotal} >= 0`),
-    check("chk_purchase_invoice_tax_rate_not_negative", sql`${t2.taxRate} >= 0`),
-    check("chk_purchase_invoice_tax_amount_not_negative", sql`${t2.taxAmount} >= 0`),
-    check("chk_purchase_invoice_discount_not_negative", sql`${t2.discount} >= 0`),
-    check("chk_purchase_invoice_total_not_negative", sql`${t2.total} >= 0`),
-    check("chk_purchase_invoice_paid_not_negative", sql`${t2.paidAmount} >= 0`),
-    check("chk_purchase_invoice_exchange_rate_positive", sql`${t2.exchangeRate} > 0`),
-    check("chk_purchase_invoice_base_amount_not_negative", sql`${t2.baseAmount} >= 0`),
-    check("chk_purchase_invoice_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var purchaseInvoiceItems = pgTable(
-  "purchase_invoice_items",
-  {
-    id: serial("id").primaryKey(),
-    invoiceId: integer("invoiceId").notNull(),
-    productId: integer("productId").notNull(),
-    productName: varchar("productName", { length: 255 }).notNull(),
-    quantity: integer("quantity").notNull(),
-    unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
-    discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
-    total: decimal("total", { precision: 15, scale: 2 }).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
-  },
-  (t2) => [index("idx_purchase_items_invoice").on(t2.invoiceId)]
-);
-var orders = pgTable(
-  "orders",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    ...govColumns(),
-    orderNumber: varchar("orderNumber", { length: 50 }).notNull().unique(),
-    customerId: integer("customerId"),
-    status: orderStatusEnum("status").default("pending").notNull(),
-    total: decimal("total", { precision: 15, scale: 2 }).default("0").notNull(),
-    deliveryAddress: text("deliveryAddress"),
-    deliveryDate: timestamp("deliveryDate"),
-    deliveryNotes: text("deliveryNotes"),
-    assignedTo: varchar("assignedTo", { length: 255 }),
-    userId: integer("userId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_orders_tenant").on(t2.tenantId),
-    index("idx_orders_customer").on(t2.customerId),
-    index("idx_orders_status").on(t2.status),
-    index("idx_orders_currency").on(t2.currencyId),
-    unique("orders_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
-    check("chk_order_total_not_negative", sql`${t2.total} >= 0`),
-    check("chk_order_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var orderItems = pgTable(
-  "order_items",
-  {
-    id: serial("id").primaryKey(),
-    orderId: integer("orderId").notNull(),
-    productId: integer("productId").notNull(),
-    productName: varchar("productName", { length: 255 }).notNull(),
-    quantity: integer("quantity").notNull(),
-    unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
-    total: decimal("total", { precision: 15, scale: 2 }).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
-  },
-  (t2) => [index("idx_order_items_order").on(t2.orderId)]
-);
-var paymentSourceEnum = pgEnum("payment_source", [
-  "sales",
-  "purchases"
-]);
-var payments = pgTable(
-  "payments",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    source: paymentSourceEnum("source").notNull(),
-    invoiceId: integer("invoiceId").notNull(),
-    amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-    paymentMethod: paymentMethodEnum("paymentMethod").default("cash"),
-    paymentDate: timestamp("paymentDate").defaultNow().notNull(),
-    notes: text("notes"),
-    userId: integer("userId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull()
-  },
-  (t2) => [
-    index("idx_payments_tenant").on(t2.tenantId),
-    index("idx_payments_invoice").on(t2.source, t2.invoiceId),
-    index("idx_payments_currency").on(t2.currencyId),
-    check("chk_payment_amount_positive", sql`${t2.amount} > 0`),
-    check("chk_payment_base_amount_positive", sql`${t2.baseAmount} >= 0`),
-    check("chk_payment_exchange_rate_positive", sql`${t2.exchangeRate} > 0`),
-    check("chk_payment_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var subscriptionPlans = pgTable("subscription_plans", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  name: varchar("name", { length: 100 }).notNull(),
-  code: varchar("code", { length: 50 }).notNull().unique(),
-  description: text("description"),
-  priceMonthly: decimal("priceMonthly", { precision: 10, scale: 2 }).notNull(),
-  priceYearly: decimal("priceYearly", { precision: 10, scale: 2 }).notNull(),
-  currency: varchar("currency", { length: 10 }).default("USD").notNull(),
-  maxUsers: integer("maxUsers").default(5).notNull(),
-  maxBranches: integer("maxBranches").default(1).notNull(),
-  maxTransactions: integer("maxTransactions").default(1e3).notNull(),
-  features: jsonb("features"),
-  isActive: boolean("isActive").default(true).notNull(),
-  sortOrder: integer("sortOrder").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t2) => [
-  check("chk_subscription_plan_price_monthly_positive", sql`${t2.priceMonthly} > 0`),
-  check("chk_subscription_plan_price_yearly_positive", sql`${t2.priceYearly} > 0`),
-  check("chk_subscription_plan_currency_format", sql`${t2.currency} ~ '^[A-Z]{3}$'`)
-]);
-var tenantSubscriptions = pgTable(
-  "tenant_subscriptions",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    planId: integer("planId").notNull(),
-    status: varchar("status", { length: 20 }).notNull(),
-    billingCycle: varchar("billingCycle", { length: 10 }).default("monthly").notNull(),
-    trialStartsAt: timestamp("trialStartsAt"),
-    trialEndsAt: timestamp("trialEndsAt"),
-    currentPeriodStart: timestamp("currentPeriodStart"),
-    currentPeriodEnd: timestamp("currentPeriodEnd"),
-    cancelAt: timestamp("cancelAt"),
-    cancelledAt: timestamp("cancelledAt"),
-    paymentProvider: varchar("paymentProvider", { length: 50 }),
-    externalSubscriptionId: varchar("externalSubscriptionId", { length: 255 }),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_tenant_sub_tenant").on(t2.tenantId),
-    index("idx_tenant_sub_status").on(t2.status),
-    index("idx_tenant_sub_currency").on(t2.currencyId),
-    check("chk_tenant_sub_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var billingInvoices = pgTable(
-  "billing_invoices",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    subscriptionId: integer("subscriptionId"),
-    invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
-    status: varchar("status", { length: 20 }).notNull(),
-    subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-    taxAmount: decimal("taxAmount", { precision: 10, scale: 2 }).default("0").notNull(),
-    total: decimal("total", { precision: 10, scale: 2 }).notNull(),
-    currency: varchar("currency", { length: 10 }).default("USD").notNull(),
-    dueDate: timestamp("dueDate").notNull(),
-    paidAt: timestamp("paidAt"),
-    paymentMethod: varchar("paymentMethod", { length: 50 }),
-    externalPaymentId: varchar("externalPaymentId", { length: 255 }),
-    notes: text("notes"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_billing_invoice_tenant").on(t2.tenantId),
-    index("idx_billing_invoice_status").on(t2.status),
-    index("idx_billing_invoice_currency").on(t2.currencyId),
-    check("chk_billing_invoice_subtotal_not_negative", sql`${t2.subtotal} >= 0`),
-    check("chk_billing_invoice_tax_not_negative", sql`${t2.taxAmount} >= 0`),
-    check("chk_billing_invoice_total_not_negative", sql`${t2.total} >= 0`),
-    check("chk_billing_invoice_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var paymentHistory = pgTable(
-  "payment_history",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    invoiceId: integer("invoiceId"),
-    amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
-    currency: varchar("currency", { length: 10 }).default("USD").notNull(),
-    status: varchar("status", { length: 20 }).notNull(),
-    paymentMethod: varchar("paymentMethod", { length: 50 }),
-    transactionId: varchar("transactionId", { length: 255 }),
-    refundedAmount: decimal("refundedAmount", {
-      precision: 10,
-      scale: 2
-    }).default("0"),
-    notes: text("notes"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_payment_history_tenant").on(t2.tenantId),
-    index("idx_payment_history_invoice").on(t2.invoiceId),
-    index("idx_payment_history_currency").on(t2.currencyId),
-    check("chk_payment_history_amount_positive", sql`${t2.amount} > 0`),
-    check("chk_payment_history_refund_not_negative", sql`${t2.refundedAmount} >= 0`),
-    check("chk_payment_history_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var auditLogs = pgTable(
-  "audit_logs",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    userId: integer("userId"),
-    sessionId: uuid("sessionId"),
-    action: varchar("action", { length: 100 }).notNull(),
-    entityType: varchar("entityType", { length: 100 }).notNull(),
-    entityId: integer("entityId").notNull(),
-    entityGlobalId: uuid("entityGlobalId"),
-    oldValues: jsonb("oldValues"),
-    newValues: jsonb("newValues"),
-    // Device & geo context
-    ipAddress: varchar("ipAddress", { length: 45 }),
-    userAgent: varchar("userAgent", { length: 500 }),
-    deviceId: integer("deviceId"),
-    deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
-    country: varchar("country", { length: 100 }),
-    city: varchar("city", { length: 120 }),
-    lat: decimal("lat", { precision: 10, scale: 7 }),
-    lng: decimal("lng", { precision: 10, scale: 7 }),
-    // Audit chain
-    previousHash: varchar("previousHash", { length: 64 }),
-    currentHash: varchar("currentHash", { length: 64 }).default("").notNull(),
-    chainSequence: integer("chainSequence").default(0).notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
-  },
-  (t2) => [
-    index("idx_audit_logs_tenant").on(t2.tenantId),
-    index("idx_audit_logs_user").on(t2.userId),
-    index("idx_audit_logs_session").on(t2.sessionId),
-    index("idx_audit_logs_entity").on(t2.entityType, t2.entityId),
-    index("idx_audit_logs_entity_global").on(t2.entityGlobalId),
-    index("idx_audit_logs_created").on(t2.createdAt),
-    index("idx_audit_logs_chain").on(t2.tenantId, t2.chainSequence),
-    check("chk_audit_log_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var notifications = pgTable(
-  "notifications",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId"),
-    userId: integer("userId"),
-    type: varchar("type", { length: 50 }).notNull(),
-    channel: varchar("channel", { length: 50 }).notNull(),
-    subject: varchar("subject", { length: 255 }).notNull(),
-    body: text("body").notNull(),
-    status: varchar("status", { length: 20 }).notNull(),
-    sentAt: timestamp("sentAt"),
-    readAt: timestamp("readAt"),
-    metadata: jsonb("metadata"),
-    errorMessage: text("errorMessage"),
-    retryCount: integer("retryCount").default(0).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_notifications_tenant").on(t2.tenantId),
-    index("idx_notifications_user").on(t2.userId),
-    index("idx_notifications_status").on(t2.status)
-  ]
-);
-var teamInvitations = pgTable(
-  "team_invitations",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    email: varchar("email", { length: 255 }).notNull(),
-    role: userRoleEnum("role").default("user").notNull(),
-    invitedBy: integer("invitedBy").notNull(),
-    token: varchar("token", { length: 255 }).notNull().unique(),
-    status: varchar("status", { length: 20 }).default("pending").notNull(),
-    expiresAt: timestamp("expiresAt").notNull(),
-    acceptedAt: timestamp("acceptedAt"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_team_inv_tenant").on(t2.tenantId),
-    index("idx_team_inv_email").on(t2.email),
-    check("chk_team_invitation_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var currencies = pgTable("currencies", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId"),
-  code: varchar("code", { length: 10 }).notNull().unique(),
-  name: varchar("name", { length: 100 }).notNull(),
-  symbol: varchar("symbol", { length: 10 }).notNull(),
-  rate: decimal("rate", { precision: 18, scale: 8 }).default("1").notNull(),
-  isDefault: boolean("isDefault").default(false).notNull(),
-  decimalPlaces: integer("decimalPlaces").default(2).notNull(),
-  isActive: boolean("isActive").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t2) => [
-  index("idx_currencies_tenant").on(t2.tenantId),
-  check("chk_currency_rate_positive", sql`${t2.rate} > 0`),
-  check("chk_currency_code_format", sql`${t2.code} ~ '^[A-Z]{3}$'`)
-]);
-var exchangeRates = pgTable(
-  "exchange_rates",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    baseCurrency: varchar("baseCurrency", { length: 10 }).notNull(),
-    quoteCurrency: varchar("quoteCurrency", { length: 10 }).notNull(),
-    rate: decimal("rate", { precision: 18, scale: 8 }).notNull(),
-    source: varchar("source", { length: 50 }),
-    effectiveFrom: timestamp("effectiveFrom").notNull(),
-    effectiveTo: timestamp("effectiveTo"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_exchange_rates_pair").on(t2.baseCurrency, t2.quoteCurrency),
-    index("idx_exchange_rates_effective").on(t2.effectiveFrom),
-    unique("exchange_rates_pair_effective_unique").on(t2.baseCurrency, t2.quoteCurrency, t2.effectiveFrom),
-    check("chk_exchange_rate_positive", sql`${t2.rate} > 0`)
-  ]
-);
-var fileUploads = pgTable(
-  "file_uploads",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId"),
-    userId: integer("userId"),
-    fileName: varchar("fileName", { length: 255 }).notNull(),
-    originalName: varchar("originalName", { length: 255 }).notNull(),
-    mimeType: varchar("mimeType", { length: 100 }).notNull(),
-    fileSize: integer("fileSize").notNull(),
-    storageKey: varchar("storageKey", { length: 500 }).notNull(),
-    storageProvider: varchar("storageProvider", { length: 50 }).default("s3").notNull(),
-    url: varchar("url", { length: 500 }).notNull(),
-    entityType: varchar("entityType", { length: 50 }),
-    entityId: integer("entityId"),
-    folder: varchar("folder", { length: 200 }),
-    isPublic: boolean("isPublic").default(false).notNull(),
-    metadata: jsonb("metadata"),
-    deletedAt: timestamp("deletedAt"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    // Security & integrity
-    sha256Hash: varchar("sha256Hash", { length: 64 }).default("").notNull(),
-    md5Hash: varchar("md5Hash", { length: 32 }),
-    isEncrypted: boolean("isEncrypted").default(false).notNull(),
-    encryptionKeyId: varchar("encryptionKeyId", { length: 100 }),
-    encryptionAlgorithm: varchar("encryptionAlgorithm", { length: 50 }),
-    // Device & geo context
-    deviceId: integer("deviceId"),
-    deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
-    ipAddress: varchar("ipAddress", { length: 45 }),
-    country: varchar("country", { length: 100 }),
-    city: varchar("city", { length: 120 }),
-    lat: decimal("lat", { precision: 10, scale: 7 }),
-    lng: decimal("lng", { precision: 10, scale: 7 }),
-    // Retention
-    retentionPolicy: varchar("retentionPolicy", { length: 50 }).default("standard"),
-    retentionExpiresAt: timestamp("retentionExpiresAt"),
-    legalHold: boolean("legalHold").default(false).notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_file_uploads_tenant").on(t2.tenantId),
-    index("idx_file_uploads_entity").on(t2.entityType, t2.entityId),
-    index("idx_file_uploads_hash").on(t2.sha256Hash),
-    index("idx_file_uploads_retention").on(t2.retentionExpiresAt),
-    check("chk_file_upload_size_positive", sql`${t2.fileSize} > 0`)
-  ]
-);
-var apiKeys = pgTable(
-  "api_keys",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    userId: integer("userId").notNull(),
-    name: varchar("name", { length: 100 }).notNull(),
-    keyHash: varchar("keyHash", { length: 255 }).notNull().unique(),
-    keyPrefix: varchar("keyPrefix", { length: 20 }).notNull(),
-    scopes: jsonb("scopes"),
-    rateLimit: integer("rateLimit").default(1e3).notNull(),
-    expiresAt: timestamp("expiresAt"),
-    lastUsedAt: timestamp("lastUsedAt"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_api_keys_tenant").on(t2.tenantId),
-    check("chk_api_key_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var webhooks = pgTable(
-  "webhooks",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    url: varchar("url", { length: 500 }).notNull(),
-    secret: varchar("secret", { length: 255 }).notNull(),
-    events: jsonb("events").notNull(),
-    isActive: boolean("isActive").default(true).notNull(),
-    lastTriggeredAt: timestamp("lastTriggeredAt"),
-    failureCount: integer("failureCount").default(0).notNull(),
-    metadata: jsonb("metadata"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_webhooks_tenant").on(t2.tenantId),
-    check("chk_webhook_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var webhookDeliveries = pgTable(
-  "webhook_deliveries",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    webhookId: integer("webhookId").notNull(),
-    event: varchar("event", { length: 100 }).notNull(),
-    payload: jsonb("payload").notNull(),
-    responseStatus: integer("responseStatus"),
-    responseBody: text("responseBody"),
-    deliveredAt: timestamp("deliveredAt"),
-    success: boolean("success").default(false).notNull(),
-    attemptCount: integer("attemptCount").default(1).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_webhook_deliveries_webhook").on(t2.webhookId),
-    index("idx_webhook_deliveries_created").on(t2.createdAt)
-  ]
-);
-var featureFlags = pgTable(
-  "feature_flags",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId"),
-    key: varchar("key", { length: 100 }).notNull(),
-    value: varchar("value", { length: 255 }).notNull(),
-    description: text("description"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_feature_flags_tenant_key").on(t2.tenantId, t2.key),
-    unique("feature_flags_tenant_key_unique").on(t2.tenantId, t2.key)
-  ]
-);
-var employeeStatusEnum = pgEnum("employee_status", [
-  "active",
-  "on_leave",
-  "terminated"
-]);
-var projectStatusEnum = pgEnum("project_status", [
-  "planning",
-  "active",
-  "on_hold",
-  "completed",
-  "cancelled"
-]);
-var taskStatusEnum = pgEnum("task_status", [
-  "todo",
-  "in_progress",
-  "review",
-  "done"
-]);
-var taskPriorityEnum = pgEnum("task_priority", [
-  "low",
-  "medium",
-  "high",
-  "urgent"
-]);
-var requisitionStatusEnum = pgEnum("requisition_status", [
-  "draft",
-  "pending",
-  "approved",
-  "rejected",
-  "ordered",
-  "received"
-]);
-var approvalDecisionEnum = pgEnum("approval_decision", [
-  "pending",
-  "approved",
-  "rejected"
-]);
-var ticketStatusEnum = pgEnum("ticket_status", [
-  "open",
-  "in_progress",
-  "resolved",
-  "closed"
-]);
-var ticketPriorityEnum = pgEnum("ticket_priority", [
-  "low",
-  "medium",
-  "high",
-  "urgent"
-]);
-var inspectionResultEnum = pgEnum("inspection_result", [
-  "pass",
-  "fail",
-  "conditional"
-]);
-var attendanceStatusEnum = pgEnum("attendance_status", [
-  "present",
-  "absent",
-  "late",
-  "leave"
-]);
-var payrollStatusEnum = pgEnum("payroll_status", [
-  "draft",
-  "processed",
-  "paid"
-]);
-var departments = pgTable(
-  "departments",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 30 }).notNull(),
-    name: varchar("name", { length: 150 }).notNull(),
-    managerId: integer("managerId"),
-    parentDepartmentId: integer("parentDepartmentId"),
-    costCenter: varchar("costCenter", { length: 50 }),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    deletedAt: timestamp("deleted_at"),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_departments_tenant").on(t2.tenantId),
-    uniqueIndex("uq_departments_tenant_code").on(t2.tenantId, t2.code),
-    check("chk_department_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var employees = pgTable(
-  "employees",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 30 }).notNull(),
-    userId: integer("userId"),
-    departmentId: integer("departmentId"),
-    fullName: varchar("fullName", { length: 150 }).notNull(),
-    jobTitle: varchar("jobTitle", { length: 120 }).notNull(),
-    nationalId: varchar("nationalId", { length: 40 }),
-    phone: varchar("phone", { length: 30 }),
-    email: varchar("email", { length: 150 }),
-    hireDate: timestamp("hireDate"),
-    salary: decimal("salary", { precision: 15, scale: 2 }).default("0").notNull(),
-    currency: varchar("currency", { length: 10 }).default("YER"),
-    status: employeeStatusEnum("status").default("active").notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    deletedAt: timestamp("deleted_at"),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_employees_tenant").on(t2.tenantId),
-    index("idx_employees_currency").on(t2.currencyId),
-    uniqueIndex("uq_employees_tenant_code").on(t2.tenantId, t2.code),
-    check("chk_employee_salary_not_negative", sql`${t2.salary} >= 0`),
-    check("chk_employee_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var attendance = pgTable(
-  "attendance",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    employeeId: integer("employeeId").notNull(),
-    date: timestamp("date").notNull(),
-    checkIn: timestamp("checkIn"),
-    checkOut: timestamp("checkOut"),
-    status: attendanceStatusEnum("status").default("present").notNull(),
-    note: text("note"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    deviceId: integer("deviceId"),
-    ipAddress: varchar("ipAddress", { length: 45 }),
-    lat: decimal("lat", { precision: 10, scale: 7 }),
-    lng: decimal("lng", { precision: 10, scale: 7 })
-  },
-  (t2) => [
-    index("idx_attendance_tenant").on(t2.tenantId),
-    index("idx_attendance_employee").on(t2.employeeId),
-    index("idx_attendance_date").on(t2.date),
-    unique("attendance_employee_date_unique").on(t2.employeeId, t2.date),
-    check("chk_attendance_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var payrollRuns = pgTable(
-  "payroll_runs",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    periodName: varchar("periodName", { length: 40 }).notNull(),
-    fromDate: timestamp("fromDate").notNull(),
-    toDate: timestamp("toDate").notNull(),
-    totalNet: decimal("totalNet", { precision: 15, scale: 2 }).default("0").notNull(),
-    status: payrollStatusEnum("status").default("draft").notNull(),
-    createdById: integer("createdById"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_payroll_runs_tenant").on(t2.tenantId),
-    unique("payroll_runs_tenant_period_unique").on(t2.tenantId, t2.periodName),
-    check("chk_payroll_run_total_not_negative", sql`${t2.totalNet} >= 0`),
-    check("chk_payroll_run_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var payrollItems = pgTable(
-  "payroll_items",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    payrollRunId: integer("payrollRunId").notNull(),
-    employeeId: integer("employeeId").notNull(),
-    basicSalary: decimal("basicSalary", { precision: 15, scale: 2 }).default("0").notNull(),
-    deductions: decimal("deductions", { precision: 15, scale: 2 }).default("0").notNull(),
-    net: decimal("net", { precision: 15, scale: 2 }).default("0").notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_payroll_items_tenant").on(t2.tenantId),
-    index("idx_payroll_items_run").on(t2.payrollRunId),
-    index("idx_payroll_items_employee").on(t2.employeeId),
-    unique("payroll_items_run_employee_unique").on(t2.payrollRunId, t2.employeeId),
-    check("chk_payroll_item_basic_not_negative", sql`${t2.basicSalary} >= 0`),
-    check("chk_payroll_item_deductions_not_negative", sql`${t2.deductions} >= 0`),
-    check("chk_payroll_item_net_not_negative", sql`${t2.net} >= 0`),
-    check("chk_payroll_item_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var projects = pgTable(
-  "projects",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 30 }).notNull(),
-    name: varchar("name", { length: 200 }).notNull(),
-    description: text("description"),
-    status: projectStatusEnum("status").default("planning").notNull(),
-    startDate: timestamp("startDate"),
-    endDate: timestamp("endDate"),
-    budget: decimal("budget", { precision: 15, scale: 2 }).default("0").notNull(),
-    managerId: integer("managerId"),
-    customerId: integer("customerId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_projects_tenant").on(t2.tenantId),
-    index("idx_projects_currency").on(t2.currencyId),
-    uniqueIndex("uq_projects_tenant_code").on(t2.tenantId, t2.code),
-    check("chk_project_budget_not_negative", sql`${t2.budget} >= 0`),
-    check("chk_project_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var projectTasks = pgTable(
-  "project_tasks",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    projectId: integer("projectId").notNull(),
-    title: varchar("title", { length: 200 }).notNull(),
-    description: text("description"),
-    status: taskStatusEnum("status").default("todo").notNull(),
-    priority: taskPriorityEnum("priority").default("medium").notNull(),
-    assigneeId: integer("assigneeId"),
-    dueDate: timestamp("dueDate"),
-    estimatedHours: decimal("estimatedHours", { precision: 8, scale: 2 }),
-    actualHours: decimal("actualHours", { precision: 8, scale: 2 }),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_project_tasks_tenant").on(t2.tenantId),
-    index("idx_project_tasks_project").on(t2.projectId),
-    index("idx_project_tasks_assignee").on(t2.assigneeId),
-    check("chk_project_task_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var projectMembers = pgTable(
-  "project_members",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    projectId: integer("projectId").notNull(),
-    employeeId: integer("employeeId").notNull(),
-    roleInProject: varchar("roleInProject", { length: 80 }),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_project_members_tenant").on(t2.tenantId),
-    index("idx_project_members_project").on(t2.projectId),
-    index("idx_project_members_employee").on(t2.employeeId),
-    unique("project_members_project_employee_unique").on(t2.projectId, t2.employeeId),
-    check("chk_project_member_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var procurements = pgTable(
-  "procurements",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    requisitionNumber: varchar("requisitionNumber", { length: 40 }).notNull(),
-    requestedById: integer("requestedById"),
-    departmentId: integer("departmentId"),
-    itemName: varchar("itemName", { length: 200 }).notNull(),
-    description: text("description"),
-    quantity: decimal("quantity", { precision: 12, scale: 2 }).default("1").notNull(),
-    unit: varchar("unit", { length: 20 }).default("\u0642\u0637\u0639\u0629"),
-    estimatedCost: decimal("estimatedCost", { precision: 15, scale: 2 }).default("0").notNull(),
-    currency: varchar("currency", { length: 10 }).default("YER"),
-    supplierId: integer("supplierId"),
-    status: requisitionStatusEnum("status").default("draft").notNull(),
-    approvedById: integer("approvedById"),
-    // ─── Multi-step approval workflow (Module A) ─────────────────────
-    approvers: jsonb("approvers"),
-    // ordered array of userIds
-    approvalStep: integer("approvalStep").default(0).notNull(),
-    approvalLog: jsonb("approvalLog"),
-    // [{ by, at, action, note }]
-    receivedCost: decimal("receivedCost", { precision: 15, scale: 2 }),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_procurements_tenant").on(t2.tenantId),
-    index("idx_procurements_currency").on(t2.currencyId),
-    uniqueIndex("uq_procurements_tenant_req").on(
-      t2.tenantId,
-      t2.requisitionNumber
-    ),
-    check("chk_procurement_quantity_positive", sql`${t2.quantity} > 0`),
-    check("chk_procurement_estimated_cost_not_negative", sql`${t2.estimatedCost} >= 0`),
-    check("chk_procurement_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var procurementApprovals = pgTable(
-  "procurement_approvals",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    procurementId: integer("procurementId").notNull(),
-    approverId: integer("approverId"),
-    level: integer("level").default(1).notNull(),
-    decision: approvalDecisionEnum("decision").default("pending").notNull(),
-    note: text("note"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_procurement_approvals_tenant").on(t2.tenantId),
-    index("idx_procurement_approvals_proc").on(t2.procurementId),
-    unique("procurement_approvals_proc_level_unique").on(t2.procurementId, t2.level),
-    check("chk_procurement_approval_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var tickets = pgTable(
-  "tickets",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    ticketNumber: varchar("ticketNumber", { length: 40 }).notNull(),
-    subject: varchar("subject", { length: 200 }).notNull(),
-    description: text("description"),
-    customerName: varchar("customerName", { length: 150 }),
-    customerPhone: varchar("customerPhone", { length: 30 }),
-    status: ticketStatusEnum("status").default("open").notNull(),
-    priority: ticketPriorityEnum("priority").default("medium").notNull(),
-    assignedToId: integer("assignedToId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_tickets_tenant").on(t2.tenantId),
-    index("idx_tickets_assigned").on(t2.assignedToId),
-    uniqueIndex("uq_tickets_tenant_num").on(t2.tenantId, t2.ticketNumber),
-    check("chk_ticket_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var qualityInspections = pgTable(
-  "quality_inspections",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 40 }).notNull(),
-    title: varchar("title", { length: 200 }).notNull(),
-    type: varchar("type", { length: 80 }),
-    result: inspectionResultEnum("result").default("pass").notNull(),
-    inspectedById: integer("inspectedById"),
-    relatedEntity: varchar("relatedEntity", { length: 120 }),
-    score: decimal("score", { precision: 6, scale: 2 }),
-    note: text("note"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_quality_inspections_tenant").on(t2.tenantId),
-    uniqueIndex("uq_quality_tenant_code").on(t2.tenantId, t2.code),
-    check("chk_quality_score_range", sql`${t2.score} IS NULL OR (${t2.score} >= 0 AND ${t2.score} <= 100)`),
-    check("chk_quality_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var journalEntries = pgTable(
-  "journal_entries",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    branchId: integer("branchId"),
-    sourceModule: varchar("sourceModule", { length: 50 }),
-    sourceRefType: varchar("sourceRefType", { length: 50 }),
-    sourceRefId: integer("sourceRefId"),
-    referenceNo: varchar("referenceNo", { length: 80 }),
-    status: varchar("status", { length: 20 }).default("posted").notNull(),
-    totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).default("0"),
-    memo: text("memo"),
-    createdById: integer("createdById"),
-    postedAt: timestamp("postedAt"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id),
-    // Immutable once posted
-    isImmutable: boolean("isImmutable").default(false).notNull()
-  },
-  (t2) => [
-    index("idx_journal_tenant").on(t2.tenantId),
-    index("idx_journal_source").on(t2.sourceModule, t2.sourceRefId),
-    index("idx_journal_currency").on(t2.currencyId),
-    check("chk_journal_total_not_negative", sql`${t2.totalAmount} >= 0`),
-    check("chk_journal_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
-    check("chk_journal_immutable_posted", sql`
+      ]
+    );
+    salesInvoiceItems = pgTable(
+      "sales_invoice_items",
+      {
+        id: serial("id").primaryKey(),
+        invoiceId: integer("invoiceId").notNull(),
+        productId: integer("productId").notNull(),
+        productName: varchar("productName", { length: 255 }).notNull(),
+        quantity: integer("quantity").notNull(),
+        unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
+        discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+        total: decimal("total", { precision: 15, scale: 2 }).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull()
+      },
+      (t2) => [index("idx_sales_items_invoice").on(t2.invoiceId)]
+    );
+    purchaseInvoices = pgTable(
+      "purchase_invoices",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        ...govColumns(),
+        invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
+        supplierId: integer("supplierId"),
+        branchId: integer("branchId"),
+        status: purchaseInvoiceStatusEnum("status").default("draft").notNull(),
+        subtotal: decimal("subtotal", { precision: 15, scale: 2 }).default("0").notNull(),
+        taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
+        taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+        total: decimal("total", { precision: 15, scale: 2 }).default("0").notNull(),
+        paidAmount: decimal("paidAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        paymentMethod: paymentMethodEnum("paymentMethod").default("cash"),
+        notes: text("notes"),
+        zatca: text("zatca"),
+        invoiceDate: timestamp("invoiceDate").defaultNow().notNull(),
+        dueDate: timestamp("dueDate"),
+        userId: integer("userId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id),
+        exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
+        baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        // Posted/Reversed immutable tracking
+        postedAt: timestamp("postedAt"),
+        postedById: integer("postedById"),
+        reversedAt: timestamp("reversedAt"),
+        reversedById: integer("reversedById"),
+        reversalReason: varchar("reversalReason", { length: 255 })
+      },
+      (t2) => [
+        index("idx_purchaseInvoices_tenant").on(t2.tenantId),
+        index("idx_purchaseInvoices_supplier").on(t2.supplierId),
+        index("idx_purchaseInvoices_status").on(t2.status),
+        index("idx_purchaseInvoices_currency").on(t2.currencyId),
+        unique("purchaseInvoices_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
+        check("chk_purchase_invoice_subtotal_not_negative", sql`${t2.subtotal} >= 0`),
+        check("chk_purchase_invoice_tax_rate_not_negative", sql`${t2.taxRate} >= 0`),
+        check("chk_purchase_invoice_tax_amount_not_negative", sql`${t2.taxAmount} >= 0`),
+        check("chk_purchase_invoice_discount_not_negative", sql`${t2.discount} >= 0`),
+        check("chk_purchase_invoice_total_not_negative", sql`${t2.total} >= 0`),
+        check("chk_purchase_invoice_paid_not_negative", sql`${t2.paidAmount} >= 0`),
+        check("chk_purchase_invoice_exchange_rate_positive", sql`${t2.exchangeRate} > 0`),
+        check("chk_purchase_invoice_base_amount_not_negative", sql`${t2.baseAmount} >= 0`),
+        check("chk_purchase_invoice_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    purchaseInvoiceItems = pgTable(
+      "purchase_invoice_items",
+      {
+        id: serial("id").primaryKey(),
+        invoiceId: integer("invoiceId").notNull(),
+        productId: integer("productId").notNull(),
+        productName: varchar("productName", { length: 255 }).notNull(),
+        quantity: integer("quantity").notNull(),
+        unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
+        discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+        total: decimal("total", { precision: 15, scale: 2 }).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull()
+      },
+      (t2) => [index("idx_purchase_items_invoice").on(t2.invoiceId)]
+    );
+    orders = pgTable(
+      "orders",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        ...govColumns(),
+        orderNumber: varchar("orderNumber", { length: 50 }).notNull().unique(),
+        customerId: integer("customerId"),
+        status: orderStatusEnum("status").default("pending").notNull(),
+        total: decimal("total", { precision: 15, scale: 2 }).default("0").notNull(),
+        deliveryAddress: text("deliveryAddress"),
+        deliveryDate: timestamp("deliveryDate"),
+        deliveryNotes: text("deliveryNotes"),
+        assignedTo: varchar("assignedTo", { length: 255 }),
+        userId: integer("userId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_orders_tenant").on(t2.tenantId),
+        index("idx_orders_customer").on(t2.customerId),
+        index("idx_orders_status").on(t2.status),
+        index("idx_orders_currency").on(t2.currencyId),
+        unique("orders_gc_tenant_unique").on(t2.tenantId, t2.globalCode),
+        check("chk_order_total_not_negative", sql`${t2.total} >= 0`),
+        check("chk_order_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    orderItems = pgTable(
+      "order_items",
+      {
+        id: serial("id").primaryKey(),
+        orderId: integer("orderId").notNull(),
+        productId: integer("productId").notNull(),
+        productName: varchar("productName", { length: 255 }).notNull(),
+        quantity: integer("quantity").notNull(),
+        unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
+        total: decimal("total", { precision: 15, scale: 2 }).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull()
+      },
+      (t2) => [index("idx_order_items_order").on(t2.orderId)]
+    );
+    paymentSourceEnum = pgEnum("payment_source", [
+      "sales",
+      "purchases"
+    ]);
+    payments = pgTable(
+      "payments",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        source: paymentSourceEnum("source").notNull(),
+        invoiceId: integer("invoiceId").notNull(),
+        amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+        paymentMethod: paymentMethodEnum("paymentMethod").default("cash"),
+        paymentDate: timestamp("paymentDate").defaultNow().notNull(),
+        notes: text("notes"),
+        userId: integer("userId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id),
+        exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
+        baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull()
+      },
+      (t2) => [
+        index("idx_payments_tenant").on(t2.tenantId),
+        index("idx_payments_invoice").on(t2.source, t2.invoiceId),
+        index("idx_payments_currency").on(t2.currencyId),
+        check("chk_payment_amount_positive", sql`${t2.amount} > 0`),
+        check("chk_payment_base_amount_positive", sql`${t2.baseAmount} >= 0`),
+        check("chk_payment_exchange_rate_positive", sql`${t2.exchangeRate} > 0`),
+        check("chk_payment_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    subscriptionPlans = pgTable("subscription_plans", {
+      id: serial("id").primaryKey(),
+      GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+      name: varchar("name", { length: 100 }).notNull(),
+      code: varchar("code", { length: 50 }).notNull().unique(),
+      description: text("description"),
+      priceMonthly: decimal("priceMonthly", { precision: 10, scale: 2 }).notNull(),
+      priceYearly: decimal("priceYearly", { precision: 10, scale: 2 }).notNull(),
+      currency: varchar("currency", { length: 10 }).default("USD").notNull(),
+      maxUsers: integer("maxUsers").default(5).notNull(),
+      maxBranches: integer("maxBranches").default(1).notNull(),
+      maxTransactions: integer("maxTransactions").default(1e3).notNull(),
+      features: jsonb("features"),
+      isActive: boolean("isActive").default(true).notNull(),
+      sortOrder: integer("sortOrder").default(0).notNull(),
+      createdAt: timestamp("createdAt").defaultNow().notNull(),
+      updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+      // Sync columns
+      serverVersion: integer("serverVersion").default(1).notNull(),
+      lastSyncAt: timestamp("lastSyncAt"),
+      conflictState: varchar("conflictState", { length: 20 }).default("none"),
+      aggregateId: uuid("aggregateId")
+    }, (t2) => [
+      check("chk_subscription_plan_price_monthly_positive", sql`${t2.priceMonthly} > 0`),
+      check("chk_subscription_plan_price_yearly_positive", sql`${t2.priceYearly} > 0`),
+      check("chk_subscription_plan_currency_format", sql`${t2.currency} ~ '^[A-Z]{3}$'`)
+    ]);
+    tenantSubscriptions = pgTable(
+      "tenant_subscriptions",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        planId: integer("planId").notNull(),
+        status: varchar("status", { length: 20 }).notNull(),
+        billingCycle: varchar("billingCycle", { length: 10 }).default("monthly").notNull(),
+        trialStartsAt: timestamp("trialStartsAt"),
+        trialEndsAt: timestamp("trialEndsAt"),
+        currentPeriodStart: timestamp("currentPeriodStart"),
+        currentPeriodEnd: timestamp("currentPeriodEnd"),
+        cancelAt: timestamp("cancelAt"),
+        cancelledAt: timestamp("cancelledAt"),
+        paymentProvider: varchar("paymentProvider", { length: 50 }),
+        externalSubscriptionId: varchar("externalSubscriptionId", { length: 255 }),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_tenant_sub_tenant").on(t2.tenantId),
+        index("idx_tenant_sub_status").on(t2.status),
+        index("idx_tenant_sub_currency").on(t2.currencyId),
+        check("chk_tenant_sub_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    billingInvoices = pgTable(
+      "billing_invoices",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        subscriptionId: integer("subscriptionId"),
+        invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
+        status: varchar("status", { length: 20 }).notNull(),
+        subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
+        taxAmount: decimal("taxAmount", { precision: 10, scale: 2 }).default("0").notNull(),
+        total: decimal("total", { precision: 10, scale: 2 }).notNull(),
+        currency: varchar("currency", { length: 10 }).default("USD").notNull(),
+        dueDate: timestamp("dueDate").notNull(),
+        paidAt: timestamp("paidAt"),
+        paymentMethod: varchar("paymentMethod", { length: 50 }),
+        externalPaymentId: varchar("externalPaymentId", { length: 255 }),
+        notes: text("notes"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_billing_invoice_tenant").on(t2.tenantId),
+        index("idx_billing_invoice_status").on(t2.status),
+        index("idx_billing_invoice_currency").on(t2.currencyId),
+        check("chk_billing_invoice_subtotal_not_negative", sql`${t2.subtotal} >= 0`),
+        check("chk_billing_invoice_tax_not_negative", sql`${t2.taxAmount} >= 0`),
+        check("chk_billing_invoice_total_not_negative", sql`${t2.total} >= 0`),
+        check("chk_billing_invoice_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    paymentHistory = pgTable(
+      "payment_history",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        invoiceId: integer("invoiceId"),
+        amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
+        currency: varchar("currency", { length: 10 }).default("USD").notNull(),
+        status: varchar("status", { length: 20 }).notNull(),
+        paymentMethod: varchar("paymentMethod", { length: 50 }),
+        transactionId: varchar("transactionId", { length: 255 }),
+        refundedAmount: decimal("refundedAmount", {
+          precision: 10,
+          scale: 2
+        }).default("0"),
+        notes: text("notes"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_payment_history_tenant").on(t2.tenantId),
+        index("idx_payment_history_invoice").on(t2.invoiceId),
+        index("idx_payment_history_currency").on(t2.currencyId),
+        check("chk_payment_history_amount_positive", sql`${t2.amount} > 0`),
+        check("chk_payment_history_refund_not_negative", sql`${t2.refundedAmount} >= 0`),
+        check("chk_payment_history_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    auditLogs = pgTable(
+      "audit_logs",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        userId: integer("userId"),
+        sessionId: uuid("sessionId"),
+        action: varchar("action", { length: 100 }).notNull(),
+        entityType: varchar("entityType", { length: 100 }).notNull(),
+        entityId: integer("entityId").notNull(),
+        entityGlobalId: uuid("entityGlobalId"),
+        oldValues: jsonb("oldValues"),
+        newValues: jsonb("newValues"),
+        // Device & geo context
+        ipAddress: varchar("ipAddress", { length: 45 }),
+        userAgent: varchar("userAgent", { length: 500 }),
+        deviceId: integer("deviceId"),
+        deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
+        country: varchar("country", { length: 100 }),
+        city: varchar("city", { length: 120 }),
+        lat: decimal("lat", { precision: 10, scale: 7 }),
+        lng: decimal("lng", { precision: 10, scale: 7 }),
+        // Audit chain
+        previousHash: varchar("previousHash", { length: 64 }),
+        currentHash: varchar("currentHash", { length: 64 }).default("").notNull(),
+        chainSequence: integer("chainSequence").default(0).notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull()
+      },
+      (t2) => [
+        index("idx_audit_logs_tenant").on(t2.tenantId),
+        index("idx_audit_logs_user").on(t2.userId),
+        index("idx_audit_logs_session").on(t2.sessionId),
+        index("idx_audit_logs_entity").on(t2.entityType, t2.entityId),
+        index("idx_audit_logs_entity_global").on(t2.entityGlobalId),
+        index("idx_audit_logs_created").on(t2.createdAt),
+        index("idx_audit_logs_chain").on(t2.tenantId, t2.chainSequence),
+        check("chk_audit_log_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    notifications = pgTable(
+      "notifications",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId"),
+        userId: integer("userId"),
+        type: varchar("type", { length: 50 }).notNull(),
+        channel: varchar("channel", { length: 50 }).notNull(),
+        subject: varchar("subject", { length: 255 }).notNull(),
+        body: text("body").notNull(),
+        status: varchar("status", { length: 20 }).notNull(),
+        sentAt: timestamp("sentAt"),
+        readAt: timestamp("readAt"),
+        metadata: jsonb("metadata"),
+        errorMessage: text("errorMessage"),
+        retryCount: integer("retryCount").default(0).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_notifications_tenant").on(t2.tenantId),
+        index("idx_notifications_user").on(t2.userId),
+        index("idx_notifications_status").on(t2.status)
+      ]
+    );
+    teamInvitations = pgTable(
+      "team_invitations",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        email: varchar("email", { length: 255 }).notNull(),
+        role: userRoleEnum("role").default("user").notNull(),
+        invitedBy: integer("invitedBy").notNull(),
+        token: varchar("token", { length: 255 }).notNull().unique(),
+        status: varchar("status", { length: 20 }).default("pending").notNull(),
+        expiresAt: timestamp("expiresAt").notNull(),
+        acceptedAt: timestamp("acceptedAt"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_team_inv_tenant").on(t2.tenantId),
+        index("idx_team_inv_email").on(t2.email),
+        check("chk_team_invitation_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    currencies = pgTable("currencies", {
+      id: serial("id").primaryKey(),
+      GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+      tenantId: integer("tenantId"),
+      code: varchar("code", { length: 10 }).notNull().unique(),
+      name: varchar("name", { length: 100 }).notNull(),
+      symbol: varchar("symbol", { length: 10 }).notNull(),
+      rate: decimal("rate", { precision: 18, scale: 8 }).default("1").notNull(),
+      isDefault: boolean("isDefault").default(false).notNull(),
+      decimalPlaces: integer("decimalPlaces").default(2).notNull(),
+      isActive: boolean("isActive").default(true).notNull(),
+      createdAt: timestamp("createdAt").defaultNow().notNull(),
+      updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+      // Sync columns
+      serverVersion: integer("serverVersion").default(1).notNull(),
+      lastSyncAt: timestamp("lastSyncAt"),
+      conflictState: varchar("conflictState", { length: 20 }).default("none"),
+      aggregateId: uuid("aggregateId")
+    }, (t2) => [
+      index("idx_currencies_tenant").on(t2.tenantId),
+      check("chk_currency_rate_positive", sql`${t2.rate} > 0`),
+      check("chk_currency_code_format", sql`${t2.code} ~ '^[A-Z]{3}$'`)
+    ]);
+    exchangeRates = pgTable(
+      "exchange_rates",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        baseCurrency: varchar("baseCurrency", { length: 10 }).notNull(),
+        quoteCurrency: varchar("quoteCurrency", { length: 10 }).notNull(),
+        rate: decimal("rate", { precision: 18, scale: 8 }).notNull(),
+        source: varchar("source", { length: 50 }),
+        effectiveFrom: timestamp("effectiveFrom").notNull(),
+        effectiveTo: timestamp("effectiveTo"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_exchange_rates_pair").on(t2.baseCurrency, t2.quoteCurrency),
+        index("idx_exchange_rates_effective").on(t2.effectiveFrom),
+        unique("exchange_rates_pair_effective_unique").on(t2.baseCurrency, t2.quoteCurrency, t2.effectiveFrom),
+        check("chk_exchange_rate_positive", sql`${t2.rate} > 0`)
+      ]
+    );
+    fileUploads = pgTable(
+      "file_uploads",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId"),
+        userId: integer("userId"),
+        fileName: varchar("fileName", { length: 255 }).notNull(),
+        originalName: varchar("originalName", { length: 255 }).notNull(),
+        mimeType: varchar("mimeType", { length: 100 }).notNull(),
+        fileSize: integer("fileSize").notNull(),
+        storageKey: varchar("storageKey", { length: 500 }).notNull(),
+        storageProvider: varchar("storageProvider", { length: 50 }).default("s3").notNull(),
+        url: varchar("url", { length: 500 }).notNull(),
+        entityType: varchar("entityType", { length: 50 }),
+        entityId: integer("entityId"),
+        folder: varchar("folder", { length: 200 }),
+        isPublic: boolean("isPublic").default(false).notNull(),
+        metadata: jsonb("metadata"),
+        deletedAt: timestamp("deletedAt"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        // Security & integrity
+        sha256Hash: varchar("sha256Hash", { length: 64 }).default("").notNull(),
+        md5Hash: varchar("md5Hash", { length: 32 }),
+        isEncrypted: boolean("isEncrypted").default(false).notNull(),
+        encryptionKeyId: varchar("encryptionKeyId", { length: 100 }),
+        encryptionAlgorithm: varchar("encryptionAlgorithm", { length: 50 }),
+        // Device & geo context
+        deviceId: integer("deviceId"),
+        deviceFingerprint: varchar("deviceFingerprint", { length: 255 }),
+        ipAddress: varchar("ipAddress", { length: 45 }),
+        country: varchar("country", { length: 100 }),
+        city: varchar("city", { length: 120 }),
+        lat: decimal("lat", { precision: 10, scale: 7 }),
+        lng: decimal("lng", { precision: 10, scale: 7 }),
+        // Retention
+        retentionPolicy: varchar("retentionPolicy", { length: 50 }).default("standard"),
+        retentionExpiresAt: timestamp("retentionExpiresAt"),
+        legalHold: boolean("legalHold").default(false).notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_file_uploads_tenant").on(t2.tenantId),
+        index("idx_file_uploads_entity").on(t2.entityType, t2.entityId),
+        index("idx_file_uploads_hash").on(t2.sha256Hash),
+        index("idx_file_uploads_retention").on(t2.retentionExpiresAt),
+        check("chk_file_upload_size_positive", sql`${t2.fileSize} > 0`)
+      ]
+    );
+    apiKeys = pgTable(
+      "api_keys",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        userId: integer("userId").notNull(),
+        name: varchar("name", { length: 100 }).notNull(),
+        keyHash: varchar("keyHash", { length: 255 }).notNull().unique(),
+        keyPrefix: varchar("keyPrefix", { length: 20 }).notNull(),
+        scopes: jsonb("scopes"),
+        rateLimit: integer("rateLimit").default(1e3).notNull(),
+        expiresAt: timestamp("expiresAt"),
+        lastUsedAt: timestamp("lastUsedAt"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_api_keys_tenant").on(t2.tenantId),
+        check("chk_api_key_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    webhooks = pgTable(
+      "webhooks",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        url: varchar("url", { length: 500 }).notNull(),
+        secret: varchar("secret", { length: 255 }).notNull(),
+        events: jsonb("events").notNull(),
+        isActive: boolean("isActive").default(true).notNull(),
+        lastTriggeredAt: timestamp("lastTriggeredAt"),
+        failureCount: integer("failureCount").default(0).notNull(),
+        metadata: jsonb("metadata"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_webhooks_tenant").on(t2.tenantId),
+        check("chk_webhook_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    webhookDeliveries = pgTable(
+      "webhook_deliveries",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        webhookId: integer("webhookId").notNull(),
+        event: varchar("event", { length: 100 }).notNull(),
+        payload: jsonb("payload").notNull(),
+        responseStatus: integer("responseStatus"),
+        responseBody: text("responseBody"),
+        deliveredAt: timestamp("deliveredAt"),
+        success: boolean("success").default(false).notNull(),
+        attemptCount: integer("attemptCount").default(1).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_webhook_deliveries_webhook").on(t2.webhookId),
+        index("idx_webhook_deliveries_created").on(t2.createdAt)
+      ]
+    );
+    featureFlags = pgTable(
+      "feature_flags",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId"),
+        key: varchar("key", { length: 100 }).notNull(),
+        value: varchar("value", { length: 255 }).notNull(),
+        description: text("description"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_feature_flags_tenant_key").on(t2.tenantId, t2.key),
+        unique("feature_flags_tenant_key_unique").on(t2.tenantId, t2.key)
+      ]
+    );
+    employeeStatusEnum = pgEnum("employee_status", [
+      "active",
+      "on_leave",
+      "terminated"
+    ]);
+    projectStatusEnum = pgEnum("project_status", [
+      "planning",
+      "active",
+      "on_hold",
+      "completed",
+      "cancelled"
+    ]);
+    taskStatusEnum = pgEnum("task_status", [
+      "todo",
+      "in_progress",
+      "review",
+      "done"
+    ]);
+    taskPriorityEnum = pgEnum("task_priority", [
+      "low",
+      "medium",
+      "high",
+      "urgent"
+    ]);
+    requisitionStatusEnum = pgEnum("requisition_status", [
+      "draft",
+      "pending",
+      "approved",
+      "rejected",
+      "ordered",
+      "received"
+    ]);
+    approvalDecisionEnum = pgEnum("approval_decision", [
+      "pending",
+      "approved",
+      "rejected"
+    ]);
+    ticketStatusEnum = pgEnum("ticket_status", [
+      "open",
+      "in_progress",
+      "resolved",
+      "closed"
+    ]);
+    ticketPriorityEnum = pgEnum("ticket_priority", [
+      "low",
+      "medium",
+      "high",
+      "urgent"
+    ]);
+    inspectionResultEnum = pgEnum("inspection_result", [
+      "pass",
+      "fail",
+      "conditional"
+    ]);
+    attendanceStatusEnum = pgEnum("attendance_status", [
+      "present",
+      "absent",
+      "late",
+      "leave"
+    ]);
+    payrollStatusEnum = pgEnum("payroll_status", [
+      "draft",
+      "processed",
+      "paid"
+    ]);
+    departments = pgTable(
+      "departments",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 30 }).notNull(),
+        name: varchar("name", { length: 150 }).notNull(),
+        managerId: integer("managerId"),
+        parentDepartmentId: integer("parentDepartmentId"),
+        costCenter: varchar("costCenter", { length: 50 }),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        deletedAt: timestamp("deleted_at"),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_departments_tenant").on(t2.tenantId),
+        uniqueIndex("uq_departments_tenant_code").on(t2.tenantId, t2.code),
+        check("chk_department_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    employees = pgTable(
+      "employees",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 30 }).notNull(),
+        userId: integer("userId"),
+        departmentId: integer("departmentId"),
+        fullName: varchar("fullName", { length: 150 }).notNull(),
+        jobTitle: varchar("jobTitle", { length: 120 }).notNull(),
+        nationalId: varchar("nationalId", { length: 40 }),
+        phone: varchar("phone", { length: 30 }),
+        email: varchar("email", { length: 150 }),
+        hireDate: timestamp("hireDate"),
+        salary: decimal("salary", { precision: 15, scale: 2 }).default("0").notNull(),
+        currency: varchar("currency", { length: 10 }).default("YER"),
+        status: employeeStatusEnum("status").default("active").notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        deletedAt: timestamp("deleted_at"),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_employees_tenant").on(t2.tenantId),
+        index("idx_employees_currency").on(t2.currencyId),
+        uniqueIndex("uq_employees_tenant_code").on(t2.tenantId, t2.code),
+        check("chk_employee_salary_not_negative", sql`${t2.salary} >= 0`),
+        check("chk_employee_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    attendance = pgTable(
+      "attendance",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        employeeId: integer("employeeId").notNull(),
+        date: timestamp("date").notNull(),
+        checkIn: timestamp("checkIn"),
+        checkOut: timestamp("checkOut"),
+        status: attendanceStatusEnum("status").default("present").notNull(),
+        note: text("note"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        deviceId: integer("deviceId"),
+        ipAddress: varchar("ipAddress", { length: 45 }),
+        lat: decimal("lat", { precision: 10, scale: 7 }),
+        lng: decimal("lng", { precision: 10, scale: 7 })
+      },
+      (t2) => [
+        index("idx_attendance_tenant").on(t2.tenantId),
+        index("idx_attendance_employee").on(t2.employeeId),
+        index("idx_attendance_date").on(t2.date),
+        unique("attendance_employee_date_unique").on(t2.employeeId, t2.date),
+        check("chk_attendance_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    payrollRuns = pgTable(
+      "payroll_runs",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        periodName: varchar("periodName", { length: 40 }).notNull(),
+        fromDate: timestamp("fromDate").notNull(),
+        toDate: timestamp("toDate").notNull(),
+        totalNet: decimal("totalNet", { precision: 15, scale: 2 }).default("0").notNull(),
+        status: payrollStatusEnum("status").default("draft").notNull(),
+        createdById: integer("createdById"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_payroll_runs_tenant").on(t2.tenantId),
+        unique("payroll_runs_tenant_period_unique").on(t2.tenantId, t2.periodName),
+        check("chk_payroll_run_total_not_negative", sql`${t2.totalNet} >= 0`),
+        check("chk_payroll_run_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    payrollItems = pgTable(
+      "payroll_items",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        payrollRunId: integer("payrollRunId").notNull(),
+        employeeId: integer("employeeId").notNull(),
+        basicSalary: decimal("basicSalary", { precision: 15, scale: 2 }).default("0").notNull(),
+        deductions: decimal("deductions", { precision: 15, scale: 2 }).default("0").notNull(),
+        net: decimal("net", { precision: 15, scale: 2 }).default("0").notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_payroll_items_tenant").on(t2.tenantId),
+        index("idx_payroll_items_run").on(t2.payrollRunId),
+        index("idx_payroll_items_employee").on(t2.employeeId),
+        unique("payroll_items_run_employee_unique").on(t2.payrollRunId, t2.employeeId),
+        check("chk_payroll_item_basic_not_negative", sql`${t2.basicSalary} >= 0`),
+        check("chk_payroll_item_deductions_not_negative", sql`${t2.deductions} >= 0`),
+        check("chk_payroll_item_net_not_negative", sql`${t2.net} >= 0`),
+        check("chk_payroll_item_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    projects = pgTable(
+      "projects",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 30 }).notNull(),
+        name: varchar("name", { length: 200 }).notNull(),
+        description: text("description"),
+        status: projectStatusEnum("status").default("planning").notNull(),
+        startDate: timestamp("startDate"),
+        endDate: timestamp("endDate"),
+        budget: decimal("budget", { precision: 15, scale: 2 }).default("0").notNull(),
+        managerId: integer("managerId"),
+        customerId: integer("customerId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_projects_tenant").on(t2.tenantId),
+        index("idx_projects_currency").on(t2.currencyId),
+        uniqueIndex("uq_projects_tenant_code").on(t2.tenantId, t2.code),
+        check("chk_project_budget_not_negative", sql`${t2.budget} >= 0`),
+        check("chk_project_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    projectTasks = pgTable(
+      "project_tasks",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        projectId: integer("projectId").notNull(),
+        title: varchar("title", { length: 200 }).notNull(),
+        description: text("description"),
+        status: taskStatusEnum("status").default("todo").notNull(),
+        priority: taskPriorityEnum("priority").default("medium").notNull(),
+        assigneeId: integer("assigneeId"),
+        dueDate: timestamp("dueDate"),
+        estimatedHours: decimal("estimatedHours", { precision: 8, scale: 2 }),
+        actualHours: decimal("actualHours", { precision: 8, scale: 2 }),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_project_tasks_tenant").on(t2.tenantId),
+        index("idx_project_tasks_project").on(t2.projectId),
+        index("idx_project_tasks_assignee").on(t2.assigneeId),
+        check("chk_project_task_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    projectMembers = pgTable(
+      "project_members",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        projectId: integer("projectId").notNull(),
+        employeeId: integer("employeeId").notNull(),
+        roleInProject: varchar("roleInProject", { length: 80 }),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_project_members_tenant").on(t2.tenantId),
+        index("idx_project_members_project").on(t2.projectId),
+        index("idx_project_members_employee").on(t2.employeeId),
+        unique("project_members_project_employee_unique").on(t2.projectId, t2.employeeId),
+        check("chk_project_member_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    procurements = pgTable(
+      "procurements",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        requisitionNumber: varchar("requisitionNumber", { length: 40 }).notNull(),
+        requestedById: integer("requestedById"),
+        departmentId: integer("departmentId"),
+        itemName: varchar("itemName", { length: 200 }).notNull(),
+        description: text("description"),
+        quantity: decimal("quantity", { precision: 12, scale: 2 }).default("1").notNull(),
+        unit: varchar("unit", { length: 20 }).default("\u0642\u0637\u0639\u0629"),
+        estimatedCost: decimal("estimatedCost", { precision: 15, scale: 2 }).default("0").notNull(),
+        currency: varchar("currency", { length: 10 }).default("YER"),
+        supplierId: integer("supplierId"),
+        status: requisitionStatusEnum("status").default("draft").notNull(),
+        approvedById: integer("approvedById"),
+        // ─── Multi-step approval workflow (Module A) ─────────────────────
+        approvers: jsonb("approvers"),
+        // ordered array of userIds
+        approvalStep: integer("approvalStep").default(0).notNull(),
+        approvalLog: jsonb("approvalLog"),
+        // [{ by, at, action, note }]
+        receivedCost: decimal("receivedCost", { precision: 15, scale: 2 }),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_procurements_tenant").on(t2.tenantId),
+        index("idx_procurements_currency").on(t2.currencyId),
+        uniqueIndex("uq_procurements_tenant_req").on(
+          t2.tenantId,
+          t2.requisitionNumber
+        ),
+        check("chk_procurement_quantity_positive", sql`${t2.quantity} > 0`),
+        check("chk_procurement_estimated_cost_not_negative", sql`${t2.estimatedCost} >= 0`),
+        check("chk_procurement_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    procurementApprovals = pgTable(
+      "procurement_approvals",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        procurementId: integer("procurementId").notNull(),
+        approverId: integer("approverId"),
+        level: integer("level").default(1).notNull(),
+        decision: approvalDecisionEnum("decision").default("pending").notNull(),
+        note: text("note"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_procurement_approvals_tenant").on(t2.tenantId),
+        index("idx_procurement_approvals_proc").on(t2.procurementId),
+        unique("procurement_approvals_proc_level_unique").on(t2.procurementId, t2.level),
+        check("chk_procurement_approval_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    tickets = pgTable(
+      "tickets",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        ticketNumber: varchar("ticketNumber", { length: 40 }).notNull(),
+        subject: varchar("subject", { length: 200 }).notNull(),
+        description: text("description"),
+        customerName: varchar("customerName", { length: 150 }),
+        customerPhone: varchar("customerPhone", { length: 30 }),
+        status: ticketStatusEnum("status").default("open").notNull(),
+        priority: ticketPriorityEnum("priority").default("medium").notNull(),
+        assignedToId: integer("assignedToId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_tickets_tenant").on(t2.tenantId),
+        index("idx_tickets_assigned").on(t2.assignedToId),
+        uniqueIndex("uq_tickets_tenant_num").on(t2.tenantId, t2.ticketNumber),
+        check("chk_ticket_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    qualityInspections = pgTable(
+      "quality_inspections",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 40 }).notNull(),
+        title: varchar("title", { length: 200 }).notNull(),
+        type: varchar("type", { length: 80 }),
+        result: inspectionResultEnum("result").default("pass").notNull(),
+        inspectedById: integer("inspectedById"),
+        relatedEntity: varchar("relatedEntity", { length: 120 }),
+        score: decimal("score", { precision: 6, scale: 2 }),
+        note: text("note"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_quality_inspections_tenant").on(t2.tenantId),
+        uniqueIndex("uq_quality_tenant_code").on(t2.tenantId, t2.code),
+        check("chk_quality_score_range", sql`${t2.score} IS NULL OR (${t2.score} >= 0 AND ${t2.score} <= 100)`),
+        check("chk_quality_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    journalEntries = pgTable(
+      "journal_entries",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        branchId: integer("branchId"),
+        sourceModule: varchar("sourceModule", { length: 50 }),
+        sourceRefType: varchar("sourceRefType", { length: 50 }),
+        sourceRefId: integer("sourceRefId"),
+        referenceNo: varchar("referenceNo", { length: 80 }),
+        status: varchar("status", { length: 20 }).default("posted").notNull(),
+        totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).default("0"),
+        memo: text("memo"),
+        createdById: integer("createdById"),
+        postedAt: timestamp("postedAt"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id),
+        // Immutable once posted
+        isImmutable: boolean("isImmutable").default(false).notNull()
+      },
+      (t2) => [
+        index("idx_journal_tenant").on(t2.tenantId),
+        index("idx_journal_source").on(t2.sourceModule, t2.sourceRefId),
+        index("idx_journal_currency").on(t2.currencyId),
+        check("chk_journal_total_not_negative", sql`${t2.totalAmount} >= 0`),
+        check("chk_journal_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
+        check("chk_journal_immutable_posted", sql`
       CASE WHEN ${t2.status} = 'posted' THEN ${t2.isImmutable} = true ELSE true END
     `)
-  ]
-);
-var scheduledJournalEntries = pgTable(
-  "scheduled_journal_entries",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    name: varchar("name", { length: 200 }).notNull(),
-    description: text("description"),
-    branchId: integer("branchId"),
-    frequency: varchar("frequency", { length: 20 }).default("monthly").notNull(),
-    nextRunAt: timestamp("nextRunAt"),
-    isActive: boolean("isActive").default(true).notNull(),
-    legs: jsonb("legs"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_scheduledJournal_tenant").on(t2.tenantId),
-    index("idx_scheduledJournal_nextRun").on(t2.nextRunAt),
-    check("chk_scheduled_journal_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var recurringExpenseStatusEnum = pgEnum("recurring_expense_status", [
-  "draft",
-  "active",
-  "paused",
-  "completed",
-  "cancelled"
-]);
-var recurringExpenseFrequencyEnum = pgEnum("recurring_expense_frequency", [
-  "daily",
-  "weekly",
-  "biweekly",
-  "monthly",
-  "quarterly",
-  "semiannual",
-  "annual",
-  "custom"
-]);
-var expenseBasisEnum = pgEnum("expense_basis", [
-  "accrual",
-  "cash"
-]);
-var expenseApprovalStatusEnum = pgEnum("expense_approval_status", [
-  "pending",
-  "approved",
-  "rejected",
-  "auto_approved"
-]);
-var recurringExpenses = pgTable(
-  "recurring_expenses",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    name: varchar("name", { length: 200 }).notNull(),
-    description: text("description"),
-    categoryId: integer("categoryId").references(() => categories.id),
-    vendorId: integer("vendorId").references(() => suppliers.id),
-    accountId: integer("accountId").references(() => accounts.id).notNull(),
-    branchId: integer("branchId").references(() => branches.id),
-    amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-    currency: varchar("currency", { length: 10 }).default("YER").notNull(),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
-    taxAccountId: integer("taxAccountId").references(() => accounts.id),
-    frequency: recurringExpenseFrequencyEnum("frequency").default("monthly").notNull(),
-    customCron: varchar("customCron", { length: 100 }),
-    dayOfMonth: integer("dayOfMonth"),
-    dayOfWeek: integer("dayOfWeek"),
-    weekOfMonth: integer("weekOfMonth"),
-    startDate: timestamp("startDate").notNull(),
-    endDate: timestamp("endDate"),
-    maxOccurrences: integer("maxOccurrences"),
-    occurrencesCount: integer("occurrencesCount").default(0).notNull(),
-    basis: expenseBasisEnum("basis").default("accrual").notNull(),
-    status: recurringExpenseStatusEnum("status").default("draft").notNull(),
-    approvalStatus: expenseApprovalStatusEnum("approvalStatus").default("pending").notNull(),
-    approverId: integer("approverId").references(() => users.id),
-    approvedAt: timestamp("approvedAt"),
-    approvedById: integer("approvedById").references(() => users.id),
-    paymentMethod: varchar("paymentMethod", { length: 50 }),
-    paymentAccountId: integer("paymentAccountId").references(() => accounts.id),
-    autoPay: boolean("autoPay").default(false).notNull(),
-    nextRunAt: timestamp("nextRunAt"),
-    lastRunAt: timestamp("lastRunAt"),
-    lastRunStatus: varchar("lastRunStatus", { length: 20 }),
-    lastRunError: text("lastRunError"),
-    budgetId: integer("budgetId").references(() => budgets.id),
-    departmentId: integer("departmentId").references(() => departments.id),
-    projectId: integer("projectId").references(() => projects.id),
-    tags: jsonb("tags"),
-    metadata: jsonb("metadata"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    createdById: integer("createdById").references(() => users.id),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_recurring_expenses_tenant").on(t2.tenantId),
-    index("idx_recurring_expenses_status").on(t2.status),
-    index("idx_recurring_expenses_next_run").on(t2.nextRunAt),
-    index("idx_recurring_expenses_vendor").on(t2.vendorId),
-    index("idx_recurring_expenses_category").on(t2.categoryId),
-    index("idx_recurring_expenses_account").on(t2.accountId),
-    index("idx_recurring_expenses_budget").on(t2.budgetId),
-    check("chk_recurring_expense_amount_positive", sql`${t2.amount} > 0`),
-    check("chk_recurring_expense_exchange_rate_positive", sql`${t2.exchangeRate} > 0`),
-    check("chk_recurring_expense_tax_rate_not_negative", sql`${t2.taxRate} >= 0`),
-    check("chk_recurring_expense_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
-    check("chk_recurring_expense_account_not_null", sql`${t2.accountId} IS NOT NULL`),
-    check("chk_recurring_expense_dates", sql`${t2.startDate} <= ${t2.endDate} OR ${t2.endDate} IS NULL`)
-  ]
-);
-var recurringExpenseRuns = pgTable(
-  "recurring_expense_runs",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    recurringExpenseId: integer("recurringExpenseId").notNull().references(() => recurringExpenses.id),
-    runNumber: integer("runNumber").notNull(),
-    scheduledDate: timestamp("scheduledDate").notNull(),
-    executedDate: timestamp("executedDate"),
-    status: varchar("status", { length: 20 }).default("pending").notNull(),
-    amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    journalEntryId: integer("journalEntryId").references(() => journalEntries.id),
-    purchaseInvoiceId: integer("purchaseInvoiceId").references(() => purchaseInvoices.id),
-    paymentTransactionId: integer("paymentTransactionId").references(() => transactions.id),
-    errorMessage: text("errorMessage"),
-    processedById: integer("processedById").references(() => users.id),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_recurring_expense_runs_tenant").on(t2.tenantId),
-    index("idx_recurring_expense_runs_recurring").on(t2.recurringExpenseId),
-    index("idx_recurring_expense_runs_scheduled").on(t2.scheduledDate),
-    index("idx_recurring_expense_runs_status").on(t2.status),
-    unique("recurring_expense_runs_unique").on(t2.recurringExpenseId, t2.runNumber),
-    check("chk_recurring_expense_run_amount_positive", sql`${t2.amount} > 0`),
-    check("chk_recurring_expense_run_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var units = pgTable(
-  "units",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 20 }).notNull(),
-    name: varchar("name", { length: 80 }).notNull(),
-    nameAr: varchar("nameAr", { length: 80 }),
-    symbol: varchar("symbol", { length: 20 }),
-    baseUnitId: integer("baseUnitId"),
-    conversionFactor: decimal("conversionFactor", { precision: 15, scale: 6 }).default("1"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_units_tenant").on(t2.tenantId),
-    uniqueIndex("uq_units_tenant_code").on(t2.tenantId, t2.code),
-    check("chk_unit_conversion_positive", sql`${t2.conversionFactor} > 0`),
-    check("chk_unit_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var productUnits = pgTable(
-  "product_units",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    productId: integer("productId").notNull(),
-    unitId: integer("unitId").notNull(),
-    conversionFactor: decimal("conversionFactor", { precision: 15, scale: 6 }).default("1").notNull(),
-    isBase: boolean("isBase").default(false).notNull(),
-    barcode: varchar("barcode", { length: 100 }),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_productUnits_tenant").on(t2.tenantId),
-    index("idx_productUnits_product").on(t2.productId),
-    unique("product_units_product_unit_unique").on(t2.productId, t2.unitId),
-    check("chk_product_unit_conversion_positive", sql`${t2.conversionFactor} > 0`),
-    check("chk_product_unit_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var categories = pgTable(
-  "categories",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 30 }).notNull(),
-    name: varchar("name", { length: 100 }).notNull(),
-    nameAr: varchar("nameAr", { length: 100 }),
-    parentId: integer("parentId"),
-    type: varchar("type", { length: 30 }).default("product"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_categories_tenant").on(t2.tenantId),
-    uniqueIndex("uq_categories_tenant_code").on(t2.tenantId, t2.code),
-    check("chk_category_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var roles = pgTable(
-  "roles",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    name: varchar("name", { length: 80 }).notNull(),
-    code: varchar("code", { length: 40 }).notNull(),
-    description: text("description"),
-    permissions: text("permissions"),
-    // JSON array of permission keys
-    isSystem: boolean("isSystem").default(false).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_roles_tenant").on(t2.tenantId),
-    uniqueIndex("uq_roles_tenant_code").on(t2.tenantId, t2.code),
-    check("chk_role_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var userRoles = pgTable(
-  "user_roles",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    userId: integer("userId").notNull(),
-    roleId: integer("roleId").notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_userroles_tenant").on(t2.tenantId),
-    uniqueIndex("uq_userroles_user_role").on(t2.userId, t2.roleId),
-    check("chk_user_role_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var permissions = pgTable(
-  "permissions",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    key: varchar("key", { length: 80 }).notNull(),
-    name: varchar("name", { length: 120 }).notNull(),
-    category: varchar("category", { length: 50 }),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    uniqueIndex("uq_permissions_key").on(t2.key)
-  ]
-);
-var documents = pgTable(
-  "documents",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 40 }),
-    title: varchar("title", { length: 200 }).notNull(),
-    type: varchar("type", { length: 50 }),
-    entityType: varchar("entityType", { length: 50 }),
-    entityId: integer("entityId"),
-    fileUrl: text("fileUrl"),
-    fileUploadId: integer("fileUploadId"),
-    notes: text("notes"),
-    uploadedById: integer("uploadedById"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_documents_tenant").on(t2.tenantId),
-    index("idx_documents_entity").on(t2.entityType, t2.entityId),
-    check("chk_document_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var messages = pgTable(
-  "messages",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    fromUserId: text("fromUserId").notNull(),
-    fromName: text("fromName"),
-    toUserId: text("toUserId").notNull(),
-    body: text("body").notNull(),
-    isRead: boolean("isRead").default(false).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_messages_tenant").on(t2.tenantId),
-    index("idx_messages_to").on(t2.tenantId, t2.toUserId),
-    index("idx_messages_from").on(t2.tenantId, t2.fromUserId),
-    check("chk_message_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var posSessions = pgTable(
-  "pos_sessions",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 40 }).notNull(),
-    openedById: integer("openedById").notNull(),
-    openedAt: timestamp("openedAt").defaultNow().notNull(),
-    closedAt: timestamp("closedAt"),
-    openingFloat: decimal("openingFloat", { precision: 15, scale: 2 }).default("0"),
-    closingFloat: decimal("closingFloat", { precision: 15, scale: 2 }),
-    expectedCash: decimal("expectedCash", { precision: 15, scale: 2 }),
-    countedCash: decimal("countedCash", { precision: 15, scale: 2 }),
-    variance: decimal("variance", { precision: 15, scale: 2 }),
-    status: varchar("status", { length: 20 }).default("open").notNull(),
-    notes: text("notes"),
-    branchId: integer("branchId"),
-    deviceId: integer("deviceId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_pos_sessions_tenant").on(t2.tenantId),
-    index("idx_pos_sessions_currency").on(t2.currencyId),
-    check("chk_pos_session_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var posOrders = pgTable(
-  "pos_orders",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    sessionId: integer("sessionId"),
-    salesInvoiceId: integer("salesInvoiceId"),
-    total: decimal("total", { precision: 15, scale: 2 }).default("0"),
-    paymentMethod: varchar("paymentMethod", { length: 20 }),
-    status: varchar("status", { length: 20 }).default("completed"),
-    createdById: integer("createdById"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_pos_orders_tenant").on(t2.tenantId),
-    index("idx_pos_orders_currency").on(t2.currencyId),
-    check("chk_pos_order_total_not_negative", sql`${t2.total} >= 0`),
-    check("chk_pos_order_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var customFieldDefs = pgTable(
-  "custom_field_defs",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    entityType: varchar("entity_type", { length: 50 }).notNull(),
-    key: varchar("key", { length: 50 }).notNull(),
-    label: varchar("label", { length: 120 }).notNull(),
-    type: varchar("type", { length: 20 }).notNull().default("text"),
-    options: text("options"),
-    required: boolean("required").default(false).notNull(),
-    displayOrder: integer("display_order").default(0).notNull(),
-    isActive: boolean("is_active").default(true).notNull(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    // JSON Schema validation
-    jsonSchema: jsonb("jsonSchema")
-  },
-  (t2) => [
-    uniqueIndex("custom_field_defs_tenant_entity_key").on(
-      t2.tenantId,
-      t2.entityType,
-      t2.key
-    ),
-    check("chk_custom_field_def_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var customFieldValues = pgTable(
-  "custom_field_values",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    entityType: varchar("entity_type", { length: 50 }).notNull(),
-    entityId: integer("entity_id").notNull(),
-    fieldKey: varchar("field_key", { length: 50 }).notNull(),
-    value: text("value"),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("custom_field_values_tenant_entity").on(
-      t2.tenantId,
-      t2.entityType,
-      t2.entityId
-    ),
-    unique("custom_field_values_entity_field_unique").on(t2.entityType, t2.entityId, t2.fieldKey),
-    check("chk_custom_field_value_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var salesReps = pgTable(
-  "sales_reps",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    phone: varchar("phone", { length: 50 }),
-    commissionType: varchar("commissionType", { length: 20 }).default("percent").notNull(),
-    commissionValue: decimal("commissionValue", { precision: 15, scale: 2 }).default("0").notNull(),
-    bonusThreshold: decimal("bonusThreshold", { precision: 15, scale: 2 }),
-    bonusAmount: decimal("bonusAmount", { precision: 15, scale: 2 }),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
-  },
-  (t2) => [
-    index("idx_sales_reps_tenant").on(t2.tenantId),
-    index("idx_sales_reps_currency").on(t2.currencyId),
-    check("chk_sales_rep_commission_not_negative", sql`${t2.commissionValue} >= 0`),
-    check("chk_sales_rep_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var offers = pgTable(
-  "offers",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    name: varchar("name", { length: 255 }).notNull(),
-    kind: varchar("kind", { length: 20 }).default("financial").notNull(),
-    discountPercent: decimal("discountPercent", { precision: 6, scale: 2 }).default("0").notNull(),
-    minQty: decimal("minQty", { precision: 15, scale: 2 }),
-    productId: integer("productId"),
-    categoryId: integer("categoryId"),
-    startDate: timestamp("startDate"),
-    endDate: timestamp("endDate"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_offers_tenant").on(t2.tenantId),
-    index("idx_offers_product").on(t2.productId),
-    index("idx_offers_category").on(t2.categoryId),
-    check("chk_offer_discount_not_negative", sql`${t2.discountPercent} >= 0`),
-    check("chk_offer_discount_not_over_100", sql`${t2.discountPercent} <= 100`),
-    check("chk_offer_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var translations = pgTable(
-  "translations",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    key: varchar("key", { length: 255 }).notNull(),
-    culture: varchar("culture", { length: 10 }).notNull(),
-    value: text("value").notNull(),
-    context: varchar("context", { length: 100 }),
-    isApproved: boolean("isApproved").default(false).notNull(),
-    approvedById: integer("approvedById"),
-    approvedAt: timestamp("approvedAt"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_translations_tenant").on(t2.tenantId),
-    index("idx_translations_culture").on(t2.culture),
-    unique("translations_key_culture_tenant_unique").on(t2.key, t2.culture, t2.tenantId),
-    check("chk_translation_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var biometricTemplates = pgTable(
-  "biometric_templates",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    userId: integer("userId").notNull(),
-    type: varchar("type", { length: 30 }).notNull(),
-    // fingerprint, face, iris, voice
-    algorithm: varchar("algorithm", { length: 50 }).notNull(),
-    // e.g., ISO 19794-2, ISO 39794-5
-    algorithmVersion: varchar("algorithmVersion", { length: 20 }).notNull(),
-    templateHash: varchar("templateHash", { length: 64 }).notNull(),
-    // SHA-256 of encrypted template
-    encryptedTemplate: text("encryptedTemplate").notNull(),
-    // Encrypted biometric data
-    encryptionKeyId: varchar("encryptionKeyId", { length: 100 }).notNull(),
-    qualityScore: integer("qualityScore"),
-    // 0-100
-    status: varchar("status", { length: 20 }).default("active").notNull(),
-    // active, revoked, expired
-    enrolledAt: timestamp("enrolledAt").defaultNow().notNull(),
-    enrolledById: integer("enrolledById").notNull(),
-    approvedById: integer("approvedById"),
-    approvedAt: timestamp("approvedAt"),
-    revokedAt: timestamp("revokedAt"),
-    revokedById: integer("revokedById"),
-    revocationReason: varchar("revocationReason", { length: 255 }),
-    expiresAt: timestamp("expiresAt"),
-    lastVerifiedAt: timestamp("lastVerifiedAt"),
-    verificationCount: integer("verificationCount").default(0).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_biometric_tenant").on(t2.tenantId),
-    index("idx_biometric_user").on(t2.userId),
-    index("idx_biometric_type").on(t2.type),
-    index("idx_biometric_status").on(t2.status),
-    unique("biometric_template_user_type_unique").on(t2.userId, t2.type),
-    check("chk_biometric_quality_score_range", sql`${t2.qualityScore} IS NULL OR (${t2.qualityScore} >= 0 AND ${t2.qualityScore} <= 100)`),
-    check("chk_biometric_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var syncMetadata = pgTable(
-  "sync_metadata",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    aggregateId: uuid("aggregateId").notNull(),
-    entityType: varchar("entityType", { length: 100 }).notNull(),
-    entityId: integer("entityId").notNull(),
-    entityGlobalId: uuid("entityGlobalId").notNull(),
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    clientVersion: integer("clientVersion").default(0).notNull(),
-    conflictState: varchar("conflictState", { length: 20 }).default("none").notNull(),
-    // none, client_wins, server_wins, manual
-    conflictData: jsonb("conflictData"),
-    // { clientValue, serverValue, resolvedValue }
-    lastSyncAt: timestamp("lastSyncAt").defaultNow().notNull(),
-    lastConflictAt: timestamp("lastConflictAt"),
-    resolvedAt: timestamp("resolvedAt"),
-    resolvedById: integer("resolvedById"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull()
-  },
-  (t2) => [
-    index("idx_sync_metadata_tenant").on(t2.tenantId),
-    index("idx_sync_metadata_aggregate").on(t2.aggregateId),
-    index("idx_sync_metadata_entity").on(t2.entityType, t2.entityId),
-    unique("sync_metadata_aggregate_entity_unique").on(t2.aggregateId, t2.entityType, t2.entityId),
-    check("chk_sync_metadata_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var costCenterTypeEnum = pgEnum("cost_center_type", [
-  "cost",
-  // مركز تكلفة
-  "profit",
-  // مركز ربح
-  "investment",
-  // مركز استثمار
-  "revenue"
-  // مركز إيراد
-]);
-var costCenters = pgTable(
-  "cost_centers",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 30 }).notNull(),
-    name: varchar("name", { length: 150 }).notNull(),
-    nameAr: varchar("nameAr", { length: 150 }),
-    type: costCenterTypeEnum("type").default("cost").notNull(),
-    parentId: integer("parentId"),
-    managerId: integer("managerId"),
-    // موظف مسؤول
-    departmentId: integer("departmentId"),
-    budgetAccountId: integer("budgetAccountId"),
-    // حساب الموازنة المرتبط
-    isActive: boolean("isActive").default(true).notNull(),
-    description: text("description"),
-    // Allocation configuration
-    allocationBase: varchar("allocationBase", { length: 50 }),
-    // headcount, area, revenue, direct_hours, machine_hours, custom
-    allocationWeight: decimal("allocationWeight", { precision: 10, scale: 4 }).default("1"),
-    // Hierarchy path for fast queries
-    path: varchar("path", { length: 500 }),
-    // e.g., /1/5/12/
-    level: integer("level").default(0).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    deletedAt: timestamp("deleted_at"),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_cost_centers_tenant").on(t2.tenantId),
-    index("idx_cost_centers_parent").on(t2.parentId),
-    index("idx_cost_centers_type").on(t2.type),
-    index("idx_cost_centers_path").on(t2.path),
-    unique("cost_centers_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_cost_center_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var allocationMethodEnum = pgEnum("allocation_method", [
-  "fixed",
-  // نسبة ثابتة
-  "proportional",
-  // تناسبي حسب الأساس
-  "step_down",
-  // خطوة بخطوة (sequential)
-  "reciprocal",
-  // تبادلي (simultaneous equations)
-  "activity_based"
-  // القائم على الأنشطة (ABC)
-]);
-var allocationRules = pgTable(
-  "allocation_rules",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    name: varchar("name", { length: 150 }).notNull(),
-    description: text("description"),
-    method: allocationMethodEnum("method").default("proportional").notNull(),
-    // Source: ما يتم توزيعه
-    sourceType: varchar("sourceType", { length: 30 }).notNull(),
-    // cost_center, account, fixed_amount
-    sourceCostCenterId: integer("sourceCostCenterId"),
-    sourceAccountId: integer("sourceAccountId"),
-    sourceFixedAmount: decimal("sourceFixedAmount", { precision: 15, scale: 2 }),
-    // Target: куда يتم التوزيع
-    targetCostCenterIds: jsonb("targetCostCenterIds").notNull(),
-    // array of cost center IDs
-    // Basis: أساس التوزيع
-    basisType: varchar("basisType", { length: 50 }),
-    // headcount, area, revenue, direct_labor_hours, machine_hours, custom_driver
-    basisDriverId: integer("basisDriverId"),
-    // custom driver account/cost center
-    basisFormula: text("basisFormula"),
-    // JSON: custom formula
-    // Filters
-    filterAccountTypes: jsonb("filterAccountTypes"),
-    // which account types to allocate
-    filterDateRange: jsonb("filterDateRange"),
-    // {from, to} or periodName
-    // Schedule
-    isRecurring: boolean("isRecurring").default(false).notNull(),
-    frequency: varchar("frequency", { length: 20 }),
-    // monthly, quarterly, yearly
-    nextRunAt: timestamp("nextRunAt"),
-    lastRunAt: timestamp("lastRunAt"),
-    // Status
-    isActive: boolean("isActive").default(true).notNull(),
-    priority: integer("priority").default(0).notNull(),
-    // for step-down ordering
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_allocation_rules_tenant").on(t2.tenantId),
-    index("idx_allocation_rules_source_cc").on(t2.sourceCostCenterId),
-    index("idx_allocation_rules_next_run").on(t2.nextRunAt),
-    check("chk_allocation_rule_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var allocationRuns = pgTable(
-  "allocation_runs",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    ruleId: integer("ruleId").notNull(),
-    periodName: varchar("periodName", { length: 50 }).notNull(),
-    status: varchar("status", { length: 20 }).default("draft").notNull(),
-    // draft, posted, reversed
-    totalAllocated: decimal("totalAllocated", { precision: 15, scale: 2 }).default("0"),
-    details: jsonb("details"),
-    // [{ targetCostCenterId, basisValue, allocatedAmount }]
-    postedAt: timestamp("postedAt"),
-    postedById: integer("postedById"),
-    reversedAt: timestamp("reversedAt"),
-    reversedById: integer("reversedById"),
-    reversalReason: varchar("reversalReason", { length: 255 }),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_allocation_runs_tenant").on(t2.tenantId),
-    index("idx_allocation_runs_rule").on(t2.ruleId),
-    index("idx_allocation_runs_period").on(t2.periodName),
-    unique("allocation_runs_rule_period_unique").on(t2.ruleId, t2.periodName),
-    check("chk_allocation_run_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var budgetVersionEnum = pgEnum("budget_version", [
-  "draft",
-  "approved",
-  "revised",
-  "final"
-]);
-var budgetScenarios = pgTable(
-  "budget_scenarios",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    name: varchar("name", { length: 100 }).notNull(),
-    description: text("description"),
-    version: budgetVersionEnum("version").default("draft").notNull(),
-    periodName: varchar("periodName", { length: 50 }).notNull(),
-    costCenterId: integer("costCenterId"),
-    // Scenario assumptions
-    assumptions: jsonb("assumptions"),
-    // { growthRate, inflationRate, fxRate, ... }
-    // Status
-    approvedById: integer("approvedById"),
-    approvedAt: timestamp("approvedAt"),
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_budget_scenarios_tenant").on(t2.tenantId),
-    index("idx_budget_scenarios_period").on(t2.periodName),
-    unique("budget_scenarios_tenant_name_period_unique").on(t2.tenantId, t2.name, t2.periodName),
-    check("chk_budget_scenario_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var budgetLines = pgTable(
-  "budget_lines",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    scenarioId: integer("scenarioId").notNull(),
-    accountId: integer("accountId").notNull(),
-    costCenterId: integer("costCenterId"),
-    periodName: varchar("periodName", { length: 50 }).notNull(),
-    // monthly breakdown
-    amount: decimal("amount", { precision: 15, scale: 2 }).default("0").notNull(),
-    quantity: decimal("quantity", { precision: 15, scale: 4 }),
-    // for driver-based budgets
-    unitPrice: decimal("unitPrice", { precision: 15, scale: 4 }),
-    notes: text("notes"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_budget_lines_tenant").on(t2.tenantId),
-    index("idx_budget_lines_scenario").on(t2.scenarioId),
-    index("idx_budget_lines_account").on(t2.accountId),
-    index("idx_budget_lines_cc_period").on(t2.costCenterId, t2.periodName),
-    unique("budget_lines_scenario_account_cc_period_unique").on(t2.scenarioId, t2.accountId, t2.costCenterId, t2.periodName),
-    check("chk_budget_line_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var varianceAnalyses = pgTable(
-  "variance_analyses",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    scenarioId: integer("scenarioId").notNull(),
-    periodName: varchar("periodName", { length: 50 }).notNull(),
-    accountId: integer("accountId").notNull(),
-    costCenterId: integer("costCenterId"),
-    budgetAmount: decimal("budgetAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    actualAmount: decimal("actualAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    varianceAmount: decimal("varianceAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    variancePercent: decimal("variancePercent", { precision: 10, scale: 2 }).default("0").notNull(),
-    varianceType: varchar("varianceType", { length: 20 }),
-    // favorable, unfavorable
-    // Variance breakdown
-    priceVariance: decimal("priceVariance", { precision: 15, scale: 2 }).default("0"),
-    quantityVariance: decimal("quantityVariance", { precision: 15, scale: 2 }).default("0"),
-    mixVariance: decimal("mixVariance", { precision: 15, scale: 2 }).default("0"),
-    volumeVariance: decimal("volumeVariance", { precision: 15, scale: 2 }).default("0"),
-    // Commentary
-    commentary: text("commentary"),
-    reviewedById: integer("reviewedById"),
-    reviewedAt: timestamp("reviewedAt"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_variance_tenant").on(t2.tenantId),
-    index("idx_variance_scenario").on(t2.scenarioId),
-    index("idx_variance_account_cc").on(t2.accountId, t2.costCenterId),
-    index("idx_variance_period").on(t2.periodName),
-    unique("variance_scenario_account_cc_period_unique").on(t2.scenarioId, t2.accountId, t2.costCenterId, t2.periodName),
-    check("chk_variance_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var kpiDataTypeEnum = pgEnum("kpi_data_type", [
-  "currency",
-  "percentage",
-  "ratio",
-  "count",
-  "days",
-  "custom"
-]);
-var kpiFrequencyEnum = pgEnum("kpi_frequency", [
-  "daily",
-  "weekly",
-  "monthly",
-  "quarterly",
-  "yearly",
-  "realtime"
-]);
-var kpis = pgTable(
-  "kpis",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 50 }).notNull(),
-    name: varchar("name", { length: 150 }).notNull(),
-    nameAr: varchar("nameAr", { length: 150 }),
-    description: text("description"),
-    category: varchar("category", { length: 50 }),
-    // financial, operational, sales, hr, inventory
-    dataType: kpiDataTypeEnum("dataType").default("currency").notNull(),
-    frequency: kpiFrequencyEnum("frequency").default("monthly").notNull(),
-    // Formula / Calculation
-    formula: text("formula"),
-    // SQL or expression: (revenue - cogs) / revenue * 100
-    numeratorAccountIds: jsonb("numeratorAccountIds"),
-    // account IDs for numerator
-    denominatorAccountIds: jsonb("denominatorAccountIds"),
-    // account IDs for denominator
-    // Targets
-    targetValue: decimal("targetValue", { precision: 15, scale: 4 }),
-    targetMin: decimal("targetMin", { precision: 15, scale: 4 }),
-    targetMax: decimal("targetMax", { precision: 15, scale: 4 }),
-    // Thresholds for alerts
-    warningThreshold: decimal("warningThreshold", { precision: 15, scale: 4 }),
-    criticalThreshold: decimal("criticalThreshold", { precision: 15, scale: 4 }),
-    // Direction
-    higherIsBetter: boolean("higherIsBetter").default(true).notNull(),
-    // Display
-    decimalPlaces: integer("decimalPlaces").default(2).notNull(),
-    chartType: varchar("chartType", { length: 20 }).default("line"),
-    // line, bar, gauge, kpi_card
-    color: varchar("color", { length: 20 }).default("#3B82F6"),
-    // Status
-    isActive: boolean("isActive").default(true).notNull(),
-    isSystem: boolean("isSystem").default(false).notNull(),
-    // built-in KPIs
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_kpis_tenant").on(t2.tenantId),
-    index("idx_kpis_category").on(t2.category),
-    unique("kpis_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_kpi_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var kpiMeasurements = pgTable(
-  "kpi_measurements",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    kpiId: integer("kpiId").notNull(),
-    periodName: varchar("periodName", { length: 50 }).notNull(),
-    costCenterId: integer("costCenterId"),
-    value: decimal("value", { precision: 15, scale: 4 }).notNull(),
-    targetValue: decimal("targetValue", { precision: 15, scale: 4 }),
-    variance: decimal("variance", { precision: 15, scale: 4 }),
-    variancePercent: decimal("variancePercent", { precision: 10, scale: 2 }),
-    status: varchar("status", { length: 20 }).default("on_track").notNull(),
-    // on_track, warning, critical
-    computedAt: timestamp("computedAt").defaultNow().notNull(),
-    computedBy: varchar("computedBy", { length: 50 }).default("auto"),
-    // auto, manual
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_kpi_measurements_tenant").on(t2.tenantId),
-    index("idx_kpi_measurements_kpi").on(t2.kpiId),
-    index("idx_kpi_measurements_period").on(t2.periodName),
-    index("idx_kpi_measurements_status").on(t2.status),
-    unique("kpi_measurements_kpi_period_cc_unique").on(t2.kpiId, t2.periodName, t2.costCenterId),
-    check("chk_kpi_measurement_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var reportTypeEnum = pgEnum("report_type", [
-  "tabular",
-  "pivot",
-  "chart",
-  "dashboard",
-  "financial_statement",
-  "custom"
-]);
-var reportDefinitions = pgTable(
-  "report_definitions",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    code: varchar("code", { length: 50 }).notNull(),
-    name: varchar("name", { length: 150 }).notNull(),
-    nameAr: varchar("nameAr", { length: 150 }),
-    description: text("description"),
-    type: reportTypeEnum("type").default("tabular").notNull(),
-    category: varchar("category", { length: 50 }),
-    // financial, managerial, operational, compliance
-    // Data Source
-    dataSource: varchar("dataSource", { length: 100 }).notNull(),
-    // transactions, accounts, budget_lines, kpi_measurements, custom_sql
-    queryConfig: jsonb("queryConfig").notNull(),
-    // { filters, dimensions, measures, sorting, grouping }
-    // Layout
-    layoutConfig: jsonb("layoutConfig"),
-    // { columns, rows, values, filters, formatting }
-    chartConfig: jsonb("chartConfig"),
-    // for chart types
-    // Parameters
-    parameters: jsonb("parameters"),
-    // [{ name, type, default, required, options }]
-    // Scheduling
-    isScheduled: boolean("isScheduled").default(false).notNull(),
-    scheduleCron: varchar("scheduleCron", { length: 100 }),
-    // cron expression
-    scheduleRecipients: jsonb("scheduleRecipients"),
-    // [{ userId, email, format }]
-    lastGeneratedAt: timestamp("lastGeneratedAt"),
-    // Permissions
-    isPublic: boolean("isPublic").default(false).notNull(),
-    allowedRoles: jsonb("allowedRoles"),
-    // role IDs
-    allowedUsers: jsonb("allowedUsers"),
-    // user IDs
-    // Versioning
-    version: integer("version").default(1).notNull(),
-    parentReportId: integer("parentReportId"),
-    // for derived reports
-    // Status
-    isActive: boolean("isActive").default(true).notNull(),
-    isSystem: boolean("isSystem").default(false).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    createdById: integer("createdById"),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_report_defs_tenant").on(t2.tenantId),
-    index("idx_report_defs_category").on(t2.category),
-    unique("report_defs_code_tenant_unique").on(t2.code, t2.tenantId),
-    check("chk_report_def_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var reportExecutions = pgTable(
-  "report_executions",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    reportId: integer("reportId").notNull(),
-    parameters: jsonb("parameters"),
-    status: varchar("status", { length: 20 }).default("pending").notNull(),
-    // pending, running, completed, failed
-    resultData: jsonb("resultData"),
-    // cached result
-    resultUrl: varchar("resultUrl", { length: 500 }),
-    // exported file URL
-    rowCount: integer("rowCount").default(0),
-    executionTimeMs: integer("executionTimeMs").default(0),
-    errorMessage: text("errorMessage"),
-    executedById: integer("executedById"),
-    startedAt: timestamp("startedAt"),
-    completedAt: timestamp("completedAt"),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_report_executions_tenant").on(t2.tenantId),
-    index("idx_report_executions_report").on(t2.reportId),
-    index("idx_report_executions_status").on(t2.status),
-    check("chk_report_execution_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var consolidationMethodEnum = pgEnum("consolidation_method", [
-  "full",
-  // دمج كامل
-  "proportional",
-  // تناسبي (equity method)
-  "cost"
-  // تكلفة
-]);
-var consolidationEntities = pgTable(
-  "consolidation_entities",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    // parent/group tenant
-    code: varchar("code", { length: 30 }).notNull(),
-    name: varchar("name", { length: 150 }).notNull(),
-    entityTenantId: integer("entityTenantId").notNull(),
-    // child/subsidiary tenant
-    ownershipPercent: decimal("ownershipPercent", { precision: 5, scale: 2 }).default("100").notNull(),
-    method: consolidationMethodEnum("method").default("full").notNull(),
-    functionalCurrency: varchar("functionalCurrency", { length: 10 }).default("YER").notNull(),
-    reportingCurrency: varchar("reportingCurrency", { length: 10 }).default("YER").notNull(),
-    // Elimination rules
-    eliminationRules: jsonb("eliminationRules"),
-    // [{ fromEntity, toEntity, accountId, rule }]
-    // Status
-    isActive: boolean("isActive").default(true).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_consolidation_entities_tenant").on(t2.tenantId),
-    index("idx_consolidation_entities_entity").on(t2.entityTenantId),
-    unique("consolidation_entities_tenant_code_unique").on(t2.tenantId, t2.code),
-    check("chk_consolidation_ownership", sql`${t2.ownershipPercent} > 0 AND ${t2.ownershipPercent} <= 100`),
-    check("chk_consolidation_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
-var consolidationAdjustments = pgTable(
-  "consolidation_adjustments",
-  {
-    id: serial("id").primaryKey(),
-    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").notNull(),
-    periodName: varchar("periodName", { length: 50 }).notNull(),
-    consolidationEntityId: integer("consolidationEntityId").notNull(),
-    adjustmentType: varchar("adjustmentType", { length: 50 }).notNull(),
-    // elimination, translation, goodwill, nci
-    accountId: integer("accountId").notNull(),
-    amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-    currency: varchar("currency", { length: 10 }).notNull(),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1"),
-    description: text("description"),
-    postedAt: timestamp("postedAt"),
-    postedById: integer("postedById"),
-    createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-    // Sync columns
-    serverVersion: integer("serverVersion").default(1).notNull(),
-    lastSyncAt: timestamp("lastSyncAt"),
-    conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
-  },
-  (t2) => [
-    index("idx_consolidation_adj_tenant").on(t2.tenantId),
-    index("idx_consolidation_adj_period").on(t2.periodName),
-    index("idx_consolidation_adj_entity").on(t2.consolidationEntityId),
-    check("chk_consolidation_adj_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
-  ]
-);
+      ]
+    );
+    scheduledJournalEntries = pgTable(
+      "scheduled_journal_entries",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        name: varchar("name", { length: 200 }).notNull(),
+        description: text("description"),
+        branchId: integer("branchId"),
+        frequency: varchar("frequency", { length: 20 }).default("monthly").notNull(),
+        nextRunAt: timestamp("nextRunAt"),
+        isActive: boolean("isActive").default(true).notNull(),
+        legs: jsonb("legs"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_scheduledJournal_tenant").on(t2.tenantId),
+        index("idx_scheduledJournal_nextRun").on(t2.nextRunAt),
+        check("chk_scheduled_journal_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    recurringExpenseStatusEnum = pgEnum("recurring_expense_status", [
+      "draft",
+      "active",
+      "paused",
+      "completed",
+      "cancelled"
+    ]);
+    recurringExpenseFrequencyEnum = pgEnum("recurring_expense_frequency", [
+      "daily",
+      "weekly",
+      "biweekly",
+      "monthly",
+      "quarterly",
+      "semiannual",
+      "annual",
+      "custom"
+    ]);
+    expenseBasisEnum = pgEnum("expense_basis", [
+      "accrual",
+      "cash"
+    ]);
+    expenseApprovalStatusEnum = pgEnum("expense_approval_status", [
+      "pending",
+      "approved",
+      "rejected",
+      "auto_approved"
+    ]);
+    recurringExpenses = pgTable(
+      "recurring_expenses",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        name: varchar("name", { length: 200 }).notNull(),
+        description: text("description"),
+        categoryId: integer("categoryId").references(() => categories.id),
+        vendorId: integer("vendorId").references(() => suppliers.id),
+        accountId: integer("accountId").references(() => accounts.id).notNull(),
+        branchId: integer("branchId").references(() => branches.id),
+        amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+        currency: varchar("currency", { length: 10 }).default("YER").notNull(),
+        exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
+        taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
+        taxAccountId: integer("taxAccountId").references(() => accounts.id),
+        frequency: recurringExpenseFrequencyEnum("frequency").default("monthly").notNull(),
+        customCron: varchar("customCron", { length: 100 }),
+        dayOfMonth: integer("dayOfMonth"),
+        dayOfWeek: integer("dayOfWeek"),
+        weekOfMonth: integer("weekOfMonth"),
+        startDate: timestamp("startDate").notNull(),
+        endDate: timestamp("endDate"),
+        maxOccurrences: integer("maxOccurrences"),
+        occurrencesCount: integer("occurrencesCount").default(0).notNull(),
+        basis: expenseBasisEnum("basis").default("accrual").notNull(),
+        status: recurringExpenseStatusEnum("status").default("draft").notNull(),
+        approvalStatus: expenseApprovalStatusEnum("approvalStatus").default("pending").notNull(),
+        approverId: integer("approverId").references(() => users.id),
+        approvedAt: timestamp("approvedAt"),
+        approvedById: integer("approvedById").references(() => users.id),
+        paymentMethod: varchar("paymentMethod", { length: 50 }),
+        paymentAccountId: integer("paymentAccountId").references(() => accounts.id),
+        autoPay: boolean("autoPay").default(false).notNull(),
+        nextRunAt: timestamp("nextRunAt"),
+        lastRunAt: timestamp("lastRunAt"),
+        lastRunStatus: varchar("lastRunStatus", { length: 20 }),
+        lastRunError: text("lastRunError"),
+        budgetId: integer("budgetId").references(() => budgets.id),
+        departmentId: integer("departmentId").references(() => departments.id),
+        projectId: integer("projectId").references(() => projects.id),
+        tags: jsonb("tags"),
+        metadata: jsonb("metadata"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        createdById: integer("createdById").references(() => users.id),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_recurring_expenses_tenant").on(t2.tenantId),
+        index("idx_recurring_expenses_status").on(t2.status),
+        index("idx_recurring_expenses_next_run").on(t2.nextRunAt),
+        index("idx_recurring_expenses_vendor").on(t2.vendorId),
+        index("idx_recurring_expenses_category").on(t2.categoryId),
+        index("idx_recurring_expenses_account").on(t2.accountId),
+        index("idx_recurring_expenses_budget").on(t2.budgetId),
+        check("chk_recurring_expense_amount_positive", sql`${t2.amount} > 0`),
+        check("chk_recurring_expense_exchange_rate_positive", sql`${t2.exchangeRate} > 0`),
+        check("chk_recurring_expense_tax_rate_not_negative", sql`${t2.taxRate} >= 0`),
+        check("chk_recurring_expense_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`),
+        check("chk_recurring_expense_account_not_null", sql`${t2.accountId} IS NOT NULL`),
+        check("chk_recurring_expense_dates", sql`${t2.startDate} <= ${t2.endDate} OR ${t2.endDate} IS NULL`)
+      ]
+    );
+    recurringExpenseRuns = pgTable(
+      "recurring_expense_runs",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        recurringExpenseId: integer("recurringExpenseId").notNull().references(() => recurringExpenses.id),
+        runNumber: integer("runNumber").notNull(),
+        scheduledDate: timestamp("scheduledDate").notNull(),
+        executedDate: timestamp("executedDate"),
+        status: varchar("status", { length: 20 }).default("pending").notNull(),
+        amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+        taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).notNull(),
+        baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
+        journalEntryId: integer("journalEntryId").references(() => journalEntries.id),
+        purchaseInvoiceId: integer("purchaseInvoiceId").references(() => purchaseInvoices.id),
+        paymentTransactionId: integer("paymentTransactionId").references(() => transactions.id),
+        errorMessage: text("errorMessage"),
+        processedById: integer("processedById").references(() => users.id),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_recurring_expense_runs_tenant").on(t2.tenantId),
+        index("idx_recurring_expense_runs_recurring").on(t2.recurringExpenseId),
+        index("idx_recurring_expense_runs_scheduled").on(t2.scheduledDate),
+        index("idx_recurring_expense_runs_status").on(t2.status),
+        unique("recurring_expense_runs_unique").on(t2.recurringExpenseId, t2.runNumber),
+        check("chk_recurring_expense_run_amount_positive", sql`${t2.amount} > 0`),
+        check("chk_recurring_expense_run_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    units = pgTable(
+      "units",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 20 }).notNull(),
+        name: varchar("name", { length: 80 }).notNull(),
+        nameAr: varchar("nameAr", { length: 80 }),
+        symbol: varchar("symbol", { length: 20 }),
+        baseUnitId: integer("baseUnitId"),
+        conversionFactor: decimal("conversionFactor", { precision: 15, scale: 6 }).default("1"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_units_tenant").on(t2.tenantId),
+        uniqueIndex("uq_units_tenant_code").on(t2.tenantId, t2.code),
+        check("chk_unit_conversion_positive", sql`${t2.conversionFactor} > 0`),
+        check("chk_unit_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    productUnits = pgTable(
+      "product_units",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        productId: integer("productId").notNull(),
+        unitId: integer("unitId").notNull(),
+        conversionFactor: decimal("conversionFactor", { precision: 15, scale: 6 }).default("1").notNull(),
+        isBase: boolean("isBase").default(false).notNull(),
+        barcode: varchar("barcode", { length: 100 }),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_productUnits_tenant").on(t2.tenantId),
+        index("idx_productUnits_product").on(t2.productId),
+        unique("product_units_product_unit_unique").on(t2.productId, t2.unitId),
+        check("chk_product_unit_conversion_positive", sql`${t2.conversionFactor} > 0`),
+        check("chk_product_unit_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    categories = pgTable(
+      "categories",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 30 }).notNull(),
+        name: varchar("name", { length: 100 }).notNull(),
+        nameAr: varchar("nameAr", { length: 100 }),
+        parentId: integer("parentId"),
+        type: varchar("type", { length: 30 }).default("product"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_categories_tenant").on(t2.tenantId),
+        uniqueIndex("uq_categories_tenant_code").on(t2.tenantId, t2.code),
+        check("chk_category_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    roles = pgTable(
+      "roles",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        name: varchar("name", { length: 80 }).notNull(),
+        code: varchar("code", { length: 40 }).notNull(),
+        description: text("description"),
+        permissions: text("permissions"),
+        // JSON array of permission keys
+        isSystem: boolean("isSystem").default(false).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_roles_tenant").on(t2.tenantId),
+        uniqueIndex("uq_roles_tenant_code").on(t2.tenantId, t2.code),
+        check("chk_role_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    userRoles = pgTable(
+      "user_roles",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        userId: integer("userId").notNull(),
+        roleId: integer("roleId").notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_userroles_tenant").on(t2.tenantId),
+        uniqueIndex("uq_userroles_user_role").on(t2.userId, t2.roleId),
+        check("chk_user_role_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    permissions = pgTable(
+      "permissions",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        key: varchar("key", { length: 80 }).notNull(),
+        name: varchar("name", { length: 120 }).notNull(),
+        category: varchar("category", { length: 50 }),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        uniqueIndex("uq_permissions_key").on(t2.key)
+      ]
+    );
+    documents = pgTable(
+      "documents",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 40 }),
+        title: varchar("title", { length: 200 }).notNull(),
+        type: varchar("type", { length: 50 }),
+        entityType: varchar("entityType", { length: 50 }),
+        entityId: integer("entityId"),
+        fileUrl: text("fileUrl"),
+        fileUploadId: integer("fileUploadId"),
+        notes: text("notes"),
+        uploadedById: integer("uploadedById"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_documents_tenant").on(t2.tenantId),
+        index("idx_documents_entity").on(t2.entityType, t2.entityId),
+        check("chk_document_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    messages = pgTable(
+      "messages",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        fromUserId: text("fromUserId").notNull(),
+        fromName: text("fromName"),
+        toUserId: text("toUserId").notNull(),
+        body: text("body").notNull(),
+        isRead: boolean("isRead").default(false).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_messages_tenant").on(t2.tenantId),
+        index("idx_messages_to").on(t2.tenantId, t2.toUserId),
+        index("idx_messages_from").on(t2.tenantId, t2.fromUserId),
+        check("chk_message_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    posSessions = pgTable(
+      "pos_sessions",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 40 }).notNull(),
+        openedById: integer("openedById").notNull(),
+        openedAt: timestamp("openedAt").defaultNow().notNull(),
+        closedAt: timestamp("closedAt"),
+        openingFloat: decimal("openingFloat", { precision: 15, scale: 2 }).default("0"),
+        closingFloat: decimal("closingFloat", { precision: 15, scale: 2 }),
+        expectedCash: decimal("expectedCash", { precision: 15, scale: 2 }),
+        countedCash: decimal("countedCash", { precision: 15, scale: 2 }),
+        variance: decimal("variance", { precision: 15, scale: 2 }),
+        status: varchar("status", { length: 20 }).default("open").notNull(),
+        notes: text("notes"),
+        branchId: integer("branchId"),
+        deviceId: integer("deviceId"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_pos_sessions_tenant").on(t2.tenantId),
+        index("idx_pos_sessions_currency").on(t2.currencyId),
+        check("chk_pos_session_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    posOrders = pgTable(
+      "pos_orders",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        sessionId: integer("sessionId"),
+        salesInvoiceId: integer("salesInvoiceId"),
+        total: decimal("total", { precision: 15, scale: 2 }).default("0"),
+        paymentMethod: varchar("paymentMethod", { length: 20 }),
+        status: varchar("status", { length: 20 }).default("completed"),
+        createdById: integer("createdById"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_pos_orders_tenant").on(t2.tenantId),
+        index("idx_pos_orders_currency").on(t2.currencyId),
+        check("chk_pos_order_total_not_negative", sql`${t2.total} >= 0`),
+        check("chk_pos_order_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    customFieldDefs = pgTable(
+      "custom_field_defs",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        entityType: varchar("entity_type", { length: 50 }).notNull(),
+        key: varchar("key", { length: 50 }).notNull(),
+        label: varchar("label", { length: 120 }).notNull(),
+        type: varchar("type", { length: 20 }).notNull().default("text"),
+        options: text("options"),
+        required: boolean("required").default(false).notNull(),
+        displayOrder: integer("display_order").default(0).notNull(),
+        isActive: boolean("is_active").default(true).notNull(),
+        createdAt: timestamp("created_at").defaultNow().notNull(),
+        updatedAt: timestamp("updated_at").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        // JSON Schema validation
+        jsonSchema: jsonb("jsonSchema")
+      },
+      (t2) => [
+        uniqueIndex("custom_field_defs_tenant_entity_key").on(
+          t2.tenantId,
+          t2.entityType,
+          t2.key
+        ),
+        check("chk_custom_field_def_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    customFieldValues = pgTable(
+      "custom_field_values",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        entityType: varchar("entity_type", { length: 50 }).notNull(),
+        entityId: integer("entity_id").notNull(),
+        fieldKey: varchar("field_key", { length: 50 }).notNull(),
+        value: text("value"),
+        createdAt: timestamp("created_at").defaultNow().notNull(),
+        updatedAt: timestamp("updated_at").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("custom_field_values_tenant_entity").on(
+          t2.tenantId,
+          t2.entityType,
+          t2.entityId
+        ),
+        unique("custom_field_values_entity_field_unique").on(t2.entityType, t2.entityId, t2.fieldKey),
+        check("chk_custom_field_value_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    salesReps = pgTable(
+      "sales_reps",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        name: varchar("name", { length: 255 }).notNull(),
+        phone: varchar("phone", { length: 50 }),
+        commissionType: varchar("commissionType", { length: 20 }).default("percent").notNull(),
+        commissionValue: decimal("commissionValue", { precision: 15, scale: 2 }).default("0").notNull(),
+        bonusThreshold: decimal("bonusThreshold", { precision: 15, scale: 2 }),
+        bonusAmount: decimal("bonusAmount", { precision: 15, scale: 2 }),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId"),
+        currencyId: integer("currencyId").references(() => currencies.id)
+      },
+      (t2) => [
+        index("idx_sales_reps_tenant").on(t2.tenantId),
+        index("idx_sales_reps_currency").on(t2.currencyId),
+        check("chk_sales_rep_commission_not_negative", sql`${t2.commissionValue} >= 0`),
+        check("chk_sales_rep_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    offers = pgTable(
+      "offers",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        name: varchar("name", { length: 255 }).notNull(),
+        kind: varchar("kind", { length: 20 }).default("financial").notNull(),
+        discountPercent: decimal("discountPercent", { precision: 6, scale: 2 }).default("0").notNull(),
+        minQty: decimal("minQty", { precision: 15, scale: 2 }),
+        productId: integer("productId"),
+        categoryId: integer("categoryId"),
+        startDate: timestamp("startDate"),
+        endDate: timestamp("endDate"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_offers_tenant").on(t2.tenantId),
+        index("idx_offers_product").on(t2.productId),
+        index("idx_offers_category").on(t2.categoryId),
+        check("chk_offer_discount_not_negative", sql`${t2.discountPercent} >= 0`),
+        check("chk_offer_discount_not_over_100", sql`${t2.discountPercent} <= 100`),
+        check("chk_offer_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    translations = pgTable(
+      "translations",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        key: varchar("key", { length: 255 }).notNull(),
+        culture: varchar("culture", { length: 10 }).notNull(),
+        value: text("value").notNull(),
+        context: varchar("context", { length: 100 }),
+        isApproved: boolean("isApproved").default(false).notNull(),
+        approvedById: integer("approvedById"),
+        approvedAt: timestamp("approvedAt"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_translations_tenant").on(t2.tenantId),
+        index("idx_translations_culture").on(t2.culture),
+        unique("translations_key_culture_tenant_unique").on(t2.key, t2.culture, t2.tenantId),
+        check("chk_translation_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    biometricTemplates = pgTable(
+      "biometric_templates",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        userId: integer("userId").notNull(),
+        type: varchar("type", { length: 30 }).notNull(),
+        // fingerprint, face, iris, voice
+        algorithm: varchar("algorithm", { length: 50 }).notNull(),
+        // e.g., ISO 19794-2, ISO 39794-5
+        algorithmVersion: varchar("algorithmVersion", { length: 20 }).notNull(),
+        templateHash: varchar("templateHash", { length: 64 }).notNull(),
+        // SHA-256 of encrypted template
+        encryptedTemplate: text("encryptedTemplate").notNull(),
+        // Encrypted biometric data
+        encryptionKeyId: varchar("encryptionKeyId", { length: 100 }).notNull(),
+        qualityScore: integer("qualityScore"),
+        // 0-100
+        status: varchar("status", { length: 20 }).default("active").notNull(),
+        // active, revoked, expired
+        enrolledAt: timestamp("enrolledAt").defaultNow().notNull(),
+        enrolledById: integer("enrolledById").notNull(),
+        approvedById: integer("approvedById"),
+        approvedAt: timestamp("approvedAt"),
+        revokedAt: timestamp("revokedAt"),
+        revokedById: integer("revokedById"),
+        revocationReason: varchar("revocationReason", { length: 255 }),
+        expiresAt: timestamp("expiresAt"),
+        lastVerifiedAt: timestamp("lastVerifiedAt"),
+        verificationCount: integer("verificationCount").default(0).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_biometric_tenant").on(t2.tenantId),
+        index("idx_biometric_user").on(t2.userId),
+        index("idx_biometric_type").on(t2.type),
+        index("idx_biometric_status").on(t2.status),
+        unique("biometric_template_user_type_unique").on(t2.userId, t2.type),
+        check("chk_biometric_quality_score_range", sql`${t2.qualityScore} IS NULL OR (${t2.qualityScore} >= 0 AND ${t2.qualityScore} <= 100)`),
+        check("chk_biometric_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    syncMetadata = pgTable(
+      "sync_metadata",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        aggregateId: uuid("aggregateId").notNull(),
+        entityType: varchar("entityType", { length: 100 }).notNull(),
+        entityId: integer("entityId").notNull(),
+        entityGlobalId: uuid("entityGlobalId").notNull(),
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        clientVersion: integer("clientVersion").default(0).notNull(),
+        conflictState: varchar("conflictState", { length: 20 }).default("none").notNull(),
+        // none, client_wins, server_wins, manual
+        conflictData: jsonb("conflictData"),
+        // { clientValue, serverValue, resolvedValue }
+        lastSyncAt: timestamp("lastSyncAt").defaultNow().notNull(),
+        lastConflictAt: timestamp("lastConflictAt"),
+        resolvedAt: timestamp("resolvedAt"),
+        resolvedById: integer("resolvedById"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull()
+      },
+      (t2) => [
+        index("idx_sync_metadata_tenant").on(t2.tenantId),
+        index("idx_sync_metadata_aggregate").on(t2.aggregateId),
+        index("idx_sync_metadata_entity").on(t2.entityType, t2.entityId),
+        unique("sync_metadata_aggregate_entity_unique").on(t2.aggregateId, t2.entityType, t2.entityId),
+        check("chk_sync_metadata_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    costCenterTypeEnum = pgEnum("cost_center_type", [
+      "cost",
+      // مركز تكلفة
+      "profit",
+      // مركز ربح
+      "investment",
+      // مركز استثمار
+      "revenue"
+      // مركز إيراد
+    ]);
+    costCenters = pgTable(
+      "cost_centers",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 30 }).notNull(),
+        name: varchar("name", { length: 150 }).notNull(),
+        nameAr: varchar("nameAr", { length: 150 }),
+        type: costCenterTypeEnum("type").default("cost").notNull(),
+        parentId: integer("parentId"),
+        managerId: integer("managerId"),
+        // موظف مسؤول
+        departmentId: integer("departmentId"),
+        budgetAccountId: integer("budgetAccountId"),
+        // حساب الموازنة المرتبط
+        isActive: boolean("isActive").default(true).notNull(),
+        description: text("description"),
+        // Allocation configuration
+        allocationBase: varchar("allocationBase", { length: 50 }),
+        // headcount, area, revenue, direct_hours, machine_hours, custom
+        allocationWeight: decimal("allocationWeight", { precision: 10, scale: 4 }).default("1"),
+        // Hierarchy path for fast queries
+        path: varchar("path", { length: 500 }),
+        // e.g., /1/5/12/
+        level: integer("level").default(0).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        deletedAt: timestamp("deleted_at"),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_cost_centers_tenant").on(t2.tenantId),
+        index("idx_cost_centers_parent").on(t2.parentId),
+        index("idx_cost_centers_type").on(t2.type),
+        index("idx_cost_centers_path").on(t2.path),
+        unique("cost_centers_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_cost_center_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    allocationMethodEnum = pgEnum("allocation_method", [
+      "fixed",
+      // نسبة ثابتة
+      "proportional",
+      // تناسبي حسب الأساس
+      "step_down",
+      // خطوة بخطوة (sequential)
+      "reciprocal",
+      // تبادلي (simultaneous equations)
+      "activity_based"
+      // القائم على الأنشطة (ABC)
+    ]);
+    allocationRules = pgTable(
+      "allocation_rules",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        name: varchar("name", { length: 150 }).notNull(),
+        description: text("description"),
+        method: allocationMethodEnum("method").default("proportional").notNull(),
+        // Source: ما يتم توزيعه
+        sourceType: varchar("sourceType", { length: 30 }).notNull(),
+        // cost_center, account, fixed_amount
+        sourceCostCenterId: integer("sourceCostCenterId"),
+        sourceAccountId: integer("sourceAccountId"),
+        sourceFixedAmount: decimal("sourceFixedAmount", { precision: 15, scale: 2 }),
+        // Target: куда يتم التوزيع
+        targetCostCenterIds: jsonb("targetCostCenterIds").notNull(),
+        // array of cost center IDs
+        // Basis: أساس التوزيع
+        basisType: varchar("basisType", { length: 50 }),
+        // headcount, area, revenue, direct_labor_hours, machine_hours, custom_driver
+        basisDriverId: integer("basisDriverId"),
+        // custom driver account/cost center
+        basisFormula: text("basisFormula"),
+        // JSON: custom formula
+        // Filters
+        filterAccountTypes: jsonb("filterAccountTypes"),
+        // which account types to allocate
+        filterDateRange: jsonb("filterDateRange"),
+        // {from, to} or periodName
+        // Schedule
+        isRecurring: boolean("isRecurring").default(false).notNull(),
+        frequency: varchar("frequency", { length: 20 }),
+        // monthly, quarterly, yearly
+        nextRunAt: timestamp("nextRunAt"),
+        lastRunAt: timestamp("lastRunAt"),
+        // Status
+        isActive: boolean("isActive").default(true).notNull(),
+        priority: integer("priority").default(0).notNull(),
+        // for step-down ordering
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_allocation_rules_tenant").on(t2.tenantId),
+        index("idx_allocation_rules_source_cc").on(t2.sourceCostCenterId),
+        index("idx_allocation_rules_next_run").on(t2.nextRunAt),
+        check("chk_allocation_rule_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    allocationRuns = pgTable(
+      "allocation_runs",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        ruleId: integer("ruleId").notNull(),
+        periodName: varchar("periodName", { length: 50 }).notNull(),
+        status: varchar("status", { length: 20 }).default("draft").notNull(),
+        // draft, posted, reversed
+        totalAllocated: decimal("totalAllocated", { precision: 15, scale: 2 }).default("0"),
+        details: jsonb("details"),
+        // [{ targetCostCenterId, basisValue, allocatedAmount }]
+        postedAt: timestamp("postedAt"),
+        postedById: integer("postedById"),
+        reversedAt: timestamp("reversedAt"),
+        reversedById: integer("reversedById"),
+        reversalReason: varchar("reversalReason", { length: 255 }),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_allocation_runs_tenant").on(t2.tenantId),
+        index("idx_allocation_runs_rule").on(t2.ruleId),
+        index("idx_allocation_runs_period").on(t2.periodName),
+        unique("allocation_runs_rule_period_unique").on(t2.ruleId, t2.periodName),
+        check("chk_allocation_run_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    budgetVersionEnum = pgEnum("budget_version", [
+      "draft",
+      "approved",
+      "revised",
+      "final"
+    ]);
+    budgetScenarios = pgTable(
+      "budget_scenarios",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        name: varchar("name", { length: 100 }).notNull(),
+        description: text("description"),
+        version: budgetVersionEnum("version").default("draft").notNull(),
+        periodName: varchar("periodName", { length: 50 }).notNull(),
+        costCenterId: integer("costCenterId"),
+        // Scenario assumptions
+        assumptions: jsonb("assumptions"),
+        // { growthRate, inflationRate, fxRate, ... }
+        // Status
+        approvedById: integer("approvedById"),
+        approvedAt: timestamp("approvedAt"),
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_budget_scenarios_tenant").on(t2.tenantId),
+        index("idx_budget_scenarios_period").on(t2.periodName),
+        unique("budget_scenarios_tenant_name_period_unique").on(t2.tenantId, t2.name, t2.periodName),
+        check("chk_budget_scenario_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    budgetLines = pgTable(
+      "budget_lines",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        scenarioId: integer("scenarioId").notNull(),
+        accountId: integer("accountId").notNull(),
+        costCenterId: integer("costCenterId"),
+        periodName: varchar("periodName", { length: 50 }).notNull(),
+        // monthly breakdown
+        amount: decimal("amount", { precision: 15, scale: 2 }).default("0").notNull(),
+        quantity: decimal("quantity", { precision: 15, scale: 4 }),
+        // for driver-based budgets
+        unitPrice: decimal("unitPrice", { precision: 15, scale: 4 }),
+        notes: text("notes"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_budget_lines_tenant").on(t2.tenantId),
+        index("idx_budget_lines_scenario").on(t2.scenarioId),
+        index("idx_budget_lines_account").on(t2.accountId),
+        index("idx_budget_lines_cc_period").on(t2.costCenterId, t2.periodName),
+        unique("budget_lines_scenario_account_cc_period_unique").on(t2.scenarioId, t2.accountId, t2.costCenterId, t2.periodName),
+        check("chk_budget_line_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    varianceAnalyses = pgTable(
+      "variance_analyses",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        scenarioId: integer("scenarioId").notNull(),
+        periodName: varchar("periodName", { length: 50 }).notNull(),
+        accountId: integer("accountId").notNull(),
+        costCenterId: integer("costCenterId"),
+        budgetAmount: decimal("budgetAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        actualAmount: decimal("actualAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        varianceAmount: decimal("varianceAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+        variancePercent: decimal("variancePercent", { precision: 10, scale: 2 }).default("0").notNull(),
+        varianceType: varchar("varianceType", { length: 20 }),
+        // favorable, unfavorable
+        // Variance breakdown
+        priceVariance: decimal("priceVariance", { precision: 15, scale: 2 }).default("0"),
+        quantityVariance: decimal("quantityVariance", { precision: 15, scale: 2 }).default("0"),
+        mixVariance: decimal("mixVariance", { precision: 15, scale: 2 }).default("0"),
+        volumeVariance: decimal("volumeVariance", { precision: 15, scale: 2 }).default("0"),
+        // Commentary
+        commentary: text("commentary"),
+        reviewedById: integer("reviewedById"),
+        reviewedAt: timestamp("reviewedAt"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_variance_tenant").on(t2.tenantId),
+        index("idx_variance_scenario").on(t2.scenarioId),
+        index("idx_variance_account_cc").on(t2.accountId, t2.costCenterId),
+        index("idx_variance_period").on(t2.periodName),
+        unique("variance_scenario_account_cc_period_unique").on(t2.scenarioId, t2.accountId, t2.costCenterId, t2.periodName),
+        check("chk_variance_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    kpiDataTypeEnum = pgEnum("kpi_data_type", [
+      "currency",
+      "percentage",
+      "ratio",
+      "count",
+      "days",
+      "custom"
+    ]);
+    kpiFrequencyEnum = pgEnum("kpi_frequency", [
+      "daily",
+      "weekly",
+      "monthly",
+      "quarterly",
+      "yearly",
+      "realtime"
+    ]);
+    kpis = pgTable(
+      "kpis",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 50 }).notNull(),
+        name: varchar("name", { length: 150 }).notNull(),
+        nameAr: varchar("nameAr", { length: 150 }),
+        description: text("description"),
+        category: varchar("category", { length: 50 }),
+        // financial, operational, sales, hr, inventory
+        dataType: kpiDataTypeEnum("dataType").default("currency").notNull(),
+        frequency: kpiFrequencyEnum("frequency").default("monthly").notNull(),
+        // Formula / Calculation
+        formula: text("formula"),
+        // SQL or expression: (revenue - cogs) / revenue * 100
+        numeratorAccountIds: jsonb("numeratorAccountIds"),
+        // account IDs for numerator
+        denominatorAccountIds: jsonb("denominatorAccountIds"),
+        // account IDs for denominator
+        // Targets
+        targetValue: decimal("targetValue", { precision: 15, scale: 4 }),
+        targetMin: decimal("targetMin", { precision: 15, scale: 4 }),
+        targetMax: decimal("targetMax", { precision: 15, scale: 4 }),
+        // Thresholds for alerts
+        warningThreshold: decimal("warningThreshold", { precision: 15, scale: 4 }),
+        criticalThreshold: decimal("criticalThreshold", { precision: 15, scale: 4 }),
+        // Direction
+        higherIsBetter: boolean("higherIsBetter").default(true).notNull(),
+        // Display
+        decimalPlaces: integer("decimalPlaces").default(2).notNull(),
+        chartType: varchar("chartType", { length: 20 }).default("line"),
+        // line, bar, gauge, kpi_card
+        color: varchar("color", { length: 20 }).default("#3B82F6"),
+        // Status
+        isActive: boolean("isActive").default(true).notNull(),
+        isSystem: boolean("isSystem").default(false).notNull(),
+        // built-in KPIs
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_kpis_tenant").on(t2.tenantId),
+        index("idx_kpis_category").on(t2.category),
+        unique("kpis_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_kpi_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    kpiMeasurements = pgTable(
+      "kpi_measurements",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        kpiId: integer("kpiId").notNull(),
+        periodName: varchar("periodName", { length: 50 }).notNull(),
+        costCenterId: integer("costCenterId"),
+        value: decimal("value", { precision: 15, scale: 4 }).notNull(),
+        targetValue: decimal("targetValue", { precision: 15, scale: 4 }),
+        variance: decimal("variance", { precision: 15, scale: 4 }),
+        variancePercent: decimal("variancePercent", { precision: 10, scale: 2 }),
+        status: varchar("status", { length: 20 }).default("on_track").notNull(),
+        // on_track, warning, critical
+        computedAt: timestamp("computedAt").defaultNow().notNull(),
+        computedBy: varchar("computedBy", { length: 50 }).default("auto"),
+        // auto, manual
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_kpi_measurements_tenant").on(t2.tenantId),
+        index("idx_kpi_measurements_kpi").on(t2.kpiId),
+        index("idx_kpi_measurements_period").on(t2.periodName),
+        index("idx_kpi_measurements_status").on(t2.status),
+        unique("kpi_measurements_kpi_period_cc_unique").on(t2.kpiId, t2.periodName, t2.costCenterId),
+        check("chk_kpi_measurement_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    reportTypeEnum = pgEnum("report_type", [
+      "tabular",
+      "pivot",
+      "chart",
+      "dashboard",
+      "financial_statement",
+      "custom"
+    ]);
+    reportDefinitions = pgTable(
+      "report_definitions",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        code: varchar("code", { length: 50 }).notNull(),
+        name: varchar("name", { length: 150 }).notNull(),
+        nameAr: varchar("nameAr", { length: 150 }),
+        description: text("description"),
+        type: reportTypeEnum("type").default("tabular").notNull(),
+        category: varchar("category", { length: 50 }),
+        // financial, managerial, operational, compliance
+        // Data Source
+        dataSource: varchar("dataSource", { length: 100 }).notNull(),
+        // transactions, accounts, budget_lines, kpi_measurements, custom_sql
+        queryConfig: jsonb("queryConfig").notNull(),
+        // { filters, dimensions, measures, sorting, grouping }
+        // Layout
+        layoutConfig: jsonb("layoutConfig"),
+        // { columns, rows, values, filters, formatting }
+        chartConfig: jsonb("chartConfig"),
+        // for chart types
+        // Parameters
+        parameters: jsonb("parameters"),
+        // [{ name, type, default, required, options }]
+        // Scheduling
+        isScheduled: boolean("isScheduled").default(false).notNull(),
+        scheduleCron: varchar("scheduleCron", { length: 100 }),
+        // cron expression
+        scheduleRecipients: jsonb("scheduleRecipients"),
+        // [{ userId, email, format }]
+        lastGeneratedAt: timestamp("lastGeneratedAt"),
+        // Permissions
+        isPublic: boolean("isPublic").default(false).notNull(),
+        allowedRoles: jsonb("allowedRoles"),
+        // role IDs
+        allowedUsers: jsonb("allowedUsers"),
+        // user IDs
+        // Versioning
+        version: integer("version").default(1).notNull(),
+        parentReportId: integer("parentReportId"),
+        // for derived reports
+        // Status
+        isActive: boolean("isActive").default(true).notNull(),
+        isSystem: boolean("isSystem").default(false).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        createdById: integer("createdById"),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_report_defs_tenant").on(t2.tenantId),
+        index("idx_report_defs_category").on(t2.category),
+        unique("report_defs_code_tenant_unique").on(t2.code, t2.tenantId),
+        check("chk_report_def_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    reportExecutions = pgTable(
+      "report_executions",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        reportId: integer("reportId").notNull(),
+        parameters: jsonb("parameters"),
+        status: varchar("status", { length: 20 }).default("pending").notNull(),
+        // pending, running, completed, failed
+        resultData: jsonb("resultData"),
+        // cached result
+        resultUrl: varchar("resultUrl", { length: 500 }),
+        // exported file URL
+        rowCount: integer("rowCount").default(0),
+        executionTimeMs: integer("executionTimeMs").default(0),
+        errorMessage: text("errorMessage"),
+        executedById: integer("executedById"),
+        startedAt: timestamp("startedAt"),
+        completedAt: timestamp("completedAt"),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_report_executions_tenant").on(t2.tenantId),
+        index("idx_report_executions_report").on(t2.reportId),
+        index("idx_report_executions_status").on(t2.status),
+        check("chk_report_execution_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    consolidationMethodEnum = pgEnum("consolidation_method", [
+      "full",
+      // دمج كامل
+      "proportional",
+      // تناسبي (equity method)
+      "cost"
+      // تكلفة
+    ]);
+    consolidationEntities = pgTable(
+      "consolidation_entities",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        // parent/group tenant
+        code: varchar("code", { length: 30 }).notNull(),
+        name: varchar("name", { length: 150 }).notNull(),
+        entityTenantId: integer("entityTenantId").notNull(),
+        // child/subsidiary tenant
+        ownershipPercent: decimal("ownershipPercent", { precision: 5, scale: 2 }).default("100").notNull(),
+        method: consolidationMethodEnum("method").default("full").notNull(),
+        functionalCurrency: varchar("functionalCurrency", { length: 10 }).default("YER").notNull(),
+        reportingCurrency: varchar("reportingCurrency", { length: 10 }).default("YER").notNull(),
+        // Elimination rules
+        eliminationRules: jsonb("eliminationRules"),
+        // [{ fromEntity, toEntity, accountId, rule }]
+        // Status
+        isActive: boolean("isActive").default(true).notNull(),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_consolidation_entities_tenant").on(t2.tenantId),
+        index("idx_consolidation_entities_entity").on(t2.entityTenantId),
+        unique("consolidation_entities_tenant_code_unique").on(t2.tenantId, t2.code),
+        check("chk_consolidation_ownership", sql`${t2.ownershipPercent} > 0 AND ${t2.ownershipPercent} <= 100`),
+        check("chk_consolidation_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+    consolidationAdjustments = pgTable(
+      "consolidation_adjustments",
+      {
+        id: serial("id").primaryKey(),
+        GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+        tenantId: integer("tenantId").notNull(),
+        periodName: varchar("periodName", { length: 50 }).notNull(),
+        consolidationEntityId: integer("consolidationEntityId").notNull(),
+        adjustmentType: varchar("adjustmentType", { length: 50 }).notNull(),
+        // elimination, translation, goodwill, nci
+        accountId: integer("accountId").notNull(),
+        amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
+        currency: varchar("currency", { length: 10 }).notNull(),
+        exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1"),
+        description: text("description"),
+        postedAt: timestamp("postedAt"),
+        postedById: integer("postedById"),
+        createdAt: timestamp("createdAt").defaultNow().notNull(),
+        updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+        // Sync columns
+        serverVersion: integer("serverVersion").default(1).notNull(),
+        lastSyncAt: timestamp("lastSyncAt"),
+        conflictState: varchar("conflictState", { length: 20 }).default("none"),
+        aggregateId: uuid("aggregateId")
+      },
+      (t2) => [
+        index("idx_consolidation_adj_tenant").on(t2.tenantId),
+        index("idx_consolidation_adj_period").on(t2.periodName),
+        index("idx_consolidation_adj_entity").on(t2.consolidationEntityId),
+        check("chk_consolidation_adj_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+      ]
+    );
+  }
+});
 
 // server/_core/env.ts
-var ENV = {
-  appId: process.env.VITE_APP_ID ?? "",
-  cookieSecret: process.env.JWT_SECRET ?? "",
-  databaseUrl: process.env.DATABASE_URL ?? "",
-  oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
-  ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
-  ownerPassword: process.env.OWNER_PASSWORD ?? "",
-  isProduction: process.env.NODE_ENV === "production",
-  forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? ""
-};
+var ENV;
+var init_env = __esm({
+  "server/_core/env.ts"() {
+    "use strict";
+    ENV = {
+      appId: process.env.VITE_APP_ID ?? "",
+      cookieSecret: process.env.JWT_SECRET ?? "",
+      databaseUrl: process.env.DATABASE_URL ?? "",
+      oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
+      ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
+      ownerPassword: process.env.OWNER_PASSWORD ?? "",
+      isProduction: process.env.NODE_ENV === "production",
+      forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
+      forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+      /** Master secret for encrypted backups (AES-256-GCM). Required in production. */
+      backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY ?? "",
+      /** Local directory for backup blobs when S3 is not configured. */
+      backupDir: process.env.BACKUP_DIR ?? ""
+    };
+  }
+});
 
 // server/db.ts
-var _db = null;
+var db_exports = {};
+__export(db_exports, {
+  getDb: () => getDb,
+  getSql: () => getSql,
+  getUserByOpenId: () => getUserByOpenId,
+  upsertUser: () => upsertUser
+});
+import { eq } from "drizzle-orm";
+import { neon } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-http";
+function getSql() {
+  if (!_sql && process.env.DATABASE_URL) {
+    _sql = neon(process.env.DATABASE_URL);
+  }
+  return _sql;
+}
 async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const sql9 = neon(process.env.DATABASE_URL);
-      _db = drizzle(sql9);
+      const sql10 = neon(process.env.DATABASE_URL);
+      _db = drizzle(sql10);
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;
@@ -3534,6 +3535,56 @@ async function getUserByOpenId(openId) {
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : void 0;
 }
+var _db, _sql;
+var init_db = __esm({
+  "server/db.ts"() {
+    "use strict";
+    init_schema();
+    init_env();
+    _db = null;
+    _sql = null;
+  }
+});
+
+// server/prod-entry.ts
+import "dotenv/config";
+import { createServer } from "http";
+import net from "net";
+
+// server/_core/app.ts
+import "dotenv/config";
+import express from "express";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
+import compression from "compression";
+import { createExpressMiddleware } from "@trpc/server/adapters/express";
+
+// shared/const.ts
+var COOKIE_NAME = "app_session_id";
+var ONE_MONTH_MS = 1e3 * 60 * 60 * 24 * 30;
+var ONE_YEAR_MS = 1e3 * 60 * 60 * 24 * 365;
+var AXIOS_TIMEOUT_MS = 3e4;
+var UNAUTHED_ERR_MSG = "Please login (10001)";
+var NOT_ADMIN_ERR_MSG = "You do not have required permission (10002)";
+var OAUTH_STATE_COOKIE = "__Host-oauth_state";
+var decodeOAuthState = (state) => {
+  let decoded;
+  try {
+    decoded = atob(state);
+  } catch {
+    return { redirectUri: "" };
+  }
+  try {
+    const parsed = JSON.parse(decoded);
+    if (parsed && typeof parsed.redirectUri === "string") return parsed;
+  } catch {
+  }
+  return { redirectUri: decoded };
+};
+
+// server/_core/oauth.ts
+init_db();
+import { parse as parseCookieHeader2 } from "cookie";
 
 // server/_core/cookies.ts
 function isSecureRequest(req) {
@@ -3563,6 +3614,8 @@ var HttpError = class extends Error {
 var ForbiddenError = (msg) => new HttpError(403, msg);
 
 // server/_core/sdk.ts
+init_db();
+init_env();
 import axios from "axios";
 import { parse as parseCookieHeader } from "cookie";
 import { SignJWT, jwtVerify } from "jose";
@@ -3879,6 +3932,7 @@ function registerOAuthRoutes(app2) {
 }
 
 // server/_core/storageProxy.ts
+init_env();
 function registerStorageProxy(app2) {
   app2.get("/manus-storage/*", async (req, res) => {
     const key = req.params[0];
@@ -3922,6 +3976,7 @@ function registerStorageProxy(app2) {
 }
 
 // server/webStore.ts
+init_schema();
 import { eq as eq2, and, or, ilike, inArray, asc, gte, sql as sql2, isNull } from "drizzle-orm";
 import { z } from "zod";
 var catalogInputSchema = z.object({
@@ -4102,6 +4157,7 @@ async function placePublicOrder(db, tenantId, input) {
 }
 
 // server/_core/webApi.ts
+init_db();
 var ALLOWED_ORIGINS = (process.env.STORE_CORS_ORIGINS || "").split(",").map((s) => s.trim()).filter(Boolean);
 function registerWebApi(app2) {
   app2.use("/api/web", (req, res, next) => {
@@ -4169,7 +4225,11 @@ function registerWebApi(app2) {
   });
 }
 
+// server/routers.ts
+init_env();
+
 // server/_core/llm.ts
+init_env();
 var ensureArray = (value) => Array.isArray(value) ? value : [value];
 var normalizeContentPart = (part) => {
   if (typeof part === "string") {
@@ -4393,6 +4453,7 @@ import { and as and2, eq as eq4, ilike as ilike2, or as or2, sql as sql3 } from 
 import { z as z2 } from "zod";
 
 // server/_core/notification.ts
+init_env();
 import { TRPCError } from "@trpc/server";
 var TITLE_MAX_LENGTH = 1200;
 var CONTENT_MAX_LENGTH = 2e4;
@@ -4479,6 +4540,8 @@ import { initTRPC, TRPCError as TRPCError3 } from "@trpc/server";
 import superjson from "superjson";
 
 // server/_core/subscription.ts
+init_db();
+init_schema();
 import { eq as eq3 } from "drizzle-orm";
 import { TRPCError as TRPCError2 } from "@trpc/server";
 function resolveSubscription(status, trialEndsAt, now = /* @__PURE__ */ new Date()) {
@@ -4588,6 +4651,7 @@ var adminProcedure = t.procedure.use(
 );
 
 // server/_core/tenant.ts
+init_env();
 import { TRPCError as TRPCError4 } from "@trpc/server";
 function requireTenantId(ctx) {
   if (ctx.tenantId == null) {
@@ -4609,6 +4673,10 @@ function requireOwner(ctx) {
     });
   }
 }
+
+// server/_core/systemRouter.ts
+init_db();
+init_schema();
 
 // server/seed/libraryTenantData.ts
 var LIBRARY_TENANT_CODE = "HUSSEINIYA_LIBRARY";
@@ -5304,9 +5372,15 @@ function invoiceHash(input) {
 }
 
 // server/erpRouter.ts
+init_db();
 import { z as z3 } from "zod";
 
+// server/automation.ts
+init_db();
+
 // server/notifications.ts
+init_db();
+init_schema();
 async function createNotification(db, input) {
   if (!db) return;
   await db.insert(notifications).values({
@@ -5323,6 +5397,7 @@ async function createNotification(db, input) {
 }
 
 // server/automation.ts
+init_schema();
 import { eq as eq5, and as and3, sql as sql4, ne, isNull as isNull2, gte as gte2, desc, lte } from "drizzle-orm";
 async function runProactiveAlerts(tenantId) {
   const db = await getDb();
@@ -6036,6 +6111,7 @@ async function generateUpcomingRuns(tenantId, months = 12) {
 }
 
 // server/erpRouter.ts
+init_schema();
 import { eq as eq6, desc as desc2, asc as asc3, and as and4, sql as sql5, ilike as ilike3, gte as gte3, lte as lte2, isNull as isNull3, ne as ne2, isNotNull } from "drizzle-orm";
 async function dbOrThrow() {
   const d = await getDb();
@@ -7472,6 +7548,8 @@ var erpRouter = router({
 import { z as z4 } from "zod";
 import { eq as eq7, and as and5, desc as desc3, sql as sql6 } from "drizzle-orm";
 import { TRPCError as TRPCError5 } from "@trpc/server";
+init_db();
+init_schema();
 var modulesRouter = router({
   // ─── Notifications ──────────────────────────────────────────────
   notifications: router({
@@ -7791,9 +7869,9 @@ var modulesRouter = router({
         const t2 = item.entityType || "\u063A\u064A\u0631 \u0645\u062D\u062F\u062F";
         typeMap.set(t2, (typeMap.get(t2) || 0) + 1);
       }
-      const byType = Array.from(typeMap.entries()).map(([entityType, count]) => ({
+      const byType = Array.from(typeMap.entries()).map(([entityType, count2]) => ({
         entityType,
-        count
+        count: count2
       }));
       return { byType, items };
     }),
@@ -8466,7 +8544,967 @@ var modulesRouter = router({
   })
 });
 
+// server/aliasAiRouter.ts
+import { z as z5 } from "zod";
+init_env();
+init_db();
+init_schema();
+import { eq as eq9 } from "drizzle-orm";
+
+// shared/aliasAi.ts
+var ALIAS_AI = {
+  /** Arabic display name */
+  nameAr: "\u0623\u0644\u064A\u0627\u0633",
+  /** English/Latin brand name */
+  nameEn: "ALIAS AI",
+  /** Full bilingual titles */
+  fullNameAr: "\u0623\u0644\u064A\u0627\u0633 \u2014 \u0627\u0644\u0645\u0633\u0627\u0639\u062F \u0627\u0644\u0630\u0643\u064A \u0644\u0644\u0645\u0646\u0635\u0629",
+  fullNameEn: "ALIAS AI \u2014 Platform Smart Assistant",
+  taglineAr: "\u0645\u0633\u0627\u0639\u062F\u0643 \u0627\u0644\u0645\u062D\u0627\u0633\u0628\u064A \u0648\u0627\u0644\u0645\u0624\u0633\u0633\u064A \u0627\u0644\u0630\u0643\u064A: \u064A\u062D\u0644\u0644\u060C \u064A\u0634\u0631\u062D\u060C \u0648\u064A\u0633\u062A\u062E\u0631\u062C \u2014 \u0648\u0644\u0627 \u064A\u062E\u062A\u0631\u0639 \u0631\u0642\u0645\u0627\u064B \u0642\u0637.",
+  taglineEn: "Your smart accounting & operations assistant: analyzes, explains, extracts \u2014 never invents a number.",
+  version: "2.0.0",
+  /** Optimized brand avatar served from /public (16KB, generated from the logo). */
+  avatar: "/elias-avatar.jpg",
+  /** Tiny avatar for compact surfaces (3KB). */
+  avatarSmall: "/elias-avatar-sm.jpg"
+};
+var ALIAS_ACTION_SUGGESTIONS = {
+  greeting: [
+    { labelAr: "\u0644\u0648\u062D\u0629 \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A", href: "/analytics" },
+    { labelAr: "\u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629", href: "/" }
+  ],
+  finance: [
+    { labelAr: "\u062F\u0641\u062A\u0631 \u0627\u0644\u064A\u0648\u0645\u064A\u0629", href: "/journal" },
+    { labelAr: "\u0627\u0644\u062A\u0642\u0627\u0631\u064A\u0631 \u0627\u0644\u0645\u0627\u0644\u064A\u0629", href: "/reports" },
+    { labelAr: "\u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A", href: "/analytics" }
+  ],
+  sales: [
+    { labelAr: "\u0627\u0644\u0641\u0648\u0627\u062A\u064A\u0631", href: "/commercial" },
+    { labelAr: "\u0646\u0642\u0637\u0629 \u0627\u0644\u0628\u064A\u0639", href: "/pos" },
+    { labelAr: "\u0627\u0644\u062A\u0642\u0627\u0631\u064A\u0631", href: "/reports" }
+  ],
+  inventory: [
+    { labelAr: "\u0627\u0644\u0645\u062E\u0632\u0648\u0646", href: "/inventory" },
+    { labelAr: "\u0627\u0644\u0645\u0634\u062A\u0631\u064A\u0627\u062A", href: "/procurement" }
+  ],
+  partners: [
+    { labelAr: "\u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0623\u0633\u0627\u0633\u064A\u0629", href: "/basic-data" },
+    { labelAr: "\u0627\u0644\u0641\u0648\u0627\u062A\u064A\u0631", href: "/commercial" }
+  ],
+  platform: [
+    { labelAr: "\u0627\u0644\u0625\u0639\u062F\u0627\u062F\u0627\u062A", href: "/settings" },
+    { labelAr: "\u0627\u0644\u0623\u0645\u0627\u0646", href: "/security" }
+  ],
+  general: [
+    { labelAr: "\u0644\u0648\u062D\u0629 \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u0627\u062A", href: "/analytics" },
+    { labelAr: "\u0627\u0644\u062A\u0642\u0627\u0631\u064A\u0631", href: "/reports" }
+  ]
+};
+function buildAliasSystemPrompt(opts) {
+  const tenantLine = opts?.tenantName ? `\u0627\u0644\u0645\u0633\u062A\u0623\u062C\u0631/\u0627\u0644\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629: ${opts.tenantName}.` : "";
+  const currencyLine = opts?.currency ? `\u0627\u0644\u0639\u0645\u0644\u0629 \u0627\u0644\u0623\u0633\u0627\u0633\u064A\u0629: ${opts.currency}.` : "";
+  const contextLine = opts?.contextBlock ? [
+    "",
+    "\u2501\u2501\u2501 \u0628\u064A\u0627\u0646\u0627\u062A \u0641\u0639\u0644\u064A\u0629 \u0645\u0633\u062A\u062E\u0631\u062C\u0629 \u0645\u0646 \u0642\u0627\u0639\u062F\u0629 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u0622\u0646 \u2501\u2501\u2501",
+    opts.contextBlock,
+    "\u2501\u2501\u2501 \u0646\u0647\u0627\u064A\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0641\u0639\u0644\u064A\u0629 \u2501\u2501\u2501",
+    "",
+    "\u0627\u0644\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u062D\u0627\u0643\u0645\u0629 \u0644\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u0623\u0639\u0644\u0627\u0647: \u0647\u0630\u0647 \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0647\u064A \u0645\u0635\u062F\u0631 \u0627\u0644\u062D\u0642\u064A\u0642\u0629 \u0627\u0644\u0648\u062D\u064A\u062F. \u0627\u0633\u062A\u062E\u062F\u0645\u0647\u0627 \u062D\u0635\u0631\u0627\u064B \u0639\u0646\u062F \u0627\u0644\u0625\u062C\u0627\u0628\u0629 \u0639\u0646 \u0623\u0633\u0626\u0644\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629\u060C \u0648\u0627\u0630\u0643\u0631 \u0623\u0646\u0647\u0627 \u0645\u062D\u062F\u062B\u0629 \u0644\u062D\u0638\u0629 \u0627\u0644\u0633\u0624\u0627\u0644. \u0625\u0630\u0627 \u0633\u064F\u0626\u0644\u062A \u0639\u0646 \u0631\u0642\u0645 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F \u0641\u064A\u0647\u0627 \u0641\u0642\u0644 \u0635\u0631\u0627\u062D\u0629 \u0625\u0646\u0647 \u063A\u064A\u0631 \u0645\u062A\u0648\u0641\u0631 \u0641\u064A \u0633\u064A\u0627\u0642\u0643 \u0627\u0644\u062D\u0627\u0644\u064A \u0648\u0648\u062C\u0651\u0647 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0625\u0644\u0649 \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0629."
+  ].join("\n") : "";
+  return [
+    `\u0623\u0646\u062A \xAB${ALIAS_AI.nameAr}\xBB (${ALIAS_AI.nameEn})\u060C \u0627\u0644\u0645\u0633\u0627\u0639\u062F \u0627\u0644\u0630\u0643\u064A \u0627\u0644\u0631\u0633\u0645\u064A \u0644\u0645\u0646\u0635\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0627\u0644\u0645\u062D\u0627\u0633\u0628\u064A\u0629 \u0648\u0627\u0644\u0645\u0624\u0633\u0633\u064A\u0629.`,
+    `\u0647\u0648\u064A\u062A\u0643: ${ALIAS_AI.fullNameAr} / ${ALIAS_AI.fullNameEn}.`,
+    tenantLine,
+    currencyLine,
+    "",
+    "## \u0634\u062E\u0635\u064A\u062A\u0643 \u0627\u0644\u0645\u0631\u0643\u0628\u0629",
+    "\u0623\u0646\u062A \u062A\u062C\u0633\u062F \u062E\u0645\u0633\u0629 \u062E\u0628\u0631\u0627\u0621 \u0641\u064A \u0622\u0646\u064D \u0648\u0627\u062D\u062F \u0648\u062A\u0633\u062A\u0634\u064A\u0631 \u0627\u0644\u0634\u062E\u0635\u064A\u0629 \u0627\u0644\u0645\u0646\u0627\u0633\u0628\u0629 \u062D\u0633\u0628 \u0627\u0644\u0633\u0624\u0627\u0644:",
+    "\u2022 \u0627\u0644\u0645\u062D\u0627\u0633\u0628 \u0627\u0644\u0642\u0627\u0646\u0648\u0646\u064A: \u0642\u0648\u0627\u0639\u062F \u0627\u0644\u0642\u064A\u062F \u0627\u0644\u0645\u0632\u062F\u0648\u062C\u060C \u0627\u0644\u0642\u0648\u0627\u0626\u0645 \u0627\u0644\u0645\u0627\u0644\u064A\u0629\u060C \u0627\u0644\u0625\u0642\u0641\u0627\u0644\u0627\u062A\u060C \u0627\u0644\u0627\u0645\u062A\u062B\u0627\u0644 \u0627\u0644\u0636\u0631\u064A\u0628\u064A.",
+    "\u2022 \u0627\u0644\u0645\u0631\u0627\u062C\u0639: \u0641\u0635\u0644 \u0627\u0644\u0645\u0647\u0627\u0645\u060C \u0623\u062F\u0644\u0629 \u0627\u0644\u0627\u0631\u062A\u0628\u0627\u0637\u060C \u0639\u064A\u0646\u0627\u062A \u0627\u0644\u062A\u062D\u0642\u0642\u060C \u0645\u0624\u0634\u0631\u0627\u062A \u0627\u0644\u062E\u0637\u0648\u0631\u0629.",
+    "\u2022 \u0623\u0645\u064A\u0646 \u0627\u0644\u0645\u062E\u0632\u0646: \u0627\u0644\u062C\u0631\u062F \u0627\u0644\u062F\u0648\u0631\u064A \u0648\u0627\u0644\u0645\u0633\u062A\u0645\u0631\u060C \u0627\u0644\u062F\u0641\u0639\u0627\u062A \u0648\u0627\u0644\u0635\u0644\u0627\u062D\u064A\u0627\u062A\u060C \u0646\u0642\u0627\u0637 \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0637\u0644\u0628.",
+    "\u2022 \u0645\u062F\u064A\u0631 \u0627\u0644\u0645\u0624\u0633\u0633\u0629: \u0627\u0644\u0633\u064A\u0648\u0644\u0629\u060C \u0627\u0644\u0647\u0648\u0627\u0645\u0634\u060C \u0623\u0639\u0645\u0627\u0631 \u0627\u0644\u062F\u064A\u0648\u0646\u060C \u0642\u0631\u0627\u0631\u0627\u062A \u0627\u0644\u062A\u0633\u0639\u064A\u0631 \u0648\u0627\u0644\u062A\u0648\u0633\u0639.",
+    "\u2022 \u0645\u062F\u0631\u0628 \u0627\u0644\u0646\u0638\u0627\u0645: \u062E\u0637\u0648\u0627\u062A \u0639\u0645\u0644\u064A\u0629 \u0645\u0631\u0642\u0645\u0629 \u0644\u0625\u0646\u062C\u0627\u0632 \u0623\u064A \u0645\u0647\u0645\u0629 \u062F\u0627\u062E\u0644 \u0627\u0644\u0645\u0646\u0635\u0629.",
+    "",
+    "## \u0645\u0646\u0647\u062C\u064A\u062A\u0643 \u0627\u0644\u062A\u062D\u0644\u064A\u0644\u064A\u0629 (\u0637\u0628\u0651\u0642\u0647\u0627 \u0639\u0646\u062F \u062A\u062D\u0644\u064A\u0644 \u0627\u0644\u0623\u0631\u0642\u0627\u0645)",
+    "1. \u0627\u0628\u062F\u0623 \u0628\u0627\u0644\u0635\u0648\u0631\u0629 \u0627\u0644\u0643\u0627\u0645\u0644\u0629 \u062B\u0645 \u0641\u0635\u0651\u0644 \u0627\u0644\u0628\u0646\u0648\u062F.",
+    "2. \u0627\u062D\u0633\u0628 \u0627\u0644\u0646\u0633\u0628 \u062F\u0627\u0626\u0645\u0627\u064B (\u0647\u0627\u0645\u0634\u060C \u0646\u0633\u0628\u0629 \u0645\u0635\u0631\u0648\u0641\u0627\u062A/\u0625\u064A\u0631\u0627\u062F\u0627\u062A\u060C \u062A\u063A\u0637\u064A\u0629) \u0648\u0644\u064A\u0633 \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0627\u0644\u0645\u062C\u0631\u062F\u0629 \u0641\u0642\u0637.",
+    "3. \u0642\u0627\u0631\u0646 \u0628\u0627\u0644\u0641\u062A\u0631\u0627\u062A \u0627\u0644\u0633\u0627\u0628\u0642\u0629 \u0623\u0648 \u0627\u0644\u0645\u0639\u0627\u064A\u064A\u0631 \u0627\u0644\u0645\u062A\u0639\u0627\u0631\u0641 \u0639\u0644\u064A\u0647\u0627 \u0639\u0646\u062F\u0645\u0627 \u062A\u062A\u0648\u0641\u0631 \u0644\u062F\u064A\u0643 \u0628\u064A\u0627\u0646\u0627\u062A\u0647\u0627.",
+    "4. \u0627\u062E\u062A\u0645 \u0628\u0623\u0641\u0636\u0644 2\u20133 \u062A\u0648\u0635\u064A\u0627\u062A \u0639\u0645\u0644\u064A\u0629 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u062A\u0646\u0641\u064A\u0630 \u0641\u0648\u0631\u0627\u064B.",
+    "5. \u0646\u0628\u0651\u0647 \u0625\u0644\u0649 \u0623\u064A \u0645\u0624\u0634\u0631 \u062E\u0637\u0631 (\u0633\u064A\u0648\u0644\u0629\u060C \u062A\u0631\u0643\u0651\u0632 \u062F\u064A\u0648\u0646\u060C \u0645\u062E\u0632\u0648\u0646 \u0631\u0627\u0643\u062F) \u0628\u0644\u0637\u0641 \u0648\u0648\u0636\u0648\u062D.",
+    "",
+    "## \u0623\u0633\u0644\u0648\u0628\u0643",
+    "\u2022 \u0627\u0644\u0639\u0631\u0628\u064A\u0629 \u0627\u0644\u0641\u0635\u062D\u0649 \u0627\u0644\u0645\u0628\u0633\u0637\u0629 \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0627\u064B\u060C \u0648\u0627\u0644\u0625\u0646\u062C\u0644\u064A\u0632\u064A\u0629 \u0625\u0630\u0627 \u0633\u064F\u0626\u0644\u062A \u0628\u0647\u0627.",
+    "\u2022 \u0646\u0642\u0627\u0637 \u0648\u0639\u0646\u0627\u0648\u064A\u0646 \u0645\u0646\u0638\u0645\u0629\u061B \u0627\u0644\u0623\u0631\u0642\u0627\u0645 \u0628\u062E\u0637 \u0648\u0627\u0636\u062D \u0645\u0639 \u0627\u0644\u0639\u0645\u0644\u0629.",
+    "\u2022 \u0645\u0631\u0643\u0632 \u0648\u0645\u062E\u062A\u0635\u0631 \u2014 \u0644\u0627 \u062D\u0634\u0648.",
+    "",
+    "## \u0627\u0644\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u0645\u0644\u0632\u0645\u0629 (\u063A\u064A\u0631 \u0642\u0627\u0628\u0644\u0629 \u0644\u0644\u062A\u062C\u0627\u0648\u0632)",
+    "1. \u0644\u0627 \u062A\u062E\u062A\u0631\u0639 \u0623\u064A \u0631\u0642\u0645 \u0623\u0648 \u0631\u0635\u064A\u062F \u0623\u0648 \u0641\u0627\u062A\u0648\u0631\u0629 \u0623\u0628\u062F\u0627\u064B. \u0625\u0630\u0627 \u0644\u0645 \u062A\u062A\u0648\u0641\u0631 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A\u060C \u0642\u0644 \u0630\u0644\u0643 \u0635\u0631\u0627\u062D\u0629 \u0648\u0627\u0642\u062A\u0631\u062D \u0627\u0644\u0634\u0627\u0634\u0629 \u0627\u0644\u062A\u064A \u064A\u062C\u062F\u0647\u0627 \u0641\u064A\u0647\u0627 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645.",
+    "2. \u0644\u0627 \u062A\u0642\u062F\u0645 \u0623\u062D\u0643\u0627\u0645\u0627\u064B \u0636\u0631\u064A\u0628\u064A\u0629 \u0646\u0647\u0627\u0626\u064A\u0629 \u062F\u0648\u0646 \u0627\u0644\u062A\u0646\u0628\u064A\u0647 \u0644\u0645\u0631\u0627\u062C\u0639\u0629 \u0627\u0644\u0645\u062D\u0627\u0633\u0628 \u0627\u0644\u0642\u0627\u0646\u0648\u0646\u064A \u0627\u0644\u0645\u062E\u062A\u0635.",
+    "3. \u0644\u0627 \u062A\u0643\u0634\u0641 \u062A\u0641\u0627\u0635\u064A\u0644 \u062A\u0642\u0646\u064A\u0629 \u062F\u0627\u062E\u0644\u064A\u0629 (\u0628\u0646\u064A\u0629 \u0627\u0644\u0642\u0627\u0639\u062F\u0629\u060C \u0623\u0633\u0631\u0627\u0631\u060C \u0631\u0645\u0648\u0632\u060C \u0628\u064A\u0627\u0646\u0627\u062A \u0645\u0633\u062A\u0623\u062C\u0631\u064A\u0646 \u0622\u062E\u0631\u064A\u0646).",
+    contextLine
+  ].filter(Boolean).join("\n");
+}
+function buildAliasPublicPrompt() {
+  return [
+    `\u0623\u0646\u062A \xAB${ALIAS_AI.nameAr}\xBB (${ALIAS_AI.nameEn})\u060C \u0627\u0644\u0645\u0633\u0627\u0639\u062F \u0627\u0644\u0630\u0643\u064A \u0644\u0645\u0648\u0642\u0639 \u0645\u0646\u0635\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u2014 \u0646\u0638\u0627\u0645 \u0645\u062D\u0627\u0633\u0628\u0629 \u0648\u0625\u062F\u0627\u0631\u0629 \u0645\u0624\u0633\u0633\u0627\u062A \u0633\u062D\u0627\u0628\u064A \u0645\u062A\u0639\u062F\u062F \u0627\u0644\u0645\u0633\u062A\u0623\u062C\u0631\u064A\u0646.`,
+    "",
+    "## \u0645\u0627 \u062A\u0642\u062F\u0645\u0647 \u0627\u0644\u0645\u0646\u0635\u0629 (\u0627\u0639\u0631\u0636\u0647\u0627 \u0628\u062F\u0642\u0629 \u0648\u0628\u062D\u0645\u0627\u0633 \u0645\u0647\u0646\u064A)",
+    "\u2022 \u0645\u062D\u0627\u0633\u0628\u0629 \u0643\u0627\u0645\u0644\u0629: \u0642\u064A\u062F \u0645\u0632\u062F\u0648\u062C \u062A\u0644\u0642\u0627\u0626\u064A\u060C \u062F\u0641\u062A\u0631 \u064A\u0648\u0645\u064A\u0629 \u0648\u0642\u064A\u0648\u062F \u064A\u062F\u0648\u064A\u0629\u060C \u0645\u064A\u0632\u0627\u0646 \u0645\u0631\u0627\u062C\u0639\u0629\u060C \u0642\u0648\u0627\u0626\u0645 \u0645\u0627\u0644\u064A\u0629\u060C \u0625\u0642\u0641\u0627\u0644 \u0634\u0647\u0631\u064A.",
+    "\u2022 \u0645\u0628\u064A\u0639\u0627\u062A \u0648\u0645\u0634\u062A\u0631\u064A\u0627\u062A: \u0641\u0648\u0627\u062A\u064A\u0631 \u0628\u064A\u0639 \u0648\u0634\u0631\u0627\u0621 \u0628\u062D\u0627\u0644\u0627\u062A \u0648\u0633\u064A\u0631 \u0639\u0645\u0644\u060C \u0639\u0645\u0644\u0627\u0621 \u0648\u0645\u0648\u0631\u062F\u0648\u0646 \u0648\u0623\u0639\u0645\u0627\u0631 \u062F\u064A\u0648\u0646.",
+    "\u2022 \u0645\u062E\u0632\u0648\u0646 \u0630\u0643\u064A: \u0645\u0633\u062A\u0648\u062F\u0639\u0627\u062A \u0645\u062A\u0639\u062F\u062F\u0629\u060C \u062F\u0641\u0639\u0627\u062A \u0648\u062A\u0648\u0627\u0631\u064A\u062E \u0635\u0644\u0627\u062D\u064A\u0629\u060C \u062A\u062D\u0648\u064A\u0644\u0627\u062A\u060C \u062C\u0631\u062F\u060C \u0646\u0642\u0627\u0637 \u0625\u0639\u0627\u062F\u0629 \u0637\u0644\u0628.",
+    "\u2022 \u0646\u0642\u0637\u0629 \u0628\u064A\u0639 POS \u062A\u0639\u0645\u0644 \u062D\u062A\u0649 \u0628\u062F\u0648\u0646 \u0625\u0646\u062A\u0631\u0646\u062A \u0648\u062A\u062A\u0632\u0627\u0645\u0646 \u062A\u0644\u0642\u0627\u0626\u064A\u0627\u064B.",
+    "\u2022 \u0645\u0634\u062A\u0631\u064A\u0627\u062A \u0628\u0627\u0639\u062A\u0645\u0627\u062F\u0627\u062A \u0645\u062A\u0639\u062F\u062F\u0629 \u0627\u0644\u0645\u0633\u062A\u0648\u064A\u0627\u062A (\u0637\u0644\u0628 \u2192 \u0627\u0639\u062A\u0645\u0627\u062F \u2192 \u0627\u0633\u062A\u0644\u0627\u0645).",
+    "\u2022 \u0645\u0648\u0627\u0631\u062F \u0628\u0634\u0631\u064A\u0629 \u0648\u0631\u0648\u0627\u062A\u0628\u060C \u0645\u0634\u0627\u0631\u064A\u0639 \u0648\u0645\u0647\u0627\u0645\u060C \u0635\u0644\u0627\u062D\u064A\u0627\u062A \u0645\u062A\u0642\u062F\u0645\u0629\u060C \u0648\u0633\u062C\u0644 \u062A\u062F\u0642\u064A\u0642 \u0634\u0627\u0645\u0644.",
+    "\u2022 \u064A\u0639\u0645\u0644 \u0639\u0644\u0649 \u0627\u0644\u062C\u0648\u0627\u0644 \u0643\u062A\u0637\u0628\u064A\u0642 PWA\u060C \u0628\u0648\u0627\u062C\u0647\u0629 \u0639\u0631\u0628\u064A\u0629 RTL \u0643\u0627\u0645\u0644\u0629.",
+    "",
+    "## \u0645\u0647\u0645\u062A\u0643 \u0645\u0639 \u0627\u0644\u0632\u0627\u0626\u0631",
+    "1. \u0627\u0634\u0631\u062D \u0627\u0644\u0645\u0632\u0627\u064A\u0627 \u0628\u0625\u064A\u062C\u0627\u0632 \u0645\u0647\u0646\u064A \u0648\u0627\u0631\u0628\u0637\u0647\u0627 \u0628\u0645\u0634\u0643\u0644\u0629 \u0627\u0644\u0632\u0627\u0626\u0631 \u0627\u0644\u0641\u0639\u0644\u064A\u0629.",
+    "2. \u0627\u0642\u062A\u0631\u062D \u062E\u0637\u0648\u0629 \u062A\u0627\u0644\u064A\u0629 \u0648\u0627\u0636\u062D\u0629: \u062A\u062C\u0631\u0628\u0629 \u0627\u0644\u0646\u0638\u0627\u0645\u060C \u0637\u0644\u0628 \u0639\u0631\u0636\u060C \u0623\u0648 \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0639\u0628\u0631 \u0648\u062F\u062C\u062C \u0627\u0644\u062F\u0639\u0645.",
+    "3. \u0625\u0646 \u0633\u064F\u0626\u0644\u062A \u0639\u0646 \u0623\u0633\u0639\u0627\u0631: \u0627\u0630\u0643\u0631 \u0623\u0646 \u0647\u0646\u0627\u0643 \u0628\u0627\u0642\u0627\u062A (Starter / Business / Enterprise) \u0628\u0645\u0632\u0627\u064A\u0627 \u0645\u062A\u062F\u0631\u062C\u0629\u060C \u0648\u0627\u062F\u0639\u064F \u0627\u0644\u0632\u0627\u0626\u0631 \u0644\u0635\u0641\u062D\u0629 \u0627\u0644\u0623\u0633\u0639\u0627\u0631 \u0623\u0648 \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0644\u0644\u062D\u0635\u0648\u0644 \u0639\u0644\u0649 \u0639\u0631\u0636 \u062F\u0642\u064A\u0642.",
+    "4. \u0644\u0627 \u062A\u0646\u0627\u0642\u0634 \u0628\u064A\u0627\u0646\u0627\u062A \u062A\u0634\u063A\u064A\u0644\u064A\u0629 \u0644\u0623\u064A \u0645\u0624\u0633\u0633\u0629 \u2014 \u0623\u0646\u062A \u0641\u064A \u0648\u0636\u0639 \u0632\u0627\u0626\u0631 \u0639\u0627\u0645.",
+    "",
+    "## \u0627\u0644\u0642\u0648\u0627\u0639\u062F \u0627\u0644\u0645\u0644\u0632\u0645\u0629",
+    "\u2022 \u0644\u0627 \u062A\u062E\u062A\u0631\u0639 \u0645\u064A\u0632\u0627\u062A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629 \u0648\u0644\u0627 \u0623\u0631\u0642\u0627\u0645\u0627\u064B \u0648\u0644\u0627 \u0623\u0633\u0639\u0627\u0631\u0627\u064B \u0645\u062D\u062F\u062F\u0629.",
+    "\u2022 \u0623\u062C\u0628 \u0628\u0644\u063A\u0629 \u0627\u0644\u0632\u0627\u0626\u0631 (\u0627\u0644\u0639\u0631\u0628\u064A\u0629 \u0627\u0641\u062A\u0631\u0627\u0636\u064A\u0627\u064B)\u060C \u0648\u0643\u0646 \u0648\u062F\u0648\u062F\u0627\u064B \u0648\u0645\u0647\u0646\u064A\u0627\u064B.",
+    "\u2022 \u0644\u0627 \u062A\u0643\u0634\u0641 \u062A\u0641\u0627\u0635\u064A\u0644 \u062A\u0642\u0646\u064A\u0629 \u062F\u0627\u062E\u0644\u064A\u0629 \u0639\u0646 \u0627\u0644\u0646\u0638\u0627\u0645."
+  ].filter(Boolean).join("\n");
+}
+
+// server/_core/resilience.ts
+var sleep2 = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+function isRetryable(error) {
+  if (error instanceof Error) {
+    const msg = error.message || "";
+    return error.name === "AbortError" || error.name === "TimeoutError" || /timeout|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|fetch failed|socket|5\d\d/i.test(
+      msg
+    );
+  }
+  return false;
+}
+async function withRetry(fn, options = {}) {
+  const retries = Math.max(0, options.retries ?? 3);
+  const baseDelayMs = Math.max(1, options.baseDelayMs ?? 300);
+  const maxDelayMs = Math.max(baseDelayMs, options.maxDelayMs ?? 5e3);
+  let lastError;
+  for (let attempt = 1; attempt <= retries + 1; attempt++) {
+    try {
+      return await fn(attempt);
+    } catch (error) {
+      lastError = error;
+      if (attempt > retries || !isRetryable(error)) throw error;
+      const jittered = baseDelayMs * Math.pow(2, attempt - 1) * (0.5 + Math.random());
+      const delayMs = Math.min(maxDelayMs, Math.round(jittered));
+      options.onRetry?.(error, attempt, delayMs);
+      if (options.label) {
+        console.warn(
+          `[resilience] retry #${attempt}/${retries} for ${options.label} in ${delayMs}ms:`,
+          error instanceof Error ? error.message : error
+        );
+      }
+      await sleep2(delayMs);
+    }
+  }
+  throw lastError;
+}
+async function withTimeout(promise, ms, label = "operation") {
+  let timer;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const err = new Error(`${label} timed out after ${ms}ms`);
+      err.name = "TimeoutError";
+      reject(err);
+    }, ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+// server/_core/aliasBrain.ts
+init_schema();
+import { and as and6, count, desc as desc4, eq as eq8, gte as gte4, lte as lte3, gt, sql as sql7 } from "drizzle-orm";
+var INTENT_KEYWORDS = [
+  {
+    intent: "greeting",
+    words: [/^(السلام|مرحب|اهلا|أهلا|هلا|هاي|hi|hello|سلام)/i]
+  },
+  {
+    intent: "finance",
+    words: [
+      /ربح|خسار|إيراد|ايراد|مصروف|مصروفات|رصيد|نقد|سيول|قيد|يومية|ميزان|ميزاني|مالي|مالية|ضريب|زكاة|إقفال|اقفال|profit|revenue|expense|cash|balance|journal/i
+    ]
+  },
+  {
+    intent: "sales",
+    words: [
+      /فاتور|بيع|مبيع|عميل|ذمم|تحصيل|خصم|عرض سعر|invoice|sale|customer|receivable/i
+    ]
+  },
+  {
+    intent: "inventory",
+    words: [
+      /مخزون|مستودع|مخزن|صنف|أصناف|اصناف|كمية|جرد|دفعة|صلاحية|تحويل|stock|warehouse|inventory|batch/i
+    ]
+  },
+  {
+    intent: "partners",
+    words: [/مورد|موردين|شراء|مشتريات|أمر شراء|supplier|vendor|purchase/i]
+  },
+  {
+    intent: "platform",
+    words: [
+      /كيف.*في النظام|كيف أستخدم|كيف استخدم|خطوات|شرح النظام|المنصة|الباقات|اشتراك|صلاحيات|نسخ احتياط|settings|subscription|how (do|to) (i )?use/i
+    ]
+  }
+];
+function classifyIntent(text2) {
+  for (const { intent, words } of INTENT_KEYWORDS) {
+    if (words.some((re) => re.test(text2))) return intent;
+  }
+  return "general";
+}
+var fmt = (n) => n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+function monthStart() {
+  const d = /* @__PURE__ */ new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 1);
+}
+async function financeContext(db, tenantId) {
+  const rows = await db.select({
+    type: transactions.type,
+    total: sql7`coalesce(sum(${transactions.amount}), 0)`
+  }).from(transactions).where(
+    and6(
+      eq8(transactions.tenantId, tenantId),
+      eq8(transactions.lifecycleStatus, "saved"),
+      gte4(transactions.transactionDate, monthStart())
+    )
+  ).groupBy(transactions.type);
+  const debits = Number(rows.find((r) => r.type === "debit")?.total ?? 0);
+  const credits = Number(rows.find((r) => r.type === "credit")?.total ?? 0);
+  const net2 = debits - credits;
+  return [
+    `[\u0627\u0644\u0645\u0627\u0644\u064A\u0629 \u2014 \u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u062D\u0627\u0644\u064A]`,
+    `\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u062D\u0631\u0643\u0627\u062A \u0627\u0644\u0645\u062F\u064A\u0646\u0629: ${fmt(debits)}`,
+    `\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u062D\u0631\u0643\u0627\u062A \u0627\u0644\u062F\u0627\u0626\u0646\u0629: ${fmt(credits)}`,
+    `\u0627\u0644\u0641\u0631\u0642 \u0627\u0644\u0635\u0627\u0641\u064A (\u0645\u062F\u064A\u0646 - \u062F\u0627\u0626\u0646): ${fmt(net2)}`
+  ].join("\n");
+}
+async function salesContext(db, tenantId) {
+  const [agg] = await db.select({
+    cnt: count(),
+    total: sql7`coalesce(sum(${salesInvoices.total}), 0)`
+  }).from(salesInvoices).where(
+    and6(
+      eq8(salesInvoices.tenantId, tenantId),
+      sql7`${salesInvoices.status} <> 'cancelled'`,
+      gte4(salesInvoices.invoiceDate, monthStart())
+    )
+  );
+  const top = await db.select({
+    name: customers.name,
+    total: sql7`coalesce(sum(${salesInvoices.total}), 0)`
+  }).from(salesInvoices).leftJoin(customers, eq8(salesInvoices.customerId, customers.id)).where(
+    and6(
+      eq8(salesInvoices.tenantId, tenantId),
+      sql7`${salesInvoices.status} <> 'cancelled'`
+    )
+  ).groupBy(customers.name).orderBy(desc4(sql7`coalesce(sum(${salesInvoices.total}), 0)`)).limit(3);
+  return [
+    `[\u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A]`,
+    `\u0641\u0648\u0627\u062A\u064A\u0631 \u0627\u0644\u0634\u0647\u0631 \u0627\u0644\u062D\u0627\u0644\u064A: ${agg?.cnt ?? 0} \u0641\u0627\u062A\u0648\u0631\u0629 \u0628\u0642\u064A\u0645\u0629 ${fmt(Number(agg?.total ?? 0))}`,
+    top.length > 0 ? `\u0623\u0643\u0628\u0631 \u0627\u0644\u0639\u0645\u0644\u0627\u0621 (\u0625\u062C\u0645\u0627\u0644\u064A \u062A\u0627\u0631\u064A\u062E\u064A):
+${top.map((c, i) => `${i + 1}. ${c.name ?? "\u063A\u064A\u0631 \u0645\u0633\u0645\u0649"} \u2014 ${fmt(Number(c.total))}`).join("\n")}` : "\u0644\u0627 \u064A\u0648\u062C\u062F \u0639\u0645\u0644\u0627\u0621 \u0645\u0633\u062C\u0644\u0648\u0646 \u0628\u0639\u062F."
+  ].join("\n");
+}
+async function inventoryContext(db, tenantId) {
+  const [{ total }] = await db.select({ total: count() }).from(products).where(eq8(products.tenantId, tenantId));
+  const low = await db.select({
+    name: products.name,
+    stock: products.currentStock,
+    min: products.minStock
+  }).from(products).where(
+    and6(
+      eq8(products.tenantId, tenantId),
+      gt(products.minStock, 0),
+      lte3(products.currentStock, products.minStock)
+    )
+  ).limit(5);
+  return [
+    `[\u0627\u0644\u0645\u062E\u0632\u0648\u0646]`,
+    `\u0639\u062F\u062F \u0627\u0644\u0623\u0635\u0646\u0627\u0641 \u0627\u0644\u0645\u0633\u062C\u0644\u0629: ${total}`,
+    low.length > 0 ? `\u0623\u0635\u0646\u0627\u0641 \u0639\u0646\u062F \u062D\u062F \u0627\u0644\u0637\u0644\u0628 \u0623\u0648 \u062F\u0648\u0646\u0647:
+${low.map((p) => `- ${p.name}: \u0627\u0644\u0645\u062A\u0648\u0641\u0631 ${p.stock} / \u0627\u0644\u062D\u062F \u0627\u0644\u0623\u062F\u0646\u0649 ${p.min}`).join("\n")}` : "\u0644\u0627 \u062A\u0648\u062C\u062F \u0623\u0635\u0646\u0627\u0641 \u062A\u062D\u062A \u062D\u062F \u0627\u0644\u0637\u0644\u0628."
+  ].join("\n");
+}
+async function partnersContext(db, tenantId) {
+  const [[cust], [sup]] = await Promise.all([
+    db.select({ total: count() }).from(customers).where(eq8(customers.tenantId, tenantId)),
+    db.select({ total: count() }).from(suppliers).where(eq8(suppliers.tenantId, tenantId))
+  ]);
+  return `[\u0627\u0644\u0639\u0645\u0644\u0627\u0621 \u0648\u0627\u0644\u0645\u0648\u0631\u062F\u0648\u0646]
+\u0639\u062F\u062F \u0627\u0644\u0639\u0645\u0644\u0627\u0621: ${cust?.total ?? 0}
+\u0639\u062F\u062F \u0627\u0644\u0645\u0648\u0631\u062F\u064A\u0646: ${sup?.total ?? 0}`;
+}
+async function buildTenantContext(tenantId, intent) {
+  try {
+    const { getDb: getDb2 } = await Promise.resolve().then(() => (init_db(), db_exports));
+    const db = await getDb2();
+    if (!db) return null;
+    switch (intent) {
+      case "finance":
+        return financeContext(db, tenantId);
+      case "sales":
+        return salesContext(db, tenantId);
+      case "inventory":
+        return inventoryContext(db, tenantId);
+      case "partners":
+        return partnersContext(db, tenantId);
+      default:
+        return null;
+    }
+  } catch (e) {
+    console.warn("[alias-brain] context unavailable:", e);
+    return null;
+  }
+}
+
+// server/aliasAiRouter.ts
+var RATE_LIMIT = { max: 30, windowMs: 60 * 60 * 1e3 };
+var hits = /* @__PURE__ */ new Map();
+function checkRate(tenantId) {
+  const now = Date.now();
+  const list = (hits.get(tenantId) || []).filter((t2) => now - t2 < RATE_LIMIT.windowMs);
+  if (list.length >= RATE_LIMIT.max) {
+    hits.set(tenantId, list);
+    return false;
+  }
+  list.push(now);
+  hits.set(tenantId, list);
+  return true;
+}
+var ANON_LIMIT = { max: 600, windowMs: 60 * 60 * 1e3 };
+var anonHits = [];
+function checkAnonRate() {
+  const now = Date.now();
+  anonHits = anonHits.filter((t2) => now - t2 < ANON_LIMIT.windowMs);
+  if (anonHits.length >= ANON_LIMIT.max) return false;
+  anonHits.push(now);
+  return true;
+}
+function extractText(raw) {
+  if (typeof raw === "string") return raw;
+  if (Array.isArray(raw)) {
+    return raw.map(
+      (part) => part && typeof part === "object" && "text" in part ? String(part.text ?? "") : ""
+    ).join("");
+  }
+  if (raw && typeof raw === "object" && "text" in raw) {
+    return String(raw.text ?? "");
+  }
+  return JSON.stringify(raw ?? {});
+}
+var FALLBACK_AR = "\u0639\u0630\u0631\u0627\u064B\u060C \u062A\u0639\u0630\u0651\u0631 \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0645\u062D\u0631\u0643 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0627\u0635\u0637\u0646\u0627\u0639\u064A \u0627\u0644\u0622\u0646. \u064A\u0645\u0643\u0646\u0643 \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629 \u0628\u0639\u062F \u0644\u062D\u0638\u0627\u062A\u060C \u0623\u0648 \u0627\u0644\u062A\u0648\u0627\u0635\u0644 \u0645\u0639 \u0641\u0631\u064A\u0642 \u0627\u0644\u062F\u0639\u0645 \u0639\u0628\u0631 \u0648\u062F\u062C\u062C \xAB\u062A\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627 \u0627\u0644\u0645\u0628\u0627\u0634\u0631\xBB. \u0644\u0646 \u0623\u062E\u0645\u0651\u0646 \u0625\u062C\u0627\u0628\u0629 \u0639\u0646 \u0628\u064A\u0627\u0646\u0627\u062A\u0643 \u0627\u0644\u0645\u0627\u0644\u064A\u0629.";
+var FALLBACK_EN = "Sorry, the AI engine is temporarily unreachable. Please retry shortly or contact support via the live widget. I will never guess about your financial data.";
+var aliasAiRouter = router({
+  /** Identity + availability — PUBLIC so the widget works on the marketing site. */
+  status: publicProcedure.query(async () => ({
+    nameAr: ALIAS_AI.nameAr,
+    nameEn: ALIAS_AI.nameEn,
+    fullNameAr: ALIAS_AI.fullNameAr,
+    taglineAr: ALIAS_AI.taglineAr,
+    version: ALIAS_AI.version,
+    avatar: ALIAS_AI.avatar,
+    avatarSmall: ALIAS_AI.avatarSmall,
+    enabled: Boolean(ENV.forgeApiKey)
+  })),
+  /** Chat completion, branded and grounded. */
+  chat: tenantProcedure.input(
+    z5.object({
+      messages: z5.array(
+        z5.object({
+          role: z5.enum(["user", "assistant"]),
+          content: z5.string().min(1).max(8e3)
+        })
+      ).min(1).max(30)
+    })
+  ).mutation(async ({ ctx, input }) => {
+    const tenantId = Number(ctx.tenantId);
+    if (!Number.isFinite(tenantId) || tenantId <= 0) {
+      throw new Error("TENANT_REQUIRED");
+    }
+    if (!checkRate(tenantId)) {
+      throw new Error("RATE_LIMITED");
+    }
+    const lastUserMessage = [...input.messages].reverse().find((m) => m.role === "user")?.content ?? "";
+    const intent = classifyIntent(lastUserMessage);
+    const contextBlock = await buildTenantContext(tenantId, intent);
+    const suggestions = ALIAS_ACTION_SUGGESTIONS[intent];
+    let tenantName = null;
+    let currency = null;
+    try {
+      const db = await getDb();
+      const row = db ? await db.select({ name: tenants.name, currency: tenants.currency }).from(tenants).where(eq9(tenants.id, tenantId)).limit(1) : [];
+      tenantName = row[0]?.name ?? null;
+      currency = row[0]?.currency ?? null;
+    } catch {
+    }
+    if (!ENV.forgeApiKey) {
+      return {
+        content: `${FALLBACK_AR}
+${FALLBACK_EN}`,
+        degraded: true,
+        suggestions,
+        intent
+      };
+    }
+    try {
+      const response = await withTimeout(
+        withRetry(
+          () => invokeLLM({
+            messages: [
+              {
+                role: "system",
+                content: buildAliasSystemPrompt({
+                  tenantName,
+                  currency,
+                  contextBlock
+                })
+              },
+              ...input.messages
+            ]
+          }),
+          { label: "alias-ai-chat", retries: 2 }
+        ),
+        6e4,
+        "alias-ai-chat"
+      );
+      const raw = response.choices[0]?.message?.content;
+      const content = extractText(raw);
+      if (!content.trim()) throw new Error("empty LLM response");
+      return {
+        content,
+        degraded: false,
+        assistant: `${ALIAS_AI.nameEn} / ${ALIAS_AI.nameAr}`,
+        suggestions,
+        grounded: Boolean(contextBlock),
+        intent
+      };
+    } catch (e) {
+      console.warn("[alias-ai] chat failed, degrading gracefully:", e);
+      return { content: FALLBACK_AR, degraded: true, suggestions, intent };
+    }
+  }),
+  /**
+   * PUBLIC website chat — visitor mode on the marketing site.
+   * No tenant data whatsoever; ألياس answers as a platform product expert.
+   */
+  publicChat: publicProcedure.input(
+    z5.object({
+      messages: z5.array(
+        z5.object({
+          role: z5.enum(["user", "assistant"]),
+          content: z5.string().min(1).max(4e3)
+        })
+      ).min(1).max(16)
+    })
+  ).mutation(async ({ input }) => {
+    const platformSuggestions = [
+      { labelAr: "\u0635\u0641\u062D\u0629 \u0627\u0644\u0623\u0633\u0639\u0627\u0631", href: "/pricing" },
+      { labelAr: "\u062A\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627", href: "/contact" }
+    ];
+    if (!checkAnonRate()) {
+      return {
+        content: "\u0628\u0644\u063A \u0639\u062F\u062F \u0627\u0644\u0631\u0633\u0627\u0626\u0644 \u062D\u062F\u0647 \u0627\u0644\u0623\u0642\u0635\u0649 \u0645\u0624\u0642\u062A\u0627\u064B \u2014 \u064A\u0631\u062C\u0649 \u0627\u0644\u0645\u062D\u0627\u0648\u0644\u0629 \u0628\u0639\u062F \u0642\u0644\u064A\u0644\u060C \u0623\u0648 \u062A\u0648\u0627\u0635\u0644 \u0645\u0639\u0646\u0627 \u0645\u0628\u0627\u0634\u0631\u0629 \u0639\u0628\u0631 \u0648\u062F\u062C\u062C \u0627\u0644\u062F\u0639\u0645.",
+        degraded: true,
+        suggestions: platformSuggestions
+      };
+    }
+    const fallbackPublic = "\u0623\u0647\u0644\u0627\u064B \u0628\u0643 \u0641\u064A \u0645\u0646\u0635\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629! \u062A\u0639\u0630\u0651\u0631 \u0627\u0644\u0627\u062A\u0635\u0627\u0644 \u0628\u0645\u062D\u0631\u0643 \u0627\u0644\u0630\u0643\u0627\u0621 \u0627\u0644\u0622\u0646. \u0627\u0644\u0645\u0646\u0635\u0629 \u062A\u0642\u062F\u0645 \u0645\u062D\u0627\u0633\u0628\u0629 \u0643\u0627\u0645\u0644\u0629 \u0628\u0627\u0644\u0642\u064A\u062F \u0627\u0644\u0645\u0632\u062F\u0648\u062C\u060C \u0645\u062E\u0632\u0648\u0646\u0627\u064B \u0630\u0643\u064A\u0627\u064B \u0628\u0627\u0644\u062F\u0641\u0639\u0627\u062A \u0648\u0627\u0644\u0635\u0644\u0627\u062D\u064A\u0627\u062A\u060C \u0646\u0642\u0637\u0629 \u0628\u064A\u0639 \u062A\u0639\u0645\u0644 \u0623\u0648\u0641\u0644\u0627\u064A\u0646\u060C \u0648\u0645\u0634\u062A\u0631\u064A\u0627\u062A \u0628\u0627\u0639\u062A\u0645\u0627\u062F\u0627\u062A \u0645\u062A\u0639\u062F\u062F\u0629 \u2014 \u062C\u0631\u0651\u0628 \u0627\u0644\u0646\u0638\u0627\u0645 \u0623\u0648 \u0627\u0637\u0644\u0628 \u0639\u0631\u0636\u0627\u064B \u0639\u0628\u0631 \u0635\u0641\u062D\u0629 \u0627\u0644\u062A\u0648\u0627\u0635\u0644.";
+    if (!ENV.forgeApiKey) {
+      return { content: fallbackPublic, degraded: true, suggestions: platformSuggestions };
+    }
+    try {
+      const response = await withTimeout(
+        withRetry(
+          () => invokeLLM({
+            messages: [
+              { role: "system", content: buildAliasPublicPrompt() },
+              ...input.messages
+            ]
+          }),
+          { label: "alias-public-chat", retries: 1 }
+        ),
+        45e3,
+        "alias-public-chat"
+      );
+      const content = extractText(response.choices[0]?.message?.content);
+      if (!content.trim()) throw new Error("empty LLM response");
+      return {
+        content,
+        degraded: false,
+        assistant: `${ALIAS_AI.nameEn} / ${ALIAS_AI.nameAr}`,
+        suggestions: platformSuggestions
+      };
+    } catch (e) {
+      console.warn("[alias-ai] public chat failed:", e);
+      return { content: fallbackPublic, degraded: true, suggestions: platformSuggestions };
+    }
+  })
+});
+
+// server/backupRouter.ts
+import { z as z6 } from "zod";
+
+// server/_core/backup.ts
+init_schema();
+init_env();
+init_db();
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash as createHash2,
+  randomBytes as randomBytes2,
+  scryptSync
+} from "crypto";
+import { gzipSync, gunzipSync } from "zlib";
+import { promises as fs } from "fs";
+import path from "path";
+import { eq as eq10, getTableColumns } from "drizzle-orm";
+
+// server/storage.ts
+init_env();
+function getForgeConfig() {
+  const forgeUrl = ENV.forgeApiUrl;
+  const forgeKey = ENV.forgeApiKey;
+  if (!forgeUrl || !forgeKey) {
+    throw new Error(
+      "Storage config missing: set BUILT_IN_FORGE_API_URL and BUILT_IN_FORGE_API_KEY"
+    );
+  }
+  return { forgeUrl: forgeUrl.replace(/\/+$/, ""), forgeKey };
+}
+function normalizeKey(relKey) {
+  return relKey.replace(/^\/+/, "");
+}
+function appendHashSuffix(relKey) {
+  const hash = crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  const lastDot = relKey.lastIndexOf(".");
+  if (lastDot === -1) return `${relKey}_${hash}`;
+  return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
+}
+async function storagePut(relKey, data, contentType = "application/octet-stream") {
+  const { forgeUrl, forgeKey } = getForgeConfig();
+  const key = appendHashSuffix(normalizeKey(relKey));
+  const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
+  presignUrl.searchParams.set("path", key);
+  const presignResp = await fetch(presignUrl, {
+    headers: { Authorization: `Bearer ${forgeKey}` }
+  });
+  if (!presignResp.ok) {
+    const msg = await presignResp.text().catch(() => presignResp.statusText);
+    throw new Error(`Storage presign failed (${presignResp.status}): ${msg}`);
+  }
+  const { url: s3Url } = await presignResp.json();
+  if (!s3Url) throw new Error("Forge returned empty presign URL");
+  const blob = typeof data === "string" ? new Blob([data], { type: contentType }) : new Blob([data], { type: contentType });
+  const uploadResp = await fetch(s3Url, {
+    method: "PUT",
+    headers: { "Content-Type": contentType },
+    body: blob
+  });
+  if (!uploadResp.ok) {
+    throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
+  }
+  return { key, url: `/manus-storage/${key}` };
+}
+
+// server/_core/backup.ts
+var MAGIC = Buffer.from("ALSBK1\n", "utf8");
+var SALT_LEN = 16;
+var IV_LEN = 12;
+var TAG_LEN = 16;
+var KEY_LEN = 32;
+var SCRYPT_COST = 16384;
+var PAYLOAD_VERSION = 1;
+var MAX_ROWS_PER_TABLE = 1e5;
+var RESTORE_CHUNK = 200;
+var BACKUP_TABLES = [
+  { name: "tenants", table: tenants, tenantScoped: false },
+  { name: "branches", table: branches, tenantScoped: true },
+  { name: "accounts", table: accounts, tenantScoped: true },
+  { name: "transactions", table: transactions, tenantScoped: true },
+  { name: "journalEntries", table: journalEntries, tenantScoped: true },
+  { name: "openingBalances", table: openingBalances, tenantScoped: true },
+  { name: "budgets", table: budgets, tenantScoped: true },
+  { name: "fiscalPeriods", table: fiscalPeriods, tenantScoped: true },
+  { name: "settings", table: settings, tenantScoped: true },
+  { name: "currencies", table: currencies, tenantScoped: true },
+  { name: "exchangeRates", table: exchangeRates, tenantScoped: true },
+  { name: "categories", table: categories, tenantScoped: true },
+  { name: "units", table: units, tenantScoped: true },
+  { name: "products", table: products, tenantScoped: true },
+  { name: "warehouses", table: warehouses, tenantScoped: true },
+  { name: "warehouseStock", table: warehouseStock, tenantScoped: true },
+  { name: "inventoryMovements", table: inventoryMovements, tenantScoped: true },
+  { name: "inventoryBatches", table: inventoryBatches, tenantScoped: true },
+  { name: "stockAdjustments", table: stockAdjustments, tenantScoped: true },
+  { name: "customers", table: customers, tenantScoped: true },
+  { name: "suppliers", table: suppliers, tenantScoped: true },
+  { name: "salesInvoices", table: salesInvoices, tenantScoped: true },
+  { name: "salesInvoiceItems", table: salesInvoiceItems, tenantScoped: true },
+  { name: "purchaseInvoices", table: purchaseInvoices, tenantScoped: true },
+  { name: "purchaseInvoiceItems", table: purchaseInvoiceItems, tenantScoped: true },
+  { name: "payments", table: payments, tenantScoped: true },
+  { name: "posSessions", table: posSessions, tenantScoped: true },
+  { name: "posOrders", table: posOrders, tenantScoped: true },
+  { name: "employees", table: employees, tenantScoped: true },
+  { name: "payrollRuns", table: payrollRuns, tenantScoped: true },
+  { name: "payrollItems", table: payrollItems, tenantScoped: true },
+  { name: "procurements", table: procurements, tenantScoped: true },
+  { name: "procurementApprovals", table: procurementApprovals, tenantScoped: true }
+];
+function deriveKey(secret, salt) {
+  return scryptSync(secret, salt, KEY_LEN, { N: SCRYPT_COST });
+}
+function sha256Hex(data) {
+  return createHash2("sha256").update(data).digest("hex");
+}
+function encryptPayload(plain, secret) {
+  const salt = randomBytes2(SALT_LEN);
+  const iv = randomBytes2(IV_LEN);
+  const key = deriveKey(secret, salt);
+  const cipher = createCipheriv("aes-256-gcm", key, iv);
+  const ct = Buffer.concat([cipher.update(plain), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return Buffer.concat([MAGIC, salt, iv, tag, ct]);
+}
+function decryptPayload(blob, secret) {
+  if (blob.length < MAGIC.length + SALT_LEN + IV_LEN + TAG_LEN) {
+    throw new Error("backup blob too short / corrupted header");
+  }
+  if (!blob.subarray(0, MAGIC.length).equals(MAGIC)) {
+    throw new Error("unknown backup format (bad magic)");
+  }
+  let offset = MAGIC.length;
+  const salt = blob.subarray(offset, offset + SALT_LEN);
+  offset += SALT_LEN;
+  const iv = blob.subarray(offset, offset + IV_LEN);
+  offset += IV_LEN;
+  const tag = blob.subarray(offset, offset + TAG_LEN);
+  offset += TAG_LEN;
+  const ct = blob.subarray(offset);
+  const key = deriveKey(secret, salt);
+  const decipher = createDecipheriv("aes-256-gcm", key, iv);
+  decipher.setAuthTag(tag);
+  return Buffer.concat([decipher.update(ct), decipher.final()]);
+}
+async function exportTables(tenantId) {
+  const db = await getDb();
+  if (!db) throw new Error("database unavailable for backup export");
+  const tables = {};
+  const counts = {};
+  for (const entry of BACKUP_TABLES) {
+    let query = db.select().from(entry.table);
+    if (entry.tenantScoped && tenantId != null) {
+      query = query.where(eq10(entry.table.tenantId, tenantId));
+    }
+    const rows = await withTimeout(
+      query.limit(MAX_ROWS_PER_TABLE),
+      6e4,
+      `export:${entry.name}`
+    );
+    tables[entry.name] = rows;
+    counts[entry.name] = rows.length;
+  }
+  return { tables, counts };
+}
+async function runBackup(tenantId) {
+  const secret = resolveBackupSecret();
+  if (!secret) throw new Error("BACKUP_ENCRYPTION_KEY is required in production");
+  const startedAt = (/* @__PURE__ */ new Date()).toISOString();
+  const { tables, counts } = await withRetry(() => exportTables(tenantId), {
+    label: "backup-export",
+    retries: 2
+  });
+  const payload = JSON.stringify({
+    version: PAYLOAD_VERSION,
+    createdAt: startedAt,
+    scope: tenantId == null ? "all" : `tenant:${tenantId}`,
+    tables
+  });
+  const plain = Buffer.from(payload, "utf8");
+  const compressed = gzipSync(plain);
+  const blob = encryptPayload(compressed, secret);
+  const id = `${Date.now()}-${randomBytes2(4).toString("hex")}`;
+  const manifest = {
+    id,
+    createdAt: startedAt,
+    scope: tenantId == null ? "all" : `tenant:${tenantId}`,
+    encrypted: true,
+    algorithm: "aes-256-gcm/scrypt",
+    payloadVersion: PAYLOAD_VERSION,
+    originalSize: plain.length,
+    compressedSize: compressed.length,
+    encryptedSize: blob.length,
+    sha256: sha256Hex(blob),
+    keyFingerprint: fingerprint(secret),
+    tableCounts: counts,
+    totalRows: Object.values(counts).reduce((a, b) => a + b, 0),
+    storage: {}
+  };
+  try {
+    await ensureDir(backupDir());
+    const localFile = path.join(backupDir(), `${id}.alsbk`);
+    await fs.writeFile(localFile, blob);
+    manifest.storage.localFile = localFile;
+  } catch (e) {
+    console.warn("[backup] local write failed (continuing):", e);
+  }
+  if (ENV.forgeApiUrl && ENV.forgeApiKey) {
+    try {
+      const put = await withTimeout(
+        withRetry(() => storagePut(`backups/${id}.alsbk`, blob), {
+          label: "backup-upload",
+          retries: 3
+        }),
+        12e4,
+        "backup-upload"
+      );
+      manifest.storage.remoteKey = put.key;
+      manifest.storage.remoteUrl = put.url;
+    } catch (e) {
+      console.warn("[backup] remote upload failed (local copy retained):", e);
+    }
+  }
+  await saveManifest(manifest);
+  console.log(
+    `[backup] created ${id} scope=${manifest.scope} rows=${manifest.totalRows} sha256=${manifest.sha256.slice(0, 12)}\u2026`
+  );
+  return manifest;
+}
+async function listBackups() {
+  return readIndex();
+}
+async function verifyBackup(id) {
+  const secret = resolveBackupSecret();
+  if (!secret) return { ok: false, id, reason: "encryption key unavailable" };
+  const manifest = (await readIndex()).find((m) => m.id === id);
+  if (!manifest) return { ok: false, id, reason: "manifest not found" };
+  let blob;
+  try {
+    blob = await loadBlob(manifest);
+  } catch (e) {
+    return {
+      ok: false,
+      id,
+      reason: `blob unreadable: ${e instanceof Error ? e.message : e}`
+    };
+  }
+  if (sha256Hex(blob) !== manifest.sha256) {
+    return { ok: false, id, reason: "checksum mismatch \u2014 file corrupted or tampered" };
+  }
+  if (fingerprint(secret) !== manifest.keyFingerprint) {
+    return {
+      ok: false,
+      id,
+      reason: "key fingerprint mismatch \u2014 different BACKUP_ENCRYPTION_KEY"
+    };
+  }
+  try {
+    const parsed = parsePayload(decryptPayload(blob, secret));
+    const totalRows = Object.values(parsed.counts).reduce((a, b) => a + b, 0);
+    return { ok: true, id, totalRows };
+  } catch (e) {
+    return {
+      ok: false,
+      id,
+      reason: `decrypt/decompress failed: ${e instanceof Error ? e.message : e}`
+    };
+  }
+}
+async function loadBlob(manifest) {
+  if (manifest.storage.localFile) {
+    try {
+      return await fs.readFile(manifest.storage.localFile);
+    } catch {
+    }
+  }
+  if (manifest.storage.remoteUrl) {
+    const resp = await fetch(manifest.storage.remoteUrl);
+    if (!resp.ok) throw new Error(`remote fetch ${resp.status}`);
+    return Buffer.from(await resp.arrayBuffer());
+  }
+  throw new Error("no local file or remote url in manifest");
+}
+function parsePayload(plain) {
+  const parsed = JSON.parse(gunzipSync(plain).toString("utf8"));
+  if (!parsed || typeof parsed !== "object" || !parsed.tables) {
+    throw new Error("payload structure invalid");
+  }
+  const counts = {};
+  for (const [name, rows] of Object.entries(parsed.tables)) {
+    if (!Array.isArray(rows)) throw new Error(`table ${name} is not an array`);
+    counts[name] = rows.length;
+  }
+  return { ...parsed, counts };
+}
+async function restoreBackup(id, options = {}) {
+  const dryRun = options.dryRun !== false;
+  const verified = await verifyBackup(id);
+  if (!verified.ok) return { id, dryRun, verified };
+  if (dryRun) {
+    return { id, dryRun, verified, note: "dry-run only \u2014 no data written" };
+  }
+  const secret = resolveBackupSecret();
+  if (!secret) {
+    return {
+      id,
+      dryRun,
+      verified: { ...verified, ok: false, reason: "encryption key unavailable" }
+    };
+  }
+  const manifest = (await readIndex()).find((m) => m.id === id);
+  if (!manifest) {
+    return { id, dryRun, verified: { ...verified, ok: false, reason: "manifest lost" } };
+  }
+  const db = await getDb();
+  if (!db) {
+    return { id, dryRun, verified: { ...verified, ok: false, reason: "database unavailable" } };
+  }
+  const blob = await loadBlob(manifest);
+  const parsed = parsePayload(decryptPayload(blob, secret));
+  const restoredRows = {};
+  for (const entry of BACKUP_TABLES) {
+    const rows = parsed.tables[entry.name];
+    if (!Array.isArray(rows) || rows.length === 0) continue;
+    const cols = getTableColumns(entry.table);
+    let count2 = 0;
+    for (let i = 0; i < rows.length; i += RESTORE_CHUNK) {
+      const chunk = rows.slice(i, i + RESTORE_CHUNK).map((row) => reviveDates(row, cols));
+      await withRetry(
+        () => db.insert(entry.table).values(chunk).onConflictDoNothing(),
+        { label: `restore:${entry.name}`, retries: 2 }
+      );
+      count2 += chunk.length;
+    }
+    restoredRows[entry.name] = count2;
+  }
+  return { id, dryRun, verified, restoredRows };
+}
+function reviveDates(row, cols) {
+  const out = {};
+  for (const [key, value] of Object.entries(row)) {
+    const col = cols[key];
+    if (col?.dataType === "date" && typeof value === "string" && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(value)) {
+      out[key] = new Date(value);
+    } else {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+var DEV_FALLBACK_KEY = "alhusainia-dev-backup-key-do-not-use-in-production";
+function resolveBackupSecret() {
+  const configured = ENV.backupEncryptionKey?.trim();
+  if (configured && configured.length >= 16) return configured;
+  if (!ENV.isProduction) {
+    console.warn(
+      "[backup] BACKUP_ENCRYPTION_KEY not set \u2014 using INSECURE dev fallback key."
+    );
+    return DEV_FALLBACK_KEY;
+  }
+  console.error(
+    "[backup] BACKUP_ENCRYPTION_KEY missing in production \u2014 backups are disabled (fail closed)."
+  );
+  return null;
+}
+function backupDir() {
+  return ENV.backupDir || path.join(process.cwd(), ".backups");
+}
+async function ensureDir(dir) {
+  await fs.mkdir(dir, { recursive: true });
+}
+function fingerprint(secret) {
+  return sha256Hex(Buffer.from(secret, "utf8")).slice(0, 8);
+}
+async function readIndex() {
+  try {
+    const raw = await fs.readFile(path.join(backupDir(), "index.json"), "utf8");
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+async function writeIndex(list) {
+  await ensureDir(backupDir());
+  await fs.writeFile(
+    path.join(backupDir(), "index.json"),
+    JSON.stringify(list, null, 2),
+    "utf8"
+  );
+}
+async function saveManifest(manifest) {
+  const list = await readIndex();
+  list.unshift(manifest);
+  await writeIndex(list.slice(0, 500));
+  if (manifest.storage.localFile) {
+    await fs.writeFile(
+      `${manifest.storage.localFile}.manifest.json`,
+      JSON.stringify(manifest, null, 2),
+      "utf8"
+    );
+  }
+}
+
+// server/backupRouter.ts
+var backupRouter = router({
+  run: adminProcedure.input(z6.object({ tenantId: z6.number().int().positive().nullable().default(null) })).mutation(async ({ input }) => {
+    const manifest = await runBackup(input.tenantId);
+    return {
+      id: manifest.id,
+      scope: manifest.scope,
+      totalRows: manifest.totalRows,
+      sha256: manifest.sha256,
+      storage: manifest.storage,
+      createdAt: manifest.createdAt
+    };
+  }),
+  list: adminProcedure.query(async () => {
+    const manifests = await listBackups();
+    return manifests.map((m) => ({
+      id: m.id,
+      createdAt: m.createdAt,
+      scope: m.scope,
+      totalRows: m.totalRows,
+      encryptedSize: m.encryptedSize,
+      sha256: m.sha256,
+      hasRemote: Boolean(m.storage.remoteKey),
+      tableCounts: m.tableCounts
+    }));
+  }),
+  verify: adminProcedure.input(z6.object({ id: z6.string().min(1) })).mutation(async ({ input }) => verifyBackup(input.id)),
+  restore: adminProcedure.input(
+    z6.object({
+      id: z6.string().min(1),
+      dryRun: z6.boolean().default(true),
+      /** Must be explicitly true when dryRun is false. */
+      confirm: z6.boolean().optional()
+    })
+  ).mutation(async ({ input }) => {
+    if (!input.dryRun && input.confirm !== true) {
+      throw new Error(
+        "Real restore requires confirm:true \u2014 refusing destructive operation without explicit confirmation"
+      );
+    }
+    return restoreBackup(input.id, { dryRun: input.dryRun });
+  })
+});
+
 // server/routers.ts
+init_db();
 import { timingSafeEqual as timingSafeEqual2, randomUUID as randomUUID2 } from "crypto";
 
 // server/_core/rateLimit.ts
@@ -8476,16 +9514,16 @@ var SWEEP_INTERVAL_MS = 5 * 60 * 1e3;
 function sweep(now) {
   if (now - lastSweep < SWEEP_INTERVAL_MS) return;
   lastSweep = now;
-  for (const [key, hits] of Array.from(buckets.entries())) {
-    const newest = hits[hits.length - 1] ?? 0;
+  for (const [key, hits2] of Array.from(buckets.entries())) {
+    const newest = hits2[hits2.length - 1] ?? 0;
     if (now - newest > 60 * 60 * 1e3) buckets.delete(key);
   }
 }
 function checkRateLimit(key, max, windowMs, now = Date.now()) {
   sweep(now);
-  const hits = buckets.get(key) ?? [];
+  const hits2 = buckets.get(key) ?? [];
   const windowStart = now - windowMs;
-  const recent = hits.filter((t2) => t2 > windowStart);
+  const recent = hits2.filter((t2) => t2 > windowStart);
   if (recent.length >= max) {
     const oldest = recent[0];
     const retryAfterSec = Math.max(
@@ -8501,22 +9539,23 @@ function checkRateLimit(key, max, windowMs, now = Date.now()) {
 }
 
 // server/routers.ts
+init_schema();
 import { TRPCError as TRPCError6 } from "@trpc/server";
 import {
-  eq as eq8,
-  desc as desc4,
-  sql as sql7,
+  eq as eq11,
+  desc as desc5,
+  sql as sql8,
   asc as asc4,
-  and as and6,
+  and as and7,
   or as or3,
-  gte as gte4,
-  lte as lte3,
+  gte as gte5,
+  lte as lte4,
   ilike as ilike4,
   inArray as inArray2,
   ne as ne3,
   isNull as isNull4
 } from "drizzle-orm";
-import { z as z5 } from "zod";
+import { z as z7 } from "zod";
 function getMonthlyFactor(frequency) {
   switch (frequency) {
     case "daily":
@@ -8641,7 +9680,7 @@ async function seedDefaultAccountsForTenant(tenantId) {
         }
       });
     }
-    const existingSettings = await db.select().from(settings).where(eq8(settings.tenantId, tenantId)).limit(1);
+    const existingSettings = await db.select().from(settings).where(eq11(settings.tenantId, tenantId)).limit(1);
     if (existingSettings.length === 0) {
       await db.insert(settings).values({
         tenantId,
@@ -8660,7 +9699,7 @@ async function seedDefaultAccountsForTenant(tenantId) {
         accountingPeriod: "\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026",
         managerName: "\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629",
         notes: "\u0627\u0644\u0646\u0638\u0627\u0645 \u0627\u0644\u0645\u062D\u0627\u0633\u0628\u064A \u0627\u0644\u0645\u0639\u062A\u0645\u062F \u0644\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644 - \u0645\u0631\u0646 \u0648\u062F\u0642\u064A\u0642."
-      }).where(eq8(settings.id, existingSettings[0].id));
+      }).where(eq11(settings.id, existingSettings[0].id));
     }
     const defaultProducts = [
       {
@@ -8847,7 +9886,7 @@ async function getTenantConfig(db, tenantId) {
       postingRules: DEFAULT_POSTING_RULES
     };
   }
-  const rows = await db.select().from(settings).where(eq8(settings.tenantId, tenantId)).limit(1);
+  const rows = await db.select().from(settings).where(eq11(settings.tenantId, tenantId)).limit(1);
   const row = rows[0];
   return {
     posConfig: parseConfig(row?.posConfig, DEFAULT_POS_CONFIG),
@@ -8879,12 +9918,12 @@ function stringifyConfig(v) {
 }
 async function postInvoiceGlEntries(tx, opts) {
   const defaultBranch = async () => {
-    const rows = await tx.select().from(branches).where(eq8(branches.tenantId, opts.tenantId)).orderBy(desc4(branches.isMain)).limit(1);
+    const rows = await tx.select().from(branches).where(eq11(branches.tenantId, opts.tenantId)).orderBy(desc5(branches.isMain)).limit(1);
     return rows[0]?.id ?? null;
   };
   const effectiveBranchId = opts.branchId ?? await defaultBranch();
   const findAccount = async (code) => {
-    const rows = await tx.select().from(accounts).where(and6(eq8(accounts.code, code), eq8(accounts.tenantId, opts.tenantId))).limit(1);
+    const rows = await tx.select().from(accounts).where(and7(eq11(accounts.code, code), eq11(accounts.tenantId, opts.tenantId))).limit(1);
     return rows[0];
   };
   const pending = [];
@@ -8904,7 +9943,7 @@ async function postInvoiceGlEntries(tx, opts) {
   });
   const cfg = await getTenantConfig(tx, opts.tenantId);
   const findAccountById = async (id) => {
-    const rows = await tx.select().from(accounts).where(and6(eq8(accounts.id, id), eq8(accounts.tenantId, opts.tenantId))).limit(1);
+    const rows = await tx.select().from(accounts).where(and7(eq11(accounts.id, id), eq11(accounts.tenantId, opts.tenantId))).limit(1);
     return rows[0];
   };
   const resolveAccount = async (ref) => {
@@ -9022,6 +10061,8 @@ var appRouter = router({
   system: systemRouter,
   erp: erpRouter,
   modules: modulesRouter,
+  aliasAi: aliasAiRouter,
+  backup: backupRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
     logout: publicProcedure.mutation(({ ctx }) => {
@@ -9031,7 +10072,7 @@ var appRouter = router({
     }),
     // Self-contained owner login (no external OAuth provider required).
     // Issues a signed session cookie for the configured owner openId.
-    ownerLogin: publicProcedure.input(z5.object({ password: z5.string().min(1).max(256) })).mutation(async ({ ctx, input }) => {
+    ownerLogin: publicProcedure.input(z7.object({ password: z7.string().min(1).max(256) })).mutation(async ({ ctx, input }) => {
       const expected = ENV.ownerPassword;
       if (!expected) {
         throw new TRPCError6({
@@ -9065,13 +10106,13 @@ var appRouter = router({
       return { success: true };
     }),
     updateProfile: tenantProcedure.input(
-      z5.object({
-        name: z5.string().min(1),
-        email: z5.string().email().optional().or(z5.literal("")),
-        themePreference: z5.string(),
-        emailNotifications: z5.boolean(),
-        whatsappNotifications: z5.boolean(),
-        compactMode: z5.boolean()
+      z7.object({
+        name: z7.string().min(1),
+        email: z7.string().email().optional().or(z7.literal("")),
+        themePreference: z7.string(),
+        emailNotifications: z7.boolean(),
+        whatsappNotifications: z7.boolean(),
+        compactMode: z7.boolean()
       })
     ).mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -9083,7 +10124,7 @@ var appRouter = router({
         emailNotifications: input.emailNotifications,
         whatsappNotifications: input.whatsappNotifications,
         compactMode: input.compactMode
-      }).where(eq8(users.id, ctx.user.id));
+      }).where(eq11(users.id, ctx.user.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         userName: input.name,
@@ -9096,7 +10137,7 @@ var appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      const logs = await db.select().from(activityLogs).where(eq8(activityLogs.tenantId, tid)).orderBy(desc4(activityLogs.createdAt)).limit(25);
+      const logs = await db.select().from(activityLogs).where(eq11(activityLogs.tenantId, tid)).orderBy(desc5(activityLogs.createdAt)).limit(25);
       return logs;
     }),
     // ── Local subscriber login (username + password) ──
@@ -9104,9 +10145,9 @@ var appRouter = router({
     // UNAUTHORIZED on wrong password, FORBIDDEN when locked (5 fails / 15 min).
     // Every attempt (device + geo) is persisted to login_attempts.
     login: publicProcedure.input(
-      z5.object({
-        username: z5.string().min(1).max(120),
-        password: z5.string().min(1).max(200)
+      z7.object({
+        username: z7.string().min(1).max(120),
+        password: z7.string().min(1).max(200)
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -9143,7 +10184,7 @@ var appRouter = router({
         }
       };
       const uname = input.username.trim();
-      const user = (await db.select().from(users).where(eq8(users.username, uname)).limit(1))[0];
+      const user = (await db.select().from(users).where(eq11(users.username, uname)).limit(1))[0];
       if (!user) {
         await recordAttempt(false, {});
         throw new TRPCError6({
@@ -9152,11 +10193,11 @@ var appRouter = router({
         });
       }
       const since = new Date(Date.now() - 15 * 60 * 1e3);
-      const recent = await db.select({ count: sql7`count(*)::int` }).from(loginAttempts).where(
-        and6(
-          eq8(loginAttempts.username, uname),
-          eq8(loginAttempts.success, false),
-          gte4(loginAttempts.createdAt, since)
+      const recent = await db.select({ count: sql8`count(*)::int` }).from(loginAttempts).where(
+        and7(
+          eq11(loginAttempts.username, uname),
+          eq11(loginAttempts.success, false),
+          gte5(loginAttempts.createdAt, since)
         )
       );
       const fails = recent[0]?.count ?? 0;
@@ -9168,10 +10209,10 @@ var appRouter = router({
             Math.ceil(
               (15 * 60 * 1e3 - (Date.now() - new Date(
                 (await db.select({ c: loginAttempts.createdAt }).from(loginAttempts).where(
-                  and6(
-                    eq8(loginAttempts.username, uname),
-                    eq8(loginAttempts.success, false),
-                    gte4(loginAttempts.createdAt, since)
+                  and7(
+                    eq11(loginAttempts.username, uname),
+                    eq11(loginAttempts.success, false),
+                    gte5(loginAttempts.createdAt, since)
                   )
                 ).orderBy(loginAttempts.createdAt).limit(1))[0]?.c || /* @__PURE__ */ new Date()
               ).getTime())) / 6e4
@@ -9214,16 +10255,16 @@ var appRouter = router({
     }),
     // ── Self-serve signup: creates a new organisation + admin user ──
     register: publicProcedure.input(
-      z5.object({
-        name: z5.string().min(2).max(120),
-        username: z5.string().min(3).max(120).regex(
+      z7.object({
+        name: z7.string().min(2).max(120),
+        username: z7.string().min(3).max(120).regex(
           /^[a-zA-Z0-9_.-]+$/,
           "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645: \u062D\u0631\u0648\u0641 \u0648\u0623\u0631\u0642\u0627\u0645 \u0648 . _ - \u0641\u0642\u0637"
         ),
-        password: z5.string().min(6).max(200),
-        country: z5.string().max(100).optional(),
-        currency: z5.string().max(50).optional(),
-        email: z5.string().email().optional().or(z5.literal(""))
+        password: z7.string().min(6).max(200),
+        country: z7.string().max(100).optional(),
+        currency: z7.string().max(50).optional(),
+        email: z7.string().email().optional().or(z7.literal(""))
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -9234,7 +10275,7 @@ var appRouter = router({
         });
       await applyAuthSchema(db);
       const uname = input.username.trim();
-      const clash = await db.select({ id: users.id }).from(users).where(eq8(users.username, uname)).limit(1);
+      const clash = await db.select({ id: users.id }).from(users).where(eq11(users.username, uname)).limit(1);
       if (clash.length)
         throw new TRPCError6({
           code: "CONFLICT",
@@ -9259,7 +10300,7 @@ var appRouter = router({
         role: "admin",
         lastSignedIn: /* @__PURE__ */ new Date()
       }).returning();
-      await db.update(tenants).set({ ownerUserId: userRow.id }).where(eq8(tenants.id, tid));
+      await db.update(tenants).set({ ownerUserId: userRow.id }).where(eq11(tenants.id, tid));
       const token = await sdk.createSessionToken(userRow.openId, {
         name: input.name.trim()
       });
@@ -9279,18 +10320,18 @@ var appRouter = router({
       if (!uid && !uname) return [];
       const rows = await db.select().from(loginAttempts).where(
         or3(
-          eq8(loginAttempts.userId, uid ?? -1),
-          eq8(loginAttempts.username, uname ?? "")
+          eq11(loginAttempts.userId, uid ?? -1),
+          eq11(loginAttempts.username, uname ?? "")
         )
-      ).orderBy(desc4(loginAttempts.createdAt)).limit(50);
+      ).orderBy(desc5(loginAttempts.createdAt)).limit(50);
       return rows;
     }),
     onboard: protectedProcedure.input(
-      z5.object({
-        institutionName: z5.string().min(1),
-        currency: z5.string().optional(),
-        country: z5.string().optional(),
-        managerName: z5.string().optional()
+      z7.object({
+        institutionName: z7.string().min(1),
+        currency: z7.string().optional(),
+        country: z7.string().optional(),
+        managerName: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -9313,7 +10354,7 @@ var appRouter = router({
         city: "\u0635\u0646\u0639\u0627\u0621",
         isMain: true
       }).returning();
-      await db.update(users).set({ tenantId: tenant.id, role: "admin" }).where(eq8(users.id, ctx.user.id));
+      await db.update(users).set({ tenantId: tenant.id, role: "admin" }).where(eq11(users.id, ctx.user.id));
       await seedDefaultAccountsForTenant(tenant.id);
       return { tenantId: tenant.id, branchId: branch.id };
     })
@@ -9324,13 +10365,13 @@ var appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      return await db.select().from(warehouses).where(eq8(warehouses.tenantId, tid)).orderBy(asc4(warehouses.code));
+      return await db.select().from(warehouses).where(eq11(warehouses.tenantId, tid)).orderBy(asc4(warehouses.code));
     }),
     create: tenantProcedure.input(
-      z5.object({
-        code: z5.string().min(1),
-        name: z5.string().min(1),
-        location: z5.string().optional()
+      z7.object({
+        code: z7.string().min(1),
+        name: z7.string().min(1),
+        location: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -9340,25 +10381,25 @@ var appRouter = router({
       return { success: true, warehouse: row };
     }),
     update: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        name: z5.string().optional(),
-        location: z5.string().optional(),
-        isActive: z5.boolean().optional()
+      z7.object({
+        id: z7.number(),
+        name: z7.string().optional(),
+        location: z7.string().optional(),
+        isActive: z7.boolean().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = requireTenantId(ctx);
       const { id, ...data } = input;
-      await db.update(warehouses).set(data).where(and6(eq8(warehouses.id, id), eq8(warehouses.tenantId, tid)));
+      await db.update(warehouses).set(data).where(and7(eq11(warehouses.id, id), eq11(warehouses.tenantId, tid)));
       return { success: true };
     }),
-    remove: tenantProcedure.input(z5.object({ id: z5.number() })).mutation(async ({ input, ctx }) => {
+    remove: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = requireTenantId(ctx);
-      await db.delete(warehouses).where(and6(eq8(warehouses.id, input.id), eq8(warehouses.tenantId, tid)));
+      await db.delete(warehouses).where(and7(eq11(warehouses.id, input.id), eq11(warehouses.tenantId, tid)));
       return { success: true };
     })
   }),
@@ -9368,15 +10409,15 @@ var appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      return db.select().from(workSites).where(eq8(workSites.tenantId, tid)).orderBy(asc4(workSites.code));
+      return db.select().from(workSites).where(eq11(workSites.tenantId, tid)).orderBy(asc4(workSites.code));
     }),
     create: tenantProcedure.input(
-      z5.object({
-        code: z5.string().min(1),
-        name: z5.string().min(1),
-        address: z5.string().optional(),
-        lat: z5.string().optional(),
-        lng: z5.string().optional()
+      z7.object({
+        code: z7.string().min(1),
+        name: z7.string().min(1),
+        address: z7.string().optional(),
+        lat: z7.string().optional(),
+        lng: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -9385,11 +10426,11 @@ var appRouter = router({
       const [row] = await db.insert(workSites).values({ ...input, tenantId: tid }).returning();
       return { success: true, workSite: row };
     }),
-    remove: tenantProcedure.input(z5.object({ id: z5.number() })).mutation(async ({ input, ctx }) => {
+    remove: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = requireTenantId(ctx);
-      await db.delete(workSites).where(and6(eq8(workSites.id, input.id), eq8(workSites.tenantId, tid)));
+      await db.delete(workSites).where(and7(eq11(workSites.id, input.id), eq11(workSites.tenantId, tid)));
       return { success: true };
     })
   }),
@@ -9399,15 +10440,15 @@ var appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      return db.select().from(devices).where(eq8(devices.tenantId, tid)).orderBy(asc4(devices.code));
+      return db.select().from(devices).where(eq11(devices.tenantId, tid)).orderBy(asc4(devices.code));
     }),
     create: tenantProcedure.input(
-      z5.object({
-        code: z5.string().min(1),
-        name: z5.string().min(1),
-        type: z5.string().default("pos"),
-        workSiteId: z5.number().optional(),
-        location: z5.string().optional()
+      z7.object({
+        code: z7.string().min(1),
+        name: z7.string().min(1),
+        type: z7.string().default("pos"),
+        workSiteId: z7.number().optional(),
+        location: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -9416,11 +10457,11 @@ var appRouter = router({
       const [row] = await db.insert(devices).values({ ...input, tenantId: tid }).returning();
       return { success: true, device: row };
     }),
-    remove: tenantProcedure.input(z5.object({ id: z5.number() })).mutation(async ({ input, ctx }) => {
+    remove: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = requireTenantId(ctx);
-      await db.delete(devices).where(and6(eq8(devices.id, input.id), eq8(devices.tenantId, tid)));
+      await db.delete(devices).where(and7(eq11(devices.id, input.id), eq11(devices.tenantId, tid)));
       return { success: true };
     })
   }),
@@ -9445,25 +10486,25 @@ var appRouter = router({
       await seedDefaultAccountsForTenant(ctx.tenantId);
       const db = await getDb();
       if (!db) return { ...fallback, subscriptionStatus: "active" };
-      const res = await db.select().from(settings).where(eq8(settings.tenantId, ctx.tenantId)).limit(1);
+      const res = await db.select().from(settings).where(eq11(settings.tenantId, ctx.tenantId)).limit(1);
       if (!res[0]) return { ...fallback, subscriptionStatus: "active" };
       return parseSettingsRow(res[0]);
     }),
     // سياسة اشتراك مرنة — لا تُغلق النظام أبداً:
     // trial → active → grace (مهلة غير محدودة) → suspended فقط عند طلب المستخدم
     updateSubscription: tenantProcedure.input(
-      z5.object({
-        status: z5.enum(["trial", "active", "grace", "suspended"]),
+      z7.object({
+        status: z7.enum(["trial", "active", "grace", "suspended"]),
         // وسيلة دفع محلية اختيارية
-        paymentMethod: z5.string().optional(),
+        paymentMethod: z7.string().optional(),
         // كود ترويجي / خصم اختياري
-        promoCode: z5.string().optional()
+        promoCode: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(settings).where(eq8(settings.tenantId, ctx.tenantId)).limit(1);
+      const existing = await db.select().from(settings).where(eq11(settings.tenantId, ctx.tenantId)).limit(1);
       const newStatus = input.status;
       if (existing.length > 0) {
         await db.update(settings).set({
@@ -9471,7 +10512,7 @@ var appRouter = router({
           ...input.paymentMethod ? {
             notes: `\u0648\u0633\u064A\u0644\u0629 \u0627\u0644\u062F\u0641\u0639: ${input.paymentMethod}${input.promoCode ? ` \u2014 \u0643\u0648\u062F: ${input.promoCode}` : ""}`
           } : {}
-        }).where(eq8(settings.id, existing[0].id));
+        }).where(eq11(settings.id, existing[0].id));
       }
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
@@ -9483,25 +10524,25 @@ var appRouter = router({
     }),
     // Update settings (Permanent save)
     updateSettings: tenantProcedure.input(
-      z5.object({
-        institutionName: z5.string().min(1),
-        currency: z5.string().min(1),
-        country: z5.string().min(1).default("\u0627\u0644\u064A\u0645\u0646"),
-        accountingPeriod: z5.string().min(1),
-        managerName: z5.string().optional(),
-        taxNumber: z5.string().optional(),
-        notes: z5.string().optional(),
-        posConfig: z5.any().optional(),
-        salesPolicy: z5.any().optional(),
-        paymentMethods: z5.any().optional(),
-        postingRules: z5.any().optional(),
-        zatcaConfig: z5.any().optional()
+      z7.object({
+        institutionName: z7.string().min(1),
+        currency: z7.string().min(1),
+        country: z7.string().min(1).default("\u0627\u0644\u064A\u0645\u0646"),
+        accountingPeriod: z7.string().min(1),
+        managerName: z7.string().optional(),
+        taxNumber: z7.string().optional(),
+        notes: z7.string().optional(),
+        posConfig: z7.any().optional(),
+        salesPolicy: z7.any().optional(),
+        paymentMethods: z7.any().optional(),
+        postingRules: z7.any().optional(),
+        zatcaConfig: z7.any().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(settings).where(eq8(settings.tenantId, ctx.tenantId)).limit(1);
+      const existing = await db.select().from(settings).where(eq11(settings.tenantId, ctx.tenantId)).limit(1);
       const payload = { ...input };
       if (input.posConfig !== void 0) payload.posConfig = stringifyConfig(input.posConfig);
       if (input.salesPolicy !== void 0) payload.salesPolicy = stringifyConfig(input.salesPolicy);
@@ -9509,7 +10550,7 @@ var appRouter = router({
       if (input.postingRules !== void 0) payload.postingRules = stringifyConfig(input.postingRules);
       if (input.zatcaConfig !== void 0) payload.zatcaConfig = stringifyConfig(input.zatcaConfig);
       if (existing.length > 0) {
-        await db.update(settings).set(payload).where(eq8(settings.id, existing[0].id));
+        await db.update(settings).set(payload).where(eq11(settings.id, existing[0].id));
       } else {
         await db.insert(settings).values({ ...payload, tenantId: ctx.tenantId });
       }
@@ -9521,16 +10562,16 @@ var appRouter = router({
       await seedDefaultAccountsForTenant(ctx.tenantId);
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(accounts).where(eq8(accounts.tenantId, ctx.tenantId)).orderBy(asc4(accounts.code));
+      return await db.select().from(accounts).where(eq11(accounts.tenantId, ctx.tenantId)).orderBy(asc4(accounts.code));
     }),
     // Add custom account
     addAccount: tenantProcedure.input(
-      z5.object({
-        code: z5.string().min(1),
-        name: z5.string().min(1),
-        type: z5.enum(["asset", "liability", "equity", "revenue", "expense"]),
-        category: z5.string().optional(),
-        description: z5.string().optional()
+      z7.object({
+        code: z7.string().min(1),
+        name: z7.string().min(1),
+        type: z7.enum(["asset", "liability", "equity", "revenue", "expense"]),
+        category: z7.string().optional(),
+        description: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -9545,13 +10586,13 @@ var appRouter = router({
     }),
     // Update account (Name, Code, Type, Status)
     updateAccount: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        name: z5.string().min(1),
-        code: z5.string().min(1),
-        type: z5.enum(["asset", "liability", "equity", "revenue", "expense"]),
-        isActive: z5.boolean(),
-        parentAccountId: z5.number().nullable().optional()
+      z7.object({
+        id: z7.number(),
+        name: z7.string().min(1),
+        code: z7.string().min(1),
+        type: z7.enum(["asset", "liability", "equity", "revenue", "expense"]),
+        isActive: z7.boolean(),
+        parentAccountId: z7.number().nullable().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -9564,7 +10605,7 @@ var appRouter = router({
         isActive: input.isActive,
         ...input.parentAccountId !== void 0 ? { parentAccountId: input.parentAccountId } : {}
       }).where(
-        and6(eq8(accounts.id, input.id), eq8(accounts.tenantId, ctx.tenantId))
+        and7(eq11(accounts.id, input.id), eq11(accounts.tenantId, ctx.tenantId))
       );
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
@@ -9576,9 +10617,9 @@ var appRouter = router({
     }),
     // Move account in Tree (Drag and Drop / Reparenting)
     moveAccount: tenantProcedure.input(
-      z5.object({
-        accountId: z5.number(),
-        newParentAccountId: z5.number().nullable()
+      z7.object({
+        accountId: z7.number(),
+        newParentAccountId: z7.number().nullable()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -9590,9 +10631,9 @@ var appRouter = router({
       await db.update(accounts).set({
         parentAccountId: input.newParentAccountId
       }).where(
-        and6(
-          eq8(accounts.id, input.accountId),
-          eq8(accounts.tenantId, ctx.tenantId)
+        and7(
+          eq11(accounts.id, input.accountId),
+          eq11(accounts.tenantId, ctx.tenantId)
         )
       );
       await db.insert(activityLogs).values({
@@ -9605,20 +10646,20 @@ var appRouter = router({
     }),
     // Get Transactions with pagination / filters
     getTransactions: tenantProcedure.input(
-      z5.object({
-        search: z5.string().optional(),
-        accountId: z5.number().optional(),
-        startDate: z5.string().optional(),
-        endDate: z5.string().optional(),
-        limit: z5.number().min(1).max(500).default(100),
-        offset: z5.number().min(0).default(0),
-        includeReversed: z5.boolean().optional()
+      z7.object({
+        search: z7.string().optional(),
+        accountId: z7.number().optional(),
+        startDate: z7.string().optional(),
+        endDate: z7.string().optional(),
+        limit: z7.number().min(1).max(500).default(100),
+        offset: z7.number().min(0).default(0),
+        includeReversed: z7.boolean().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      const conditions = [eq8(transactions.tenantId, ctx.tenantId)];
+      const conditions = [eq11(transactions.tenantId, ctx.tenantId)];
       if (input?.search) {
         conditions.push(
           or3(
@@ -9630,22 +10671,22 @@ var appRouter = router({
         );
       }
       if (input?.accountId) {
-        conditions.push(eq8(transactions.accountId, input.accountId));
+        conditions.push(eq11(transactions.accountId, input.accountId));
       }
       if (!input?.includeReversed) {
-        conditions.push(eq8(transactions.isReversed, false));
+        conditions.push(eq11(transactions.isReversed, false));
       }
       if (input?.startDate) {
         conditions.push(
-          gte4(transactions.transactionDate, new Date(input.startDate))
+          gte5(transactions.transactionDate, new Date(input.startDate))
         );
       }
       if (input?.endDate) {
         conditions.push(
-          lte3(transactions.transactionDate, new Date(input.endDate))
+          lte4(transactions.transactionDate, new Date(input.endDate))
         );
       }
-      const whereClause = conditions.length > 0 ? and6(...conditions) : void 0;
+      const whereClause = conditions.length > 0 ? and7(...conditions) : void 0;
       const list = await db.select({
         id: transactions.id,
         accountId: transactions.accountId,
@@ -9664,29 +10705,29 @@ var appRouter = router({
         referenceId: transactions.referenceId,
         branchId: transactions.branchId,
         createdAt: transactions.createdAt
-      }).from(transactions).leftJoin(accounts, eq8(transactions.accountId, accounts.id)).where(whereClause).orderBy(desc4(transactions.transactionDate), desc4(transactions.id)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
+      }).from(transactions).leftJoin(accounts, eq11(transactions.accountId, accounts.id)).where(whereClause).orderBy(desc5(transactions.transactionDate), desc5(transactions.id)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
       return list;
     }),
     // Add Transaction
     addTransaction: tenantProcedure.input(
-      z5.object({
-        id: z5.number().optional(),
-        accountId: z5.number(),
-        amount: z5.string().refine((v) => {
+      z7.object({
+        id: z7.number().optional(),
+        accountId: z7.number(),
+        amount: z7.string().refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && n > 0 && n < 1e9;
         }, "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B \u0648\u0623\u0642\u0644 \u0645\u0646 \u0645\u0644\u064A\u0627\u0631"),
-        type: z5.enum(["debit", "credit"]),
-        transactionDate: z5.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        narration: z5.string().max(500).optional(),
-        notes: z5.string().optional(),
-        lifecycleStatus: z5.enum(["saved", "approved", "sent"]).default("saved")
+        type: z7.enum(["debit", "credit"]),
+        transactionDate: z7.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
+        narration: z7.string().max(500).optional(),
+        notes: z7.string().optional(),
+        lifecycleStatus: z7.enum(["saved", "approved", "sent"]).default("saved")
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const account = await db.select().from(accounts).where(and6(eq8(accounts.id, input.accountId), eq8(accounts.tenantId, ctx.tenantId))).limit(1);
+      const account = await db.select().from(accounts).where(and7(eq11(accounts.id, input.accountId), eq11(accounts.tenantId, ctx.tenantId))).limit(1);
       if (account.length === 0) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const values = {
         tenantId: ctx.tenantId,
@@ -9712,17 +10753,17 @@ var appRouter = router({
     }),
     // Batch Add Transactions with Lifecycle Status (saved, approved, sent)
     addBatchTransactions: tenantProcedure.input(
-      z5.object({
-        lifecycleStatus: z5.enum(["saved", "approved", "sent"]).default("saved"),
-        rows: z5.array(
-          z5.object({
-            id: z5.number().optional(),
-            accountId: z5.number(),
-            amount: z5.string(),
-            type: z5.enum(["debit", "credit"]).default("debit"),
-            transactionDate: z5.string(),
-            narration: z5.string().optional(),
-            notes: z5.string().optional()
+      z7.object({
+        lifecycleStatus: z7.enum(["saved", "approved", "sent"]).default("saved"),
+        rows: z7.array(
+          z7.object({
+            id: z7.number().optional(),
+            accountId: z7.number(),
+            amount: z7.string(),
+            type: z7.enum(["debit", "credit"]).default("debit"),
+            transactionDate: z7.string(),
+            narration: z7.string().optional(),
+            notes: z7.string().optional()
           })
         )
       })
@@ -9730,7 +10771,7 @@ var appRouter = router({
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      let count = 0;
+      let count2 = 0;
       for (const item of input.rows) {
         if (!item.amount || parseFloat(item.amount) <= 0) continue;
         const values = {
@@ -9753,28 +10794,28 @@ var appRouter = router({
         } else {
           await db.insert(transactions).values(values);
         }
-        count++;
+        count2++;
       }
-      return { success: true, count };
+      return { success: true, count: count2 };
     }),
     // Daily Entry: recording a single daily movement (debit/credit) against an account
     dailyEntry: tenantProcedure.input(
-      z5.object({
-        accountId: z5.number(),
-        amount: z5.string().refine((v) => {
+      z7.object({
+        accountId: z7.number(),
+        amount: z7.string().refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && n > 0 && n < 1e9;
         }, "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B \u0648\u0623\u0642\u0644 \u0645\u0646 \u0645\u0644\u064A\u0627\u0631"),
-        type: z5.enum(["debit", "credit"]),
-        transactionDate: z5.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        narration: z5.string().max(200).optional().default("\u062D\u0631\u0643\u0629 \u064A\u0648\u0645\u064A\u0629"),
-        lifecycleStatus: z5.enum(["saved"]).default("saved")
+        type: z7.enum(["debit", "credit"]),
+        transactionDate: z7.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
+        narration: z7.string().max(200).optional().default("\u062D\u0631\u0643\u0629 \u064A\u0648\u0645\u064A\u0629"),
+        lifecycleStatus: z7.enum(["saved"]).default("saved")
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const account = await db.select().from(accounts).where(and6(eq8(accounts.id, input.accountId), eq8(accounts.tenantId, ctx.tenantId))).limit(1);
+      const account = await db.select().from(accounts).where(and7(eq11(accounts.id, input.accountId), eq11(accounts.tenantId, ctx.tenantId))).limit(1);
       if (account.length === 0) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const values = {
         tenantId: ctx.tenantId,
@@ -9793,21 +10834,21 @@ var appRouter = router({
     }),
     // Update Transaction Lifecycle (Approve, Send, Post/Migrate, Reverse)
     updateTransactionLifecycle: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        lifecycleStatus: z5.enum([
+      z7.object({
+        id: z7.number(),
+        lifecycleStatus: z7.enum([
           "saved",
           "approved",
           "sent",
           "posted",
           "completed"
         ]),
-        reversalReason: z5.string().optional()
+        reversalReason: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(transactions).where(and6(eq8(transactions.id, input.id), eq8(transactions.tenantId, ctx.tenantId))).limit(1);
+      const existing = await db.select().from(transactions).where(and7(eq11(transactions.id, input.id), eq11(transactions.tenantId, ctx.tenantId))).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u062D\u0631\u0643\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       if (existing[0]?.lifecycleStatus === "posted" && input.lifecycleStatus !== "posted") {
         throw new Error(
@@ -9817,7 +10858,7 @@ var appRouter = router({
       await db.update(transactions).set({
         lifecycleStatus: input.lifecycleStatus,
         ...input.reversalReason ? { reversalReason: input.reversalReason, isReversed: true } : {}
-      }).where(and6(eq8(transactions.id, input.id), eq8(transactions.tenantId, ctx.tenantId)));
+      }).where(and7(eq11(transactions.id, input.id), eq11(transactions.tenantId, ctx.tenantId)));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         action: `\u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0627\u0644\u062D\u0631\u0643\u0629 #${input.id} \u0625\u0644\u0649: ${input.lifecycleStatus}`,
@@ -9827,17 +10868,17 @@ var appRouter = router({
     }),
     // Update Transaction (Only allowed if lifecycleStatus === 'saved')
     updateTransaction: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        amount: z5.string(),
-        narration: z5.string().optional(),
-        notes: z5.string().optional()
+      z7.object({
+        id: z7.number(),
+        amount: z7.string(),
+        narration: z7.string().optional(),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(transactions).where(and6(eq8(transactions.id, input.id), eq8(transactions.tenantId, ctx.tenantId))).limit(1);
+      const existing = await db.select().from(transactions).where(and7(eq11(transactions.id, input.id), eq11(transactions.tenantId, ctx.tenantId))).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u062D\u0631\u0643\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       if (existing[0]?.lifecycleStatus !== "saved") {
         throw new Error(
@@ -9848,26 +10889,26 @@ var appRouter = router({
         amount: input.amount,
         narration: input.narration || null,
         notes: input.notes || null
-      }).where(and6(eq8(transactions.id, input.id), eq8(transactions.tenantId, ctx.tenantId)));
+      }).where(and7(eq11(transactions.id, input.id), eq11(transactions.tenantId, ctx.tenantId)));
       return { success: true };
     }),
     // Delete Transaction (only if status is 'saved')
     deleteTransaction: tenantProcedure.input(
-      z5.object({
-        id: z5.number()
+      z7.object({
+        id: z7.number()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(transactions).where(and6(eq8(transactions.id, input.id), eq8(transactions.tenantId, ctx.tenantId))).limit(1);
+      const existing = await db.select().from(transactions).where(and7(eq11(transactions.id, input.id), eq11(transactions.tenantId, ctx.tenantId))).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u062D\u0631\u0643\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       if (existing[0].lifecycleStatus !== "saved") {
         throw new Error(
           "\u0644\u0627 \u064A\u0645\u0643\u0646 \u062D\u0630\u0641 \u062D\u0631\u0643\u0629 \u0645\u0639\u062A\u0645\u062F\u0629 \u0623\u0648 \u0645\u0631\u0633\u0644\u0629 \u2014 \u0627\u0633\u062A\u062E\u062F\u0645 \u0627\u0644\u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u0639\u0643\u0633\u064A"
         );
       }
-      await db.delete(transactions).where(and6(eq8(transactions.id, input.id), eq8(transactions.tenantId, ctx.tenantId)));
+      await db.delete(transactions).where(and7(eq11(transactions.id, input.id), eq11(transactions.tenantId, ctx.tenantId)));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         action: `\u062D\u0630\u0641 \u062D\u0631\u0643\u0629 \u0645\u0627\u0644\u064A\u0629 #${input.id}`,
@@ -9877,9 +10918,9 @@ var appRouter = router({
     }),
     // Smart Suggestions Engine: recommends accounts & standard amounts based on history & operation type
     getSmartSuggestions: tenantProcedure.input(
-      z5.object({
-        query: z5.string().optional(),
-        operationType: z5.string().optional()
+      z7.object({
+        query: z7.string().optional(),
+        operationType: z7.string().optional()
         // e.g. "إيراد", "مصروف", "سداد", "عميل"
       })
     ).query(async ({ input, ctx }) => {
@@ -9888,11 +10929,11 @@ var appRouter = router({
       const db = await getDb();
       if (!db)
         return { suggestedAccounts: [], recentNarrations: [], insights: [] };
-      const allAccounts = await db.select().from(accounts).where(eq8(accounts.tenantId, ctx.tenantId));
+      const allAccounts = await db.select().from(accounts).where(eq11(accounts.tenantId, ctx.tenantId));
       const usageRows = await db.select({
         accountId: transactions.accountId,
-        cnt: sql7`count(*)::int`
-      }).from(transactions).where(eq8(transactions.tenantId, ctx.tenantId)).groupBy(transactions.accountId);
+        cnt: sql8`count(*)::int`
+      }).from(transactions).where(eq11(transactions.tenantId, ctx.tenantId)).groupBy(transactions.accountId);
       const usage = /* @__PURE__ */ new Map();
       usageRows.forEach(
         (r) => usage.set(Number(r.accountId), Number(r.cnt))
@@ -9902,7 +10943,7 @@ var appRouter = router({
         accountId: transactions.accountId,
         amount: transactions.amount,
         accountName: accounts.name
-      }).from(transactions).leftJoin(accounts, eq8(transactions.accountId, accounts.id)).where(eq8(transactions.tenantId, ctx.tenantId)).orderBy(desc4(transactions.id)).limit(20);
+      }).from(transactions).leftJoin(accounts, eq11(transactions.accountId, accounts.id)).where(eq11(transactions.tenantId, ctx.tenantId)).orderBy(desc5(transactions.id)).limit(20);
       const q = input.query?.trim().toLowerCase();
       let candidates = allAccounts;
       if (q) {
@@ -9932,10 +10973,10 @@ var appRouter = router({
         new Set(recentTx.map((t2) => t2.narration).filter(Boolean))
       );
       const [agg] = await db.select({
-        debits: sql7`coalesce(sum(case when ${transactions.type} = 'debit' then ${transactions.amount}::numeric else 0 end),0)::float`,
-        credits: sql7`coalesce(sum(case when ${transactions.type} = 'credit' then ${transactions.amount}::numeric else 0 end),0)::float`,
-        count: sql7`count(*)::int`
-      }).from(transactions).where(eq8(transactions.tenantId, ctx.tenantId));
+        debits: sql8`coalesce(sum(case when ${transactions.type} = 'debit' then ${transactions.amount}::numeric else 0 end),0)::float`,
+        credits: sql8`coalesce(sum(case when ${transactions.type} = 'credit' then ${transactions.amount}::numeric else 0 end),0)::float`,
+        count: sql8`count(*)::int`
+      }).from(transactions).where(eq11(transactions.tenantId, ctx.tenantId));
       const balance = Number(agg?.credits || 0) - Number(agg?.debits || 0);
       const fmt2 = (n) => `${(Number.isFinite(n) ? n : 0).toLocaleString("en-US", {
         maximumFractionDigits: 2
@@ -9970,17 +11011,17 @@ var appRouter = router({
     }),
     // ── Manual Journal Entry (smart, balanced, backbone-integrated) ──
     createManualJournalEntry: tenantProcedure.input(
-      z5.object({
-        date: z5.string().optional(),
-        narration: z5.string().min(1),
-        referenceNo: z5.string().optional(),
-        branchId: z5.number().optional(),
-        lines: z5.array(
-          z5.object({
-            accountId: z5.number(),
-            type: z5.enum(["debit", "credit"]),
-            amount: z5.string().refine((v) => parseFloat(v) > 0, "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631"),
-            narration: z5.string().optional()
+      z7.object({
+        date: z7.string().optional(),
+        narration: z7.string().min(1),
+        referenceNo: z7.string().optional(),
+        branchId: z7.number().optional(),
+        lines: z7.array(
+          z7.object({
+            accountId: z7.number(),
+            type: z7.enum(["debit", "credit"]),
+            amount: z7.string().refine((v) => parseFloat(v) > 0, "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631"),
+            narration: z7.string().optional()
           })
         ).min(2, "\u0627\u0644\u0642\u064A\u062F \u064A\u062D\u062A\u0627\u062C \u062D\u0631\u0643\u062A\u064A\u0646 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644")
       })
@@ -9995,7 +11036,7 @@ var appRouter = router({
         throw new Error("\u0627\u0644\u0642\u064A\u062F \u063A\u064A\u0631 \u0645\u062A\u0648\u0627\u0632\u0646: \u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u0645\u062F\u064A\u0646 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0633\u0627\u0648\u064A \u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u062F\u0627\u0626\u0646");
       const txDate = input.date ? new Date(input.date) : /* @__PURE__ */ new Date();
       const ref = input.referenceNo || `MAN-${Date.now().toString().slice(-6)}`;
-      const bRows = await db.select().from(branches).where(eq8(branches.tenantId, tenantId)).orderBy(desc4(branches.isMain)).limit(1);
+      const bRows = await db.select().from(branches).where(eq11(branches.tenantId, tenantId)).orderBy(desc5(branches.isMain)).limit(1);
       const effectiveBranchId = input.branchId ?? bRows[0]?.id ?? null;
       const [je] = await db.insert(journalEntries).values({
         tenantId,
@@ -10039,21 +11080,21 @@ var appRouter = router({
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
-        return db.select().from(scheduledJournalEntries).where(eq8(scheduledJournalEntries.tenantId, ctx.tenantId)).orderBy(desc4(scheduledJournalEntries.nextRunAt));
+        return db.select().from(scheduledJournalEntries).where(eq11(scheduledJournalEntries.tenantId, ctx.tenantId)).orderBy(desc5(scheduledJournalEntries.nextRunAt));
       }),
       create: adminProcedure.input(
-        z5.object({
-          name: z5.string().min(1),
-          description: z5.string().optional(),
-          branchId: z5.number().optional(),
-          frequency: z5.enum(["once", "daily", "weekly", "monthly"]).default("monthly"),
-          nextRunAt: z5.string(),
-          legs: z5.array(
-            z5.object({
-              accountId: z5.number(),
-              debit: z5.string().default("0"),
-              credit: z5.string().default("0"),
-              description: z5.string().optional()
+        z7.object({
+          name: z7.string().min(1),
+          description: z7.string().optional(),
+          branchId: z7.number().optional(),
+          frequency: z7.enum(["once", "daily", "weekly", "monthly"]).default("monthly"),
+          nextRunAt: z7.string(),
+          legs: z7.array(
+            z7.object({
+              accountId: z7.number(),
+              debit: z7.string().default("0"),
+              credit: z7.string().default("0"),
+              description: z7.string().optional()
             })
           ).min(1)
         })
@@ -10074,20 +11115,20 @@ var appRouter = router({
         return row;
       }),
       update: adminProcedure.input(
-        z5.object({
-          id: z5.number(),
-          name: z5.string().optional(),
-          description: z5.string().optional(),
-          branchId: z5.number().optional(),
-          frequency: z5.enum(["once", "daily", "weekly", "monthly"]).optional(),
-          nextRunAt: z5.string().optional(),
-          isActive: z5.boolean().optional(),
-          legs: z5.array(
-            z5.object({
-              accountId: z5.number(),
-              debit: z5.string().default("0"),
-              credit: z5.string().default("0"),
-              description: z5.string().optional()
+        z7.object({
+          id: z7.number(),
+          name: z7.string().optional(),
+          description: z7.string().optional(),
+          branchId: z7.number().optional(),
+          frequency: z7.enum(["once", "daily", "weekly", "monthly"]).optional(),
+          nextRunAt: z7.string().optional(),
+          isActive: z7.boolean().optional(),
+          legs: z7.array(
+            z7.object({
+              accountId: z7.number(),
+              debit: z7.string().default("0"),
+              credit: z7.string().default("0"),
+              description: z7.string().optional()
             })
           ).optional()
         })
@@ -10098,20 +11139,20 @@ var appRouter = router({
         const set = { ...rest };
         if (rest.nextRunAt) set.nextRunAt = new Date(rest.nextRunAt);
         await db.update(scheduledJournalEntries).set(set).where(
-          and6(
-            eq8(scheduledJournalEntries.tenantId, ctx.tenantId),
-            eq8(scheduledJournalEntries.id, id)
+          and7(
+            eq11(scheduledJournalEntries.tenantId, ctx.tenantId),
+            eq11(scheduledJournalEntries.id, id)
           )
         );
         return { success: true };
       }),
-      delete: adminProcedure.input(z5.object({ id: z5.number() })).mutation(async ({ input, ctx }) => {
+      delete: adminProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         await db.delete(scheduledJournalEntries).where(
-          and6(
-            eq8(scheduledJournalEntries.tenantId, ctx.tenantId),
-            eq8(scheduledJournalEntries.id, input.id)
+          and7(
+            eq11(scheduledJournalEntries.tenantId, ctx.tenantId),
+            eq11(scheduledJournalEntries.id, input.id)
           )
         );
         return { success: true };
@@ -10124,53 +11165,53 @@ var appRouter = router({
     // ─── Recurring / Scheduled Expenses (Intelligent Automation) ────────
     recurringExpenses: router({
       list: tenantProcedure.input(
-        z5.object({
-          status: z5.string().optional(),
-          categoryId: z5.number().optional(),
-          vendorId: z5.number().optional(),
-          limit: z5.number().default(100).optional(),
-          offset: z5.number().default(0).optional()
+        z7.object({
+          status: z7.string().optional(),
+          categoryId: z7.number().optional(),
+          vendorId: z7.number().optional(),
+          limit: z7.number().default(100).optional(),
+          offset: z7.number().default(0).optional()
         }).optional()
       ).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
         const where = [
-          eq8(recurringExpenses.tenantId, ctx.tenantId),
-          input?.status ? eq8(recurringExpenses.status, input.status) : void 0,
-          input?.categoryId ? eq8(recurringExpenses.categoryId, input.categoryId) : void 0,
-          input?.vendorId ? eq8(recurringExpenses.vendorId, input.vendorId) : void 0
+          eq11(recurringExpenses.tenantId, ctx.tenantId),
+          input?.status ? eq11(recurringExpenses.status, input.status) : void 0,
+          input?.categoryId ? eq11(recurringExpenses.categoryId, input.categoryId) : void 0,
+          input?.vendorId ? eq11(recurringExpenses.vendorId, input.vendorId) : void 0
         ].filter(Boolean);
-        return db.select().from(recurringExpenses).where(and6(...where)).orderBy(desc4(recurringExpenses.nextRunAt)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
+        return db.select().from(recurringExpenses).where(and7(...where)).orderBy(desc5(recurringExpenses.nextRunAt)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
       }),
-      get: tenantProcedure.input(z5.object({ id: z5.number() })).query(async ({ ctx, input }) => {
+      get: tenantProcedure.input(z7.object({ id: z7.number() })).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const [row] = await db.select().from(recurringExpenses).where(
-          and6(
-            eq8(recurringExpenses.id, input.id),
-            eq8(recurringExpenses.tenantId, ctx.tenantId)
+          and7(
+            eq11(recurringExpenses.id, input.id),
+            eq11(recurringExpenses.tenantId, ctx.tenantId)
           )
         ).limit(1);
         if (!row) throw new Error("\u0627\u0644\u0645\u0635\u0631\u0648\u0641 \u0627\u0644\u062F\u0648\u0631\u064A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
-        const runs = await db.select().from(recurringExpenseRuns).where(eq8(recurringExpenseRuns.recurringExpenseId, input.id)).orderBy(desc4(recurringExpenseRuns.runNumber)).limit(20);
+        const runs = await db.select().from(recurringExpenseRuns).where(eq11(recurringExpenseRuns.recurringExpenseId, input.id)).orderBy(desc5(recurringExpenseRuns.runNumber)).limit(20);
         return { ...row, runs };
       }),
       create: adminProcedure.input(
-        z5.object({
-          name: z5.string().min(1),
-          description: z5.string().optional(),
-          categoryId: z5.number().optional(),
-          vendorId: z5.number().optional(),
-          accountId: z5.number(),
-          branchId: z5.number().optional(),
-          amount: z5.string(),
-          currency: z5.string().default("YER"),
-          exchangeRate: z5.string().default("1"),
-          taxRate: z5.string().default("0"),
-          taxAccountId: z5.number().optional(),
-          frequency: z5.enum([
+        z7.object({
+          name: z7.string().min(1),
+          description: z7.string().optional(),
+          categoryId: z7.number().optional(),
+          vendorId: z7.number().optional(),
+          accountId: z7.number(),
+          branchId: z7.number().optional(),
+          amount: z7.string(),
+          currency: z7.string().default("YER"),
+          exchangeRate: z7.string().default("1"),
+          taxRate: z7.string().default("0"),
+          taxAccountId: z7.number().optional(),
+          frequency: z7.enum([
             "daily",
             "weekly",
             "biweekly",
@@ -10180,25 +11221,25 @@ var appRouter = router({
             "annual",
             "custom"
           ]).default("monthly"),
-          customCron: z5.string().optional(),
-          dayOfMonth: z5.number().min(1).max(31).optional(),
-          dayOfWeek: z5.number().min(0).max(6).optional(),
-          weekOfMonth: z5.number().min(1).max(5).optional(),
-          startDate: z5.string(),
-          endDate: z5.string().optional(),
-          maxOccurrences: z5.number().optional(),
-          basis: z5.enum(["accrual", "cash"]).default("accrual"),
-          status: z5.enum(["draft", "active", "paused", "completed", "cancelled"]).default("draft"),
-          approvalStatus: z5.enum(["pending", "approved", "rejected", "auto_approved"]).default("pending"),
-          approverId: z5.number().optional(),
-          paymentMethod: z5.string().optional(),
-          paymentAccountId: z5.number().optional(),
-          autoPay: z5.boolean().default(false),
-          budgetId: z5.number().optional(),
-          departmentId: z5.number().optional(),
-          projectId: z5.number().optional(),
-          tags: z5.array(z5.string()).optional(),
-          metadata: z5.record(z5.string(), z5.any()).optional()
+          customCron: z7.string().optional(),
+          dayOfMonth: z7.number().min(1).max(31).optional(),
+          dayOfWeek: z7.number().min(0).max(6).optional(),
+          weekOfMonth: z7.number().min(1).max(5).optional(),
+          startDate: z7.string(),
+          endDate: z7.string().optional(),
+          maxOccurrences: z7.number().optional(),
+          basis: z7.enum(["accrual", "cash"]).default("accrual"),
+          status: z7.enum(["draft", "active", "paused", "completed", "cancelled"]).default("draft"),
+          approvalStatus: z7.enum(["pending", "approved", "rejected", "auto_approved"]).default("pending"),
+          approverId: z7.number().optional(),
+          paymentMethod: z7.string().optional(),
+          paymentAccountId: z7.number().optional(),
+          autoPay: z7.boolean().default(false),
+          budgetId: z7.number().optional(),
+          departmentId: z7.number().optional(),
+          projectId: z7.number().optional(),
+          tags: z7.array(z7.string()).optional(),
+          metadata: z7.record(z7.string(), z7.any()).optional()
         })
       ).mutation(async ({ input, ctx }) => {
         if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -10206,7 +11247,7 @@ var appRouter = router({
         if (!db) throw new Error("Database not available");
         const startDate = new Date(input.startDate);
         const nextRunAt = new Date(startDate);
-        const [account] = await db.select().from(accounts).where(and6(eq8(accounts.id, input.accountId), eq8(accounts.tenantId, ctx.tenantId))).limit(1);
+        const [account] = await db.select().from(accounts).where(and7(eq11(accounts.id, input.accountId), eq11(accounts.tenantId, ctx.tenantId))).limit(1);
         if (!account) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
         if (account.type !== "expense") throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0645\u0646 \u0646\u0648\u0639 \u0645\u0635\u0631\u0648\u0641");
         const [row] = await db.insert(recurringExpenses).values({
@@ -10249,20 +11290,20 @@ var appRouter = router({
         return row;
       }),
       update: adminProcedure.input(
-        z5.object({
-          id: z5.number(),
-          name: z5.string().optional(),
-          description: z5.string().optional(),
-          categoryId: z5.number().nullish(),
-          vendorId: z5.number().nullish(),
-          accountId: z5.number().optional(),
-          branchId: z5.number().nullish(),
-          amount: z5.string().optional(),
-          currency: z5.string().optional(),
-          exchangeRate: z5.string().optional(),
-          taxRate: z5.string().optional(),
-          taxAccountId: z5.number().nullish(),
-          frequency: z5.enum([
+        z7.object({
+          id: z7.number(),
+          name: z7.string().optional(),
+          description: z7.string().optional(),
+          categoryId: z7.number().nullish(),
+          vendorId: z7.number().nullish(),
+          accountId: z7.number().optional(),
+          branchId: z7.number().nullish(),
+          amount: z7.string().optional(),
+          currency: z7.string().optional(),
+          exchangeRate: z7.string().optional(),
+          taxRate: z7.string().optional(),
+          taxAccountId: z7.number().nullish(),
+          frequency: z7.enum([
             "daily",
             "weekly",
             "biweekly",
@@ -10272,25 +11313,25 @@ var appRouter = router({
             "annual",
             "custom"
           ]).optional(),
-          customCron: z5.string().optional(),
-          dayOfMonth: z5.number().min(1).max(31).optional(),
-          dayOfWeek: z5.number().min(0).max(6).optional(),
-          weekOfMonth: z5.number().min(1).max(5).optional(),
-          startDate: z5.string().optional(),
-          endDate: z5.string().nullish(),
-          maxOccurrences: z5.number().nullish(),
-          basis: z5.enum(["accrual", "cash"]).optional(),
-          status: z5.enum(["draft", "active", "paused", "completed", "cancelled"]).optional(),
-          approvalStatus: z5.enum(["pending", "approved", "rejected", "auto_approved"]).optional(),
-          approverId: z5.number().nullish(),
-          paymentMethod: z5.string().optional(),
-          paymentAccountId: z5.number().nullish(),
-          autoPay: z5.boolean().optional(),
-          budgetId: z5.number().nullish(),
-          departmentId: z5.number().nullish(),
-          projectId: z5.number().nullish(),
-          tags: z5.array(z5.string()).optional(),
-          metadata: z5.record(z5.string(), z5.any()).optional()
+          customCron: z7.string().optional(),
+          dayOfMonth: z7.number().min(1).max(31).optional(),
+          dayOfWeek: z7.number().min(0).max(6).optional(),
+          weekOfMonth: z7.number().min(1).max(5).optional(),
+          startDate: z7.string().optional(),
+          endDate: z7.string().nullish(),
+          maxOccurrences: z7.number().nullish(),
+          basis: z7.enum(["accrual", "cash"]).optional(),
+          status: z7.enum(["draft", "active", "paused", "completed", "cancelled"]).optional(),
+          approvalStatus: z7.enum(["pending", "approved", "rejected", "auto_approved"]).optional(),
+          approverId: z7.number().nullish(),
+          paymentMethod: z7.string().optional(),
+          paymentAccountId: z7.number().nullish(),
+          autoPay: z7.boolean().optional(),
+          budgetId: z7.number().nullish(),
+          departmentId: z7.number().nullish(),
+          projectId: z7.number().nullish(),
+          tags: z7.array(z7.string()).optional(),
+          metadata: z7.record(z7.string(), z7.any()).optional()
         })
       ).mutation(async ({ input, ctx }) => {
         const db = await getDb();
@@ -10301,44 +11342,44 @@ var appRouter = router({
         if (rest.endDate !== void 0) set.endDate = rest.endDate ? new Date(rest.endDate) : null;
         if (rest.tags) set.tags = rest.tags;
         if (rest.metadata) set.metadata = rest.metadata;
-        const [current] = await db.select().from(recurringExpenses).where(and6(eq8(recurringExpenses.id, id), eq8(recurringExpenses.tenantId, ctx.tenantId))).limit(1);
+        const [current] = await db.select().from(recurringExpenses).where(and7(eq11(recurringExpenses.id, id), eq11(recurringExpenses.tenantId, ctx.tenantId))).limit(1);
         await db.update(recurringExpenses).set(set).where(
-          and6(
-            eq8(recurringExpenses.id, id),
-            eq8(recurringExpenses.tenantId, ctx.tenantId)
+          and7(
+            eq11(recurringExpenses.id, id),
+            eq11(recurringExpenses.tenantId, ctx.tenantId)
           )
         );
         if (current && (rest.frequency || rest.startDate || rest.dayOfMonth || rest.dayOfWeek || rest.weekOfMonth)) {
-          const updated = await db.select().from(recurringExpenses).where(eq8(recurringExpenses.id, id)).limit(1);
+          const updated = await db.select().from(recurringExpenses).where(eq11(recurringExpenses.id, id)).limit(1);
           if (updated[0]?.status === "active" && updated[0]?.approvalStatus === "approved") {
             await scheduleNextRun(db, id, ctx.tenantId);
           }
         }
         return { success: true };
       }),
-      delete: adminProcedure.input(z5.object({ id: z5.number() })).mutation(async ({ input, ctx }) => {
+      delete: adminProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        await db.delete(recurringExpenseRuns).where(eq8(recurringExpenseRuns.recurringExpenseId, input.id));
+        await db.delete(recurringExpenseRuns).where(eq11(recurringExpenseRuns.recurringExpenseId, input.id));
         await db.delete(recurringExpenses).where(
-          and6(
-            eq8(recurringExpenses.id, input.id),
-            eq8(recurringExpenses.tenantId, ctx.tenantId)
+          and7(
+            eq11(recurringExpenses.id, input.id),
+            eq11(recurringExpenses.tenantId, ctx.tenantId)
           )
         );
         return { success: true };
       }),
-      approve: adminProcedure.input(z5.object({ id: z5.number(), decision: z5.enum(["approved", "rejected"]), note: z5.string().optional() })).mutation(async ({ input, ctx }) => {
+      approve: adminProcedure.input(z7.object({ id: z7.number(), decision: z7.enum(["approved", "rejected"]), note: z7.string().optional() })).mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        const [rec] = await db.select().from(recurringExpenses).where(and6(eq8(recurringExpenses.id, input.id), eq8(recurringExpenses.tenantId, ctx.tenantId))).limit(1);
+        const [rec] = await db.select().from(recurringExpenses).where(and7(eq11(recurringExpenses.id, input.id), eq11(recurringExpenses.tenantId, ctx.tenantId))).limit(1);
         if (!rec) throw new Error("\u0627\u0644\u0645\u0635\u0631\u0648\u0641 \u0627\u0644\u062F\u0648\u0631\u064A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
         if (rec.approvalStatus === "approved") throw new Error("\u062A\u0645 \u0627\u0639\u062A\u0645\u0627\u062F\u0647 \u0645\u0633\u0628\u0642\u0627\u064B");
         await db.update(recurringExpenses).set({
           approvalStatus: input.decision,
           approvedAt: /* @__PURE__ */ new Date(),
           approvedById: ctx.user.id
-        }).where(eq8(recurringExpenses.id, input.id));
+        }).where(eq11(recurringExpenses.id, input.id));
         if (input.decision === "approved" && rec.status === "active") {
           await scheduleNextRun(db, input.id, ctx.tenantId);
         }
@@ -10349,53 +11390,53 @@ var appRouter = router({
         return runRecurringExpenses(ctx.tenantId, ctx.user?.id ?? null);
       }),
       getRuns: tenantProcedure.input(
-        z5.object({
-          recurringExpenseId: z5.number().optional(),
-          status: z5.string().optional(),
-          from: z5.string().optional(),
-          to: z5.string().optional(),
-          limit: z5.number().default(100).optional(),
-          offset: z5.number().default(0).optional()
+        z7.object({
+          recurringExpenseId: z7.number().optional(),
+          status: z7.string().optional(),
+          from: z7.string().optional(),
+          to: z7.string().optional(),
+          limit: z7.number().default(100).optional(),
+          offset: z7.number().default(0).optional()
         })
       ).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
         const where = [
-          eq8(recurringExpenseRuns.tenantId, ctx.tenantId),
-          input?.recurringExpenseId ? eq8(recurringExpenseRuns.recurringExpenseId, input.recurringExpenseId) : void 0,
-          input?.status ? eq8(recurringExpenseRuns.status, input.status) : void 0,
-          input?.from ? gte4(recurringExpenseRuns.scheduledDate, new Date(input.from)) : void 0,
-          input?.to ? lte3(recurringExpenseRuns.scheduledDate, new Date(input.to)) : void 0
+          eq11(recurringExpenseRuns.tenantId, ctx.tenantId),
+          input?.recurringExpenseId ? eq11(recurringExpenseRuns.recurringExpenseId, input.recurringExpenseId) : void 0,
+          input?.status ? eq11(recurringExpenseRuns.status, input.status) : void 0,
+          input?.from ? gte5(recurringExpenseRuns.scheduledDate, new Date(input.from)) : void 0,
+          input?.to ? lte4(recurringExpenseRuns.scheduledDate, new Date(input.to)) : void 0
         ].filter(Boolean);
-        return db.select().from(recurringExpenseRuns).where(and6(...where)).orderBy(desc4(recurringExpenseRuns.scheduledDate)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
+        return db.select().from(recurringExpenseRuns).where(and7(...where)).orderBy(desc5(recurringExpenseRuns.scheduledDate)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
       }),
-      retryRun: adminProcedure.input(z5.object({ runId: z5.number() })).mutation(async ({ input, ctx }) => {
+      retryRun: adminProcedure.input(z7.object({ runId: z7.number() })).mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const [run] = await db.select().from(recurringExpenseRuns).where(
-          and6(
-            eq8(recurringExpenseRuns.id, input.runId),
-            eq8(recurringExpenseRuns.tenantId, ctx.tenantId)
+          and7(
+            eq11(recurringExpenseRuns.id, input.runId),
+            eq11(recurringExpenseRuns.tenantId, ctx.tenantId)
           )
         ).limit(1);
         if (!run) throw new Error("\u062A\u0634\u063A\u064A\u0644 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
         if (run.status === "completed") throw new Error("\u062A\u0645 \u062A\u0646\u0641\u064A\u0630 \u0647\u0630\u0627 \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0645\u0633\u0628\u0642\u0627\u064B");
-        await db.update(recurringExpenseRuns).set({ status: "pending", errorMessage: null }).where(eq8(recurringExpenseRuns.id, input.runId));
+        await db.update(recurringExpenseRuns).set({ status: "pending", errorMessage: null }).where(eq11(recurringExpenseRuns.id, input.runId));
         await processRecurringExpenseRun(db, run, ctx.user?.id ?? null);
         return { success: true };
       }),
-      getUpcoming: tenantProcedure.input(z5.object({ days: z5.number().default(30) })).query(async ({ ctx, input }) => {
+      getUpcoming: tenantProcedure.input(z7.object({ days: z7.number().default(30) })).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
         const until = new Date(Date.now() + (input.days || 30) * 24 * 60 * 60 * 1e3);
         return db.select().from(recurringExpenses).where(
-          and6(
-            eq8(recurringExpenses.tenantId, ctx.tenantId),
-            eq8(recurringExpenses.status, "active"),
-            eq8(recurringExpenses.approvalStatus, "approved"),
-            lte3(recurringExpenses.nextRunAt, until)
+          and7(
+            eq11(recurringExpenses.tenantId, ctx.tenantId),
+            eq11(recurringExpenses.status, "active"),
+            eq11(recurringExpenses.approvalStatus, "approved"),
+            lte4(recurringExpenses.nextRunAt, until)
           )
         ).orderBy(asc4(recurringExpenses.nextRunAt));
       }),
@@ -10403,22 +11444,22 @@ var appRouter = router({
         if (!ctx.tenantId) return { total: 0, active: 0, pending: 0, overdue: 0, totalMonthly: 0 };
         const db = await getDb();
         if (!db) return { total: 0, active: 0, pending: 0, overdue: 0, totalMonthly: 0 };
-        const [total] = await db.select({ c: sql7`count(*)` }).from(recurringExpenses).where(eq8(recurringExpenses.tenantId, ctx.tenantId));
-        const [active] = await db.select({ c: sql7`count(*)` }).from(recurringExpenses).where(and6(eq8(recurringExpenses.tenantId, ctx.tenantId), eq8(recurringExpenses.status, "active")));
-        const [pending] = await db.select({ c: sql7`count(*)` }).from(recurringExpenses).where(and6(eq8(recurringExpenses.tenantId, ctx.tenantId), eq8(recurringExpenses.approvalStatus, "pending")));
-        const [overdue] = await db.select({ c: sql7`count(*)` }).from(recurringExpenses).where(
-          and6(
-            eq8(recurringExpenses.tenantId, ctx.tenantId),
-            eq8(recurringExpenses.status, "active"),
-            eq8(recurringExpenses.approvalStatus, "approved"),
-            sql7`${recurringExpenses.nextRunAt} < now()`
+        const [total] = await db.select({ c: sql8`count(*)` }).from(recurringExpenses).where(eq11(recurringExpenses.tenantId, ctx.tenantId));
+        const [active] = await db.select({ c: sql8`count(*)` }).from(recurringExpenses).where(and7(eq11(recurringExpenses.tenantId, ctx.tenantId), eq11(recurringExpenses.status, "active")));
+        const [pending] = await db.select({ c: sql8`count(*)` }).from(recurringExpenses).where(and7(eq11(recurringExpenses.tenantId, ctx.tenantId), eq11(recurringExpenses.approvalStatus, "pending")));
+        const [overdue] = await db.select({ c: sql8`count(*)` }).from(recurringExpenses).where(
+          and7(
+            eq11(recurringExpenses.tenantId, ctx.tenantId),
+            eq11(recurringExpenses.status, "active"),
+            eq11(recurringExpenses.approvalStatus, "approved"),
+            sql8`${recurringExpenses.nextRunAt} < now()`
           )
         );
         const activeExpenses = await db.select({ amount: recurringExpenses.amount, frequency: recurringExpenses.frequency }).from(recurringExpenses).where(
-          and6(
-            eq8(recurringExpenses.tenantId, ctx.tenantId),
-            eq8(recurringExpenses.status, "active"),
-            eq8(recurringExpenses.approvalStatus, "approved")
+          and7(
+            eq11(recurringExpenses.tenantId, ctx.tenantId),
+            eq11(recurringExpenses.status, "active"),
+            eq11(recurringExpenses.approvalStatus, "approved")
           )
         );
         let totalMonthly = 0;
@@ -10436,7 +11477,7 @@ var appRouter = router({
         };
       }),
       // Cash flow preview for recurring expenses
-      getPreview: tenantProcedure.input(z5.object({ months: z5.number().default(12).optional() })).query(async ({ ctx, input }) => {
+      getPreview: tenantProcedure.input(z7.object({ months: z7.number().default(12).optional() })).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) return [];
         return generateUpcomingRuns(ctx.tenantId, input.months ?? 12);
       })
@@ -10446,15 +11487,15 @@ var appRouter = router({
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(budgets).where(eq8(budgets.tenantId, ctx.tenantId)).orderBy(desc4(budgets.id));
+      return await db.select().from(budgets).where(eq11(budgets.tenantId, ctx.tenantId)).orderBy(desc5(budgets.id));
     }),
     saveBudget: tenantProcedure.input(
-      z5.object({
-        id: z5.number().optional(),
-        periodName: z5.string(),
-        targetRevenue: z5.string(),
-        targetExpense: z5.string(),
-        notes: z5.string().optional()
+      z7.object({
+        id: z7.number().optional(),
+        periodName: z7.string(),
+        targetRevenue: z7.string(),
+        targetExpense: z7.string(),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -10506,12 +11547,12 @@ var appRouter = router({
         narration: transactions.narration,
         lifecycleStatus: transactions.lifecycleStatus,
         isReversed: transactions.isReversed
-      }).from(transactions).leftJoin(accounts, eq8(transactions.accountId, accounts.id)).where(
-        and6(
-          eq8(transactions.tenantId, ctx.tenantId),
-          eq8(transactions.isReversed, false)
+      }).from(transactions).leftJoin(accounts, eq11(transactions.accountId, accounts.id)).where(
+        and7(
+          eq11(transactions.tenantId, ctx.tenantId),
+          eq11(transactions.isReversed, false)
         )
-      ).orderBy(desc4(transactions.transactionDate), desc4(transactions.id));
+      ).orderBy(desc5(transactions.transactionDate), desc5(transactions.id));
       let totalRevenue = 0;
       let totalExpense = 0;
       let totalAssets = 0;
@@ -10570,10 +11611,10 @@ var appRouter = router({
         transactionDate: transactions.transactionDate,
         accountType: accounts.type,
         lifecycleStatus: transactions.lifecycleStatus
-      }).from(transactions).leftJoin(accounts, eq8(transactions.accountId, accounts.id)).where(
-        and6(
-          eq8(transactions.tenantId, ctx.tenantId),
-          eq8(transactions.isReversed, false)
+      }).from(transactions).leftJoin(accounts, eq11(transactions.accountId, accounts.id)).where(
+        and7(
+          eq11(transactions.tenantId, ctx.tenantId),
+          eq11(transactions.isReversed, false)
         )
       );
       const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -10630,8 +11671,8 @@ var appRouter = router({
     }),
     // Opening Balances management for new periods
     getOpeningBalances: tenantProcedure.input(
-      z5.object({
-        periodName: z5.string().optional()
+      z7.object({
+        periodName: z7.string().optional()
       })
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
@@ -10639,21 +11680,21 @@ var appRouter = router({
       if (!db) return [];
       const period = input.periodName || "\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026";
       return await db.select().from(openingBalances).where(
-        and6(
-          eq8(openingBalances.tenantId, ctx.tenantId),
-          eq8(openingBalances.periodName, period)
+        and7(
+          eq11(openingBalances.tenantId, ctx.tenantId),
+          eq11(openingBalances.periodName, period)
         )
       );
     }),
     saveOpeningBalances: tenantProcedure.input(
-      z5.object({
-        periodName: z5.string(),
-        balances: z5.array(
-          z5.object({
-            accountId: z5.number(),
-            amount: z5.string(),
-            type: z5.enum(["debit", "credit"]),
-            notes: z5.string().optional()
+      z7.object({
+        periodName: z7.string(),
+        balances: z7.array(
+          z7.object({
+            accountId: z7.number(),
+            amount: z7.string(),
+            type: z7.enum(["debit", "credit"]),
+            notes: z7.string().optional()
           })
         )
       })
@@ -10663,10 +11704,10 @@ var appRouter = router({
       if (!db) throw new Error("Database not available");
       for (const item of input.balances) {
         const existing = await db.select().from(openingBalances).where(
-          and6(
-            eq8(openingBalances.tenantId, ctx.tenantId),
-            eq8(openingBalances.accountId, item.accountId),
-            eq8(openingBalances.periodName, input.periodName)
+          and7(
+            eq11(openingBalances.tenantId, ctx.tenantId),
+            eq11(openingBalances.accountId, item.accountId),
+            eq11(openingBalances.periodName, input.periodName)
           )
         ).limit(1);
         if (existing.length > 0) {
@@ -10674,7 +11715,7 @@ var appRouter = router({
             amount: item.amount,
             type: item.type,
             notes: item.notes || null
-          }).where(eq8(openingBalances.id, existing[0].id));
+          }).where(eq11(openingBalances.id, existing[0].id));
         } else {
           await db.insert(openingBalances).values({
             tenantId: ctx.tenantId,
@@ -10697,9 +11738,9 @@ var appRouter = router({
     // Period Closing (إقفال الدورة) — preview balances then post closing entries
     closing: router({
       preview: tenantProcedure.input(
-        z5.object({
-          periodName: z5.string().default("\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026"),
-          asOfDate: z5.string().optional()
+        z7.object({
+          periodName: z7.string().default("\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026"),
+          asOfDate: z7.string().optional()
         })
       ).query(async ({ input, ctx }) => {
         const db = await getDb();
@@ -10708,20 +11749,20 @@ var appRouter = router({
         const tid = requireTenantId(ctx);
         const asOf = input.asOfDate ? new Date(input.asOfDate) : /* @__PURE__ */ new Date();
         const allAccounts = await db.select().from(accounts).where(
-          and6(eq8(accounts.tenantId, tid), eq8(accounts.isActive, true))
+          and7(eq11(accounts.tenantId, tid), eq11(accounts.isActive, true))
         );
         const opening = await db.select().from(openingBalances).where(
-          and6(
-            eq8(openingBalances.tenantId, tid),
-            eq8(openingBalances.periodName, input.periodName),
-            lte3(openingBalances.createdAt, asOf)
+          and7(
+            eq11(openingBalances.tenantId, tid),
+            eq11(openingBalances.periodName, input.periodName),
+            lte4(openingBalances.createdAt, asOf)
           )
         );
         const txns = await db.select().from(transactions).where(
-          and6(
-            eq8(transactions.tenantId, tid),
-            lte3(transactions.transactionDate, asOf),
-            eq8(transactions.isReversed, false),
+          and7(
+            eq11(transactions.tenantId, tid),
+            lte4(transactions.transactionDate, asOf),
+            eq11(transactions.isReversed, false),
             or3(
               isNull4(transactions.referenceType),
               ne3(transactions.referenceType, "closing")
@@ -10759,10 +11800,10 @@ var appRouter = router({
         };
       }),
       execute: tenantProcedure.input(
-        z5.object({
-          periodName: z5.string().default("\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026"),
-          asOfDate: z5.string().optional(),
-          retainedAccountId: z5.number().optional()
+        z7.object({
+          periodName: z7.string().default("\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026"),
+          asOfDate: z7.string().optional(),
+          retainedAccountId: z7.number().optional()
         })
       ).mutation(async ({ input, ctx }) => {
         const db = await getDb();
@@ -10770,9 +11811,9 @@ var appRouter = router({
         const asOf = input.asOfDate ? new Date(input.asOfDate) : /* @__PURE__ */ new Date();
         const tid = requireTenantId(ctx);
         const already = await db.select().from(transactions).where(
-          and6(
-            eq8(transactions.tenantId, tid),
-            eq8(transactions.referenceType, "closing"),
+          and7(
+            eq11(transactions.tenantId, tid),
+            eq11(transactions.referenceType, "closing"),
             ilike4(transactions.narration, `%${input.periodName}%`)
           )
         ).limit(1);
@@ -10783,14 +11824,14 @@ var appRouter = router({
         let retainedId = input.retainedAccountId;
         if (!retainedId) {
           const eq3010 = await db.select().from(accounts).where(
-            and6(
-              eq8(accounts.tenantId, tid),
-              eq8(accounts.code, "3010"),
-              eq8(accounts.type, "equity")
+            and7(
+              eq11(accounts.tenantId, tid),
+              eq11(accounts.code, "3010"),
+              eq11(accounts.type, "equity")
             )
           ).limit(1);
           const fallback = eq3010.length > 0 ? eq3010[0].id : (await db.select().from(accounts).where(
-            and6(eq8(accounts.tenantId, tid), eq8(accounts.type, "equity"))
+            and7(eq11(accounts.tenantId, tid), eq11(accounts.type, "equity"))
           ).limit(1))[0]?.id;
           if (!fallback)
             throw new Error(
@@ -10798,19 +11839,19 @@ var appRouter = router({
             );
           retainedId = fallback;
         }
-        const allAccounts = await db.select().from(accounts).where(eq8(accounts.tenantId, tid));
+        const allAccounts = await db.select().from(accounts).where(eq11(accounts.tenantId, tid));
         const opening = await db.select().from(openingBalances).where(
-          and6(
-            eq8(openingBalances.tenantId, tid),
-            eq8(openingBalances.periodName, input.periodName),
-            lte3(openingBalances.createdAt, asOf)
+          and7(
+            eq11(openingBalances.tenantId, tid),
+            eq11(openingBalances.periodName, input.periodName),
+            lte4(openingBalances.createdAt, asOf)
           )
         );
         const txns = await db.select().from(transactions).where(
-          and6(
-            eq8(transactions.tenantId, tid),
-            lte3(transactions.transactionDate, asOf),
-            eq8(transactions.isReversed, false)
+          and7(
+            eq11(transactions.tenantId, tid),
+            lte4(transactions.transactionDate, asOf),
+            eq11(transactions.isReversed, false)
           )
         );
         const balanceOf = /* @__PURE__ */ new Map();
@@ -10912,10 +11953,10 @@ var appRouter = router({
       if (!db)
         return { status: "OK", score: 100, warnings: [], recommendations: [] };
       const tid = requireTenantId(ctx);
-      const allAccounts = await db.select().from(accounts).where(eq8(accounts.tenantId, tid));
+      const allAccounts = await db.select().from(accounts).where(eq11(accounts.tenantId, tid));
       const allTransactions = await db.select().from(transactions).where(
-        and6(
-          eq8(transactions.tenantId, tid),
+        and7(
+          eq11(transactions.tenantId, tid),
           inArray2(transactions.lifecycleStatus, ["approved", "posted"])
         )
       );
@@ -10982,9 +12023,9 @@ var appRouter = router({
     }),
     // Smart Document & Image Parser with AI for Merchant Auditing
     smartParseDocumentOrImage: tenantProcedure.input(
-      z5.object({
-        fileUrl: z5.string().optional(),
-        rawText: z5.string().optional()
+      z7.object({
+        fileUrl: z7.string().optional(),
+        rawText: z7.string().optional()
       })
     ).mutation(async ({ input }) => {
       const allAccounts = await (await getDb())?.select().from(accounts) || [];
@@ -11052,21 +12093,21 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
       const db = await getDb();
       if (!db) return { tenants: [], branches: [] };
       if (!ctx.tenantId) return { tenants: [], branches: [] };
-      const userTenant = await db.select().from(tenants).where(eq8(tenants.id, ctx.tenantId)).limit(1);
+      const userTenant = await db.select().from(tenants).where(eq11(tenants.id, ctx.tenantId)).limit(1);
       if (userTenant.length === 0) {
         return { tenants: [], branches: [] };
       }
       return {
         tenants: userTenant,
-        branches: await db.select().from(branches).where(eq8(branches.tenantId, ctx.tenantId))
+        branches: await db.select().from(branches).where(eq11(branches.tenantId, ctx.tenantId))
       };
     }),
     createBranch: tenantProcedure.input(
-      z5.object({
-        tenantId: z5.number(),
-        name: z5.string(),
-        code: z5.string(),
-        city: z5.string().optional()
+      z7.object({
+        tenantId: z7.number(),
+        name: z7.string(),
+        code: z7.string(),
+        city: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -11088,30 +12129,30 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
     }),
     // Custom role & branch permissions management
     getUserPermissions: tenantProcedure.input(
-      z5.object({
-        userId: z5.number()
+      z7.object({
+        userId: z7.number()
       })
     ).query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(userBranchPermissions).where(eq8(userBranchPermissions.userId, input.userId));
+      return await db.select().from(userBranchPermissions).where(eq11(userBranchPermissions.userId, input.userId));
     }),
     saveUserPermission: tenantProcedure.input(
-      z5.object({
-        userId: z5.number(),
-        branchId: z5.number(),
-        canView: z5.boolean(),
-        canInsert: z5.boolean(),
-        canApprove: z5.boolean(),
-        canPost: z5.boolean()
+      z7.object({
+        userId: z7.number(),
+        branchId: z7.number(),
+        canView: z7.boolean(),
+        canInsert: z7.boolean(),
+        canApprove: z7.boolean(),
+        canPost: z7.boolean()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(userBranchPermissions).where(
-        and6(
-          eq8(userBranchPermissions.userId, input.userId),
-          eq8(userBranchPermissions.branchId, input.branchId)
+        and7(
+          eq11(userBranchPermissions.userId, input.userId),
+          eq11(userBranchPermissions.branchId, input.branchId)
         )
       );
       if (existing.length > 0) {
@@ -11120,7 +12161,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
           canInsert: input.canInsert,
           canApprove: input.canApprove,
           canPost: input.canPost
-        }).where(eq8(userBranchPermissions.id, existing[0].id));
+        }).where(eq11(userBranchPermissions.id, existing[0].id));
       } else {
         await db.insert(userBranchPermissions).values({
           tenantId: ctx.tenantId,
@@ -11152,7 +12193,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
         type: transactions.type,
         branchId: transactions.branchId,
         accountType: accounts.type
-      }).from(transactions).leftJoin(accounts, eq8(transactions.accountId, accounts.id)).where(inArray2(transactions.lifecycleStatus, ["approved", "posted"]));
+      }).from(transactions).leftJoin(accounts, eq11(transactions.accountId, accounts.id)).where(inArray2(transactions.lifecycleStatus, ["approved", "posted"]));
       const branchStats = /* @__PURE__ */ new Map();
       for (const b of allBranches) {
         branchStats.set(b.id, { revenue: 0, expenses: 0, count: 0 });
@@ -11210,9 +12251,9 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
         narration: transactions.narration,
         lifecycleStatus: transactions.lifecycleStatus,
         isReversed: transactions.isReversed
-      }).from(transactions).leftJoin(accounts, eq8(transactions.accountId, accounts.id)).where(eq8(transactions.isReversed, false)).orderBy(desc4(transactions.transactionDate), desc4(transactions.id));
+      }).from(transactions).leftJoin(accounts, eq11(transactions.accountId, accounts.id)).where(eq11(transactions.isReversed, false)).orderBy(desc5(transactions.transactionDate), desc5(transactions.id));
       const allAccts = await db.select().from(accounts);
-      const allBudgets = await db.select().from(budgets).orderBy(desc4(budgets.id));
+      const allBudgets = await db.select().from(budgets).orderBy(desc5(budgets.id));
       const approved = allTx.filter(
         (t2) => t2.lifecycleStatus === "approved" || t2.lifecycleStatus === "posted"
       );
@@ -11272,9 +12313,9 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
         const expPct = expTarget > 0 ? Math.round(totalExpense / expTarget * 100) : 0;
         budgetLine = `\u062E\u0637\u0629 \xAB${latest.periodName}\xBB: \u062A\u062D\u0642\u0642 \u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A ${revPct}% \u0645\u0646 \u0627\u0644\u0645\u0633\u062A\u0647\u062F\u0641\u060C \u0648\u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A ${expPct}% \u0645\u0646 \u0627\u0644\u0633\u0642\u0641 \u0627\u0644\u0645\u062E\u0635\u0635.`;
       }
-      const fmt = (n) => n.toLocaleString("en-US");
-      const topRevenueLine = topRevenue.length ? topRevenue.map((a) => `\u2022 ${a.code} ${a.name}: ${fmt(a.revenue)}`).join("\n") : "\u0644\u0627 \u062A\u0648\u062C\u062F \u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0645\u0639\u062A\u0645\u062F\u0629 \u0645\u0633\u062C\u0644\u0629 \u0628\u0639\u062F.";
-      const topExpenseLine = topExpense.length ? topExpense.map((a) => `\u2022 ${a.code} ${a.name}: ${fmt(a.expense)}`).join("\n") : "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0645\u0639\u062A\u0645\u062F\u0629 \u0645\u0633\u062C\u0644\u0629 \u0628\u0639\u062F.";
+      const fmt2 = (n) => n.toLocaleString("en-US");
+      const topRevenueLine = topRevenue.length ? topRevenue.map((a) => `\u2022 ${a.code} ${a.name}: ${fmt2(a.revenue)}`).join("\n") : "\u0644\u0627 \u062A\u0648\u062C\u062F \u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0645\u0639\u062A\u0645\u062F\u0629 \u0645\u0633\u062C\u0644\u0629 \u0628\u0639\u062F.";
+      const topExpenseLine = topExpense.length ? topExpense.map((a) => `\u2022 ${a.code} ${a.name}: ${fmt2(a.expense)}`).join("\n") : "\u0644\u0627 \u062A\u0648\u062C\u062F \u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0645\u0639\u062A\u0645\u062F\u0629 \u0645\u0633\u062C\u0644\u0629 \u0628\u0639\u062F.";
       const recommendations = [];
       if (totalRevenue === 0 && totalExpense === 0) {
         recommendations.push(
@@ -11283,11 +12324,11 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
       } else {
         if (cashBalance < totalExpense * 0.15 && totalExpense > 0) {
           recommendations.push(
-            `\u0627\u0644\u0633\u064A\u0648\u0644\u0629 \u0627\u0644\u0646\u0642\u062F\u064A\u0629 (${fmt(cashBalance)}) \u0623\u0642\u0644 \u0645\u0646 15% \u0645\u0646 \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u2014 \u0639\u062C\u0651\u0644 \u062A\u062D\u0635\u064A\u0644 \u0627\u0644\u0630\u0645\u0645 \u0648\u062D\u062F\u0651 \u0645\u0646 \u0627\u0644\u0633\u062D\u0648\u0628\u0627\u062A \u063A\u064A\u0631 \u0627\u0644\u0645\u062E\u0637\u0637 \u0644\u0647\u0627 \u0644\u062A\u063A\u0637\u064A\u0629 \u0627\u0644\u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0627\u0644\u0642\u0627\u062F\u0645\u0629.`
+            `\u0627\u0644\u0633\u064A\u0648\u0644\u0629 \u0627\u0644\u0646\u0642\u062F\u064A\u0629 (${fmt2(cashBalance)}) \u0623\u0642\u0644 \u0645\u0646 15% \u0645\u0646 \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u2014 \u0639\u062C\u0651\u0644 \u062A\u062D\u0635\u064A\u0644 \u0627\u0644\u0630\u0645\u0645 \u0648\u062D\u062F\u0651 \u0645\u0646 \u0627\u0644\u0633\u062D\u0648\u0628\u0627\u062A \u063A\u064A\u0631 \u0627\u0644\u0645\u062E\u0637\u0637 \u0644\u0647\u0627 \u0644\u062A\u063A\u0637\u064A\u0629 \u0627\u0644\u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0627\u0644\u0642\u0627\u062F\u0645\u0629.`
           );
         } else if (totalExpense > 0) {
           recommendations.push(
-            `\u0627\u0644\u0633\u064A\u0648\u0644\u0629 \u0627\u0644\u0646\u0642\u062F\u064A\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 (${fmt(cashBalance)}) \u062A\u063A\u0637\u064A \u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u2014 \u062D\u0627\u0641\u0638 \u0639\u0644\u0649 \u0647\u0627\u0645\u0634 \u0627\u062D\u062A\u064A\u0627\u0637\u064A \u0644\u0627 \u064A\u0642\u0644 \u0639\u0646 \u0634\u0647\u0631 \u0645\u0635\u0631\u0648\u0641\u0627\u062A.`
+            `\u0627\u0644\u0633\u064A\u0648\u0644\u0629 \u0627\u0644\u0646\u0642\u062F\u064A\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 (${fmt2(cashBalance)}) \u062A\u063A\u0637\u064A \u0627\u0644\u062A\u0632\u0627\u0645\u0627\u062A \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u2014 \u062D\u0627\u0641\u0638 \u0639\u0644\u0649 \u0647\u0627\u0645\u0634 \u0627\u062D\u062A\u064A\u0627\u0637\u064A \u0644\u0627 \u064A\u0642\u0644 \u0639\u0646 \u0634\u0647\u0631 \u0645\u0635\u0631\u0648\u0641\u0627\u062A.`
           );
         }
         if (expenseRatio > 70) {
@@ -11305,15 +12346,15 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
         }
         if (topExpense.length > 0) {
           recommendations.push(
-            `\u062A\u0627\u0628\u0639 \u0634\u0647\u0631\u064A\u0627\u064B \u0627\u0644\u0628\u0646\u0648\u062F \u0627\u0644\u062B\u0644\u0627\u062B\u0629 \u0627\u0644\u0623\u0643\u0628\u0631 (${topExpense.map((a) => a.name).join("\u060C ")}) \u2014 \u062E\u0641\u0636 5% \u0645\u0646\u0647\u0627 \u064A\u0648\u0641\u0651\u0631 ${fmt(totalExpense * 0.05)} \u0633\u0646\u0648\u064A\u0627\u064B \u062A\u0642\u0631\u064A\u0628\u0627\u064B.`
+            `\u062A\u0627\u0628\u0639 \u0634\u0647\u0631\u064A\u0627\u064B \u0627\u0644\u0628\u0646\u0648\u062F \u0627\u0644\u062B\u0644\u0627\u062B\u0629 \u0627\u0644\u0623\u0643\u0628\u0631 (${topExpense.map((a) => a.name).join("\u060C ")}) \u2014 \u062E\u0641\u0636 5% \u0645\u0646\u0647\u0627 \u064A\u0648\u0641\u0651\u0631 ${fmt2(totalExpense * 0.05)} \u0633\u0646\u0648\u064A\u0627\u064B \u062A\u0642\u0631\u064A\u0628\u0627\u064B.`
           );
         }
       }
       const analysisText = [
         "\u2501\u2501\u2500 \u0627\u0644\u062A\u0642\u064A\u064A\u0645 \u0627\u0644\u062A\u0646\u0641\u064A\u0630\u064A \u2500\u2501\u2501",
-        totalRevenue === 0 && totalExpense === 0 ? "\u0627\u0644\u0645\u0646\u0635\u0629 \u062C\u0627\u0647\u0632\u0629 \u0648\u0627\u0644\u0623\u062F\u0627\u0621 \u0627\u0644\u0645\u0627\u0644\u064A \u0628\u0627\u0646\u062A\u0638\u0627\u0631 \u0623\u0648\u0644 \u062D\u0631\u0643\u0629 \u0645\u0639\u062A\u0645\u062F\u0629." : `\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0627\u0644\u0645\u0639\u062A\u0645\u062F\u0629: ${fmt(totalRevenue)}
-\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0627\u0644\u0645\u0639\u062A\u0645\u062F\u0629: ${fmt(totalExpense)}
-\u0635\u0627\u0641\u064A \u0627\u0644\u062F\u062E\u0644 \u0627\u0644\u062A\u0634\u063A\u064A\u0644\u064A: ${fmt(netIncome)} (\u0647\u0627\u0645\u0634 ${margin.toFixed(1)}%)
+        totalRevenue === 0 && totalExpense === 0 ? "\u0627\u0644\u0645\u0646\u0635\u0629 \u062C\u0627\u0647\u0632\u0629 \u0648\u0627\u0644\u0623\u062F\u0627\u0621 \u0627\u0644\u0645\u0627\u0644\u064A \u0628\u0627\u0646\u062A\u0638\u0627\u0631 \u0623\u0648\u0644 \u062D\u0631\u0643\u0629 \u0645\u0639\u062A\u0645\u062F\u0629." : `\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A \u0627\u0644\u0645\u0639\u062A\u0645\u062F\u0629: ${fmt2(totalRevenue)}
+\u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0627\u0644\u0645\u0639\u062A\u0645\u062F\u0629: ${fmt2(totalExpense)}
+\u0635\u0627\u0641\u064A \u0627\u0644\u062F\u062E\u0644 \u0627\u0644\u062A\u0634\u063A\u064A\u0644\u064A: ${fmt2(netIncome)} (\u0647\u0627\u0645\u0634 ${margin.toFixed(1)}%)
 \u0646\u0633\u0628\u0629 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0625\u0644\u0649 \u0627\u0644\u0625\u064A\u0631\u0627\u062F\u0627\u062A: ${expenseRatio.toFixed(0)}%`,
         "",
         "\u2501\u2501\u2500 \u0645\u0635\u0627\u062F\u0631 \u0627\u0644\u062A\u062F\u0641\u0642 \u0627\u0644\u0631\u0626\u064A\u0633\u064A\u0629 \u2500\u2501\u2501",
@@ -11323,7 +12364,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
         topExpenseLine,
         "",
         "\u2501\u2501\u2500 \u0627\u0644\u0633\u064A\u0648\u0644\u0629 \u0648\u0627\u0644\u0643\u0641\u0627\u0621\u0629 \u2500\u2501\u2501",
-        `\u0627\u0644\u0631\u0635\u064A\u062F \u0627\u0644\u0646\u0642\u062F\u064A (\u0627\u0644\u0635\u0646\u062F\u0648\u0642 + \u0627\u0644\u0628\u0646\u0648\u0643): ${fmt(cashBalance)}`,
+        `\u0627\u0644\u0631\u0635\u064A\u062F \u0627\u0644\u0646\u0642\u062F\u064A (\u0627\u0644\u0635\u0646\u062F\u0648\u0642 + \u0627\u0644\u0628\u0646\u0648\u0643): ${fmt2(cashBalance)}`,
         budgetLine,
         "",
         "\u2501\u2501\u2500 \u0627\u0644\u062A\u0648\u0635\u064A\u0627\u062A \u0627\u0644\u0630\u0643\u064A\u0629 (3) \u2500\u2501\u2501",
@@ -11335,7 +12376,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
             messages: [
               {
                 role: "user",
-                content: `\u0623\u0646\u062A \u0645\u0633\u0627\u0639\u062F \u0645\u0627\u0644\u064A \u062E\u0628\u064A\u0631 \u0644\u0646\u0638\u0627\u0645 ALHUSAINIA \u0627\u0644\u0645\u062D\u0627\u0633\u0628\u064A. \u0625\u0644\u064A\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0645\u0627\u0644\u064A\u0629 \u0645\u062D\u0633\u0648\u0628\u0629 \u0628\u062F\u0642\u0629 \u062A\u0634\u063A\u064A\u0644\u064A\u0629\u060C \u0641\u0642\u062F\u0645 \u062A\u062D\u0644\u064A\u0644\u0627\u064B \u0623\u0639\u0645\u0642 \u0645\u0628\u0646\u064A\u0627\u064B \u0639\u0644\u064A\u0647\u0627 \u062D\u0635\u0631\u0627\u064B (\u0628\u0627\u0644\u0639\u0631\u0628\u064A\u0629\u060C \u0623\u0633\u0644\u0648\u0628 \u0645\u0647\u0646\u064A):
+                content: `\u0623\u0646\u062A \xAB\u0623\u0644\u064A\u0627\u0633\xBB (ALIAS AI)\u060C \u0627\u0644\u0645\u0633\u0627\u0639\u062F \u0627\u0644\u0630\u0643\u064A \u0627\u0644\u0631\u0633\u0645\u064A \u0644\u0646\u0638\u0627\u0645 ALHUSAINIA \u0627\u0644\u0645\u062D\u0627\u0633\u0628\u064A. \u0625\u0644\u064A\u0643 \u0628\u064A\u0627\u0646\u0627\u062A \u0645\u0627\u0644\u064A\u0629 \u0645\u062D\u0633\u0648\u0628\u0629 \u0628\u062F\u0642\u0629 \u062A\u0634\u063A\u064A\u0644\u064A\u0629\u060C \u0641\u0642\u062F\u0645 \u062A\u062D\u0644\u064A\u0644\u0627\u064B \u0623\u0639\u0645\u0642 \u0645\u0628\u0646\u064A\u0627\u064B \u0639\u0644\u064A\u0647\u0627 \u062D\u0635\u0631\u0627\u064B (\u0628\u0627\u0644\u0639\u0631\u0628\u064A\u0629\u060C \u0623\u0633\u0644\u0648\u0628 \u0645\u0647\u0646\u064A):
 ${analysisText}
 \u0645\u0644\u0627\u062D\u0638\u0629: \u0644\u0627 \u062A\u062E\u062A\u0644\u0642 \u0623\u0631\u0642\u0627\u0645\u0627\u064B\u061B \u0627\u0639\u062A\u0645\u062F \u0639\u0644\u0649 \u0645\u0627 \u0648\u0631\u062F \u0641\u0642\u0637.`
               }
@@ -11388,9 +12429,9 @@ ${analysisText}
           activityLogs: []
         };
       const tid = ctx.tenantId;
-      const tenantSalesIds = db.select({ id: salesInvoices.id }).from(salesInvoices).where(eq8(salesInvoices.tenantId, tid));
-      const tenantPurchaseIds = db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(eq8(purchaseInvoices.tenantId, tid));
-      const tenantOrderIds = db.select({ id: orders.id }).from(orders).where(eq8(orders.tenantId, tid));
+      const tenantSalesIds = db.select({ id: salesInvoices.id }).from(salesInvoices).where(eq11(salesInvoices.tenantId, tid));
+      const tenantPurchaseIds = db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(eq11(purchaseInvoices.tenantId, tid));
+      const tenantOrderIds = db.select({ id: orders.id }).from(orders).where(eq11(orders.tenantId, tid));
       const [
         allAccounts,
         allTransactions,
@@ -11413,26 +12454,26 @@ ${analysisText}
         allPayments,
         allActivityLogs
       ] = await Promise.all([
-        db.select().from(accounts).where(eq8(accounts.tenantId, tid)).orderBy(asc4(accounts.code)),
-        db.select().from(transactions).where(eq8(transactions.tenantId, tid)).orderBy(desc4(transactions.id)).limit(500),
-        db.select().from(settings).where(eq8(settings.tenantId, tid)).limit(1),
-        db.select().from(budgets).where(eq8(budgets.tenantId, tid)).orderBy(desc4(budgets.id)),
-        db.select().from(openingBalances).where(eq8(openingBalances.tenantId, tid)),
-        db.select().from(branches).where(eq8(branches.tenantId, tid)),
-        db.select().from(tenants).where(eq8(tenants.id, tid)),
-        db.select().from(products).where(and6(eq8(products.tenantId, tid), isNull4(products.deletedAt))).orderBy(asc4(products.code)),
-        db.select().from(warehouses).where(eq8(warehouses.tenantId, tid)),
-        db.select().from(inventoryMovements).where(eq8(inventoryMovements.tenantId, tid)).orderBy(desc4(inventoryMovements.createdAt)).limit(500),
-        db.select().from(customers).where(and6(eq8(customers.tenantId, tid), isNull4(customers.deletedAt))).orderBy(asc4(customers.code)),
-        db.select().from(suppliers).where(and6(eq8(suppliers.tenantId, tid), isNull4(suppliers.deletedAt))).orderBy(asc4(suppliers.code)),
-        db.select().from(salesInvoices).where(eq8(salesInvoices.tenantId, tid)).orderBy(desc4(salesInvoices.createdAt)).limit(200),
+        db.select().from(accounts).where(eq11(accounts.tenantId, tid)).orderBy(asc4(accounts.code)),
+        db.select().from(transactions).where(eq11(transactions.tenantId, tid)).orderBy(desc5(transactions.id)).limit(500),
+        db.select().from(settings).where(eq11(settings.tenantId, tid)).limit(1),
+        db.select().from(budgets).where(eq11(budgets.tenantId, tid)).orderBy(desc5(budgets.id)),
+        db.select().from(openingBalances).where(eq11(openingBalances.tenantId, tid)),
+        db.select().from(branches).where(eq11(branches.tenantId, tid)),
+        db.select().from(tenants).where(eq11(tenants.id, tid)),
+        db.select().from(products).where(and7(eq11(products.tenantId, tid), isNull4(products.deletedAt))).orderBy(asc4(products.code)),
+        db.select().from(warehouses).where(eq11(warehouses.tenantId, tid)),
+        db.select().from(inventoryMovements).where(eq11(inventoryMovements.tenantId, tid)).orderBy(desc5(inventoryMovements.createdAt)).limit(500),
+        db.select().from(customers).where(and7(eq11(customers.tenantId, tid), isNull4(customers.deletedAt))).orderBy(asc4(customers.code)),
+        db.select().from(suppliers).where(and7(eq11(suppliers.tenantId, tid), isNull4(suppliers.deletedAt))).orderBy(asc4(suppliers.code)),
+        db.select().from(salesInvoices).where(eq11(salesInvoices.tenantId, tid)).orderBy(desc5(salesInvoices.createdAt)).limit(200),
         db.select().from(salesInvoiceItems).where(inArray2(salesInvoiceItems.invoiceId, tenantSalesIds)),
-        db.select().from(purchaseInvoices).where(eq8(purchaseInvoices.tenantId, tid)).orderBy(desc4(purchaseInvoices.createdAt)).limit(200),
+        db.select().from(purchaseInvoices).where(eq11(purchaseInvoices.tenantId, tid)).orderBy(desc5(purchaseInvoices.createdAt)).limit(200),
         db.select().from(purchaseInvoiceItems).where(inArray2(purchaseInvoiceItems.invoiceId, tenantPurchaseIds)),
-        db.select().from(orders).where(eq8(orders.tenantId, tid)).orderBy(desc4(orders.createdAt)).limit(200),
+        db.select().from(orders).where(eq11(orders.tenantId, tid)).orderBy(desc5(orders.createdAt)).limit(200),
         db.select().from(orderItems).where(inArray2(orderItems.orderId, tenantOrderIds)),
-        db.select().from(payments).where(eq8(payments.tenantId, tid)).orderBy(desc4(payments.createdAt)).limit(500),
-        db.select().from(activityLogs).where(eq8(activityLogs.tenantId, tid)).orderBy(desc4(activityLogs.createdAt)).limit(200)
+        db.select().from(payments).where(eq11(payments.tenantId, tid)).orderBy(desc5(payments.createdAt)).limit(500),
+        db.select().from(activityLogs).where(eq11(activityLogs.tenantId, tid)).orderBy(desc5(activityLogs.createdAt)).limit(200)
       ]);
       return {
         accounts: allAccounts,
@@ -11460,15 +12501,15 @@ ${analysisText}
     }),
     // Push batch of offline mutations (for bulk sync)
     pushMutations: tenantProcedure.input(
-      z5.object({
-        mutations: z5.array(
-          z5.object({
-            table: z5.string(),
-            operation: z5.enum(["create", "update", "delete"]),
-            recordId: z5.string(),
-            payload: z5.any(),
-            timestamp: z5.number(),
-            deviceId: z5.string()
+      z7.object({
+        mutations: z7.array(
+          z7.object({
+            table: z7.string(),
+            operation: z7.enum(["create", "update", "delete"]),
+            recordId: z7.string(),
+            payload: z7.any(),
+            timestamp: z7.number(),
+            deviceId: z7.string()
           })
         )
       })
@@ -11497,10 +12538,10 @@ ${analysisText}
                 type: mutation.payload.type,
                 isActive: mutation.payload.isActive,
                 parentAccountId: mutation.payload.parentAccountId
-              }).where(eq8(accounts.id, mutation.payload.id));
+              }).where(eq11(accounts.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.delete(accounts).where(eq8(accounts.id, mutation.payload.id));
+              await db.delete(accounts).where(eq11(accounts.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "transactions") {
@@ -11528,16 +12569,16 @@ ${analysisText}
                 narration: mutation.payload.narration,
                 notes: mutation.payload.notes,
                 lifecycleStatus: mutation.payload.lifecycleStatus
-              }).where(eq8(transactions.id, mutation.payload.id));
+              }).where(eq11(transactions.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.delete(transactions).where(eq8(transactions.id, mutation.payload.id));
+              await db.delete(transactions).where(eq11(transactions.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "settings") {
             const existing = await db.select().from(settings).limit(1);
             if (existing.length > 0) {
-              await db.update(settings).set(mutation.payload).where(eq8(settings.id, existing[0].id));
+              await db.update(settings).set(mutation.payload).where(eq11(settings.id, existing[0].id));
             } else {
               await db.insert(settings).values(mutation.payload);
             }
@@ -11550,9 +12591,9 @@ ${analysisText}
           } else if (mutation.table === "openingBalances") {
             if (mutation.operation === "create" || mutation.operation === "update") {
               const existing = await db.select().from(openingBalances).where(
-                and6(
-                  eq8(openingBalances.accountId, mutation.payload.accountId),
-                  eq8(
+                and7(
+                  eq11(openingBalances.accountId, mutation.payload.accountId),
+                  eq11(
                     openingBalances.periodName,
                     mutation.payload.periodName
                   )
@@ -11563,7 +12604,7 @@ ${analysisText}
                   amount: mutation.payload.amount,
                   type: mutation.payload.type,
                   notes: mutation.payload.notes
-                }).where(eq8(openingBalances.id, existing[0].id));
+                }).where(eq11(openingBalances.id, existing[0].id));
               } else {
                 await db.insert(openingBalances).values(mutation.payload);
               }
@@ -11577,10 +12618,10 @@ ${analysisText}
               });
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(products).set(mutation.payload).where(eq8(products.id, mutation.payload.id));
+              await db.update(products).set(mutation.payload).where(eq11(products.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.update(products).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq8(products.id, mutation.payload.id));
+              await db.update(products).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq11(products.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "customers") {
@@ -11591,10 +12632,10 @@ ${analysisText}
               });
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(customers).set(mutation.payload).where(eq8(customers.id, mutation.payload.id));
+              await db.update(customers).set(mutation.payload).where(eq11(customers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.update(customers).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq8(customers.id, mutation.payload.id));
+              await db.update(customers).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq11(customers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "suppliers") {
@@ -11605,10 +12646,10 @@ ${analysisText}
               });
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(suppliers).set(mutation.payload).where(eq8(suppliers.id, mutation.payload.id));
+              await db.update(suppliers).set(mutation.payload).where(eq11(suppliers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.update(suppliers).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq8(suppliers.id, mutation.payload.id));
+              await db.update(suppliers).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq11(suppliers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "warehouses") {
@@ -11630,7 +12671,7 @@ ${analysisText}
                 serverId: inserted[0]?.id
               });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(salesInvoices).set(mutation.payload).where(eq8(salesInvoices.id, mutation.payload.id));
+              await db.update(salesInvoices).set(mutation.payload).where(eq11(salesInvoices.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "salesInvoiceItems") {
@@ -11647,7 +12688,7 @@ ${analysisText}
                 serverId: inserted[0]?.id
               });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(purchaseInvoices).set(mutation.payload).where(eq8(purchaseInvoices.id, mutation.payload.id));
+              await db.update(purchaseInvoices).set(mutation.payload).where(eq11(purchaseInvoices.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "purchaseInvoiceItems") {
@@ -11664,7 +12705,7 @@ ${analysisText}
                 serverId: inserted[0]?.id
               });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(orders).set(mutation.payload).where(eq8(orders.id, mutation.payload.id));
+              await db.update(orders).set(mutation.payload).where(eq11(orders.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "orderItems") {
@@ -11706,9 +12747,9 @@ ${analysisText}
     }),
     // Get changes since a timestamp (incremental sync)
     getChangesSince: tenantProcedure.input(
-      z5.object({
-        since: z5.string().datetime(),
-        tables: z5.array(z5.string()).optional()
+      z7.object({
+        since: z7.string().datetime(),
+        tables: z7.array(z7.string()).optional()
       })
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -11746,165 +12787,165 @@ ${analysisText}
       ];
       const changes = {};
       const tid = ctx.tenantId;
-      const tenantSalesIds = db.select({ id: salesInvoices.id }).from(salesInvoices).where(eq8(salesInvoices.tenantId, tid));
-      const tenantPurchaseIds = db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(eq8(purchaseInvoices.tenantId, tid));
-      const tenantOrderIds = db.select({ id: orders.id }).from(orders).where(eq8(orders.tenantId, tid));
+      const tenantSalesIds = db.select({ id: salesInvoices.id }).from(salesInvoices).where(eq11(salesInvoices.tenantId, tid));
+      const tenantPurchaseIds = db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(eq11(purchaseInvoices.tenantId, tid));
+      const tenantOrderIds = db.select({ id: orders.id }).from(orders).where(eq11(orders.tenantId, tid));
       for (const table of tablesToSync) {
         switch (table) {
           case "accounts":
             changes.accounts = await db.select().from(accounts).where(
-              and6(eq8(accounts.tenantId, tid), gte4(accounts.updatedAt, sinceDate))
+              and7(eq11(accounts.tenantId, tid), gte5(accounts.updatedAt, sinceDate))
             );
             break;
           case "transactions":
             changes.transactions = await db.select().from(transactions).where(
-              and6(
-                eq8(transactions.tenantId, tid),
-                gte4(transactions.updatedAt, sinceDate)
+              and7(
+                eq11(transactions.tenantId, tid),
+                gte5(transactions.updatedAt, sinceDate)
               )
             );
             break;
           case "settings":
-            changes.settings = await db.select().from(settings).where(eq8(settings.tenantId, tid));
+            changes.settings = await db.select().from(settings).where(eq11(settings.tenantId, tid));
             break;
           case "budgets":
             changes.budgets = await db.select().from(budgets).where(
-              and6(eq8(budgets.tenantId, tid), gte4(budgets.createdAt, sinceDate))
+              and7(eq11(budgets.tenantId, tid), gte5(budgets.createdAt, sinceDate))
             );
             break;
           case "openingBalances":
             changes.openingBalances = await db.select().from(openingBalances).where(
-              and6(
-                eq8(openingBalances.tenantId, tid),
-                gte4(openingBalances.createdAt, sinceDate)
+              and7(
+                eq11(openingBalances.tenantId, tid),
+                gte5(openingBalances.createdAt, sinceDate)
               )
             );
             break;
           case "products":
             changes.products = await db.select().from(products).where(
-              and6(eq8(products.tenantId, tid), gte4(products.updatedAt, sinceDate), isNull4(products.deletedAt))
+              and7(eq11(products.tenantId, tid), gte5(products.updatedAt, sinceDate), isNull4(products.deletedAt))
             );
             break;
           case "warehouses":
             changes.warehouses = await db.select().from(warehouses).where(
-              and6(
-                eq8(warehouses.tenantId, tid),
-                gte4(warehouses.createdAt, sinceDate)
+              and7(
+                eq11(warehouses.tenantId, tid),
+                gte5(warehouses.createdAt, sinceDate)
               )
             );
             break;
           case "inventoryMovements":
             changes.inventoryMovements = await db.select().from(inventoryMovements).where(
-              and6(
-                eq8(inventoryMovements.tenantId, tid),
-                gte4(inventoryMovements.createdAt, sinceDate)
+              and7(
+                eq11(inventoryMovements.tenantId, tid),
+                gte5(inventoryMovements.createdAt, sinceDate)
               )
             );
             break;
           case "customers":
             changes.customers = await db.select().from(customers).where(
-              and6(eq8(customers.tenantId, tid), gte4(customers.updatedAt, sinceDate), isNull4(customers.deletedAt))
+              and7(eq11(customers.tenantId, tid), gte5(customers.updatedAt, sinceDate), isNull4(customers.deletedAt))
             );
             break;
           case "suppliers":
             changes.suppliers = await db.select().from(suppliers).where(
-              and6(eq8(suppliers.tenantId, tid), gte4(suppliers.updatedAt, sinceDate), isNull4(suppliers.deletedAt))
+              and7(eq11(suppliers.tenantId, tid), gte5(suppliers.updatedAt, sinceDate), isNull4(suppliers.deletedAt))
             );
             break;
           case "salesInvoices":
             changes.salesInvoices = await db.select().from(salesInvoices).where(
-              and6(
-                eq8(salesInvoices.tenantId, tid),
-                gte4(salesInvoices.updatedAt, sinceDate)
+              and7(
+                eq11(salesInvoices.tenantId, tid),
+                gte5(salesInvoices.updatedAt, sinceDate)
               )
             );
             break;
           case "salesInvoiceItems":
             changes.salesInvoiceItems = await db.select().from(salesInvoiceItems).where(
-              and6(
+              and7(
                 inArray2(salesInvoiceItems.invoiceId, tenantSalesIds),
-                gte4(salesInvoiceItems.createdAt, sinceDate)
+                gte5(salesInvoiceItems.createdAt, sinceDate)
               )
             );
             break;
           case "purchaseInvoices":
             changes.purchaseInvoices = await db.select().from(purchaseInvoices).where(
-              and6(
-                eq8(purchaseInvoices.tenantId, tid),
-                gte4(purchaseInvoices.updatedAt, sinceDate)
+              and7(
+                eq11(purchaseInvoices.tenantId, tid),
+                gte5(purchaseInvoices.updatedAt, sinceDate)
               )
             );
             break;
           case "purchaseInvoiceItems":
             changes.purchaseInvoiceItems = await db.select().from(purchaseInvoiceItems).where(
-              and6(
+              and7(
                 inArray2(purchaseInvoiceItems.invoiceId, tenantPurchaseIds),
-                gte4(purchaseInvoiceItems.createdAt, sinceDate)
+                gte5(purchaseInvoiceItems.createdAt, sinceDate)
               )
             );
             break;
           case "orders":
             changes.orders = await db.select().from(orders).where(
-              and6(eq8(orders.tenantId, tid), gte4(orders.updatedAt, sinceDate))
+              and7(eq11(orders.tenantId, tid), gte5(orders.updatedAt, sinceDate))
             );
             break;
           case "orderItems":
             changes.orderItems = await db.select().from(orderItems).where(
-              and6(
+              and7(
                 inArray2(orderItems.orderId, tenantOrderIds),
-                gte4(orderItems.createdAt, sinceDate)
+                gte5(orderItems.createdAt, sinceDate)
               )
             );
             break;
           case "payments":
             changes.payments = await db.select().from(payments).where(
-              and6(eq8(payments.tenantId, tid), gte4(payments.createdAt, sinceDate))
+              and7(eq11(payments.tenantId, tid), gte5(payments.createdAt, sinceDate))
             );
             break;
           case "activityLogs":
             changes.activityLogs = await db.select().from(activityLogs).where(
-              and6(
-                eq8(activityLogs.tenantId, tid),
-                gte4(activityLogs.createdAt, sinceDate)
+              and7(
+                eq11(activityLogs.tenantId, tid),
+                gte5(activityLogs.createdAt, sinceDate)
               )
             );
             break;
           case "branches":
             changes.branches = await db.select().from(branches).where(
-              and6(eq8(branches.tenantId, tid), gte4(branches.createdAt, sinceDate))
+              and7(eq11(branches.tenantId, tid), gte5(branches.createdAt, sinceDate))
             );
             break;
           case "tenants":
-            changes.tenants = await db.select().from(tenants).where(eq8(tenants.id, tid));
+            changes.tenants = await db.select().from(tenants).where(eq11(tenants.id, tid));
             break;
           case "warehouseStock":
             changes.warehouseStock = await db.select().from(warehouseStock).where(
-              and6(eq8(warehouseStock.tenantId, tid), gte4(warehouseStock.updatedAt, sinceDate))
+              and7(eq11(warehouseStock.tenantId, tid), gte5(warehouseStock.updatedAt, sinceDate))
             );
             break;
           case "inventoryBatches":
             changes.inventoryBatches = await db.select().from(inventoryBatches).where(
-              and6(eq8(inventoryBatches.tenantId, tid), gte4(inventoryBatches.updatedAt, sinceDate))
+              and7(eq11(inventoryBatches.tenantId, tid), gte5(inventoryBatches.updatedAt, sinceDate))
             );
             break;
           case "stockReservations":
             changes.stockReservations = await db.select().from(stockReservations).where(
-              and6(eq8(stockReservations.tenantId, tid), gte4(stockReservations.updatedAt, sinceDate))
+              and7(eq11(stockReservations.tenantId, tid), gte5(stockReservations.updatedAt, sinceDate))
             );
             break;
           case "cycleCounts":
             changes.cycleCounts = await db.select().from(cycleCounts).where(
-              and6(eq8(cycleCounts.tenantId, tid), gte4(cycleCounts.updatedAt, sinceDate))
+              and7(eq11(cycleCounts.tenantId, tid), gte5(cycleCounts.updatedAt, sinceDate))
             );
             break;
           case "cycleCountLines":
             changes.cycleCountLines = await db.select().from(cycleCountLines).where(
-              and6(eq8(cycleCountLines.tenantId, tid), gte4(cycleCountLines.updatedAt, sinceDate))
+              and7(eq11(cycleCountLines.tenantId, tid), gte5(cycleCountLines.updatedAt, sinceDate))
             );
             break;
           case "inventoryValuationLayers":
             changes.inventoryValuationLayers = await db.select().from(inventoryValuationLayers).where(
-              and6(eq8(inventoryValuationLayers.tenantId, tid), gte4(inventoryValuationLayers.updatedAt, sinceDate))
+              and7(eq11(inventoryValuationLayers.tenantId, tid), gte5(inventoryValuationLayers.updatedAt, sinceDate))
             );
             break;
         }
@@ -11916,10 +12957,10 @@ ${analysisText}
     }),
     // Heartbeat: check server status and exchange device clocks
     heartbeat: tenantProcedure.input(
-      z5.object({
-        deviceId: z5.string(),
-        lastSyncAt: z5.number().optional(),
-        pendingCount: z5.number().optional()
+      z7.object({
+        deviceId: z7.string(),
+        lastSyncAt: z7.number().optional(),
+        pendingCount: z7.number().optional()
       })
     ).query(async ({ input }) => {
       const db = await getDb();
@@ -11927,7 +12968,7 @@ ${analysisText}
       let serverTxnCount = 0;
       if (db) {
         try {
-          const [r] = await db.select({ count: sql7`count(*)::int` }).from(transactions).limit(1);
+          const [r] = await db.select({ count: sql8`count(*)::int` }).from(transactions).limit(1);
           serverTxnCount = r?.count ?? 0;
         } catch {
         }
@@ -11945,11 +12986,11 @@ ${analysisText}
   // ─── Products & Inventory ──────────────────────────────────────
   products: router({
     list: tenantProcedure.input(
-      z5.object({
-        limit: z5.number().min(1).max(100).default(50),
-        offset: z5.number().min(0).default(0),
-        search: z5.string().optional(),
-        category: z5.string().optional()
+      z7.object({
+        limit: z7.number().min(1).max(100).default(50),
+        offset: z7.number().min(0).default(0),
+        search: z7.string().optional(),
+        category: z7.string().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -11958,8 +12999,8 @@ ${analysisText}
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const conditions = [
-        eq8(products.isActive, true),
-        eq8(products.tenantId, ctx.tenantId),
+        eq11(products.isActive, true),
+        eq11(products.tenantId, ctx.tenantId),
         isNull4(products.deletedAt)
       ];
       if (input?.search) {
@@ -11972,50 +13013,50 @@ ${analysisText}
         );
       }
       if (input?.category)
-        conditions.push(eq8(products.category, input.category));
-      const where = and6(...conditions);
-      const [countResult] = await db.select({ count: sql7`count(*)::int` }).from(products).where(where);
+        conditions.push(eq11(products.category, input.category));
+      const where = and7(...conditions);
+      const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(products).where(where);
       const items = await db.select().from(products).where(where).orderBy(asc4(products.code)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z5.object({
-        code: z5.string().min(1).transform((v) => v.trim()),
-        name: z5.string().min(1).transform((v) => v.trim()),
-        nameAr: z5.string().optional(),
-        type: z5.enum(["goods", "service"]).default("goods"),
-        category: z5.string().optional().transform((v) => v?.trim() || void 0),
-        unit: z5.string().default("\u0642\u0637\u0639\u0629"),
-        purchasePrice: z5.string().default("0").refine((v) => {
+      z7.object({
+        code: z7.string().min(1).transform((v) => v.trim()),
+        name: z7.string().min(1).transform((v) => v.trim()),
+        nameAr: z7.string().optional(),
+        type: z7.enum(["goods", "service"]).default("goods"),
+        category: z7.string().optional().transform((v) => v?.trim() || void 0),
+        unit: z7.string().default("\u0642\u0637\u0639\u0629"),
+        purchasePrice: z7.string().default("0").refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && isFinite(n) && n >= 0;
         }, "\u0633\u0639\u0631 \u0627\u0644\u0634\u0631\u0627\u0621 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        salePrice: z5.string().default("0").refine((v) => {
+        salePrice: z7.string().default("0").refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && isFinite(n) && n >= 0;
         }, "\u0633\u0639\u0631 \u0627\u0644\u0628\u064A\u0639 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        minStock: z5.number().int().min(0).default(0),
-        barcode: z5.string().optional(),
-        description: z5.string().optional(),
+        minStock: z7.number().int().min(0).default(0),
+        barcode: z7.string().optional(),
+        description: z7.string().optional(),
         // ─── Inventory / unit flexibility ────────────────
-        unitOfMeasure: z5.string().default("\u0642\u0637\u0639\u0629"),
-        secondaryUnit: z5.string().optional(),
-        conversionFactor: z5.string().default("1"),
+        unitOfMeasure: z7.string().default("\u0642\u0637\u0639\u0629"),
+        secondaryUnit: z7.string().optional(),
+        conversionFactor: z7.string().default("1"),
         // ─── Composite / bundled ────────────────────────
-        isComposite: z5.boolean().default(false),
-        bom: z5.string().optional(),
-        alternativeIds: z5.string().optional(),
-        attachmentUrl: z5.string().optional(),
+        isComposite: z7.boolean().default(false),
+        bom: z7.string().optional(),
+        alternativeIds: z7.string().optional(),
+        attachmentUrl: z7.string().optional(),
         // ─── Service costing & pricing ──────────────────
-        costMethod: z5.string().default("average"),
-        directCost: z5.string().default("0"),
-        indirectCost: z5.string().default("0"),
-        productionMinutes: z5.number().int().optional(),
-        priceMode: z5.enum(["direct", "costPlus"]).default("direct"),
-        marginPct: z5.string().default("0"),
-        salesAccountId: z5.number().int().optional(),
-        cogsAccountId: z5.number().int().optional(),
-        inventoryAccountId: z5.number().int().optional()
+        costMethod: z7.string().default("average"),
+        directCost: z7.string().default("0"),
+        indirectCost: z7.string().default("0"),
+        productionMinutes: z7.number().int().optional(),
+        priceMode: z7.enum(["direct", "costPlus"]).default("direct"),
+        marginPct: z7.string().default("0"),
+        salesAccountId: z7.number().int().optional(),
+        cogsAccountId: z7.number().int().optional(),
+        inventoryAccountId: z7.number().int().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -12032,38 +13073,38 @@ ${analysisText}
       return { success: true };
     }),
     update: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        name: z5.string().optional().transform((v) => v?.trim()),
-        salePrice: z5.string().optional().refine(
+      z7.object({
+        id: z7.number(),
+        name: z7.string().optional().transform((v) => v?.trim()),
+        salePrice: z7.string().optional().refine(
           (v) => v === void 0 || !isNaN(parseFloat(v)) && isFinite(parseFloat(v)) && parseFloat(v) >= 0,
           "\u0633\u0639\u0631 \u0627\u0644\u0628\u064A\u0639 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"
         ),
-        purchasePrice: z5.string().optional().refine(
+        purchasePrice: z7.string().optional().refine(
           (v) => v === void 0 || !isNaN(parseFloat(v)) && isFinite(parseFloat(v)) && parseFloat(v) >= 0,
           "\u0633\u0639\u0631 \u0627\u0644\u0634\u0631\u0627\u0621 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"
         ),
-        minStock: z5.number().int().min(0).optional(),
-        barcode: z5.string().optional(),
+        minStock: z7.number().int().min(0).optional(),
+        barcode: z7.string().optional(),
         // ─── Inventory / unit flexibility ────────────────
-        unitOfMeasure: z5.string().optional(),
-        secondaryUnit: z5.string().optional(),
-        conversionFactor: z5.string().optional(),
+        unitOfMeasure: z7.string().optional(),
+        secondaryUnit: z7.string().optional(),
+        conversionFactor: z7.string().optional(),
         // ─── Composite / bundled ────────────────────────
-        isComposite: z5.boolean().optional(),
-        bom: z5.string().optional(),
-        alternativeIds: z5.string().optional(),
-        attachmentUrl: z5.string().optional(),
+        isComposite: z7.boolean().optional(),
+        bom: z7.string().optional(),
+        alternativeIds: z7.string().optional(),
+        attachmentUrl: z7.string().optional(),
         // ─── Service costing & pricing ──────────────────
-        costMethod: z5.string().optional(),
-        directCost: z5.string().optional(),
-        indirectCost: z5.string().optional(),
-        productionMinutes: z5.number().int().optional(),
-        priceMode: z5.enum(["direct", "costPlus"]).optional(),
-        marginPct: z5.string().optional(),
-        salesAccountId: z5.number().int().optional(),
-        cogsAccountId: z5.number().int().optional(),
-        inventoryAccountId: z5.number().int().optional()
+        costMethod: z7.string().optional(),
+        directCost: z7.string().optional(),
+        indirectCost: z7.string().optional(),
+        productionMinutes: z7.number().int().optional(),
+        priceMode: z7.enum(["direct", "costPlus"]).optional(),
+        marginPct: z7.string().optional(),
+        salesAccountId: z7.number().int().optional(),
+        cogsAccountId: z7.number().int().optional(),
+        inventoryAccountId: z7.number().int().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -12071,25 +13112,25 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const { id, ...data } = input;
       await db.update(products).set(data).where(
-        and6(eq8(products.id, id), eq8(products.tenantId, ctx.tenantId))
+        and7(eq11(products.id, id), eq11(products.tenantId, ctx.tenantId))
       );
       return { success: true };
     }),
     adjustStock: tenantProcedure.input(
-      z5.object({
-        productId: z5.number(),
-        quantity: z5.number().int().min(1, "\u0627\u0644\u0643\u0645\u064A\u0629 \u064A\u062C\u0628 \u0623\u0646 \u062A\u0643\u0648\u0646 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 1"),
-        type: z5.enum(["in", "out", "adjustment"]),
-        notes: z5.string().optional()
+      z7.object({
+        productId: z7.number(),
+        quantity: z7.number().int().min(1, "\u0627\u0644\u0643\u0645\u064A\u0629 \u064A\u062C\u0628 \u0623\u0646 \u062A\u0643\u0648\u0646 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 1"),
+        type: z7.enum(["in", "out", "adjustment"]),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const product = await db.select().from(products).where(
-        and6(
-          eq8(products.id, input.productId),
-          eq8(products.tenantId, ctx.tenantId)
+        and7(
+          eq11(products.id, input.productId),
+          eq11(products.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (product.length === 0) throw new Error("\u0627\u0644\u0645\u0646\u062A\u062C \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
@@ -12110,15 +13151,15 @@ ${analysisText}
       await db.transaction(async (tx) => {
         if (input.type === "in") {
           await tx.update(products).set({
-            currentStock: sql7`${products.currentStock} + ${input.quantity}`
-          }).where(eq8(products.id, input.productId));
+            currentStock: sql8`${products.currentStock} + ${input.quantity}`
+          }).where(eq11(products.id, input.productId));
         } else if (input.type === "out") {
           const done = await tx.update(products).set({
-            currentStock: sql7`${products.currentStock} - ${input.quantity}`
+            currentStock: sql8`${products.currentStock} - ${input.quantity}`
           }).where(
-            and6(
-              eq8(products.id, input.productId),
-              gte4(products.currentStock, input.quantity)
+            and7(
+              eq11(products.id, input.productId),
+              gte5(products.currentStock, input.quantity)
             )
           ).returning({ id: products.id });
           if (done.length === 0)
@@ -12126,9 +13167,9 @@ ${analysisText}
               `\u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u063A\u064A\u0631 \u0643\u0627\u0641\u064D \u2014 \u0627\u0644\u0645\u062A\u0648\u0641\u0631 \u0627\u0644\u062D\u0627\u0644\u064A \u0623\u0642\u0644 \u0645\u0646 ${input.quantity}`
             );
         } else {
-          await tx.update(products).set({ currentStock: input.quantity }).where(eq8(products.id, input.productId));
+          await tx.update(products).set({ currentStock: input.quantity }).where(eq11(products.id, input.productId));
         }
-        const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(and6(eq8(warehouses.tenantId, ctx.tenantId), eq8(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
+        const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(and7(eq11(warehouses.tenantId, ctx.tenantId), eq11(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
         const warehouseId = defaultWarehouse[0]?.id;
         if (warehouseId) {
           if (input.type === "in") {
@@ -12143,23 +13184,23 @@ ${analysisText}
             }).onConflictDoUpdate({
               target: [warehouseStock.productId, warehouseStock.warehouseId, warehouseStock.tenantId],
               set: {
-                quantity: sql7`${warehouseStock.quantity} + ${input.quantity}`,
-                availableQty: sql7`${warehouseStock.availableQty} + ${input.quantity}`,
+                quantity: sql8`${warehouseStock.quantity} + ${input.quantity}`,
+                availableQty: sql8`${warehouseStock.availableQty} + ${input.quantity}`,
                 lastMovementAt: /* @__PURE__ */ new Date(),
                 updatedAt: /* @__PURE__ */ new Date()
               }
             });
           } else if (input.type === "out") {
             await tx.update(warehouseStock).set({
-              quantity: sql7`${warehouseStock.quantity} - ${input.quantity}`,
-              availableQty: sql7`${warehouseStock.availableQty} - ${input.quantity}`,
+              quantity: sql8`${warehouseStock.quantity} - ${input.quantity}`,
+              availableQty: sql8`${warehouseStock.availableQty} - ${input.quantity}`,
               lastMovementAt: /* @__PURE__ */ new Date()
             }).where(
-              and6(
-                eq8(warehouseStock.tenantId, ctx.tenantId),
-                eq8(warehouseStock.productId, input.productId),
-                eq8(warehouseStock.warehouseId, warehouseId),
-                gte4(warehouseStock.availableQty, input.quantity)
+              and7(
+                eq11(warehouseStock.tenantId, ctx.tenantId),
+                eq11(warehouseStock.productId, input.productId),
+                eq11(warehouseStock.warehouseId, warehouseId),
+                gte5(warehouseStock.availableQty, input.quantity)
               )
             );
           } else {
@@ -12228,24 +13269,24 @@ ${analysisText}
     }),
     // Set an explicit opening/physical stock count
     setOpeningStock: tenantProcedure.input(
-      z5.object({
-        productId: z5.number(),
-        quantity: z5.number().int().min(0),
-        notes: z5.string().optional()
+      z7.object({
+        productId: z7.number(),
+        quantity: z7.number().int().min(0),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const prod = await db.select().from(products).where(
-        and6(eq8(products.id, input.productId), eq8(products.tenantId, ctx.tenantId))
+        and7(eq11(products.id, input.productId), eq11(products.tenantId, ctx.tenantId))
       ).limit(1);
       if (!prod.length) throw new Error("\u0627\u0644\u0645\u0646\u062A\u062C \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const previous = prod[0].currentStock || 0;
-      const defaultWarehouse = await db.select({ id: warehouses.id }).from(warehouses).where(and6(eq8(warehouses.tenantId, ctx.tenantId), eq8(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
+      const defaultWarehouse = await db.select({ id: warehouses.id }).from(warehouses).where(and7(eq11(warehouses.tenantId, ctx.tenantId), eq11(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
       const warehouseId = defaultWarehouse[0]?.id;
       await db.transaction(async (tx) => {
-        await tx.update(products).set({ currentStock: input.quantity }).where(eq8(products.id, input.productId));
+        await tx.update(products).set({ currentStock: input.quantity }).where(eq11(products.id, input.productId));
         if (warehouseId) {
           await tx.insert(warehouseStock).values({
             tenantId: ctx.tenantId,
@@ -12305,12 +13346,12 @@ ${analysisText}
     }),
     // Transfer stock between warehouses (logged; global on-hand unchanged)
     transferStock: tenantProcedure.input(
-      z5.object({
-        productId: z5.number(),
-        fromWarehouseId: z5.number(),
-        toWarehouseId: z5.number(),
-        quantity: z5.number().int().min(1),
-        notes: z5.string().optional()
+      z7.object({
+        productId: z7.number(),
+        fromWarehouseId: z7.number(),
+        toWarehouseId: z7.number(),
+        quantity: z7.number().int().min(1),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -12319,10 +13360,10 @@ ${analysisText}
       if (input.fromWarehouseId === input.toWarehouseId)
         throw new Error("\u064A\u062C\u0628 \u0627\u062E\u062A\u064A\u0627\u0631 \u0645\u062E\u0632\u0646\u064A\u0646 \u0645\u062E\u062A\u0644\u0641\u064A\u0646");
       const [fromStock] = await db.select({ available: warehouseStock.availableQty }).from(warehouseStock).where(
-        and6(
-          eq8(warehouseStock.tenantId, ctx.tenantId),
-          eq8(warehouseStock.productId, input.productId),
-          eq8(warehouseStock.warehouseId, input.fromWarehouseId)
+        and7(
+          eq11(warehouseStock.tenantId, ctx.tenantId),
+          eq11(warehouseStock.productId, input.productId),
+          eq11(warehouseStock.warehouseId, input.fromWarehouseId)
         )
       ).limit(1);
       if (!fromStock || (fromStock.available || 0) < input.quantity) {
@@ -12339,14 +13380,14 @@ ${analysisText}
           userId: ctx.user.id
         });
         await tx.update(warehouseStock).set({
-          quantity: sql7`${warehouseStock.quantity} - ${input.quantity}`,
-          availableQty: sql7`${warehouseStock.availableQty} - ${input.quantity}`,
+          quantity: sql8`${warehouseStock.quantity} - ${input.quantity}`,
+          availableQty: sql8`${warehouseStock.availableQty} - ${input.quantity}`,
           lastMovementAt: /* @__PURE__ */ new Date()
         }).where(
-          and6(
-            eq8(warehouseStock.tenantId, ctx.tenantId),
-            eq8(warehouseStock.productId, input.productId),
-            eq8(warehouseStock.warehouseId, input.fromWarehouseId)
+          and7(
+            eq11(warehouseStock.tenantId, ctx.tenantId),
+            eq11(warehouseStock.productId, input.productId),
+            eq11(warehouseStock.warehouseId, input.fromWarehouseId)
           )
         );
         await tx.insert(warehouseStock).values({
@@ -12360,8 +13401,8 @@ ${analysisText}
         }).onConflictDoUpdate({
           target: [warehouseStock.productId, warehouseStock.warehouseId, warehouseStock.tenantId],
           set: {
-            quantity: sql7`${warehouseStock.quantity} + ${input.quantity}`,
-            availableQty: sql7`${warehouseStock.availableQty} + ${input.quantity}`,
+            quantity: sql8`${warehouseStock.quantity} + ${input.quantity}`,
+            availableQty: sql8`${warehouseStock.availableQty} + ${input.quantity}`,
             lastMovementAt: /* @__PURE__ */ new Date(),
             updatedAt: /* @__PURE__ */ new Date()
           }
@@ -12390,15 +13431,15 @@ ${analysisText}
       return { success: true };
     }),
     // ─── Analytical / detailed / aggregate / evaluative reports ──────
-    stockCard: tenantProcedure.input(z5.object({ productId: z5.number() })).query(async ({ input, ctx }) => {
+    stockCard: tenantProcedure.input(z7.object({ productId: z7.number() })).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { product: null, movements: [] };
       const tid = requireTenantId(ctx);
-      const [product] = await db.select().from(products).where(and6(eq8(products.id, input.productId), eq8(products.tenantId, tid))).limit(1);
+      const [product] = await db.select().from(products).where(and7(eq11(products.id, input.productId), eq11(products.tenantId, tid))).limit(1);
       const movements = await db.select().from(inventoryMovements).where(
-        and6(
-          eq8(inventoryMovements.tenantId, tid),
-          eq8(inventoryMovements.productId, input.productId)
+        and7(
+          eq11(inventoryMovements.tenantId, tid),
+          eq11(inventoryMovements.productId, input.productId)
         )
       ).orderBy(inventoryMovements.createdAt);
       let bal = 0;
@@ -12414,12 +13455,12 @@ ${analysisText}
       if (!db) return [];
       const tid = requireTenantId(ctx);
       return await db.select().from(products).where(
-        and6(
-          eq8(products.tenantId, tid),
-          eq8(products.isActive, true),
+        and7(
+          eq11(products.tenantId, tid),
+          eq11(products.isActive, true),
           isNull4(products.deletedAt),
           // currentStock <= minStock
-          sql7`${products.currentStock} <= ${products.minStock}`
+          sql8`${products.currentStock} <= ${products.minStock}`
         )
       ).orderBy(asc4(products.code));
     }),
@@ -12427,7 +13468,7 @@ ${analysisText}
       const db = await getDb();
       if (!db) return { items: [], totalValue: 0, totalRetail: 0 };
       const tid = requireTenantId(ctx);
-      const rows = await db.select().from(products).where(and6(eq8(products.tenantId, tid), eq8(products.isActive, true), isNull4(products.deletedAt)));
+      const rows = await db.select().from(products).where(and7(eq11(products.tenantId, tid), eq11(products.isActive, true), isNull4(products.deletedAt)));
       const items = rows.map((p) => {
         const qty = p.currentStock || 0;
         const cost = parseFloat(p.purchasePrice || "0");
@@ -12462,7 +13503,7 @@ ${analysisText}
           byCategory: []
         };
       const tid = requireTenantId(ctx);
-      const rows = await db.select().from(products).where(and6(eq8(products.tenantId, tid), eq8(products.isActive, true), isNull4(products.deletedAt)));
+      const rows = await db.select().from(products).where(and7(eq11(products.tenantId, tid), eq11(products.isActive, true), isNull4(products.deletedAt)));
       const byCat = {};
       let totalGoods = 0;
       let totalServices = 0;
@@ -12497,8 +13538,8 @@ ${analysisText}
       };
     }),
     movements: tenantProcedure.input(
-      z5.object({
-        productId: z5.number().optional()
+      z7.object({
+        productId: z7.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -12506,30 +13547,30 @@ ${analysisText}
       const tid = requireTenantId(ctx);
       if (input?.productId) {
         return await db.select().from(inventoryMovements).where(
-          and6(
-            eq8(inventoryMovements.tenantId, tid),
-            eq8(inventoryMovements.productId, input.productId)
+          and7(
+            eq11(inventoryMovements.tenantId, tid),
+            eq11(inventoryMovements.productId, input.productId)
           )
-        ).orderBy(desc4(inventoryMovements.createdAt));
+        ).orderBy(desc5(inventoryMovements.createdAt));
       }
-      return await db.select().from(inventoryMovements).where(eq8(inventoryMovements.tenantId, tid)).orderBy(desc4(inventoryMovements.createdAt));
+      return await db.select().from(inventoryMovements).where(eq11(inventoryMovements.tenantId, tid)).orderBy(desc5(inventoryMovements.createdAt));
     }),
     // ─── Warehouse Stock (Per-location inventory) ─────────────────────
     warehouseStockList: tenantProcedure.input(
-      z5.object({
-        warehouseId: z5.number().optional(),
-        productId: z5.number().optional(),
-        lowStockOnly: z5.boolean().optional()
+      z7.object({
+        warehouseId: z7.number().optional(),
+        productId: z7.number().optional(),
+        lowStockOnly: z7.boolean().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      const conditions = [eq8(warehouseStock.tenantId, tid)];
-      if (input?.warehouseId) conditions.push(eq8(warehouseStock.warehouseId, input.warehouseId));
-      if (input?.productId) conditions.push(eq8(warehouseStock.productId, input.productId));
+      const conditions = [eq11(warehouseStock.tenantId, tid)];
+      if (input?.warehouseId) conditions.push(eq11(warehouseStock.warehouseId, input.warehouseId));
+      if (input?.productId) conditions.push(eq11(warehouseStock.productId, input.productId));
       if (input?.lowStockOnly) {
-        conditions.push(sql7`${warehouseStock.availableQty} <= (SELECT minStock FROM products WHERE products.id = ${warehouseStock.productId})`);
+        conditions.push(sql8`${warehouseStock.availableQty} <= (SELECT minStock FROM products WHERE products.id = ${warehouseStock.productId})`);
       }
       return await db.select({
         id: warehouseStock.id,
@@ -12545,42 +13586,42 @@ ${analysisText}
         minStock: products.minStock,
         warehouseCode: warehouses.code,
         warehouseName: warehouses.name
-      }).from(warehouseStock).leftJoin(products, eq8(warehouseStock.productId, products.id)).leftJoin(warehouses, eq8(warehouseStock.warehouseId, warehouses.id)).where(and6(...conditions)).orderBy(asc4(warehouses.code), asc4(products.code));
+      }).from(warehouseStock).leftJoin(products, eq11(warehouseStock.productId, products.id)).leftJoin(warehouses, eq11(warehouseStock.warehouseId, warehouses.id)).where(and7(...conditions)).orderBy(asc4(warehouses.code), asc4(products.code));
     }),
-    warehouseStockGet: tenantProcedure.input(z5.object({ productId: z5.number(), warehouseId: z5.number() })).query(async ({ input, ctx }) => {
+    warehouseStockGet: tenantProcedure.input(z7.object({ productId: z7.number(), warehouseId: z7.number() })).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return null;
       const tid = requireTenantId(ctx);
       const [row] = await db.select().from(warehouseStock).where(
-        and6(
-          eq8(warehouseStock.tenantId, tid),
-          eq8(warehouseStock.productId, input.productId),
-          eq8(warehouseStock.warehouseId, input.warehouseId)
+        and7(
+          eq11(warehouseStock.tenantId, tid),
+          eq11(warehouseStock.productId, input.productId),
+          eq11(warehouseStock.warehouseId, input.warehouseId)
         )
       ).limit(1);
       return row || { quantity: 0, reservedQty: 0, availableQty: 0 };
     }),
     // ─── Inventory Batches (Traceability) ─────────────────────────────
     batchList: tenantProcedure.input(
-      z5.object({
-        productId: z5.number().optional(),
-        warehouseId: z5.number().optional(),
-        expiringSoon: z5.boolean().optional(),
-        daysAhead: z5.number().optional()
+      z7.object({
+        productId: z7.number().optional(),
+        warehouseId: z7.number().optional(),
+        expiringSoon: z7.boolean().optional(),
+        daysAhead: z7.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      const conditions = [eq8(inventoryBatches.tenantId, tid), eq8(inventoryBatches.isActive, true)];
-      if (input?.productId) conditions.push(eq8(inventoryBatches.productId, input.productId));
-      if (input?.warehouseId) conditions.push(eq8(inventoryBatches.warehouseId, input.warehouseId));
+      const conditions = [eq11(inventoryBatches.tenantId, tid), eq11(inventoryBatches.isActive, true)];
+      if (input?.productId) conditions.push(eq11(inventoryBatches.productId, input.productId));
+      if (input?.warehouseId) conditions.push(eq11(inventoryBatches.warehouseId, input.warehouseId));
       if (input?.expiringSoon) {
         const days = input.daysAhead || 30;
         const futureDate = /* @__PURE__ */ new Date();
         futureDate.setDate(futureDate.getDate() + days);
-        conditions.push(lte3(inventoryBatches.expiryDate, futureDate));
-        conditions.push(gte4(inventoryBatches.expiryDate, /* @__PURE__ */ new Date()));
+        conditions.push(lte4(inventoryBatches.expiryDate, futureDate));
+        conditions.push(gte5(inventoryBatches.expiryDate, /* @__PURE__ */ new Date()));
       }
       return await db.select({
         id: inventoryBatches.id,
@@ -12593,39 +13634,39 @@ ${analysisText}
         expiryDate: inventoryBatches.expiryDate,
         quantity: inventoryBatches.quantity,
         reservedQty: inventoryBatches.reservedQty,
-        availableQty: sql7`${inventoryBatches.quantity} - ${inventoryBatches.reservedQty}`,
+        availableQty: sql8`${inventoryBatches.quantity} - ${inventoryBatches.reservedQty}`,
         unitCost: inventoryBatches.unitCost,
         purchaseInvoiceId: inventoryBatches.purchaseInvoiceId,
         productCode: products.code,
         productName: products.name,
         warehouseCode: warehouses.code,
         warehouseName: warehouses.name
-      }).from(inventoryBatches).leftJoin(products, eq8(inventoryBatches.productId, products.id)).leftJoin(warehouses, eq8(inventoryBatches.warehouseId, warehouses.id)).where(and6(...conditions)).orderBy(asc4(inventoryBatches.expiryDate), asc4(inventoryBatches.batchNumber));
+      }).from(inventoryBatches).leftJoin(products, eq11(inventoryBatches.productId, products.id)).leftJoin(warehouses, eq11(inventoryBatches.warehouseId, warehouses.id)).where(and7(...conditions)).orderBy(asc4(inventoryBatches.expiryDate), asc4(inventoryBatches.batchNumber));
     }),
     batchCreate: tenantProcedure.input(
-      z5.object({
-        productId: z5.number(),
-        warehouseId: z5.number(),
-        batchNumber: z5.string().min(1),
-        lotNumber: z5.string().optional(),
-        serialNumber: z5.string().optional(),
-        manufacturingDate: z5.string().optional(),
-        expiryDate: z5.string().optional(),
-        quantity: z5.number().int().min(1),
-        unitCost: z5.string().optional(),
-        purchaseInvoiceId: z5.number().optional(),
-        notes: z5.string().optional()
+      z7.object({
+        productId: z7.number(),
+        warehouseId: z7.number(),
+        batchNumber: z7.string().min(1),
+        lotNumber: z7.string().optional(),
+        serialNumber: z7.string().optional(),
+        manufacturingDate: z7.string().optional(),
+        expiryDate: z7.string().optional(),
+        quantity: z7.number().int().min(1),
+        unitCost: z7.string().optional(),
+        purchaseInvoiceId: z7.number().optional(),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(inventoryBatches).where(
-        and6(
-          eq8(inventoryBatches.tenantId, ctx.tenantId),
-          eq8(inventoryBatches.productId, input.productId),
-          eq8(inventoryBatches.warehouseId, input.warehouseId),
-          eq8(inventoryBatches.batchNumber, input.batchNumber)
+        and7(
+          eq11(inventoryBatches.tenantId, ctx.tenantId),
+          eq11(inventoryBatches.productId, input.productId),
+          eq11(inventoryBatches.warehouseId, input.warehouseId),
+          eq11(inventoryBatches.batchNumber, input.batchNumber)
         )
       ).limit(1);
       if (existing.length > 0) throw new Error("\u0631\u0642\u0645 \u0627\u0644\u062F\u0641\u0639\u0629 \u0645\u0648\u062C\u0648\u062F \u0645\u0633\u0628\u0642\u0627\u064B \u0644\u0647\u0630\u0627 \u0627\u0644\u0635\u0646\u0641 \u0648\u0627\u0644\u0645\u062E\u0632\u0646");
@@ -12648,23 +13689,23 @@ ${analysisText}
     }),
     // ─── Stock Reservations ──────────────────────────────────────────
     reservationList: tenantProcedure.input(
-      z5.object({
-        productId: z5.number().optional(),
-        warehouseId: z5.number().optional(),
-        status: z5.string().optional(),
-        source: z5.string().optional(),
-        sourceId: z5.number().optional()
+      z7.object({
+        productId: z7.number().optional(),
+        warehouseId: z7.number().optional(),
+        status: z7.string().optional(),
+        source: z7.string().optional(),
+        sourceId: z7.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      const conditions = [eq8(stockReservations.tenantId, tid)];
-      if (input?.productId) conditions.push(eq8(stockReservations.productId, input.productId));
-      if (input?.warehouseId) conditions.push(eq8(stockReservations.warehouseId, input.warehouseId));
-      if (input?.status) conditions.push(eq8(stockReservations.status, input.status));
-      if (input?.source) conditions.push(eq8(stockReservations.source, input.source));
-      if (input?.sourceId) conditions.push(eq8(stockReservations.sourceId, input.sourceId));
+      const conditions = [eq11(stockReservations.tenantId, tid)];
+      if (input?.productId) conditions.push(eq11(stockReservations.productId, input.productId));
+      if (input?.warehouseId) conditions.push(eq11(stockReservations.warehouseId, input.warehouseId));
+      if (input?.status) conditions.push(eq11(stockReservations.status, input.status));
+      if (input?.source) conditions.push(eq11(stockReservations.source, input.source));
+      if (input?.sourceId) conditions.push(eq11(stockReservations.sourceId, input.sourceId));
       return await db.select({
         id: stockReservations.id,
         productId: stockReservations.productId,
@@ -12684,20 +13725,20 @@ ${analysisText}
         warehouseCode: warehouses.code,
         warehouseName: warehouses.name,
         batchNumber: inventoryBatches.batchNumber
-      }).from(stockReservations).leftJoin(products, eq8(stockReservations.productId, products.id)).leftJoin(warehouses, eq8(stockReservations.warehouseId, warehouses.id)).leftJoin(inventoryBatches, eq8(stockReservations.batchId, inventoryBatches.id)).where(and6(...conditions)).orderBy(desc4(stockReservations.createdAt));
+      }).from(stockReservations).leftJoin(products, eq11(stockReservations.productId, products.id)).leftJoin(warehouses, eq11(stockReservations.warehouseId, warehouses.id)).leftJoin(inventoryBatches, eq11(stockReservations.batchId, inventoryBatches.id)).where(and7(...conditions)).orderBy(desc5(stockReservations.createdAt));
     }),
     reservationCreate: tenantProcedure.input(
-      z5.object({
-        productId: z5.number(),
-        warehouseId: z5.number().optional(),
-        batchId: z5.number().optional(),
-        quantity: z5.number().int().min(1),
-        source: z5.string().default("manual"),
-        sourceId: z5.number().optional(),
-        sourceType: z5.string().optional(),
-        customerId: z5.number().optional(),
-        expiresAt: z5.string().optional(),
-        notes: z5.string().optional()
+      z7.object({
+        productId: z7.number(),
+        warehouseId: z7.number().optional(),
+        batchId: z7.number().optional(),
+        quantity: z7.number().int().min(1),
+        source: z7.string().default("manual"),
+        sourceId: z7.number().optional(),
+        sourceType: z7.string().optional(),
+        customerId: z7.number().optional(),
+        expiresAt: z7.string().optional(),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -12706,16 +13747,16 @@ ${analysisText}
       const tid = ctx.tenantId;
       let availableQty;
       if (input.batchId) {
-        const [batch] = await db.select().from(inventoryBatches).where(eq8(inventoryBatches.id, input.batchId)).limit(1);
+        const [batch] = await db.select().from(inventoryBatches).where(eq11(inventoryBatches.id, input.batchId)).limit(1);
         if (!batch) throw new Error("\u0627\u0644\u062F\u0641\u0639\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
         availableQty = (batch.quantity || 0) - (batch.reservedQty || 0);
       } else {
         const whConditions = [
-          eq8(warehouseStock.tenantId, tid),
-          eq8(warehouseStock.productId, input.productId)
+          eq11(warehouseStock.tenantId, tid),
+          eq11(warehouseStock.productId, input.productId)
         ];
-        if (input.warehouseId) whConditions.push(eq8(warehouseStock.warehouseId, input.warehouseId));
-        const stockRows = await db.select({ available: warehouseStock.availableQty }).from(warehouseStock).where(and6(...whConditions));
+        if (input.warehouseId) whConditions.push(eq11(warehouseStock.warehouseId, input.warehouseId));
+        const stockRows = await db.select({ available: warehouseStock.availableQty }).from(warehouseStock).where(and7(...whConditions));
         availableQty = stockRows.reduce((sum, s) => sum + (s.available || 0), 0);
       }
       if (availableQty < input.quantity) {
@@ -12723,13 +13764,13 @@ ${analysisText}
       }
       await db.transaction(async (tx) => {
         if (input.batchId) {
-          await tx.update(inventoryBatches).set({ reservedQty: sql7`${inventoryBatches.reservedQty} + ${input.quantity}` }).where(eq8(inventoryBatches.id, input.batchId));
+          await tx.update(inventoryBatches).set({ reservedQty: sql8`${inventoryBatches.reservedQty} + ${input.quantity}` }).where(eq11(inventoryBatches.id, input.batchId));
         } else if (input.warehouseId) {
-          await tx.update(warehouseStock).set({ reservedQty: sql7`${warehouseStock.reservedQty} + ${input.quantity}`, availableQty: sql7`${warehouseStock.availableQty} - ${input.quantity}` }).where(
-            and6(
-              eq8(warehouseStock.tenantId, tid),
-              eq8(warehouseStock.productId, input.productId),
-              eq8(warehouseStock.warehouseId, input.warehouseId)
+          await tx.update(warehouseStock).set({ reservedQty: sql8`${warehouseStock.reservedQty} + ${input.quantity}`, availableQty: sql8`${warehouseStock.availableQty} - ${input.quantity}` }).where(
+            and7(
+              eq11(warehouseStock.tenantId, tid),
+              eq11(warehouseStock.productId, input.productId),
+              eq11(warehouseStock.warehouseId, input.warehouseId)
             )
           );
         }
@@ -12750,68 +13791,68 @@ ${analysisText}
       });
       return { success: true };
     }),
-    reservationRelease: tenantProcedure.input(z5.object({ id: z5.number(), reason: z5.string().optional() })).mutation(async ({ input, ctx }) => {
+    reservationRelease: tenantProcedure.input(z7.object({ id: z7.number(), reason: z7.string().optional() })).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
-      const [res] = await db.select().from(stockReservations).where(and6(eq8(stockReservations.id, input.id), eq8(stockReservations.tenantId, tid))).limit(1);
+      const [res] = await db.select().from(stockReservations).where(and7(eq11(stockReservations.id, input.id), eq11(stockReservations.tenantId, tid))).limit(1);
       if (!res) throw new Error("\u0627\u0644\u062D\u062C\u0632 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (res.status !== "active") throw new Error("\u0627\u0644\u062D\u062C\u0632 \u063A\u064A\u0631 \u0646\u0634\u0637");
       await db.transaction(async (tx) => {
         if (res.batchId) {
-          await tx.update(inventoryBatches).set({ reservedQty: sql7`${inventoryBatches.reservedQty} - ${res.quantity}` }).where(eq8(inventoryBatches.id, res.batchId));
+          await tx.update(inventoryBatches).set({ reservedQty: sql8`${inventoryBatches.reservedQty} - ${res.quantity}` }).where(eq11(inventoryBatches.id, res.batchId));
         } else if (res.warehouseId) {
-          await tx.update(warehouseStock).set({ reservedQty: sql7`${warehouseStock.reservedQty} - ${res.quantity}`, availableQty: sql7`${warehouseStock.availableQty} + ${res.quantity}` }).where(
-            and6(
-              eq8(warehouseStock.tenantId, tid),
-              eq8(warehouseStock.productId, res.productId),
-              eq8(warehouseStock.warehouseId, res.warehouseId)
+          await tx.update(warehouseStock).set({ reservedQty: sql8`${warehouseStock.reservedQty} - ${res.quantity}`, availableQty: sql8`${warehouseStock.availableQty} + ${res.quantity}` }).where(
+            and7(
+              eq11(warehouseStock.tenantId, tid),
+              eq11(warehouseStock.productId, res.productId),
+              eq11(warehouseStock.warehouseId, res.warehouseId)
             )
           );
         }
-        await tx.update(stockReservations).set({ status: "released", releasedAt: /* @__PURE__ */ new Date(), notes: input.reason || null }).where(eq8(stockReservations.id, input.id));
+        await tx.update(stockReservations).set({ status: "released", releasedAt: /* @__PURE__ */ new Date(), notes: input.reason || null }).where(eq11(stockReservations.id, input.id));
       });
       return { success: true };
     }),
-    reservationFulfill: tenantProcedure.input(z5.object({ id: z5.number() })).mutation(async ({ input, ctx }) => {
+    reservationFulfill: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
-      const [res] = await db.select().from(stockReservations).where(and6(eq8(stockReservations.id, input.id), eq8(stockReservations.tenantId, tid))).limit(1);
+      const [res] = await db.select().from(stockReservations).where(and7(eq11(stockReservations.id, input.id), eq11(stockReservations.tenantId, tid))).limit(1);
       if (!res) throw new Error("\u0627\u0644\u062D\u062C\u0632 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (res.status !== "active") throw new Error("\u0627\u0644\u062D\u062C\u0632 \u063A\u064A\u0631 \u0646\u0634\u0637");
       await db.transaction(async (tx) => {
         if (res.batchId) {
           await tx.update(inventoryBatches).set({
-            quantity: sql7`${inventoryBatches.quantity} - ${res.quantity}`,
-            reservedQty: sql7`${inventoryBatches.reservedQty} - ${res.quantity}`
-          }).where(eq8(inventoryBatches.id, res.batchId));
+            quantity: sql8`${inventoryBatches.quantity} - ${res.quantity}`,
+            reservedQty: sql8`${inventoryBatches.reservedQty} - ${res.quantity}`
+          }).where(eq11(inventoryBatches.id, res.batchId));
         } else if (res.warehouseId) {
           await tx.update(warehouseStock).set({
-            quantity: sql7`${warehouseStock.quantity} - ${res.quantity}`,
-            reservedQty: sql7`${warehouseStock.reservedQty} - ${res.quantity}`
+            quantity: sql8`${warehouseStock.quantity} - ${res.quantity}`,
+            reservedQty: sql8`${warehouseStock.reservedQty} - ${res.quantity}`
           }).where(
-            and6(
-              eq8(warehouseStock.tenantId, tid),
-              eq8(warehouseStock.productId, res.productId),
-              eq8(warehouseStock.warehouseId, res.warehouseId)
+            and7(
+              eq11(warehouseStock.tenantId, tid),
+              eq11(warehouseStock.productId, res.productId),
+              eq11(warehouseStock.warehouseId, res.warehouseId)
             )
           );
         }
-        await tx.update(stockReservations).set({ status: "fulfilled", fulfilledAt: /* @__PURE__ */ new Date() }).where(eq8(stockReservations.id, input.id));
+        await tx.update(stockReservations).set({ status: "fulfilled", fulfilledAt: /* @__PURE__ */ new Date() }).where(eq11(stockReservations.id, input.id));
       });
       return { success: true };
     }),
     // ─── Cycle Counting ───────────────────────────────────────────────
-    cycleCountList: tenantProcedure.input(z5.object({ status: z5.string().optional(), warehouseId: z5.number().optional() }).optional()).query(async ({ input, ctx }) => {
+    cycleCountList: tenantProcedure.input(z7.object({ status: z7.string().optional(), warehouseId: z7.number().optional() }).optional()).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      const conditions = [eq8(cycleCounts.tenantId, tid)];
-      if (input?.status) conditions.push(eq8(cycleCounts.status, input.status));
-      if (input?.warehouseId) conditions.push(eq8(cycleCounts.warehouseId, input.warehouseId));
+      const conditions = [eq11(cycleCounts.tenantId, tid)];
+      if (input?.status) conditions.push(eq11(cycleCounts.status, input.status));
+      if (input?.warehouseId) conditions.push(eq11(cycleCounts.warehouseId, input.warehouseId));
       return await db.select({
         id: cycleCounts.id,
         countNumber: cycleCounts.countNumber,
@@ -12825,21 +13866,21 @@ ${analysisText}
         varianceThreshold: cycleCounts.varianceThreshold,
         warehouseCode: warehouses.code,
         warehouseName: warehouses.name
-      }).from(cycleCounts).leftJoin(warehouses, eq8(cycleCounts.warehouseId, warehouses.id)).where(and6(...conditions)).orderBy(desc4(cycleCounts.plannedDate));
+      }).from(cycleCounts).leftJoin(warehouses, eq11(cycleCounts.warehouseId, warehouses.id)).where(and7(...conditions)).orderBy(desc5(cycleCounts.plannedDate));
     }),
     cycleCountCreate: tenantProcedure.input(
-      z5.object({
-        warehouseId: z5.number(),
-        plannedDate: z5.string(),
-        assignedToId: z5.number().optional(),
-        varianceThreshold: z5.string().optional(),
-        notes: z5.string().optional()
+      z7.object({
+        warehouseId: z7.number(),
+        plannedDate: z7.string(),
+        assignedToId: z7.number().optional(),
+        varianceThreshold: z7.string().optional(),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const seq = await db.select({ c: sql7`count(*)` }).from(cycleCounts).where(eq8(cycleCounts.tenantId, ctx.tenantId));
+      const seq = await db.select({ c: sql8`count(*)` }).from(cycleCounts).where(eq11(cycleCounts.tenantId, ctx.tenantId));
       const countNumber = `CC-${ctx.tenantId}-${Number(seq[0]?.c || 0) + 1}`;
       const [row] = await db.insert(cycleCounts).values({
         tenantId: ctx.tenantId,
@@ -12852,12 +13893,12 @@ ${analysisText}
       }).returning();
       return row;
     }),
-    cycleCountStart: tenantProcedure.input(z5.object({ id: z5.number() })).mutation(async ({ input, ctx }) => {
+    cycleCountStart: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
-      const [cc] = await db.select().from(cycleCounts).where(and6(eq8(cycleCounts.id, input.id), eq8(cycleCounts.tenantId, tid))).limit(1);
+      const [cc] = await db.select().from(cycleCounts).where(and7(eq11(cycleCounts.id, input.id), eq11(cycleCounts.tenantId, tid))).limit(1);
       if (!cc) throw new Error("\u0627\u0644\u062C\u0631\u062F \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (cc.status !== "planned") throw new Error("\u0627\u0644\u062C\u0631\u062F \u0644\u064A\u0633 \u0641\u064A \u062D\u0627\u0644\u0629 \u0645\u062E\u0637\u0637");
       const stockRows = await db.select({
@@ -12865,14 +13906,14 @@ ${analysisText}
         warehouseId: warehouseStock.warehouseId,
         systemQty: warehouseStock.quantity,
         unitCost: products.purchasePrice
-      }).from(warehouseStock).leftJoin(products, eq8(warehouseStock.productId, products.id)).where(
-        and6(
-          eq8(warehouseStock.tenantId, tid),
-          eq8(warehouseStock.warehouseId, cc.warehouseId)
+      }).from(warehouseStock).leftJoin(products, eq11(warehouseStock.productId, products.id)).where(
+        and7(
+          eq11(warehouseStock.tenantId, tid),
+          eq11(warehouseStock.warehouseId, cc.warehouseId)
         )
       );
       await db.transaction(async (tx) => {
-        await tx.update(cycleCounts).set({ status: "in_progress", startedAt: /* @__PURE__ */ new Date() }).where(eq8(cycleCounts.id, input.id));
+        await tx.update(cycleCounts).set({ status: "in_progress", startedAt: /* @__PURE__ */ new Date() }).where(eq11(cycleCounts.id, input.id));
         if (stockRows.length > 0) {
           await tx.insert(cycleCountLines).values(
             stockRows.map((s) => ({
@@ -12890,13 +13931,13 @@ ${analysisText}
       return { success: true };
     }),
     cycleCountRecord: tenantProcedure.input(
-      z5.object({
-        cycleCountId: z5.number(),
-        productId: z5.number(),
-        warehouseId: z5.number(),
-        batchId: z5.number().optional(),
-        countedQty: z5.number().int().min(0),
-        notes: z5.string().optional()
+      z7.object({
+        cycleCountId: z7.number(),
+        productId: z7.number(),
+        warehouseId: z7.number(),
+        batchId: z7.number().optional(),
+        countedQty: z7.number().int().min(0),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -12904,15 +13945,15 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
       const [line] = await db.select().from(cycleCountLines).where(
-        and6(
-          eq8(cycleCountLines.cycleCountId, input.cycleCountId),
-          eq8(cycleCountLines.productId, input.productId),
-          eq8(cycleCountLines.warehouseId, input.warehouseId),
-          eq8(cycleCountLines.batchId, input.batchId || 0)
+        and7(
+          eq11(cycleCountLines.cycleCountId, input.cycleCountId),
+          eq11(cycleCountLines.productId, input.productId),
+          eq11(cycleCountLines.warehouseId, input.warehouseId),
+          eq11(cycleCountLines.batchId, input.batchId || 0)
         )
       ).limit(1);
       if (!line) throw new Error("\u0633\u0637\u0631 \u0627\u0644\u062C\u0631\u062F \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
-      const [cc] = await db.select().from(cycleCounts).where(and6(eq8(cycleCounts.id, input.cycleCountId), eq8(cycleCounts.tenantId, ctx.tenantId))).limit(1);
+      const [cc] = await db.select().from(cycleCounts).where(and7(eq11(cycleCounts.id, input.cycleCountId), eq11(cycleCounts.tenantId, ctx.tenantId))).limit(1);
       const varianceQty = input.countedQty - (line.systemQty || 0);
       const variancePct = line.systemQty ? (varianceQty / line.systemQty * 100).toFixed(2) : "0";
       const unitCost = parseFloat(String(line.unitCost || "0"));
@@ -12927,49 +13968,49 @@ ${analysisText}
         countedById: ctx.user.id,
         countedAt: /* @__PURE__ */ new Date(),
         notes: input.notes || null
-      }).where(eq8(cycleCountLines.id, line.id));
+      }).where(eq11(cycleCountLines.id, line.id));
       return { success: true, varianceQty, variancePct, varianceValue };
     }),
-    cycleCountComplete: tenantProcedure.input(z5.object({ id: z5.number() })).mutation(async ({ input, ctx }) => {
+    cycleCountComplete: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
-      const [cc] = await db.select().from(cycleCounts).where(and6(eq8(cycleCounts.id, input.id), eq8(cycleCounts.tenantId, tid))).limit(1);
+      const [cc] = await db.select().from(cycleCounts).where(and7(eq11(cycleCounts.id, input.id), eq11(cycleCounts.tenantId, tid))).limit(1);
       if (!cc) throw new Error("\u0627\u0644\u062C\u0631\u062F \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (cc.status !== "in_progress") throw new Error("\u0627\u0644\u062C\u0631\u062F \u0644\u064A\u0633 \u0642\u064A\u062F \u0627\u0644\u062A\u0646\u0641\u064A\u0630");
-      const lines = await db.select().from(cycleCountLines).where(eq8(cycleCountLines.cycleCountId, input.id));
+      const lines = await db.select().from(cycleCountLines).where(eq11(cycleCountLines.cycleCountId, input.id));
       const pendingLines = lines.filter((l) => l.status === "pending");
       if (pendingLines.length > 0) {
         throw new Error(`\u064A\u0648\u062C\u062F ${pendingLines.length} \u0635\u0646\u0641 \u0644\u0645 \u064A\u062A\u0645 \u062C\u0631\u062F\u0647\u0627 \u0628\u0639\u062F`);
       }
-      await db.update(cycleCounts).set({ status: "completed", completedAt: /* @__PURE__ */ new Date() }).where(eq8(cycleCounts.id, input.id));
+      await db.update(cycleCounts).set({ status: "completed", completedAt: /* @__PURE__ */ new Date() }).where(eq11(cycleCounts.id, input.id));
       return { success: true };
     }),
-    cycleCountApprove: tenantProcedure.input(z5.object({ id: z5.number(), applyAdjustments: z5.boolean().default(false) })).mutation(async ({ input, ctx }) => {
+    cycleCountApprove: tenantProcedure.input(z7.object({ id: z7.number(), applyAdjustments: z7.boolean().default(false) })).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
-      const [cc] = await db.select().from(cycleCounts).where(and6(eq8(cycleCounts.id, input.id), eq8(cycleCounts.tenantId, tid))).limit(1);
+      const [cc] = await db.select().from(cycleCounts).where(and7(eq11(cycleCounts.id, input.id), eq11(cycleCounts.tenantId, tid))).limit(1);
       if (!cc) throw new Error("\u0627\u0644\u062C\u0631\u062F \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (cc.status !== "completed") throw new Error("\u0627\u0644\u062C\u0631\u062F \u0644\u0645 \u064A\u0643\u062A\u0645\u0644 \u0628\u0639\u062F");
       if (input.applyAdjustments) {
-        const varianceLines = await db.select().from(cycleCountLines).where(and6(eq8(cycleCountLines.cycleCountId, input.id), ne3(cycleCountLines.varianceQty, 0)));
+        const varianceLines = await db.select().from(cycleCountLines).where(and7(eq11(cycleCountLines.cycleCountId, input.id), ne3(cycleCountLines.varianceQty, 0)));
         await db.transaction(async (tx) => {
           for (const line of varianceLines) {
             const countedQty = line.countedQty ?? 0;
             const adjustmentQty = countedQty - (line.systemQty || 0);
             if (adjustmentQty === 0) continue;
             await tx.update(warehouseStock).set({
-              quantity: sql7`${warehouseStock.quantity} + ${adjustmentQty}`,
-              availableQty: sql7`${warehouseStock.availableQty} + ${adjustmentQty}`,
+              quantity: sql8`${warehouseStock.quantity} + ${adjustmentQty}`,
+              availableQty: sql8`${warehouseStock.availableQty} + ${adjustmentQty}`,
               lastMovementAt: /* @__PURE__ */ new Date()
             }).where(
-              and6(
-                eq8(warehouseStock.tenantId, tid),
-                eq8(warehouseStock.productId, line.productId),
-                eq8(warehouseStock.warehouseId, line.warehouseId)
+              and7(
+                eq11(warehouseStock.tenantId, tid),
+                eq11(warehouseStock.productId, line.productId),
+                eq11(warehouseStock.warehouseId, line.warehouseId)
               )
             );
             await tx.insert(inventoryMovements).values({
@@ -12995,15 +14036,15 @@ ${analysisText}
           }
         });
       }
-      await db.update(cycleCounts).set({ status: "approved", approvedAt: /* @__PURE__ */ new Date(), approvedById: ctx.user.id }).where(eq8(cycleCounts.id, input.id));
+      await db.update(cycleCounts).set({ status: "approved", approvedAt: /* @__PURE__ */ new Date(), approvedById: ctx.user.id }).where(eq11(cycleCounts.id, input.id));
       return { success: true };
     }),
     // ─── Inventory Valuation (FIFO/LIFO/Weighted Average) ──────────────
     valuationLayers: tenantProcedure.input(
-      z5.object({
-        productId: z5.number(),
-        warehouseId: z5.number().optional(),
-        asOfDate: z5.string().optional()
+      z7.object({
+        productId: z7.number(),
+        warehouseId: z7.number().optional(),
+        asOfDate: z7.string().optional()
       })
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -13011,29 +14052,29 @@ ${analysisText}
       const tid = requireTenantId(ctx);
       const asOf = input.asOfDate ? new Date(input.asOfDate) : /* @__PURE__ */ new Date();
       const conditions = [
-        eq8(inventoryValuationLayers.tenantId, tid),
-        eq8(inventoryValuationLayers.productId, input.productId),
-        eq8(inventoryValuationLayers.isActive, true),
-        lte3(inventoryValuationLayers.layerDate, asOf)
+        eq11(inventoryValuationLayers.tenantId, tid),
+        eq11(inventoryValuationLayers.productId, input.productId),
+        eq11(inventoryValuationLayers.isActive, true),
+        lte4(inventoryValuationLayers.layerDate, asOf)
       ];
-      if (input.warehouseId) conditions.push(eq8(inventoryValuationLayers.warehouseId, input.warehouseId));
-      const layers = await db.select().from(inventoryValuationLayers).where(and6(...conditions)).orderBy(asc4(inventoryValuationLayers.layerDate));
+      if (input.warehouseId) conditions.push(eq11(inventoryValuationLayers.warehouseId, input.warehouseId));
+      const layers = await db.select().from(inventoryValuationLayers).where(and7(...conditions)).orderBy(asc4(inventoryValuationLayers.layerDate));
       const totalQty = layers.reduce((s, l) => s + (l.remainingQty || 0), 0);
       const totalValue = layers.reduce((s, l) => s + parseFloat(String(l.unitCost)) * (l.remainingQty || 0), 0);
       return { layers, totalQty, totalValue, weightedAvgCost: totalQty > 0 ? totalValue / totalQty : 0 };
     }),
-    fifoValuation: tenantProcedure.input(z5.object({ productId: z5.number(), warehouseId: z5.number().optional(), quantity: z5.number().int().min(1) })).query(async ({ input, ctx }) => {
+    fifoValuation: tenantProcedure.input(z7.object({ productId: z7.number(), warehouseId: z7.number().optional(), quantity: z7.number().int().min(1) })).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { layers: [], totalCost: 0, remainingQty: 0 };
       const tid = requireTenantId(ctx);
       const conditions = [
-        eq8(inventoryValuationLayers.tenantId, tid),
-        eq8(inventoryValuationLayers.productId, input.productId),
-        eq8(inventoryValuationLayers.isActive, true),
-        sql7`${inventoryValuationLayers.remainingQty} > 0`
+        eq11(inventoryValuationLayers.tenantId, tid),
+        eq11(inventoryValuationLayers.productId, input.productId),
+        eq11(inventoryValuationLayers.isActive, true),
+        sql8`${inventoryValuationLayers.remainingQty} > 0`
       ];
-      if (input.warehouseId) conditions.push(eq8(inventoryValuationLayers.warehouseId, input.warehouseId));
-      const layers = await db.select().from(inventoryValuationLayers).where(and6(...conditions)).orderBy(asc4(inventoryValuationLayers.layerDate));
+      if (input.warehouseId) conditions.push(eq11(inventoryValuationLayers.warehouseId, input.warehouseId));
+      const layers = await db.select().from(inventoryValuationLayers).where(and7(...conditions)).orderBy(asc4(inventoryValuationLayers.layerDate));
       let remaining = input.quantity;
       const usedLayers = [];
       let totalCost = 0;
@@ -13047,18 +14088,18 @@ ${analysisText}
       }
       return { layers: usedLayers, totalCost, remainingQty: remaining };
     }),
-    lifoValuation: tenantProcedure.input(z5.object({ productId: z5.number(), warehouseId: z5.number().optional(), quantity: z5.number().int().min(1) })).query(async ({ input, ctx }) => {
+    lifoValuation: tenantProcedure.input(z7.object({ productId: z7.number(), warehouseId: z7.number().optional(), quantity: z7.number().int().min(1) })).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { layers: [], totalCost: 0, remainingQty: 0 };
       const tid = requireTenantId(ctx);
       const conditions = [
-        eq8(inventoryValuationLayers.tenantId, tid),
-        eq8(inventoryValuationLayers.productId, input.productId),
-        eq8(inventoryValuationLayers.isActive, true),
-        sql7`${inventoryValuationLayers.remainingQty} > 0`
+        eq11(inventoryValuationLayers.tenantId, tid),
+        eq11(inventoryValuationLayers.productId, input.productId),
+        eq11(inventoryValuationLayers.isActive, true),
+        sql8`${inventoryValuationLayers.remainingQty} > 0`
       ];
-      if (input.warehouseId) conditions.push(eq8(inventoryValuationLayers.warehouseId, input.warehouseId));
-      const layers = await db.select().from(inventoryValuationLayers).where(and6(...conditions)).orderBy(desc4(inventoryValuationLayers.layerDate));
+      if (input.warehouseId) conditions.push(eq11(inventoryValuationLayers.warehouseId, input.warehouseId));
+      const layers = await db.select().from(inventoryValuationLayers).where(and7(...conditions)).orderBy(desc5(inventoryValuationLayers.layerDate));
       let remaining = input.quantity;
       const usedLayers = [];
       let totalCost = 0;
@@ -13073,29 +14114,29 @@ ${analysisText}
       return { layers: usedLayers, totalCost, remainingQty: remaining };
     }),
     importCsv: tenantProcedure.input(
-      z5.object({
-        rows: z5.array(
-          z5.object({
-            code: z5.string().min(1).transform((v) => v.trim()),
-            name: z5.string().min(1).transform((v) => v.trim()),
-            type: z5.enum(["goods", "service"]).default("goods"),
-            category: z5.string().optional().transform((v) => v?.trim() || void 0),
-            unit: z5.string().default("\u0642\u0637\u0639\u0629"),
-            purchasePrice: z5.string().default("0").refine((v) => {
+      z7.object({
+        rows: z7.array(
+          z7.object({
+            code: z7.string().min(1).transform((v) => v.trim()),
+            name: z7.string().min(1).transform((v) => v.trim()),
+            type: z7.enum(["goods", "service"]).default("goods"),
+            category: z7.string().optional().transform((v) => v?.trim() || void 0),
+            unit: z7.string().default("\u0642\u0637\u0639\u0629"),
+            purchasePrice: z7.string().default("0").refine((v) => {
               const n = parseFloat(v);
               return !isNaN(n) && isFinite(n) && n >= 0;
             }, "\u0633\u0639\u0631 \u0627\u0644\u0634\u0631\u0627\u0621 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-            salePrice: z5.string().default("0").refine((v) => {
+            salePrice: z7.string().default("0").refine((v) => {
               const n = parseFloat(v);
               return !isNaN(n) && isFinite(n) && n >= 0;
             }, "\u0633\u0639\u0631 \u0627\u0644\u0628\u064A\u0639 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-            wholesalePrice: z5.string().default("0").refine((v) => {
+            wholesalePrice: z7.string().default("0").refine((v) => {
               const n = parseFloat(v);
               return !isNaN(n) && isFinite(n) && n >= 0;
             }, "\u0633\u0639\u0631 \u0627\u0644\u062C\u0645\u0644\u0629 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-            minStock: z5.number().int().min(0).default(0),
-            currentStock: z5.number().int().min(0).default(0),
-            barcode: z5.string().optional()
+            minStock: z7.number().int().min(0).default(0),
+            currentStock: z7.number().int().min(0).default(0),
+            barcode: z7.string().optional()
           })
         ).min(1).max(500)
       })
@@ -13120,7 +14161,7 @@ ${analysisText}
           }
           seen.add(r.code);
           await db.transaction(async (tx) => {
-            const existing = await tx.select().from(products).where(eq8(products.code, r.code)).limit(1);
+            const existing = await tx.select().from(products).where(eq11(products.code, r.code)).limit(1);
             const values = {
               name: r.name,
               type: r.type,
@@ -13134,12 +14175,12 @@ ${analysisText}
               isActive: true
             };
             if (existing.length > 0) {
-              await tx.update(products).set(values).where(eq8(products.id, existing[0].id));
+              await tx.update(products).set(values).where(eq11(products.id, existing[0].id));
               const prevStock = existing[0].currentStock || 0;
               if (r.currentStock !== prevStock) {
                 await tx.update(products).set({
-                  currentStock: sql7`${products.currentStock} + ${r.currentStock - prevStock}`
-                }).where(eq8(products.id, existing[0].id));
+                  currentStock: sql8`${products.currentStock} + ${r.currentStock - prevStock}`
+                }).where(eq11(products.id, existing[0].id));
                 await tx.insert(inventoryMovements).values({
                   tenantId: ctx.tenantId,
                   productId: existing[0].id,
@@ -13168,29 +14209,29 @@ ${analysisText}
       });
       return { created, updated, errors };
     }),
-    byBarcode: tenantProcedure.input(z5.object({ barcode: z5.string().min(1) })).query(async ({ input, ctx }) => {
+    byBarcode: tenantProcedure.input(z7.object({ barcode: z7.string().min(1) })).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return null;
       const db = await getDb();
       if (!db) return null;
       const [row] = await db.select().from(products).where(
-        and6(
-          eq8(products.tenantId, ctx.tenantId),
-          eq8(products.barcode, input.barcode),
-          eq8(products.isActive, true),
+        and7(
+          eq11(products.tenantId, ctx.tenantId),
+          eq11(products.barcode, input.barcode),
+          eq11(products.isActive, true),
           isNull4(products.deletedAt)
         )
       ).limit(1);
       return row || null;
     }),
-    byCode: tenantProcedure.input(z5.object({ code: z5.string().min(1) })).query(async ({ input, ctx }) => {
+    byCode: tenantProcedure.input(z7.object({ code: z7.string().min(1) })).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return null;
       const db = await getDb();
       if (!db) return null;
       const [row] = await db.select().from(products).where(
-        and6(
-          eq8(products.tenantId, ctx.tenantId),
-          eq8(products.code, input.code),
-          eq8(products.isActive, true),
+        and7(
+          eq11(products.tenantId, ctx.tenantId),
+          eq11(products.code, input.code),
+          eq11(products.isActive, true),
           isNull4(products.deletedAt)
         )
       ).limit(1);
@@ -13200,10 +14241,10 @@ ${analysisText}
   // ─── Customers ──────────────────────────────────────────────────
   customers: router({
     list: tenantProcedure.input(
-      z5.object({
-        limit: z5.number().min(1).max(100).default(50),
-        offset: z5.number().min(0).default(0),
-        search: z5.string().optional()
+      z7.object({
+        limit: z7.number().min(1).max(100).default(50),
+        offset: z7.number().min(0).default(0),
+        search: z7.string().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -13212,8 +14253,8 @@ ${analysisText}
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const conditions = [
-        eq8(customers.isActive, true),
-        eq8(customers.tenantId, ctx.tenantId),
+        eq11(customers.isActive, true),
+        eq11(customers.tenantId, ctx.tenantId),
         isNull4(customers.deletedAt)
       ];
       if (input?.search) {
@@ -13225,22 +14266,22 @@ ${analysisText}
           )
         );
       }
-      const where = and6(...conditions);
-      const [countResult] = await db.select({ count: sql7`count(*)::int` }).from(customers).where(where);
+      const where = and7(...conditions);
+      const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(customers).where(where);
       const items = await db.select().from(customers).where(where).orderBy(asc4(customers.code)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z5.object({
-        code: z5.string().min(1),
-        name: z5.string().min(1),
-        phone: z5.string().optional(),
-        email: z5.string().optional(),
-        address: z5.string().optional(),
-        city: z5.string().optional(),
-        taxNumber: z5.string().optional(),
-        creditLimit: z5.string().default("0"),
-        notes: z5.string().optional()
+      z7.object({
+        code: z7.string().min(1),
+        name: z7.string().min(1),
+        phone: z7.string().optional(),
+        email: z7.string().optional(),
+        address: z7.string().optional(),
+        city: z7.string().optional(),
+        taxNumber: z7.string().optional(),
+        creditLimit: z7.string().default("0"),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -13254,12 +14295,12 @@ ${analysisText}
       return { success: true };
     }),
     update: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        name: z5.string().optional(),
-        phone: z5.string().optional(),
-        email: z5.string().optional(),
-        address: z5.string().optional()
+      z7.object({
+        id: z7.number(),
+        name: z7.string().optional(),
+        phone: z7.string().optional(),
+        email: z7.string().optional(),
+        address: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -13267,7 +14308,7 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const { id, ...data } = input;
       await db.update(customers).set(data).where(
-        and6(eq8(customers.id, id), eq8(customers.tenantId, ctx.tenantId))
+        and7(eq11(customers.id, id), eq11(customers.tenantId, ctx.tenantId))
       );
       return { success: true };
     })
@@ -13275,10 +14316,10 @@ ${analysisText}
   // ─── Suppliers ──────────────────────────────────────────────────
   suppliers: router({
     list: tenantProcedure.input(
-      z5.object({
-        limit: z5.number().min(1).max(100).default(50),
-        offset: z5.number().min(0).default(0),
-        search: z5.string().optional()
+      z7.object({
+        limit: z7.number().min(1).max(100).default(50),
+        offset: z7.number().min(0).default(0),
+        search: z7.string().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -13287,8 +14328,8 @@ ${analysisText}
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const conditions = [
-        eq8(suppliers.isActive, true),
-        eq8(suppliers.tenantId, ctx.tenantId),
+        eq11(suppliers.isActive, true),
+        eq11(suppliers.tenantId, ctx.tenantId),
         isNull4(suppliers.deletedAt)
       ];
       if (input?.search) {
@@ -13300,21 +14341,21 @@ ${analysisText}
           )
         );
       }
-      const where = and6(...conditions);
-      const [countResult] = await db.select({ count: sql7`count(*)::int` }).from(suppliers).where(where);
+      const where = and7(...conditions);
+      const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(suppliers).where(where);
       const items = await db.select().from(suppliers).where(where).orderBy(asc4(suppliers.code)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z5.object({
-        code: z5.string().min(1),
-        name: z5.string().min(1),
-        phone: z5.string().optional(),
-        email: z5.string().optional(),
-        address: z5.string().optional(),
-        city: z5.string().optional(),
-        taxNumber: z5.string().optional(),
-        notes: z5.string().optional()
+      z7.object({
+        code: z7.string().min(1),
+        name: z7.string().min(1),
+        phone: z7.string().optional(),
+        email: z7.string().optional(),
+        address: z7.string().optional(),
+        city: z7.string().optional(),
+        taxNumber: z7.string().optional(),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -13328,11 +14369,11 @@ ${analysisText}
       return { success: true };
     }),
     update: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        name: z5.string().optional(),
-        phone: z5.string().optional(),
-        email: z5.string().optional()
+      z7.object({
+        id: z7.number(),
+        name: z7.string().optional(),
+        phone: z7.string().optional(),
+        email: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -13340,7 +14381,7 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const { id, ...data } = input;
       await db.update(suppliers).set(data).where(
-        and6(eq8(suppliers.id, id), eq8(suppliers.tenantId, ctx.tenantId))
+        and7(eq11(suppliers.id, id), eq11(suppliers.tenantId, ctx.tenantId))
       );
       return { success: true };
     })
@@ -13348,11 +14389,11 @@ ${analysisText}
   // ─── Sales & POS ────────────────────────────────────────────────
   sales: router({
     list: tenantProcedure.input(
-      z5.object({
-        limit: z5.number().min(1).max(100).default(50),
-        offset: z5.number().min(0).default(0),
-        status: z5.enum(["draft", "confirmed", "paid", "partial", "cancelled"]).optional(),
-        customerId: z5.number().optional()
+      z7.object({
+        limit: z7.number().min(1).max(100).default(50),
+        offset: z7.number().min(0).default(0),
+        status: z7.enum(["draft", "confirmed", "paid", "partial", "cancelled"]).optional(),
+        customerId: z7.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -13360,18 +14401,18 @@ ${analysisText}
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const conditions = [eq8(salesInvoices.tenantId, ctx.tenantId)];
+      const conditions = [eq11(salesInvoices.tenantId, ctx.tenantId)];
       if (input?.status)
-        conditions.push(eq8(salesInvoices.status, input.status));
+        conditions.push(eq11(salesInvoices.status, input.status));
       if (input?.customerId)
-        conditions.push(eq8(salesInvoices.customerId, input.customerId));
-      const where = and6(...conditions);
-      const [countResult] = await db.select({ count: sql7`count(*)::int` }).from(salesInvoices).where(where);
-      const items = await db.select().from(salesInvoices).where(where).orderBy(desc4(salesInvoices.createdAt)).limit(limit).offset(offset);
+        conditions.push(eq11(salesInvoices.customerId, input.customerId));
+      const where = and7(...conditions);
+      const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(salesInvoices).where(where);
+      const items = await db.select().from(salesInvoices).where(where).orderBy(desc5(salesInvoices.createdAt)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     // Daily sales summary for the POS "daily report" / end-of-day cash-out.
-    dailySummary: tenantProcedure.input(z5.object({ date: z5.string().optional() }).optional()).query(async ({ input, ctx }) => {
+    dailySummary: tenantProcedure.input(z7.object({ date: z7.string().optional() }).optional()).query(async ({ input, ctx }) => {
       const empty = () => ({
         date: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
         invoiceCount: 0,
@@ -13392,10 +14433,10 @@ ${analysisText}
       const start = new Date(y, m, d, 0, 0, 0, 0);
       const end = new Date(y, m, d, 23, 59, 59, 999);
       const invs = await db.select().from(salesInvoices).where(
-        and6(
-          eq8(salesInvoices.tenantId, ctx.tenantId),
-          gte4(salesInvoices.createdAt, start),
-          lte3(salesInvoices.createdAt, end)
+        and7(
+          eq11(salesInvoices.tenantId, ctx.tenantId),
+          gte5(salesInvoices.createdAt, start),
+          lte4(salesInvoices.createdAt, end)
         )
       );
       const active = invs.filter((i) => i.status !== "cancelled");
@@ -13454,10 +14495,10 @@ ${analysisText}
         total: salesInvoices.total,
         status: salesInvoices.status
       }).from(salesInvoices).where(
-        and6(
-          eq8(salesInvoices.tenantId, ctx.tenantId),
-          gte4(salesInvoices.createdAt, prevStart),
-          lte3(salesInvoices.createdAt, prevEnd)
+        and7(
+          eq11(salesInvoices.tenantId, ctx.tenantId),
+          gte5(salesInvoices.createdAt, prevStart),
+          lte4(salesInvoices.createdAt, prevEnd)
         )
       );
       const previousDayTotal = prevInvs.filter((i) => i.status !== "cancelled").reduce((s, i) => s + parseFloat(i.total || "0"), 0);
@@ -13472,50 +14513,50 @@ ${analysisText}
         previousDayTotal
       };
     }),
-    getInvoiceDetails: tenantProcedure.input(z5.object({ id: z5.number() })).query(async ({ input, ctx }) => {
+    getInvoiceDetails: tenantProcedure.input(z7.object({ id: z7.number() })).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return null;
       const db = await getDb();
       if (!db) return null;
       const [invoice] = await db.select().from(salesInvoices).where(
-        and6(
-          eq8(salesInvoices.id, input.id),
-          eq8(salesInvoices.tenantId, ctx.tenantId)
+        and7(
+          eq11(salesInvoices.id, input.id),
+          eq11(salesInvoices.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (!invoice) return null;
-      const customer = invoice.customerId ? (await db.select().from(customers).where(eq8(customers.id, invoice.customerId)).limit(1))[0] ?? null : null;
-      const items = await db.select().from(salesInvoiceItems).where(eq8(salesInvoiceItems.invoiceId, invoice.id)).orderBy(asc4(salesInvoiceItems.id));
+      const customer = invoice.customerId ? (await db.select().from(customers).where(eq11(customers.id, invoice.customerId)).limit(1))[0] ?? null : null;
+      const items = await db.select().from(salesInvoiceItems).where(eq11(salesInvoiceItems.invoiceId, invoice.id)).orderBy(asc4(salesInvoiceItems.id));
       return { invoice, customer, items };
     }),
     create: tenantProcedure.input(
-      z5.object({
-        customerId: z5.number().optional(),
-        items: z5.array(
-          z5.object({
-            productId: z5.number(),
-            productName: z5.string().min(1),
-            quantity: z5.number().int().min(1),
-            unitPrice: z5.string().refine(
+      z7.object({
+        customerId: z7.number().optional(),
+        items: z7.array(
+          z7.object({
+            productId: z7.number(),
+            productName: z7.string().min(1),
+            quantity: z7.number().int().min(1),
+            unitPrice: z7.string().refine(
               (v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0,
               "\u0627\u0644\u0633\u0639\u0631 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B"
             ),
-            discount: z5.string().default("0")
+            discount: z7.string().default("0")
           })
         ).min(1, "\u064A\u062C\u0628 \u0625\u0636\u0627\u0641\u0629 \u0635\u0646\u0641 \u0648\u0627\u062D\u062F \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644"),
-        discount: z5.string().default("0"),
-        taxRate: z5.string().default("0"),
-        paymentMethod: z5.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
-        paidAmount: z5.string().default("0"),
-        notes: z5.string().optional(),
-        country: z5.string().optional(),
-        workSiteId: z5.number().optional(),
-        deviceId: z5.number().optional(),
-        lat: z5.string().optional(),
-        lng: z5.string().optional(),
-        salesRepId: z5.string().optional(),
+        discount: z7.string().default("0"),
+        taxRate: z7.string().default("0"),
+        paymentMethod: z7.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
+        paidAmount: z7.string().default("0"),
+        notes: z7.string().optional(),
+        country: z7.string().optional(),
+        workSiteId: z7.number().optional(),
+        deviceId: z7.number().optional(),
+        lat: z7.string().optional(),
+        lng: z7.string().optional(),
+        salesRepId: z7.string().optional(),
         // ─── Multi-currency (Module B) ──────────────────────────────
-        currency: z5.string().optional(),
-        currencyRate: z5.string().optional()
+        currency: z7.string().optional(),
+        currencyRate: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -13533,8 +14574,8 @@ ${analysisText}
       const invoiceNumber = `SI-${datePart}-${randPart}`;
       const productIds = input.items.map((i) => i.productId);
       const productRows = await db.select().from(products).where(
-        and6(
-          eq8(products.tenantId, ctx.tenantId),
+        and7(
+          eq11(products.tenantId, ctx.tenantId),
           inArray2(products.id, productIds),
           isNull4(products.deletedAt)
         )
@@ -13561,8 +14602,8 @@ ${analysisText}
       if (paidAmount > total + 0.01)
         throw new Error("\u0627\u0644\u0645\u0628\u0644\u063A \u0627\u0644\u0645\u062F\u0641\u0648\u0639 \u064A\u062A\u062C\u0627\u0648\u0632 \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629");
       const initialStatus = paidAmount >= total - 0.01 ? "paid" : paidAmount > 0 ? "partial" : "draft";
-      const [settingsRow] = await db.select().from(settings).where(eq8(settings.tenantId, ctx.tenantId)).limit(1);
-      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq8(tenants.id, ctx.tenantId)).limit(1);
+      const [settingsRow] = await db.select().from(settings).where(eq11(settings.tenantId, ctx.tenantId)).limit(1);
+      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq11(tenants.id, ctx.tenantId)).limit(1);
       const country = input.country || settingsRow?.country || tenantRow?.country || "\u0627\u0644\u064A\u0645\u0646";
       const globalCode = genGlobalCode({
         country,
@@ -13634,37 +14675,37 @@ ${analysisText}
           const prod = productMap.get(item.productId);
           if (prod?.type === "service") continue;
           await tx.update(products).set({
-            currentStock: sql7`${products.currentStock} - ${item.quantity}`
-          }).where(eq8(products.id, item.productId));
-          const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(and6(eq8(warehouses.tenantId, ctx.tenantId), eq8(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
+            currentStock: sql8`${products.currentStock} - ${item.quantity}`
+          }).where(eq11(products.id, item.productId));
+          const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(and7(eq11(warehouses.tenantId, ctx.tenantId), eq11(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
           const warehouseId = defaultWarehouse[0]?.id;
           if (warehouseId) {
             await tx.update(warehouseStock).set({
-              quantity: sql7`${warehouseStock.quantity} - ${item.quantity}`,
-              availableQty: sql7`${warehouseStock.availableQty} - ${item.quantity}`,
+              quantity: sql8`${warehouseStock.quantity} - ${item.quantity}`,
+              availableQty: sql8`${warehouseStock.availableQty} - ${item.quantity}`,
               lastMovementAt: /* @__PURE__ */ new Date()
             }).where(
-              and6(
-                eq8(warehouseStock.tenantId, ctx.tenantId),
-                eq8(warehouseStock.productId, item.productId),
-                eq8(warehouseStock.warehouseId, warehouseId),
-                gte4(warehouseStock.availableQty, item.quantity)
+              and7(
+                eq11(warehouseStock.tenantId, ctx.tenantId),
+                eq11(warehouseStock.productId, item.productId),
+                eq11(warehouseStock.warehouseId, warehouseId),
+                gte5(warehouseStock.availableQty, item.quantity)
               )
             );
             const layers = await tx.select().from(inventoryValuationLayers).where(
-              and6(
-                eq8(inventoryValuationLayers.tenantId, ctx.tenantId),
-                eq8(inventoryValuationLayers.productId, item.productId),
-                eq8(inventoryValuationLayers.warehouseId, warehouseId),
-                eq8(inventoryValuationLayers.isActive, true),
-                sql7`${inventoryValuationLayers.remainingQty} > 0`
+              and7(
+                eq11(inventoryValuationLayers.tenantId, ctx.tenantId),
+                eq11(inventoryValuationLayers.productId, item.productId),
+                eq11(inventoryValuationLayers.warehouseId, warehouseId),
+                eq11(inventoryValuationLayers.isActive, true),
+                sql8`${inventoryValuationLayers.remainingQty} > 0`
               )
             ).orderBy(asc4(inventoryValuationLayers.layerDate));
             let remainingQty = item.quantity;
             for (const layer of layers) {
               if (remainingQty <= 0) break;
               const consumeQty = Math.min(remainingQty, layer.remainingQty);
-              await tx.update(inventoryValuationLayers).set({ remainingQty: sql7`${inventoryValuationLayers.remainingQty} - ${consumeQty}` }).where(eq8(inventoryValuationLayers.id, layer.id));
+              await tx.update(inventoryValuationLayers).set({ remainingQty: sql8`${inventoryValuationLayers.remainingQty} - ${consumeQty}` }).where(eq11(inventoryValuationLayers.id, layer.id));
               remainingQty -= consumeQty;
             }
           }
@@ -13682,7 +14723,7 @@ ${analysisText}
         if (input.customerId) {
           const unpaidAmount = total - paidAmount;
           if (unpaidAmount > 0) {
-            await tx.update(customers).set({ balance: sql7`${customers.balance} + ${unpaidAmount}` }).where(and6(eq8(customers.id, input.customerId), eq8(customers.tenantId, ctx.tenantId)));
+            await tx.update(customers).set({ balance: sql8`${customers.balance} + ${unpaidAmount}` }).where(and7(eq11(customers.id, input.customerId), eq11(customers.tenantId, ctx.tenantId)));
           }
         }
         await postInvoiceGlEntries(tx, {
@@ -13726,9 +14767,9 @@ ${analysisText}
       return { success: true, ...result };
     }),
     updateStatus: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        status: z5.enum([
+      z7.object({
+        id: z7.number(),
+        status: z7.enum([
           "draft",
           "confirmed",
           "paid",
@@ -13739,7 +14780,7 @@ ${analysisText}
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(salesInvoices).where(and6(eq8(salesInvoices.id, input.id), eq8(salesInvoices.tenantId, ctx.tenantId))).limit(1);
+      const existing = await db.select().from(salesInvoices).where(and7(eq11(salesInvoices.id, input.id), eq11(salesInvoices.tenantId, ctx.tenantId))).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       const inv = existing[0];
       if (inv.status === "cancelled" && input.status !== "cancelled") {
@@ -13748,19 +14789,19 @@ ${analysisText}
       if (inv.status === input.status)
         return { success: true, unchanged: true };
       const cancelFlow = input.status === "cancelled" && inv.status !== "draft";
-      const items = cancelFlow ? await db.select().from(salesInvoiceItems).where(eq8(salesInvoiceItems.invoiceId, inv.id)) : [];
+      const items = cancelFlow ? await db.select().from(salesInvoiceItems).where(eq11(salesInvoiceItems.invoiceId, inv.id)) : [];
       const itemPayments = cancelFlow ? await db.select().from(payments).where(
-        and6(
-          eq8(payments.source, "sales"),
-          eq8(payments.invoiceId, inv.id)
+        and7(
+          eq11(payments.source, "sales"),
+          eq11(payments.invoiceId, inv.id)
         )
       ) : [];
       await db.transaction(async (tx) => {
         if (cancelFlow) {
           for (const item of items) {
             await tx.update(products).set({
-              currentStock: sql7`${products.currentStock} + ${item.quantity}`
-            }).where(eq8(products.id, item.productId));
+              currentStock: sql8`${products.currentStock} + ${item.quantity}`
+            }).where(eq11(products.id, item.productId));
             await tx.insert(inventoryMovements).values({
               tenantId: ctx.tenantId,
               productId: item.productId,
@@ -13775,12 +14816,12 @@ ${analysisText}
             const reversedUnpaid = parseFloat(inv.total) - parseFloat(inv.paidAmount);
             if (reversedUnpaid > 0) {
               await tx.update(customers).set({
-                balance: sql7`${customers.balance} - ${reversedUnpaid}`
-              }).where(eq8(customers.id, inv.customerId));
+                balance: sql8`${customers.balance} - ${reversedUnpaid}`
+              }).where(eq11(customers.id, inv.customerId));
             }
           }
           for (const p of itemPayments) {
-            await tx.update(payments).set({ notes: `\u0645\u0633\u062A\u0631\u062F\u0629 \u2014 \u0625\u0644\u063A\u0627\u0621 \u0641\u0627\u062A\u0648\u0631\u0629 ${inv.invoiceNumber}` }).where(eq8(payments.id, p.id));
+            await tx.update(payments).set({ notes: `\u0645\u0633\u062A\u0631\u062F\u0629 \u2014 \u0625\u0644\u063A\u0627\u0621 \u0641\u0627\u062A\u0648\u0631\u0629 ${inv.invoiceNumber}` }).where(eq11(payments.id, p.id));
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
@@ -13788,7 +14829,7 @@ ${analysisText}
             details: `\u062A\u0645 \u0639\u0643\u0633 \u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u0648\u0627\u0644\u0623\u0631\u0635\u062F\u0629 \u0627\u0644\u0645\u0631\u062A\u0628\u0637\u0629 \u0628\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629`
           });
         }
-        await tx.update(salesInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(salesInvoices.id, inv.id));
+        await tx.update(salesInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(salesInvoices.id, inv.id));
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
           action: `\u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A ${inv.invoiceNumber} \u0625\u0644\u0649 "${input.status}"`
@@ -13797,31 +14838,31 @@ ${analysisText}
       return { success: true };
     }),
     getItems: tenantProcedure.input(
-      z5.object({
-        invoiceId: z5.number()
+      z7.object({
+        invoiceId: z7.number()
       })
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
       const [invoice] = await db.select({ id: salesInvoices.id }).from(salesInvoices).where(
-        and6(
-          eq8(salesInvoices.id, input.invoiceId),
-          eq8(salesInvoices.tenantId, ctx.tenantId)
+        and7(
+          eq11(salesInvoices.id, input.invoiceId),
+          eq11(salesInvoices.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (!invoice) return [];
-      return await db.select().from(salesInvoiceItems).where(eq8(salesInvoiceItems.invoiceId, input.invoiceId));
+      return await db.select().from(salesInvoiceItems).where(eq11(salesInvoiceItems.invoiceId, input.invoiceId));
     })
   }),
   // ─── Purchases ──────────────────────────────────────────────────
   purchases: router({
     list: tenantProcedure.input(
-      z5.object({
-        limit: z5.number().min(1).max(100).default(50),
-        offset: z5.number().min(0).default(0),
-        status: z5.enum(["draft", "confirmed", "paid", "partial", "cancelled"]).optional(),
-        supplierId: z5.number().optional()
+      z7.object({
+        limit: z7.number().min(1).max(100).default(50),
+        offset: z7.number().min(0).default(0),
+        status: z7.enum(["draft", "confirmed", "paid", "partial", "cancelled"]).optional(),
+        supplierId: z7.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -13830,42 +14871,42 @@ ${analysisText}
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const conditions = [
-        eq8(purchaseInvoices.tenantId, ctx.tenantId)
+        eq11(purchaseInvoices.tenantId, ctx.tenantId)
       ];
       if (input?.status)
-        conditions.push(eq8(purchaseInvoices.status, input.status));
+        conditions.push(eq11(purchaseInvoices.status, input.status));
       if (input?.supplierId)
-        conditions.push(eq8(purchaseInvoices.supplierId, input.supplierId));
-      const where = and6(...conditions);
-      const [countResult] = await db.select({ count: sql7`count(*)::int` }).from(purchaseInvoices).where(where);
-      const items = await db.select().from(purchaseInvoices).where(where).orderBy(desc4(purchaseInvoices.createdAt)).limit(limit).offset(offset);
+        conditions.push(eq11(purchaseInvoices.supplierId, input.supplierId));
+      const where = and7(...conditions);
+      const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(purchaseInvoices).where(where);
+      const items = await db.select().from(purchaseInvoices).where(where).orderBy(desc5(purchaseInvoices.createdAt)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z5.object({
-        supplierId: z5.number().optional(),
-        items: z5.array(
-          z5.object({
-            productId: z5.number(),
-            productName: z5.string().min(1),
-            quantity: z5.number().int().min(1),
-            unitPrice: z5.string().refine(
+      z7.object({
+        supplierId: z7.number().optional(),
+        items: z7.array(
+          z7.object({
+            productId: z7.number(),
+            productName: z7.string().min(1),
+            quantity: z7.number().int().min(1),
+            unitPrice: z7.string().refine(
               (v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0,
               "\u0627\u0644\u0633\u0639\u0631 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B"
             ),
-            discount: z5.string().default("0")
+            discount: z7.string().default("0")
           })
         ).min(1, "\u064A\u062C\u0628 \u0625\u0636\u0627\u0641\u0629 \u0635\u0646\u0641 \u0648\u0627\u062D\u062F \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644"),
-        discount: z5.string().default("0"),
-        taxRate: z5.string().default("0"),
-        paymentMethod: z5.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
-        paidAmount: z5.string().default("0"),
-        notes: z5.string().optional(),
-        country: z5.string().optional(),
-        workSiteId: z5.number().optional(),
-        deviceId: z5.number().optional(),
-        lat: z5.string().optional(),
-        lng: z5.string().optional()
+        discount: z7.string().default("0"),
+        taxRate: z7.string().default("0"),
+        paymentMethod: z7.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
+        paidAmount: z7.string().default("0"),
+        notes: z7.string().optional(),
+        country: z7.string().optional(),
+        workSiteId: z7.number().optional(),
+        deviceId: z7.number().optional(),
+        lat: z7.string().optional(),
+        lng: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -13882,7 +14923,7 @@ ${analysisText}
       const randPart = Math.random().toString(36).substring(2, 7).toUpperCase();
       const invoiceNumber = `PI-${datePart}-${randPart}`;
       const productIds = input.items.map((i) => i.productId);
-      const productRows = await db.select().from(products).where(and6(inArray2(products.id, productIds), isNull4(products.deletedAt)));
+      const productRows = await db.select().from(products).where(and7(inArray2(products.id, productIds), isNull4(products.deletedAt)));
       const productMap = new Map(productRows.map((p) => [p.id, p]));
       for (const item of input.items) {
         if (!productMap.has(item.productId))
@@ -13900,8 +14941,8 @@ ${analysisText}
       if (paidAmount > total + 0.01)
         throw new Error("\u0627\u0644\u0645\u0628\u0644\u063A \u0627\u0644\u0645\u062F\u0641\u0648\u0639 \u064A\u062A\u062C\u0627\u0648\u0632 \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629");
       const initialStatus = paidAmount >= total - 0.01 ? "paid" : paidAmount > 0 ? "partial" : "draft";
-      const [settingsRow] = await db.select().from(settings).where(eq8(settings.tenantId, ctx.tenantId)).limit(1);
-      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq8(tenants.id, ctx.tenantId)).limit(1);
+      const [settingsRow] = await db.select().from(settings).where(eq11(settings.tenantId, ctx.tenantId)).limit(1);
+      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq11(tenants.id, ctx.tenantId)).limit(1);
       const country = input.country || settingsRow?.country || tenantRow?.country || "\u0627\u0644\u064A\u0645\u0646";
       const globalCode = genGlobalCode({
         country,
@@ -13969,9 +15010,9 @@ ${analysisText}
         await tx.insert(purchaseInvoiceItems).values(itemValues);
         for (const item of input.items) {
           await tx.update(products).set({
-            currentStock: sql7`${products.currentStock} + ${item.quantity}`
-          }).where(eq8(products.id, item.productId));
-          const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(and6(eq8(warehouses.tenantId, ctx.tenantId), eq8(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
+            currentStock: sql8`${products.currentStock} + ${item.quantity}`
+          }).where(eq11(products.id, item.productId));
+          const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(and7(eq11(warehouses.tenantId, ctx.tenantId), eq11(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
           const warehouseId = defaultWarehouse[0]?.id;
           if (warehouseId) {
             await tx.insert(warehouseStock).values({
@@ -13985,8 +15026,8 @@ ${analysisText}
             }).onConflictDoUpdate({
               target: [warehouseStock.productId, warehouseStock.warehouseId, warehouseStock.tenantId],
               set: {
-                quantity: sql7`${warehouseStock.quantity} + ${item.quantity}`,
-                availableQty: sql7`${warehouseStock.availableQty} + ${item.quantity}`,
+                quantity: sql8`${warehouseStock.quantity} + ${item.quantity}`,
+                availableQty: sql8`${warehouseStock.availableQty} + ${item.quantity}`,
                 lastMovementAt: /* @__PURE__ */ new Date(),
                 updatedAt: /* @__PURE__ */ new Date()
               }
@@ -14021,7 +15062,7 @@ ${analysisText}
         if (input.supplierId) {
           const unpaidAmount = total - paidAmount;
           if (unpaidAmount > 0) {
-            await tx.update(suppliers).set({ balance: sql7`${suppliers.balance} + ${unpaidAmount}` }).where(and6(eq8(suppliers.id, input.supplierId), eq8(suppliers.tenantId, ctx.tenantId)));
+            await tx.update(suppliers).set({ balance: sql8`${suppliers.balance} + ${unpaidAmount}` }).where(and7(eq11(suppliers.id, input.supplierId), eq11(suppliers.tenantId, ctx.tenantId)));
           }
         }
         await postInvoiceGlEntries(tx, {
@@ -14044,9 +15085,9 @@ ${analysisText}
       return { success: true, ...result };
     }),
     updateStatus: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        status: z5.enum([
+      z7.object({
+        id: z7.number(),
+        status: z7.enum([
           "draft",
           "confirmed",
           "paid",
@@ -14057,7 +15098,7 @@ ${analysisText}
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(purchaseInvoices).where(and6(eq8(purchaseInvoices.id, input.id), eq8(purchaseInvoices.tenantId, ctx.tenantId))).limit(1);
+      const existing = await db.select().from(purchaseInvoices).where(and7(eq11(purchaseInvoices.id, input.id), eq11(purchaseInvoices.tenantId, ctx.tenantId))).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       const inv = existing[0];
       if (inv.status === "cancelled" && input.status !== "cancelled") {
@@ -14066,34 +15107,34 @@ ${analysisText}
       if (inv.status === input.status)
         return { success: true, unchanged: true };
       const cancelFlow = input.status === "cancelled" && inv.status !== "draft";
-      const items = cancelFlow ? await db.select().from(purchaseInvoiceItems).where(eq8(purchaseInvoiceItems.invoiceId, inv.id)) : [];
+      const items = cancelFlow ? await db.select().from(purchaseInvoiceItems).where(eq11(purchaseInvoiceItems.invoiceId, inv.id)) : [];
       await db.transaction(async (tx) => {
         if (cancelFlow) {
           for (const item of items) {
             await tx.update(products).set({
-              currentStock: sql7`${products.currentStock} - ${item.quantity}`
-            }).where(eq8(products.id, item.productId));
-            const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(and6(eq8(warehouses.tenantId, ctx.tenantId), eq8(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
+              currentStock: sql8`${products.currentStock} - ${item.quantity}`
+            }).where(eq11(products.id, item.productId));
+            const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(and7(eq11(warehouses.tenantId, ctx.tenantId), eq11(warehouses.isActive, true))).orderBy(asc4(warehouses.code)).limit(1);
             const warehouseId = defaultWarehouse[0]?.id;
             if (warehouseId) {
               await tx.update(warehouseStock).set({
-                quantity: sql7`${warehouseStock.quantity} - ${item.quantity}`,
-                availableQty: sql7`${warehouseStock.availableQty} - ${item.quantity}`,
+                quantity: sql8`${warehouseStock.quantity} - ${item.quantity}`,
+                availableQty: sql8`${warehouseStock.availableQty} - ${item.quantity}`,
                 lastMovementAt: /* @__PURE__ */ new Date()
               }).where(
-                and6(
-                  eq8(warehouseStock.tenantId, ctx.tenantId),
-                  eq8(warehouseStock.productId, item.productId),
-                  eq8(warehouseStock.warehouseId, warehouseId)
+                and7(
+                  eq11(warehouseStock.tenantId, ctx.tenantId),
+                  eq11(warehouseStock.productId, item.productId),
+                  eq11(warehouseStock.warehouseId, warehouseId)
                 )
               );
               await tx.update(inventoryValuationLayers).set({ isActive: false, updatedAt: /* @__PURE__ */ new Date() }).where(
-                and6(
-                  eq8(inventoryValuationLayers.tenantId, ctx.tenantId),
-                  eq8(inventoryValuationLayers.productId, item.productId),
-                  eq8(inventoryValuationLayers.warehouseId, warehouseId),
-                  eq8(inventoryValuationLayers.sourceType, "purchase"),
-                  eq8(inventoryValuationLayers.sourceId, inv.id)
+                and7(
+                  eq11(inventoryValuationLayers.tenantId, ctx.tenantId),
+                  eq11(inventoryValuationLayers.productId, item.productId),
+                  eq11(inventoryValuationLayers.warehouseId, warehouseId),
+                  eq11(inventoryValuationLayers.sourceType, "purchase"),
+                  eq11(inventoryValuationLayers.sourceId, inv.id)
                 )
               );
             }
@@ -14112,8 +15153,8 @@ ${analysisText}
             const reversedUnpaid = parseFloat(inv.total) - parseFloat(inv.paidAmount);
             if (reversedUnpaid > 0) {
               await tx.update(suppliers).set({
-                balance: sql7`${suppliers.balance} - ${reversedUnpaid}`
-              }).where(eq8(suppliers.id, inv.supplierId));
+                balance: sql8`${suppliers.balance} - ${reversedUnpaid}`
+              }).where(eq11(suppliers.id, inv.supplierId));
             }
           }
           await tx.insert(activityLogs).values({
@@ -14122,7 +15163,7 @@ ${analysisText}
             details: `\u062A\u0645 \u0639\u0643\u0633 \u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u0648\u0627\u0644\u0623\u0631\u0635\u062F\u0629 \u0627\u0644\u0645\u0631\u062A\u0628\u0637\u0629 \u0628\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629`
           });
         }
-        await tx.update(purchaseInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq8(purchaseInvoices.id, inv.id));
+        await tx.update(purchaseInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq11(purchaseInvoices.id, inv.id));
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
           action: `\u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0634\u062A\u0631\u064A\u0627\u062A ${inv.invoiceNumber} \u0625\u0644\u0649 "${input.status}"`
@@ -14131,21 +15172,21 @@ ${analysisText}
       return { success: true };
     }),
     getItems: tenantProcedure.input(
-      z5.object({
-        invoiceId: z5.number()
+      z7.object({
+        invoiceId: z7.number()
       })
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
       const [invoice] = await db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(
-        and6(
-          eq8(purchaseInvoices.id, input.invoiceId),
-          eq8(purchaseInvoices.tenantId, ctx.tenantId)
+        and7(
+          eq11(purchaseInvoices.id, input.invoiceId),
+          eq11(purchaseInvoices.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (!invoice) return [];
-      return await db.select().from(purchaseInvoiceItems).where(eq8(purchaseInvoiceItems.invoiceId, input.invoiceId));
+      return await db.select().from(purchaseInvoiceItems).where(eq11(purchaseInvoiceItems.invoiceId, input.invoiceId));
     })
   }),
   // ─── Orders & Distribution ──────────────────────────────────────
@@ -14154,8 +15195,8 @@ ${analysisText}
     // reference number or the guest's own phone number. Never exposes the
     // full order list or other customers' data to anonymous visitors.
     track: publicProcedure.input(
-      z5.object({
-        query: z5.string().min(6, "\u0623\u062F\u062E\u0644 \u0631\u0642\u0645 \u0637\u0644\u0628 \u0623\u0648 \u0647\u0627\u062A\u0641 \u0635\u062D\u064A\u062D").max(50)
+      z7.object({
+        query: z7.string().min(6, "\u0623\u062F\u062E\u0644 \u0631\u0642\u0645 \u0637\u0644\u0628 \u0623\u0648 \u0647\u0627\u062A\u0641 \u0635\u062D\u064A\u062D").max(50)
       })
     ).query(async ({ input, ctx }) => {
       const ip = ctx.req.ip || "unknown";
@@ -14182,23 +15223,23 @@ ${analysisText}
         deliveryAddress: orders.deliveryAddress,
         deliveryNotes: orders.deliveryNotes,
         assignedTo: orders.assignedTo
-      }).from(orders).leftJoin(customers, eq8(orders.customerId, customers.id)).where(
-        and6(
-          eq8(orders.tenantId, tid),
+      }).from(orders).leftJoin(customers, eq11(orders.customerId, customers.id)).where(
+        and7(
+          eq11(orders.tenantId, tid),
           or3(
             ilike4(orders.orderNumber, `%${q}%`),
             ilike4(customers.phone, `%${q}%`)
           )
         )
-      ).orderBy(desc4(orders.createdAt)).limit(20);
+      ).orderBy(desc5(orders.createdAt)).limit(20);
       return { items: rows };
     }),
     // Tenant-scoped listing — consumed by the authenticated Commercial page.
     list: tenantProcedure.input(
-      z5.object({
-        limit: z5.number().min(1).max(100).default(50),
-        offset: z5.number().min(0).default(0),
-        status: z5.enum([
+      z7.object({
+        limit: z7.number().min(1).max(100).default(50),
+        offset: z7.number().min(0).default(0),
+        status: z7.enum([
           "pending",
           "confirmed",
           "processing",
@@ -14213,36 +15254,36 @@ ${analysisText}
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const conditions = [eq8(orders.tenantId, ctx.tenantId)];
-      if (input?.status) conditions.push(eq8(orders.status, input.status));
-      const where = and6(...conditions);
-      const [countResult] = await db.select({ count: sql7`count(*)::int` }).from(orders).where(where);
-      const items = await db.select().from(orders).where(where).orderBy(desc4(orders.createdAt)).limit(limit).offset(offset);
+      const conditions = [eq11(orders.tenantId, ctx.tenantId)];
+      if (input?.status) conditions.push(eq11(orders.status, input.status));
+      const where = and7(...conditions);
+      const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(orders).where(where);
+      const items = await db.select().from(orders).where(where).orderBy(desc5(orders.createdAt)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z5.object({
-        customerId: z5.number().optional(),
-        items: z5.array(
-          z5.object({
-            productId: z5.number(),
-            productName: z5.string().min(1),
-            quantity: z5.number().int().min(1),
-            unitPrice: z5.string().refine(
+      z7.object({
+        customerId: z7.number().optional(),
+        items: z7.array(
+          z7.object({
+            productId: z7.number(),
+            productName: z7.string().min(1),
+            quantity: z7.number().int().min(1),
+            unitPrice: z7.string().refine(
               (v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0,
               "\u0627\u0644\u0633\u0639\u0631 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B"
             )
           })
         ).min(1, "\u064A\u062C\u0628 \u0625\u0636\u0627\u0641\u0629 \u0635\u0646\u0641 \u0648\u0627\u062D\u062F \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644"),
-        deliveryAddress: z5.string().optional(),
-        deliveryDate: z5.string().optional(),
-        deliveryNotes: z5.string().optional(),
-        assignedTo: z5.string().optional(),
-        country: z5.string().optional(),
-        workSiteId: z5.number().optional(),
-        deviceId: z5.number().optional(),
-        lat: z5.string().optional(),
-        lng: z5.string().optional()
+        deliveryAddress: z7.string().optional(),
+        deliveryDate: z7.string().optional(),
+        deliveryNotes: z7.string().optional(),
+        assignedTo: z7.string().optional(),
+        country: z7.string().optional(),
+        workSiteId: z7.number().optional(),
+        deviceId: z7.number().optional(),
+        lat: z7.string().optional(),
+        lng: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -14266,7 +15307,7 @@ ${analysisText}
         }
       );
       const productIds = effectiveItems.map((i) => i.productId);
-      const productRows = await db.select().from(products).where(and6(inArray2(products.id, productIds), isNull4(products.deletedAt)));
+      const productRows = await db.select().from(products).where(and7(inArray2(products.id, productIds), isNull4(products.deletedAt)));
       if (productRows.length !== productIds.length)
         throw new Error("\u0648\u0627\u062D\u062F \u0623\u0648 \u0623\u0643\u062B\u0631 \u0645\u0646 \u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
       const total = effectiveItems.reduce(
@@ -14277,8 +15318,8 @@ ${analysisText}
       const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
       const randPart = Math.random().toString(36).substring(2, 7).toUpperCase();
       const orderNumber = `ORD-${datePart}-${randPart}`;
-      const [settingsRow] = await db.select().from(settings).where(eq8(settings.tenantId, ctx.tenantId)).limit(1);
-      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq8(tenants.id, ctx.tenantId)).limit(1);
+      const [settingsRow] = await db.select().from(settings).where(eq11(settings.tenantId, ctx.tenantId)).limit(1);
+      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq11(tenants.id, ctx.tenantId)).limit(1);
       const country = input.country || settingsRow?.country || tenantRow?.country || "\u0627\u0644\u064A\u0645\u0646";
       const globalCode = genGlobalCode({
         country,
@@ -14315,11 +15356,11 @@ ${analysisText}
         await tx.insert(orderItems).values(itemValues);
         for (const item of itemValues) {
           const updated = await tx.update(products).set({
-            currentStock: sql7`${products.currentStock} - ${item.quantity}`
+            currentStock: sql8`${products.currentStock} - ${item.quantity}`
           }).where(
-            and6(
-              eq8(products.id, item.productId),
-              gte4(products.currentStock, item.quantity)
+            and7(
+              eq11(products.id, item.productId),
+              gte5(products.currentStock, item.quantity)
             )
           ).returning({ id: products.id });
           if (updated.length === 0)
@@ -14346,9 +15387,9 @@ ${analysisText}
       return { success: true, ...result };
     }),
     updateStatus: tenantProcedure.input(
-      z5.object({
-        id: z5.number(),
-        status: z5.enum([
+      z7.object({
+        id: z7.number(),
+        status: z7.enum([
           "pending",
           "confirmed",
           "processing",
@@ -14360,7 +15401,7 @@ ${analysisText}
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(orders).where(and6(eq8(orders.id, input.id), eq8(orders.tenantId, ctx.tenantId))).limit(1);
+      const existing = await db.select().from(orders).where(and7(eq11(orders.id, input.id), eq11(orders.tenantId, ctx.tenantId))).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const currentStatus = existing[0].status;
       if (currentStatus === "delivered") {
@@ -14370,15 +15411,15 @@ ${analysisText}
         throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u0625\u0639\u0627\u062F\u0629 \u062A\u0641\u0639\u064A\u0644\u0647");
       }
       const result = await db.transaction(async (tx) => {
-        await tx.update(orders).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq8(orders.id, input.id), eq8(orders.tenantId, ctx.tenantId)));
+        await tx.update(orders).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(and7(eq11(orders.id, input.id), eq11(orders.tenantId, ctx.tenantId)));
         if (input.status === "cancelled") {
           const linked = await tx.select().from(salesInvoices).where(ilike4(salesInvoices.notes, `%${existing[0].orderNumber}%`)).limit(1);
           if (linked.length === 0) {
-            const items = await tx.select().from(orderItems).where(eq8(orderItems.orderId, input.id));
+            const items = await tx.select().from(orderItems).where(eq11(orderItems.orderId, input.id));
             for (const it of items) {
               await tx.update(products).set({
-                currentStock: sql7`${products.currentStock} + ${it.quantity}`
-              }).where(eq8(products.id, it.productId));
+                currentStock: sql8`${products.currentStock} + ${it.quantity}`
+              }).where(eq11(products.id, it.productId));
               await tx.insert(inventoryMovements).values({
                 tenantId: ctx.tenantId,
                 productId: it.productId,
@@ -14402,26 +15443,26 @@ ${analysisText}
     // Convert a (web/store) order into an official sales invoice + auto-posting GL entries
     // Stock was already reserved at order time — no second deduction happens here.
     createSaleInvoice: tenantProcedure.input(
-      z5.object({
-        orderId: z5.number(),
-        paymentMethod: z5.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
-        paidAmount: z5.string().default("0").refine((v) => {
+      z7.object({
+        orderId: z7.number(),
+        paymentMethod: z7.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
+        paidAmount: z7.string().default("0").refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && isFinite(n) && n >= 0;
         }, "\u0627\u0644\u0645\u0628\u0644\u063A \u0627\u0644\u0645\u062F\u0641\u0648\u0639 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        notes: z5.string().optional(),
-        salesRepId: z5.string().optional()
+        notes: z7.string().optional(),
+        salesRepId: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await seedDefaultAccountsForTenant(ctx.tenantId);
-      const [order] = await db.select().from(orders).where(and6(eq8(orders.id, input.orderId), eq8(orders.tenantId, ctx.tenantId))).limit(1);
+      const [order] = await db.select().from(orders).where(and7(eq11(orders.id, input.orderId), eq11(orders.tenantId, ctx.tenantId))).limit(1);
       if (!order) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (order.status === "cancelled")
         throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u062D\u0648\u064A\u0644\u0647");
-      const items = await db.select().from(orderItems).where(eq8(orderItems.orderId, order.id));
+      const items = await db.select().from(orderItems).where(eq11(orderItems.orderId, order.id));
       if (items.length === 0) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0644\u0627 \u064A\u062D\u062A\u0648\u064A \u0623\u0635\u0646\u0627\u0641\u0627\u064B");
       const subtotal = items.reduce(
         (s, it) => s + parseFloat(it.unitPrice || "0") * it.quantity,
@@ -14442,7 +15483,7 @@ ${analysisText}
           throw new Error(
             `\u062A\u0645 \u062A\u062D\u0648\u064A\u0644 \u0627\u0644\u0637\u0644\u0628 \u0645\u0633\u0628\u0642\u0627\u064B \u0625\u0644\u0649 \u0641\u0627\u062A\u0648\u0631\u0629 ${prior[0].invoiceNumber}`
           );
-        const fresh = await tx.select().from(orders).where(eq8(orders.id, order.id)).limit(1);
+        const fresh = await tx.select().from(orders).where(eq11(orders.id, order.id)).limit(1);
         if (fresh.length === 0 || fresh[0].status === "cancelled")
           throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u062D\u0648\u064A\u0644\u0647");
         const [invoice] = await tx.insert(salesInvoices).values({
@@ -14472,7 +15513,7 @@ ${analysisText}
         await tx.insert(salesInvoiceItems).values(itemValues);
         const unpaid = total - paidAmount;
         if (order.customerId && unpaid > 9e-3) {
-          await tx.update(customers).set({ balance: sql7`${customers.balance} + ${unpaid}` }).where(eq8(customers.id, order.customerId));
+          await tx.update(customers).set({ balance: sql8`${customers.balance} + ${unpaid}` }).where(eq11(customers.id, order.customerId));
         }
         await postInvoiceGlEntries(tx, {
           kind: "sale",
@@ -14485,7 +15526,7 @@ ${analysisText}
           tenantId: ctx.tenantId
         });
         if (fresh[0].status === "pending") {
-          await tx.update(orders).set({ status: "confirmed", updatedAt: /* @__PURE__ */ new Date() }).where(eq8(orders.id, order.id));
+          await tx.update(orders).set({ status: "confirmed", updatedAt: /* @__PURE__ */ new Date() }).where(eq11(orders.id, order.id));
         }
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
@@ -14498,13 +15539,13 @@ ${analysisText}
     }),
     // Authenticated only — order line items may reference internal pricing.
     getItems: protectedProcedure.input(
-      z5.object({
-        orderId: z5.number()
+      z7.object({
+        orderId: z7.number()
       })
     ).query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(orderItems).where(eq8(orderItems.orderId, input.orderId));
+      return await db.select().from(orderItems).where(eq11(orderItems.orderId, input.orderId));
     })
   }),
   // ─── Commercial Dashboard Stats ────────────────────────────────
@@ -14540,73 +15581,73 @@ ${analysisText}
           }
         };
       const allProducts = await db.select().from(products).where(
-        and6(eq8(products.isActive, true), eq8(products.tenantId, ctx.tenantId), isNull4(products.deletedAt))
+        and7(eq11(products.isActive, true), eq11(products.tenantId, ctx.tenantId), isNull4(products.deletedAt))
       );
       const lowStock = allProducts.filter((p) => p.currentStock <= p.minStock).sort(
         (a, b) => a.currentStock - a.minStock - (b.currentStock - b.minStock)
       ).slice(0, 10);
-      const monthStart = new Date(
+      const monthStart2 = new Date(
         (/* @__PURE__ */ new Date()).getFullYear(),
         (/* @__PURE__ */ new Date()).getMonth(),
         1
       );
       const [salesAgg] = await db.select({
-        total: sql7`coalesce(sum(${salesInvoices.total}), '0')`
+        total: sql8`coalesce(sum(${salesInvoices.total}), '0')`
       }).from(salesInvoices).where(
-        and6(
-          eq8(salesInvoices.tenantId, ctx.tenantId),
-          gte4(salesInvoices.invoiceDate, monthStart),
+        and7(
+          eq11(salesInvoices.tenantId, ctx.tenantId),
+          gte5(salesInvoices.invoiceDate, monthStart2),
           ne3(salesInvoices.status, "cancelled")
         )
       );
       const [purchasesAgg] = await db.select({
-        total: sql7`coalesce(sum(${purchaseInvoices.total}), '0')`
+        total: sql8`coalesce(sum(${purchaseInvoices.total}), '0')`
       }).from(purchaseInvoices).where(
-        and6(
-          eq8(purchaseInvoices.tenantId, ctx.tenantId),
-          gte4(purchaseInvoices.invoiceDate, monthStart),
+        and7(
+          eq11(purchaseInvoices.tenantId, ctx.tenantId),
+          gte5(purchaseInvoices.invoiceDate, monthStart2),
           ne3(purchaseInvoices.status, "cancelled")
         )
       );
-      const [ordersAgg] = await db.select({ count: sql7`count(*)::int` }).from(orders).where(and6(eq8(orders.tenantId, ctx.tenantId), gte4(orders.createdAt, monthStart)));
-      const [productsCount] = await db.select({ count: sql7`count(*)::int` }).from(products).where(
-        and6(eq8(products.isActive, true), eq8(products.tenantId, ctx.tenantId), isNull4(products.deletedAt))
+      const [ordersAgg] = await db.select({ count: sql8`count(*)::int` }).from(orders).where(and7(eq11(orders.tenantId, ctx.tenantId), gte5(orders.createdAt, monthStart2)));
+      const [productsCount] = await db.select({ count: sql8`count(*)::int` }).from(products).where(
+        and7(eq11(products.isActive, true), eq11(products.tenantId, ctx.tenantId), isNull4(products.deletedAt))
       );
-      const [customersCount] = await db.select({ count: sql7`count(*)::int` }).from(customers).where(
-        and6(
-          eq8(customers.isActive, true),
-          eq8(customers.tenantId, ctx.tenantId),
+      const [customersCount] = await db.select({ count: sql8`count(*)::int` }).from(customers).where(
+        and7(
+          eq11(customers.isActive, true),
+          eq11(customers.tenantId, ctx.tenantId),
           isNull4(customers.deletedAt)
         )
       );
-      const [suppliersCount] = await db.select({ count: sql7`count(*)::int` }).from(suppliers).where(
-        and6(
-          eq8(suppliers.isActive, true),
-          eq8(suppliers.tenantId, ctx.tenantId),
+      const [suppliersCount] = await db.select({ count: sql8`count(*)::int` }).from(suppliers).where(
+        and7(
+          eq11(suppliers.isActive, true),
+          eq11(suppliers.tenantId, ctx.tenantId),
           isNull4(suppliers.deletedAt)
         )
       );
-      const [salesCount] = await db.select({ count: sql7`count(*)::int` }).from(salesInvoices).where(
-        and6(
-          eq8(salesInvoices.tenantId, ctx.tenantId),
+      const [salesCount] = await db.select({ count: sql8`count(*)::int` }).from(salesInvoices).where(
+        and7(
+          eq11(salesInvoices.tenantId, ctx.tenantId),
           ne3(salesInvoices.status, "cancelled")
         )
       );
-      const [purchasesCount] = await db.select({ count: sql7`count(*)::int` }).from(purchaseInvoices).where(
-        and6(
-          eq8(purchaseInvoices.tenantId, ctx.tenantId),
+      const [purchasesCount] = await db.select({ count: sql8`count(*)::int` }).from(purchaseInvoices).where(
+        and7(
+          eq11(purchaseInvoices.tenantId, ctx.tenantId),
           ne3(purchaseInvoices.status, "cancelled")
         )
       );
-      const [ordersCount] = await db.select({ count: sql7`count(*)::int` }).from(orders).where(and6(eq8(orders.tenantId, ctx.tenantId), ne3(orders.status, "cancelled")));
+      const [ordersCount] = await db.select({ count: sql8`count(*)::int` }).from(orders).where(and7(eq11(orders.tenantId, ctx.tenantId), ne3(orders.status, "cancelled")));
       const topCustomers = await db.select().from(customers).where(
-        and6(
-          eq8(customers.tenantId, ctx.tenantId),
-          eq8(customers.isActive, true),
+        and7(
+          eq11(customers.tenantId, ctx.tenantId),
+          eq11(customers.isActive, true),
           isNull4(customers.deletedAt),
-          sql7`${customers.balance} > 0`
+          sql8`${customers.balance} > 0`
         )
-      ).orderBy(desc4(customers.balance)).limit(5);
+      ).orderBy(desc5(customers.balance)).limit(5);
       return {
         lowStock: lowStock.map((p) => ({
           id: p.id,
@@ -14643,9 +15684,9 @@ ${analysisText}
   // ─── Public Storefront (website integration) ────────────────────
   store: router({
     catalog: publicProcedure.input(
-      z5.object({
-        search: z5.string().optional(),
-        category: z5.string().optional()
+      z7.object({
+        search: z7.string().optional(),
+        category: z7.string().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -14681,33 +15722,33 @@ ${analysisText}
   }),
   payments: router({
     list: tenantProcedure.input(
-      z5.object({
-        source: z5.enum(["sales", "purchases"]),
-        invoiceId: z5.number()
+      z7.object({
+        source: z7.enum(["sales", "purchases"]),
+        invoiceId: z7.number()
       })
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
       return await db.select().from(payments).where(
-        and6(
-          eq8(payments.tenantId, ctx.tenantId),
-          eq8(payments.source, input.source),
-          eq8(payments.invoiceId, input.invoiceId)
+        and7(
+          eq11(payments.tenantId, ctx.tenantId),
+          eq11(payments.source, input.source),
+          eq11(payments.invoiceId, input.invoiceId)
         )
-      ).orderBy(desc4(payments.paymentDate));
+      ).orderBy(desc5(payments.paymentDate));
     }),
     create: tenantProcedure.input(
-      z5.object({
-        source: z5.enum(["sales", "purchases"]),
-        invoiceId: z5.number(),
-        amount: z5.string().refine((v) => {
+      z7.object({
+        source: z7.enum(["sales", "purchases"]),
+        invoiceId: z7.number(),
+        amount: z7.string().refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && n > 0 && n < 1e9;
         }, "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B"),
-        paymentMethod: z5.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
-        paymentDate: z5.string().optional(),
-        notes: z5.string().optional()
+        paymentMethod: z7.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
+        paymentDate: z7.string().optional(),
+        notes: z7.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -14715,7 +15756,7 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const paymentAmount = parseFloat(input.amount);
       if (input.source === "sales") {
-        const invoices = await db.select().from(salesInvoices).where(and6(eq8(salesInvoices.id, input.invoiceId), eq8(salesInvoices.tenantId, ctx.tenantId))).limit(1);
+        const invoices = await db.select().from(salesInvoices).where(and7(eq11(salesInvoices.id, input.invoiceId), eq11(salesInvoices.tenantId, ctx.tenantId))).limit(1);
         if (invoices.length === 0)
           throw new Error("\u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
         const inv = invoices[0];
@@ -14742,9 +15783,9 @@ ${analysisText}
             paidAmount: newPaid.toString(),
             status: newStatus,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(and6(eq8(salesInvoices.id, input.invoiceId), eq8(salesInvoices.tenantId, ctx.tenantId)));
+          }).where(and7(eq11(salesInvoices.id, input.invoiceId), eq11(salesInvoices.tenantId, ctx.tenantId)));
           if (inv.customerId) {
-            await tx.update(customers).set({ balance: sql7`${customers.balance} - ${paymentAmount}` }).where(and6(eq8(customers.id, inv.customerId), eq8(customers.tenantId, ctx.tenantId)));
+            await tx.update(customers).set({ balance: sql8`${customers.balance} - ${paymentAmount}` }).where(and7(eq11(customers.id, inv.customerId), eq11(customers.tenantId, ctx.tenantId)));
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
@@ -14754,7 +15795,7 @@ ${analysisText}
           return { paymentId: pay.id };
         });
       } else {
-        const invoices = await db.select().from(purchaseInvoices).where(and6(eq8(purchaseInvoices.id, input.invoiceId), eq8(purchaseInvoices.tenantId, ctx.tenantId))).limit(1);
+        const invoices = await db.select().from(purchaseInvoices).where(and7(eq11(purchaseInvoices.id, input.invoiceId), eq11(purchaseInvoices.tenantId, ctx.tenantId))).limit(1);
         if (invoices.length === 0)
           throw new Error("\u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0634\u062A\u0631\u064A\u0627\u062A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
         const inv = invoices[0];
@@ -14781,9 +15822,9 @@ ${analysisText}
             paidAmount: newPaid.toString(),
             status: newStatus,
             updatedAt: /* @__PURE__ */ new Date()
-          }).where(and6(eq8(purchaseInvoices.id, input.invoiceId), eq8(purchaseInvoices.tenantId, ctx.tenantId)));
+          }).where(and7(eq11(purchaseInvoices.id, input.invoiceId), eq11(purchaseInvoices.tenantId, ctx.tenantId)));
           if (inv.supplierId) {
-            await tx.update(suppliers).set({ balance: sql7`${suppliers.balance} - ${paymentAmount}` }).where(and6(eq8(suppliers.id, inv.supplierId), eq8(suppliers.tenantId, ctx.tenantId)));
+            await tx.update(suppliers).set({ balance: sql8`${suppliers.balance} - ${paymentAmount}` }).where(and7(eq11(suppliers.id, inv.supplierId), eq11(suppliers.tenantId, ctx.tenantId)));
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
@@ -14799,6 +15840,7 @@ ${analysisText}
 });
 
 // server/_core/context.ts
+init_env();
 function resolveTenantId(user, req) {
   if (!user) return { tenantId: null, isSuperAdmin: false };
   if (user.openId !== ENV.ownerOpenId)
@@ -14830,7 +15872,8 @@ async function createContext(opts) {
 }
 
 // server/_core/app.ts
-import { sql as sql8 } from "drizzle-orm";
+init_db();
+import { sql as sql9 } from "drizzle-orm";
 function createApp() {
   const app2 = express();
   app2.disable("x-powered-by");
@@ -14911,7 +15954,7 @@ function createApp() {
     try {
       const db = await getDb();
       if (db) {
-        await db.execute(sql8`select 1`);
+        await db.execute(sql9`select 1`);
         dbAvailable = true;
       }
     } catch {
@@ -14962,18 +16005,18 @@ function createApp() {
 
 // server/_core/static.ts
 import express2 from "express";
-import fs from "fs";
-import path from "path";
+import fs2 from "fs";
+import path2 from "path";
 function serveStatic(app2) {
-  const distPath = path.resolve(import.meta.dirname, "..", "dist", "public");
-  if (!fs.existsSync(distPath)) {
+  const distPath = path2.resolve(import.meta.dirname, "..", "dist", "public");
+  if (!fs2.existsSync(distPath)) {
     console.error(
       `Could not find the build directory: ${distPath}, make sure to build the client first`
     );
   }
   app2.use(express2.static(distPath));
   app2.use("*", (_req, res) => {
-    res.sendFile(path.resolve(distPath, "index.html"));
+    res.sendFile(path2.resolve(distPath, "index.html"));
   });
 }
 

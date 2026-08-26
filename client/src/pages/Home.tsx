@@ -417,6 +417,7 @@ export default function Home() {
   const animationFramesRef = useRef<Map<string, number>>(new Map());
 
   useEffect(() => {
+    const frames = animationFramesRef.current;
     const targets: [string, number][] = [
       ["revenue", summaryData?.totalRevenue || 0],
       ["expense", summaryData?.totalExpense || 0],
@@ -456,10 +457,8 @@ export default function Home() {
 
     // Cleanup all animations on unmount
     return () => {
-      animationFramesRef.current.forEach(frameId =>
-        cancelAnimationFrame(frameId)
-      );
-      animationFramesRef.current.clear();
+      frames.forEach(frameId => cancelAnimationFrame(frameId));
+      frames.clear();
     };
   }, [summaryData]);
   const countUp = (key: string, value: number | undefined | null): string =>
@@ -582,7 +581,7 @@ export default function Home() {
     });
 
     return categories;
-  }, [filteredAccountsManagement]);
+  }, [accountsData, filteredAccountsManagement]);
 
   // Filtered & Sorted Transactions with Totals
   const filteredRecords = useMemo(() => {

@@ -159,7 +159,7 @@ export function useCommandPaletteInput(options: UseCommandPaletteInputOptions) {
       }
     }
     return false;
-  }, [effectiveIsOpen, effectiveSelectedIndex, filteredItems, onClose, onExecute, setInternalIsOpen, setInternalSelectedIndex]);
+  }, [effectiveIsOpen, effectiveSelectedIndex, effectiveSetIsOpen, effectiveSetSelectedIndex, filteredItems, onClose, onExecute]);
 
   useEffect(() => {
     if (effectiveIsOpen && setInternalSelectedIndex) {

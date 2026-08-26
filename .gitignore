@@ -51,4 +51,11 @@ t.txt
 
 BACKUP_ENCRYPTION_KEY_LOCAL_COPY.txt
 .git-commit-msg.txt  
-.git-commit-msg.txt 
+
+# Transient diagnostic outputs (db probes / migration tests)
+addcols.txt
+db-check-out.txt
+migrate-test.txt
+test-run.err
+*-out.txt
+probe-*.txt

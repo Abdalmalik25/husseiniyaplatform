@@ -44,7 +44,7 @@ export default function NotFound() {
               `السلام عليكم ${brand.names.legalFull}، واجهت صفحة 404 وأحتاج مساعدة.`
             )}
             target="_blank"
-            rel="noopener"
+            rel="noopener noreferrer"
           >
             <Button
               variant="outline"

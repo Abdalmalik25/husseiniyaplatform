@@ -18,7 +18,7 @@
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "db:migrate": "tsx scripts/run-migrations.ts",
-    "postbuild": "tsx scripts/run-migrations.ts || true"
+    "postbuild": "tsx scripts/run-migrations.ts || node -e \"process.exit(0)\""
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.693.0",

@@ -1099,6 +1099,10 @@ var salesInvoices = pgTable(
     index("idx_salesInvoices_customer").on(t.customerId),
     index("idx_salesInvoices_status").on(t.status),
     index("idx_salesInvoices_currency").on(t.currencyId),
+    index("idx_salesInvoices_salesRep").on(t.salesRepId),
+    index("idx_salesInvoices_tenant_salesrep").on(t.tenantId, t.salesRepId),
+    index("idx_salesInvoices_tenant_status_date").on(t.tenantId, t.status, t.invoiceDate),
+    index("idx_salesInvoices_tenant_customer_date").on(t.tenantId, t.customerId, t.invoiceDate),
     unique("salesInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
     check("chk_sales_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
     check("chk_sales_invoice_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
@@ -1109,8 +1113,8 @@ var salesInvoices = pgTable(
     check("chk_sales_invoice_currency_rate_positive", sql`${t.currencyRate} > 0`),
     check("chk_sales_invoice_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
     check("chk_sales_invoice_status_posted_immutable", sql`
-      CASE WHEN ${t.status} IN ('paid', 'cancelled') THEN 
-        ${t.postedAt} IS NOT NULL 
+      CASE WHEN ${t.status} IN ('paid', 'cancelled') THEN
+        ${t.postedAt} IS NOT NULL
       ELSE TRUE END
     `)
   ]
@@ -3420,7 +3424,11 @@ var ENV = {
   ownerPassword: process.env.OWNER_PASSWORD ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
-  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? ""
+  forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  /** Master secret for encrypted backups (AES-256-GCM). Required in production. */
+  backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY ?? "",
+  /** Local directory for backup blobs when S3 is not configured. */
+  backupDir: process.env.BACKUP_DIR ?? ""
 };
 
 // server/db.ts

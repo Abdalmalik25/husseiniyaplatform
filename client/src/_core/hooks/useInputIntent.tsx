@@ -189,7 +189,7 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
       e.preventDefault();
       e.stopPropagation();
     }
-  }, [enabled, onIntent]);
+  }, [createDetail, enabled, onIntent]);
 
   const handleKeyUp = useCallback((e: React.KeyboardEvent) => {
     if (!enabled) return;
@@ -203,7 +203,7 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
     const detail = createDetail("composition-start", e, { data: e.data });
     onCompositionStart?.(detail);
     onIntent?.(detail);
-  }, [enabled, onCompositionStart, onIntent]);
+  }, [createDetail, enabled, onCompositionStart, onIntent]);
 
   const handleCompositionUpdate = useCallback((e: React.CompositionEvent) => {
     if (!enabled) return;
@@ -212,7 +212,7 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
     const detail = createDetail("composition-update", e, { data: e.data });
     onCompositionUpdate?.(detail);
     onIntent?.(detail);
-  }, [enabled, onCompositionUpdate, onIntent]);
+  }, [createDetail, enabled, onCompositionUpdate, onIntent]);
 
   const handleCompositionEnd = useCallback((e: React.CompositionEvent) => {
     if (!enabled) return;
@@ -236,7 +236,7 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
         (e.target as HTMLInputElement)?.dispatchEvent(inputEvent);
       }, 0);
     }
-  }, [enabled, onCompositionEnd, onIntent]);
+  }, [createDetail, enabled, onCompositionEnd, onIntent]);
 
   const handleBeforeInput = useCallback((e: React.FormEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     if (!enabled) return;
@@ -254,7 +254,7 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
       e.preventDefault();
     }
     return !handled;
-  }, [enabled, onBeforeInput]);
+  }, [createDetail, enabled, onBeforeInput]);
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
     if (!enabled) return;
@@ -273,7 +273,7 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
       e.preventDefault();
       e.stopPropagation();
     }
-  }, [enabled, onIntent]);
+  }, [createDetail, enabled, onIntent]);
 
   const handleCut = useCallback((e: React.ClipboardEvent) => {
     if (!enabled) return;
@@ -284,7 +284,7 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
     });
 
     onIntent?.(detail);
-  }, [enabled, onIntent]);
+  }, [createDetail, enabled, onIntent]);
 
   const handleCopy = useCallback((e: React.ClipboardEvent) => {
     if (!enabled) return;
@@ -295,7 +295,7 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
     });
 
     onIntent?.(detail);
-  }, [enabled, onIntent]);
+  }, [createDetail, enabled, onIntent]);
 
   const handleSelect = useCallback((e: React.SyntheticEvent) => {
     if (!enabled) return;
@@ -321,7 +321,7 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
     element.addEventListener("beforeinput", handleBeforeInput as unknown as EventListener);
     element.addEventListener("paste", handlePaste as unknown as EventListener);
     element.addEventListener("cut", handleCut as unknown as EventListener);
-    element.addEventListener("copy", handleCut as unknown as EventListener);
+    element.addEventListener("copy", handleCopy as unknown as EventListener);
     element.addEventListener("select", handleSelect as unknown as EventListener);
     element.addEventListener("submit", handleFormSubmit as unknown as EventListener);
 
@@ -334,12 +334,11 @@ export function useInputIntent(options: UseInputIntentOptions = {}) {
       element.removeEventListener("beforeinput", handleBeforeInput as unknown as EventListener);
       element.removeEventListener("paste", handlePaste as unknown as EventListener);
       element.removeEventListener("cut", handleCut as unknown as EventListener);
-      element.removeEventListener("copy", handleCut as unknown as EventListener);
+      element.removeEventListener("copy", handleCopy as unknown as EventListener);
       element.removeEventListener("select", handleSelect as unknown as EventListener);
       element.removeEventListener("submit", handleFormSubmit as unknown as EventListener);
     };
   }, [
-    enabled,
     handleKeyDown,
     handleKeyUp,
     handleCompositionStart,
