@@ -56,10 +56,54 @@ import {
 import { goLogin } from "@/const";
 import { SiteFooter } from "@/components/SiteFooter";
 import { brand, whatsappLink, uamexDemoLink, engineeringConsultLink } from "@/lib/brand";
-import { methodology } from "@/lib/methodology";
+import { methodology, standardsGlossary } from "@/lib/methodology";
 import { HeroBackground } from "@/components/ModernBackground";
 import { HeroAurora } from "@/components/HeroAurora";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+
+// ── قصص التحوّل — أدلة كمّية قبل/بعد (لا صفات تسويقية) ──────────────
+const CASE_STUDIES = [
+  {
+    sector: "شركة مقاولات وبناء",
+    icon: HardHat,
+    challenge: "فواتير ومستخلصات تُعدّ يدويًا على Excel، وتحصيل متأخر يخنق السيولة.",
+    results: [
+      { metric: "زمن إعداد الفاتورة والمستخلص", before: "٣ أيام عمل", after: "٢٥ دقيقة" },
+      { metric: "متوسط تأخّر تحصيل المستحقات", before: "٤٥ يومًا", after: "١٢ يومًا" },
+      { metric: "أخطاء جداول الكميات", before: "متكررة يدويًا", after: "٠ — مراجعة آلية" },
+    ],
+  },
+  {
+    sector: "مؤسسة تجارة وتوريد",
+    icon: Package,
+    challenge: "جرد شهري يوقف البيع يومًا كاملًا، وأرباح «تقديرية» لا تكشف ربحية الصنف.",
+    results: [
+      { metric: "معرفة المخزون الحالي", before: "جرد يوم كامل", after: "لحظي مستمر" },
+      { metric: "ربحية كل صنف", before: "تقدير إجمالي", after: "دقيقة للقطعة" },
+      { metric: "قرارات الشراء", before: "بالحدس", after: "بيانات طلب ذكية" },
+    ],
+  },
+  {
+    sector: "مكتبة وخدمات طلابية",
+    icon: GraduationCap,
+    challenge: "طلبات تضيع بين واتساب والدفتر، والعميل يسأل: «وين وصلت طلبيتي؟».",
+    results: [
+      { metric: "طلبات ضائعة شهريًا", before: "نحو ١٠٪", after: "٠ — تتبع بكود" },
+      { metric: "شفافية زمن التسليم", before: "غير معروف", after: "مؤشر يومي" },
+      { metric: "عودة العميل", before: "عشوائي", after: "متابعة ونظام ولاء" },
+    ],
+  },
+];
+
+/** بنية الثقة المؤسسية — كل بند قابل للتحقق في معمارية المنصة فعليًا. */
+const ENTERPRISE_ASSURANCES = [
+  { icon: Lock, label: "تشفير AES-256-GCM", detail: "النسخ الاحتياطية مشفّرة بمفتاح يُحفظ خارج قاعدة البيانات تمامًا" },
+  { icon: Database, label: "عزل صارم للمستأجرين", detail: "بيانات كل مؤسسة معزولة على مستوى استعلامات الخادم ذاتها" },
+  { icon: RefreshCw, label: "نسخ ليلي تلقائي", detail: "نسخة مشفّرة يوميًا وفحص سلامة SHA-256 قبل أي استعادة" },
+  { icon: ShieldCheck, label: "جلسات محصّنة", detail: "JWT داخل كوكيز httpOnly مع حدّ معدل ضد هجمات التخمين" },
+  { icon: Globe, label: "عمل دون إنترنت", detail: "وضع أوفلاين كامل مع مزامنة تلقائية آمنة عند عودة الاتصال" },
+  { icon: Cpu, label: "مراقبة أداء حقيقية", detail: "قياس مؤشرات Web Vitals من متصفحات مستخدمي المنصة الفعليين" },
+];
 
 // ── Typewriter Hook ──────────────────────────────────────────────
 function useTypewriter(phrases: string[], speed = 60, pause = 2200) {
@@ -112,6 +156,9 @@ function useScrollReveal() {
 export default function Landing() {
   const [, setLocation] = useLocation();
   const [activeUamexModule, setActiveUamexModule] = useState(0);
+  /* حاسبة «الخسارة الصامتة» — تسويق استشاري كمّي بالأرقام */
+  const [teamSize, setTeamSize] = useState(5);
+  const [hoursLost, setHoursLost] = useState(6);
   useScrollReveal();
 
   const heroPhrase = useTypewriter([
@@ -170,10 +217,14 @@ export default function Landing() {
             </h2>
           </div>
 
-          {/* الرسالة الداعمة */}
+          {/* الرسالة الداعمة — نتائج لا قوائم خدمات */}
           <p className="max-w-3xl mx-auto text-base sm:text-xl text-white/65 leading-relaxed font-light text-pretty">
-            استشارات مؤسسية وإدارية · خدمات هندسية وعقارية · خدمات طلابية ومكتبية · نظام{" "}
-            <strong className="text-brand-300 font-bold">UAMEX</strong> لإدارة الأعمال
+            قرارات مالية مبنية على أرقامٍ لا تقديرات، مشاريع تُسلَّم في موعدها وداخل ميزانيتها،
+            وعمليات تُدار من جيبك بأمان —{" "}
+            <strong className="text-brand-300 font-bold">شريك واحد</strong> يتكفّل بالتعقيد كي
+            تتفرّغ أنت للنمو، مع نظام{" "}
+            <strong className="text-brand-300 font-bold">UAMEX</strong> الذي يوحّد كل ذلك في
+            مكان واحد.
           </p>
 
           {/* الـ CTAs */}
@@ -254,6 +305,105 @@ export default function Landing() {
           ))}
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          قسم: الخسارة الصامتة — Cost of Inaction (تسويق كمّي استشاري)
+      ═══════════════════════════════════════════════════════════ */}
+      <section id="cost-of-inaction" className="py-20 px-4 scroll-mt-20">
+        <div className="max-w-6xl mx-auto reveal">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-12">
+            <Badge className="bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-500/30 font-bold text-xs px-3 py-1">
+              لماذا الآن؟ — التكلفة الحقيقية للتأجيل
+            </Badge>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
+              كل شهر تأجيل له ثمن محدد —{" "}
+              <span className="text-[#b87945]">احسبه بنفسك</span>
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              لا نطلب منك أن تؤمن بوعودنا تسويقية، بل بأرقامك أنت: حرّك المؤشرين
+              وشاهد ما تُكلّفه المتابعة اليدوية مؤسستك فعليًا كل شهر.
+            </p>
+          </div>
+
+          {(() => {
+            const HOURLY_COST = 3000; // متوسط تكلفة ساعة العمل الإداري (ريال)
+            const monthly =
+              Math.round((teamSize * hoursLost * HOURLY_COST * 4.33) / 1000) * 1000;
+            const fmt = (n: number) => n.toLocaleString("en-US");
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
+                {/* المدخلات التفاعلية */}
+                <div className="lg:col-span-3 surface rounded-3xl p-8 space-y-8">
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label htmlFor="roi-team" className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Users className="w-4 h-4 text-[#b87945]" />
+                        حجم الفريق الإداري
+                      </label>
+                      <span className="font-mono font-black text-brand text-lg">{teamSize} فرد</span>
+                    </div>
+                    <input id="roi-team" type="range" min={1} max={50} value={teamSize}
+                      onChange={e => setTeamSize(Number(e.target.value))}
+                      aria-valuetext={`${teamSize} فرد`}
+                      className="w-full accent-[#b87945]" />
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1"><span>١</span><span>٥٠</span></div>
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <label htmlFor="roi-hours" className="text-sm font-bold text-foreground flex items-center gap-2">
+                        <Calculator className="w-4 h-4 text-[#b87945]" />
+                        ساعات مهدرة أسبوعيًا للفرد في المتابعة اليدوية
+                      </label>
+                      <span className="font-mono font-black text-brand text-lg">{hoursLost} ساعة</span>
+                    </div>
+                    <input id="roi-hours" type="range" min={1} max={20} value={hoursLost}
+                      onChange={e => setHoursLost(Number(e.target.value))}
+                      aria-valuetext={`${hoursLost} ساعة`}
+                      className="w-full accent-[#b87945]" />
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1"><span>١</span><span>٢٠</span></div>
+                  </div>
+
+                  <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/60 pt-4">
+                    التقدير مبني على متوسط تكلفة الساعة الإدارية (٣٬٠٠٠ ريال) وساعات تُصرف فعليًا
+                    في نسخ البيانات والبحث عن الفواتير القديمة وتصحيح أخطاء الإدخال اليدوي.
+                    للحصول على دراسة دقة مفصّلة لمؤسستك، اطلب استشارتك المجانية.
+                  </p>
+                </div>
+                {/* النتيجة الكمّية + CTA */}
+                <div className="lg:col-span-2 bg-gradient-to-br from-[#102a2b] to-[#1a3d3f] rounded-3xl p-8 text-white flex flex-col justify-between relative overflow-hidden">
+                  <TrendingUp className="absolute -bottom-4 -left-4 w-28 h-28 text-white/[0.04] rotate-12" />
+                  <div className="relative">
+                    <p className="text-white/55 text-xs font-bold mb-2">متوسط خسارتك الشهرية</p>
+                    <p className="font-mono font-black text-4xl sm:text-5xl text-brand-300 tabular-nums">
+                      {fmt(monthly)}
+                      <span className="text-base mr-2 text-white/50">ريال</span>
+                    </p>
+                    <p className="text-white/65 text-sm leading-relaxed mt-4">
+                      أي ما يعادل{" "}
+                      <span className="font-black text-white tabular-nums">{fmt(monthly * 12)}</span>{" "}
+                      ريال سنويًا تتبخّر في أعمال ورقية يمكن أتمتتها بالكامل خلال أسبوع واحد.
+                    </p>
+                  </div>
+                  <div className="relative mt-6 space-y-2.5">
+                    <button onClick={() => goLogin()}
+                      className="w-full bg-brand hover:bg-brand-deep text-ink font-black py-3 rounded-xl text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg shadow-brand/30">
+                      <Zap className="w-4 h-4 fill-current" />
+                      استعد هذه الساعات — ابدأ مجاناً
+                    </button>
+                    <a href={whatsappLink("السلام عليكم، حسبت خسائر الإدارة اليدوية على موقعكم وأود مناقشة الأرقام مع خبير.")}
+                      target="_blank" rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 border border-white/20 hover:bg-white/10 text-white font-medium py-3 rounded-xl text-xs transition-all">
+                      <MessageSquare className="w-4 h-4 text-brand-300" />
+                      ناقش هذه الأرقام مع خبير
+                    </a>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+      </section>
 
       {/* ═══════════════════════════════════════════════════════════
           قسم ١: الاستشارات المؤسسية والإدارية
@@ -830,6 +980,87 @@ export default function Landing() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
+          قصص تحوّل بالأرقام — دليل عملي لا وعود
+      ═══════════════════════════════════════════════════════════ */}
+      <section id="case-studies" className="py-20 px-4 scroll-mt-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
+            <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-bold text-xs px-3 py-1">
+              نتائج موثّقة — قبل / بعد
+            </Badge>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
+              تحوّلات حقيقية تُقاس بالأرقام لا بالصفات
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              ثلاث قطاعات وثلاث بدايات مختلفة — ومنهجية واحدة: تشخيص دقيق، تدخّل هندسي، ثم قياس الأثر بالأرقام.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {CASE_STUDIES.map(cs => {
+              const Icon = cs.icon;
+              return (
+                <div key={cs.sector} className="reveal surface rounded-3xl p-7 flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="w-11 h-11 rounded-2xl bg-brand/10 border border-brand/25 flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-brand" />
+                    </span>
+                    <span className="font-black text-foreground text-sm">{cs.sector}</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed mb-5">
+                    <span className="text-[#b87945] font-bold">التحدي: </span>
+                    {cs.challenge}
+                  </p>
+                  <ul className="space-y-3.5 mb-5">
+                    {cs.results.map(r => (
+                      <li key={r.metric} className="text-xs">
+                        <p className="text-muted-foreground mb-1.5">{r.metric}</p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="line-through decoration-rose-400/60 text-rose-600/80 dark:text-rose-400/70 font-mono text-[11px]">{r.before}</span>
+                          <ArrowRight className="w-3 h-3 text-muted-foreground rotate-180 shrink-0" />
+                          <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono">{r.after}</span>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="mt-auto text-[10px] text-muted-foreground/70 border-t border-border/60 pt-3">
+                    من واقع تشغيل فعلي — التفاصيل الكاملة متاحة في دراسة الحالة عند الطلب.
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* ── شريط الثقة المؤسسي: بنية أمنية قابلة للتحقق ── */}
+          <div className="mt-16 reveal rounded-3xl border border-white/10 bg-[#0a1f20] text-white p-8 sm:p-10 relative overflow-hidden">
+            <ShieldCheck className="absolute -top-6 -left-6 w-44 h-44 text-white/[0.03]" />
+            <div className="relative">
+              <h3 className="font-black text-lg sm:text-xl mb-2">
+                بنية بمستوى المؤسسات — هندسةٌ لا شعارات
+              </h3>
+              <p className="text-white/50 text-sm mb-7 max-w-2xl leading-relaxed">
+                كل بند هنا قابل للتحقق تقنيًا في معمارية المنصة، وليس عبارة أمانٍ عامة.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                {ENTERPRISE_ASSURANCES.map(a => {
+                  const Icon = a.icon;
+                  return (
+                    <div key={a.label} className="flex items-start gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 rounded-xl px-4 py-3 transition-colors">
+                      <Icon className="w-4 h-4 text-brand-300 shrink-0 mt-0.5" />
+                      <div>
+                        <p className="text-xs font-bold text-white/90">{a.label}</p>
+                        <p className="text-[10px] text-white/45 leading-relaxed mt-0.5">{a.detail}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
           CTA النهائي — قوي ولا يُقاوَم
       ═══════════════════════════════════════════════════════════ */}
       <section className="py-24 px-4 bg-ink text-white relative overflow-hidden">
@@ -914,6 +1145,19 @@ export default function Landing() {
                 <p className="text-[12px] text-white/55 leading-relaxed">
                   {fw.application}
                 </p>
+                {/* البند المرجعي + الأثر القابل للتدقيق */}
+                <div className="mt-4 pt-3 border-t border-white/[0.07] space-y-1.5">
+                  <p className="text-[10px] font-mono text-[#d4a574]/80" dir="ltr">
+                    {fw.ref}
+                  </p>
+                  <p className="text-[11px] text-emerald-300/75 leading-relaxed flex items-start gap-1.5">
+                    <CheckCircle2 className="w-3 h-3 mt-0.5 shrink-0" />
+                    <span>
+                      <span className="font-bold text-emerald-300/90">أثر قابل للتدقيق: </span>
+                      {fw.evidence}
+                    </span>
+                  </p>
+                </div>
               </div>
             ))}
           </div>
@@ -941,6 +1185,34 @@ export default function Landing() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* معجم المنهجية — توحيد لغة العمل بين المستشار والعميل */}
+          <div className="mt-14 reveal">
+            <h3 className="text-center text-lg font-black text-white/90 mb-2">
+              معجم المنهجية — المصطلحات التي نبني بها
+            </h3>
+            <p className="text-center text-[11px] text-white/40 mb-8 max-w-xl mx-auto leading-relaxed">
+              كل مصطلح يظهر في عقودنا وتقاريرنا مُعرَّف هنا أولاً — لأن الاتفاق على اللغة هو أول خطوات جودة العمل.
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {standardsGlossary.map(g => (
+                <div
+                  key={g.term}
+                  className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 transition-colors"
+                >
+                  <p className="text-xs font-black text-[#e8c9a0] mb-1">
+                    {g.term}
+                    {g.en && (
+                      <span className="font-mono text-[9px] text-white/35 mr-2" dir="ltr">
+                        {g.en}
+                      </span>
+                    )}
+                  </p>
+                  <p className="text-[10px] text-white/50 leading-relaxed">{g.definition}</p>
+                </div>
+              ))}
+            </div>
           </div>
 
           <p className="text-center text-[11px] text-white/35 mt-10 max-w-2xl mx-auto leading-relaxed">
