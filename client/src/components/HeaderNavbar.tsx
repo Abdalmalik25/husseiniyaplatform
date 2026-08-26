@@ -1,5 +1,6 @@
 import React from "react";
 import { useLocation } from "wouter";
+import { withViewTransition } from "@/lib/viewTransition";
 import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
@@ -127,12 +128,12 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
     };
   }, [mobileOpen]);
 
-  /* تنقّل موحّد: روابط عادية أو مراسي تمرير سلس */
+  /* تنقّل موحّد: روابط عادية أو مراسي تمرير سلس — مع View Transition راقٍ */
   const navigateOrScroll = React.useCallback(
     (path: string) => {
       setMobileOpen(false);
       if (!path.includes("#")) {
-        setLocation(path);
+        withViewTransition(() => setLocation(path));
         return;
       }
       const [pagePath, hash] = path.split("#");
@@ -141,10 +142,10 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
           .getElementById(hash)
           ?.scrollIntoView({ behavior: "smooth", block: "start" });
       if (location !== pagePath && pagePath !== "/") {
-        setLocation(pagePath);
+        withViewTransition(() => setLocation(pagePath));
         window.setTimeout(scrollToHash, 380);
       } else if (location !== "/" && pagePath === "/") {
-        setLocation("/");
+        withViewTransition(() => setLocation("/"));
         window.setTimeout(scrollToHash, 380);
       } else {
         scrollToHash();

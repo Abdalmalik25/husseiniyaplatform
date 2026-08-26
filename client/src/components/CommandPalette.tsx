@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
+import { withViewTransition } from "@/lib/viewTransition";
 import { Command } from "cmdk";
 import {
   Building2,
@@ -81,7 +82,7 @@ export function CommandPalette() {
   const go = (path: string) => {
     setOpen(false);
     setQuery("");
-    setLocation(path);
+    withViewTransition(() => setLocation(path));
   };
 
   const QUICK_ACTIONS: CommandPaletteFeature[] = [

@@ -145,7 +145,15 @@ function useScrollReveal() {
   useEffect(() => {
     const els = document.querySelectorAll(".reveal");
     const obs = new IntersectionObserver(
-      entries => entries.forEach(e => e.isIntersecting && e.target.classList.add("revealed")),
+      entries =>
+        entries.forEach(e => {
+          if (!e.isIntersecting) return;
+          const el = e.target as HTMLElement;
+          // تدرّج ظهور متسلسل اختياري لكل عنصر عبر data-reveal-delay (ms)
+          const delay = Number(el.dataset.revealDelay ?? 0) || 0;
+          window.setTimeout(() => el.classList.add("revealed"), delay);
+          obs.unobserve(el);
+        }),
       { threshold: 0.12 }
     );
     els.forEach(el => obs.observe(el));
@@ -434,7 +442,7 @@ export default function Landing() {
                 <div
                   key={i}
                   className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group"
-                  style={{ animationDelay: `${i * 100}ms` }}
+                  data-reveal-delay={i * 100}
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 group-hover:bg-brand/20 transition-colors">
@@ -535,7 +543,7 @@ export default function Landing() {
                 <div
                   key={i}
                   className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group border border-[#b87945]/10"
-                  style={{ animationDelay: `${i * 100}ms` }}
+                  data-reveal-delay={i * 100}
                 >
                   <div className="flex items-start gap-4">
                     <div className="w-11 h-11 rounded-xl bg-[#b87945]/10 border border-[#b87945]/20 flex items-center justify-center shrink-0">
@@ -651,7 +659,7 @@ export default function Landing() {
                 <div
                   key={i}
                   className="reveal surface rounded-2xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition-all group"
-                  style={{ animationDelay: `${i * 80}ms` }}
+                  data-reveal-delay={i * 80}
                 >
                   <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-500/20 transition-colors">
                     <Icon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
@@ -923,7 +931,7 @@ export default function Landing() {
               <Card
                 key={i}
                 className="reveal surface p-6 rounded-2xl hover:-translate-y-1 hover:shadow-xl transition-all"
-                style={{ animationDelay: `${i * 100}ms` }}
+                data-reveal-delay={i * 100}
               >
                 <div className="flex items-center gap-1 text-brand mb-4">
                   {[1, 2, 3, 4, 5].map(s => (
@@ -968,7 +976,7 @@ export default function Landing() {
                 key={i}
                 value={`faq-${i}`}
                 className="reveal surface rounded-xl px-5 border border-border"
-                style={{ animationDelay: `${i * 60}ms` }}
+                data-reveal-delay={i * 60}
               >
                 <AccordionTrigger className="text-sm font-bold text-foreground py-4 text-right hover:no-underline">
                   {item.q}
