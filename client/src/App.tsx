@@ -316,48 +316,72 @@ function App() {
     }
   }, []);
 
-  // Prefetch ALL sibling page chunks after first paint so navigation never
-  // shows a loader in practice — every lazy import below is warm by idle time.
+  // Prefetch sibling page chunks after first paint — but *politely*:
+  //   • Skipped entirely for Save-Data / 2G visitors (their data quota wins).
+  //   • Warmed ONE chunk at a time so background traffic never competes with
+  //     user-initiated requests on slow links.
+  //   • Highest-traffic routes queued first.
   useEffect(() => {
+    const nav = navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    };
+    if (nav.connection?.saveData) return;
+    if (nav.connection?.effectiveType && /^(slow-)?2g$/.test(nav.connection.effectiveType))
+      return;
+
+    const chunks: Array<() => Promise<unknown>> = [
+      () => import("@/pages/Login"),
+      () => import("@/pages/Pricing"),
+      () => import("@/pages/Home"),
+      () => import("@/pages/WorkspaceDashboard"),
+      () => import("@/pages/Reports"),
+      () => import("@/pages/Commercial"),
+      () => import("@/pages/Download"),
+      () => import("@/pages/Journal"),
+      () => import("@/pages/Store"),
+      () => import("@/pages/Procurement"),
+      () => import("@/pages/Projects"),
+      () => import("@/pages/HR"),
+      () => import("@/pages/SupportQuality"),
+      () => import("@/pages/POS"),
+      () => import("@/pages/Permissions"),
+      () => import("@/pages/BasicData"),
+      () => import("@/pages/ManualJournal"),
+      () => import("@/pages/Customization"),
+      () => import("@/pages/Branches"),
+      () => import("@/pages/Audit"),
+      () => import("@/pages/Requisitions"),
+      () => import("@/pages/Operations"),
+      () => import("@/pages/Analytics"),
+      () => import("@/pages/Billing"),
+      () => import("@/pages/Settings"),
+      () => import("@/pages/Inventory"),
+      () => import("@/pages/Security"),
+      () => import("@/pages/ErpPage"),
+      () => import("@/pages/Integrate"),
+      () => import("@/pages/Portal"),
+    ];
+
+    let i = 0;
+    let cancelled = false;
+    const pump = () => {
+      if (cancelled || i >= chunks.length) return;
+      void chunks[i++]()
+        .then(() => {
+          if (!cancelled) window.setTimeout(pump, 300); // breathe between chunks
+        })
+        .catch(() => {});
+    };
+
     const idle =
       (window as Window &
         typeof globalThis & {
           requestIdleCallback: (cb: () => void) => number;
         }).requestIdleCallback ??
       ((cb: () => void) => window.setTimeout(cb, 2000));
-    const t = idle(() => {
-      import("@/pages/Reports").catch(() => {});
-      import("@/pages/Commercial").catch(() => {});
-      import("@/pages/Download").catch(() => {});
-      import("@/pages/Procurement").catch(() => {});
-      import("@/pages/Projects").catch(() => {});
-      import("@/pages/HR").catch(() => {});
-      import("@/pages/SupportQuality").catch(() => {});
-      import("@/pages/POS").catch(() => {});
-      import("@/pages/Permissions").catch(() => {});
-      import("@/pages/BasicData").catch(() => {});
-      import("@/pages/Journal").catch(() => {});
-      import("@/pages/ManualJournal").catch(() => {});
-      import("@/pages/Customization").catch(() => {});
-      import("@/pages/Branches").catch(() => {});
-      import("@/pages/Audit").catch(() => {});
-      import("@/pages/Requisitions").catch(() => {});
-      import("@/pages/Operations").catch(() => {});
-      import("@/pages/Home").catch(() => {});
-      import("@/pages/WorkspaceDashboard").catch(() => {});
-      import("@/pages/Analytics").catch(() => {});
-      import("@/pages/Billing").catch(() => {});
-      import("@/pages/Settings").catch(() => {});
-      import("@/pages/Inventory").catch(() => {});
-      import("@/pages/Security").catch(() => {});
-      import("@/pages/ErpPage").catch(() => {});
-      import("@/pages/Store").catch(() => {});
-      import("@/pages/Integrate").catch(() => {});
-      import("@/pages/Portal").catch(() => {});
-      import("@/pages/Pricing").catch(() => {});
-      import("@/pages/Login").catch(() => {});
-    });
+    const t = idle(pump);
     return () => {
+      cancelled = true;
       if (typeof t === "number") clearTimeout(t);
     };
   }, []);

@@ -16,6 +16,7 @@ const queryClient = new QueryClient({
     queries: {
       staleTime: 60_000,
       refetchOnWindowFocus: false,
+      refetchOnReconnect: true, // مزامنة تلقائية فور عودة اتصال الأوفلاين
       retry: 1,
     },
   },
