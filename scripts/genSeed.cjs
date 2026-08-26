@@ -12,8 +12,8 @@ const ACC_TYPE = {
   المصروفات: "expense",
   الايرادات: "revenue",
 };
-const norm = (s) => (s == null ? "" : String(s).trim());
-const isBlank = (s) => {
+const norm = s => (s == null ? "" : String(s).trim());
+const isBlank = s => {
   const v = norm(s);
   return v === "" || v === "NULL" || v === "null";
 };
@@ -82,7 +82,7 @@ for (let i = 1; i < svcRaw.length; i++) {
 }
 
 // de-dupe by code (keep first)
-const dedup = (arr) => {
+const dedup = arr => {
   const seen = new Set();
   const out = [];
   for (const x of arr) {

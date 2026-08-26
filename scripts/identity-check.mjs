@@ -32,10 +32,16 @@ if (!DATABASE_URL) {
 const sql = neon(DATABASE_URL);
 
 logit("Users:");
-logit(await sql`SELECT id, "openId", username, name, role, "tenantId", "loginMethod", "lastSignedIn" FROM users ORDER BY id`);
+logit(
+  await sql`SELECT id, "openId", username, name, role, "tenantId", "loginMethod", "lastSignedIn" FROM users ORDER BY id`
+);
 logit("Tenants:");
-logit(await sql`SELECT id, code, name, country, currency, "isLibrary", "isActive" FROM tenants ORDER BY id`);
+logit(
+  await sql`SELECT id, code, name, country, currency, "isLibrary", "isActive" FROM tenants ORDER BY id`
+);
 logit("Settings:");
-logit(await sql`SELECT id, "tenantId", "institutionName", "accountingPeriod", "currency", "subscriptionStatus", "trialEndsAt" FROM settings ORDER BY id`);
+logit(
+  await sql`SELECT id, "tenantId", "institutionName", "accountingPeriod", "currency", "subscriptionStatus", "trialEndsAt" FROM settings ORDER BY id`
+);
 logit("DONE");
 process.exit(0);

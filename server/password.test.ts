@@ -4,7 +4,7 @@ import { hashPassword, verifyPassword } from "./_core/password";
 describe("hashPassword", () => {
   it("produces a scrypt-formatted hash string", async () => {
     const hash = await hashPassword("mySecretPass123");
-        expect(hash).toMatch(/^scrypt\$[a-f0-9]{32}\$[a-f0-9]{128}$/);
+    expect(hash).toMatch(/^scrypt\$[a-f0-9]{32}\$[a-f0-9]{128}$/);
   });
 
   it("includes the scrypt prefix marker", async () => {

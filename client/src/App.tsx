@@ -30,7 +30,9 @@ const Download = lazy(() => import("@/pages/Download"));
 const Pricing = lazy(() => import("@/pages/Pricing"));
 const Contact = lazy(() => import("@/pages/Contact"));
 const KnowledgeHub = lazy(() => import("@/pages/KnowledgeHub"));
-const InteractiveCalculators = lazy(() => import("@/pages/InteractiveCalculators"));
+const InteractiveCalculators = lazy(
+  () => import("@/pages/InteractiveCalculators")
+);
 const TechSolutions = lazy(() => import("@/pages/TechSolutions"));
 const ProjectGovernance = lazy(() => import("@/pages/ProjectGovernance"));
 const Commercial = lazy(() => import("@/pages/Commercial"));
@@ -139,160 +141,160 @@ function Router() {
           App for keyboard & screen-reader users (WCAG 2.4.1). */}
       <div id="main-content" tabIndex={-1} className="focus:outline-none">
         <Suspense fallback={<BootFallback />}>
-      <Switch>
-        {/* ── Public marketing & guest pages (no session required) ── */}
-        <Route path={"/"} component={Landing} />
-        <Route path={"/login"} component={Login} />
-        <Route path={"/about"} component={About} />
-        <Route path={"/portal"} component={Portal} />
-        <Route path={"/download"} component={Download} />
-        <Route path={"/pricing"} component={Pricing} />
-        <Route path={"/contact"} component={Contact} />
-        <Route path={"/insights"} component={KnowledgeHub} />
-        <Route path={"/tools"} component={InteractiveCalculators} />
-        <Route path={"/solutions"} component={TechSolutions} />
-        <Route path={"/governance"} component={ProjectGovernance} />
-        <Route path={"/integrate"} component={Integrate} />
+          <Switch>
+            {/* ── Public marketing & guest pages (no session required) ── */}
+            <Route path={"/"} component={Landing} />
+            <Route path={"/login"} component={Login} />
+            <Route path={"/about"} component={About} />
+            <Route path={"/portal"} component={Portal} />
+            <Route path={"/download"} component={Download} />
+            <Route path={"/pricing"} component={Pricing} />
+            <Route path={"/contact"} component={Contact} />
+            <Route path={"/insights"} component={KnowledgeHub} />
+            <Route path={"/tools"} component={InteractiveCalculators} />
+            <Route path={"/solutions"} component={TechSolutions} />
+            <Route path={"/governance"} component={ProjectGovernance} />
+            <Route path={"/integrate"} component={Integrate} />
 
-        {/* ── Operational pages (login + subscription required) ── */}
-        <Route path={"/app"}>
-          <RequireAuth>
-            <WorkspaceDashboard />
-          </RequireAuth>
-        </Route>
-        <Route path={"/accounting"}>
-          <RequireAuth>
-            <Home />
-          </RequireAuth>
-        </Route>
-        <Route path={"/commercial"}>
-          <RequireAuth>
-            <Commercial />
-          </RequireAuth>
-        </Route>
-        <Route path={"/reports"}>
-          <RequireAuth>
-            <Reports />
-          </RequireAuth>
-        </Route>
-        <Route path={"/settings"}>
-          <RequireAuth>
-            <Settings />
-          </RequireAuth>
-        </Route>
-        <Route path={"/erp"}>
-          <RequireAuth>
-            <ErpPage />
-          </RequireAuth>
-        </Route>
-        <Route path={"/inventory"}>
-          <RequireAuth>
-            <Inventory />
-          </RequireAuth>
-        </Route>
-        <Route path={"/store"}>
-          <RequireAuth>
-            <Store />
-          </RequireAuth>
-        </Route>
-        <Route path={"/security"}>
-          <RequireAuth>
-            <Security />
-          </RequireAuth>
-        </Route>
-        <Route path={"/procurement-workspace"}>
-          <RequireAuth>
-            <ProcurementWorkspace />
-          </RequireAuth>
-        </Route>
-        <Route path={"/supplier-analytics"}>
-          <RequireAuth>
-            <SupplierAnalytics />
-          </RequireAuth>
-        </Route>
-        <Route path={"/procurement"}>
-          <RequireAuth>
-            <Procurement />
-          </RequireAuth>
-        </Route>
-        <Route path={"/projects"}>
-          <RequireAuth>
-            <Projects />
-          </RequireAuth>
-        </Route>
-        <Route path={"/hr"}>
-          <RequireAuth>
-            <HR />
-          </RequireAuth>
-        </Route>
-        <Route path={"/support"}>
-          <RequireAuth>
-            <SupportQuality />
-          </RequireAuth>
-        </Route>
-        <Route path={"/pos"}>
-          <RequireAuth>
-            <POS />
-          </RequireAuth>
-        </Route>
-        <Route path={"/permissions"}>
-          <RequireAuth>
-            <Permissions />
-          </RequireAuth>
-        </Route>
-        <Route path={"/basic-data"}>
-          <RequireAuth>
-            <BasicData />
-          </RequireAuth>
-        </Route>
-        <Route path={"/journal"}>
-          <RequireAuth>
-            <Journal />
-          </RequireAuth>
-        </Route>
-        <Route path={"/manual-journal"}>
-          <RequireAuth>
-            <ManualJournal />
-          </RequireAuth>
-        </Route>
-        <Route path={"/customization"}>
-          <RequireAuth>
-            <Customization />
-          </RequireAuth>
-        </Route>
-        <Route path={"/branches"}>
-          <RequireAuth>
-            <Branches />
-          </RequireAuth>
-        </Route>
-        <Route path={"/audit"}>
-          <RequireAuth>
-            <Audit />
-          </RequireAuth>
-        </Route>
-        <Route path={"/requisitions"}>
-          <RequireAuth>
-            <Requisitions />
-          </RequireAuth>
-        </Route>
-        <Route path={"/operations"}>
-          <RequireAuth>
-            <Operations />
-          </RequireAuth>
-        </Route>
-        <Route path={"/analytics"}>
-          <RequireAuth>
-            <Analytics />
-          </RequireAuth>
-        </Route>
-        <Route path={"/billing"}>
-          <RequireAuth>
-            <Billing />
-          </RequireAuth>
-        </Route>
-        <Route path={"/404"} component={NotFound} />
-        <Route component={NotFound} />
-        </Switch>
+            {/* ── Operational pages (login + subscription required) ── */}
+            <Route path={"/app"}>
+              <RequireAuth>
+                <WorkspaceDashboard />
+              </RequireAuth>
+            </Route>
+            <Route path={"/accounting"}>
+              <RequireAuth>
+                <Home />
+              </RequireAuth>
+            </Route>
+            <Route path={"/commercial"}>
+              <RequireAuth>
+                <Commercial />
+              </RequireAuth>
+            </Route>
+            <Route path={"/reports"}>
+              <RequireAuth>
+                <Reports />
+              </RequireAuth>
+            </Route>
+            <Route path={"/settings"}>
+              <RequireAuth>
+                <Settings />
+              </RequireAuth>
+            </Route>
+            <Route path={"/erp"}>
+              <RequireAuth>
+                <ErpPage />
+              </RequireAuth>
+            </Route>
+            <Route path={"/inventory"}>
+              <RequireAuth>
+                <Inventory />
+              </RequireAuth>
+            </Route>
+            <Route path={"/store"}>
+              <RequireAuth>
+                <Store />
+              </RequireAuth>
+            </Route>
+            <Route path={"/security"}>
+              <RequireAuth>
+                <Security />
+              </RequireAuth>
+            </Route>
+            <Route path={"/procurement-workspace"}>
+              <RequireAuth>
+                <ProcurementWorkspace />
+              </RequireAuth>
+            </Route>
+            <Route path={"/supplier-analytics"}>
+              <RequireAuth>
+                <SupplierAnalytics />
+              </RequireAuth>
+            </Route>
+            <Route path={"/procurement"}>
+              <RequireAuth>
+                <Procurement />
+              </RequireAuth>
+            </Route>
+            <Route path={"/projects"}>
+              <RequireAuth>
+                <Projects />
+              </RequireAuth>
+            </Route>
+            <Route path={"/hr"}>
+              <RequireAuth>
+                <HR />
+              </RequireAuth>
+            </Route>
+            <Route path={"/support"}>
+              <RequireAuth>
+                <SupportQuality />
+              </RequireAuth>
+            </Route>
+            <Route path={"/pos"}>
+              <RequireAuth>
+                <POS />
+              </RequireAuth>
+            </Route>
+            <Route path={"/permissions"}>
+              <RequireAuth>
+                <Permissions />
+              </RequireAuth>
+            </Route>
+            <Route path={"/basic-data"}>
+              <RequireAuth>
+                <BasicData />
+              </RequireAuth>
+            </Route>
+            <Route path={"/journal"}>
+              <RequireAuth>
+                <Journal />
+              </RequireAuth>
+            </Route>
+            <Route path={"/manual-journal"}>
+              <RequireAuth>
+                <ManualJournal />
+              </RequireAuth>
+            </Route>
+            <Route path={"/customization"}>
+              <RequireAuth>
+                <Customization />
+              </RequireAuth>
+            </Route>
+            <Route path={"/branches"}>
+              <RequireAuth>
+                <Branches />
+              </RequireAuth>
+            </Route>
+            <Route path={"/audit"}>
+              <RequireAuth>
+                <Audit />
+              </RequireAuth>
+            </Route>
+            <Route path={"/requisitions"}>
+              <RequireAuth>
+                <Requisitions />
+              </RequireAuth>
+            </Route>
+            <Route path={"/operations"}>
+              <RequireAuth>
+                <Operations />
+              </RequireAuth>
+            </Route>
+            <Route path={"/analytics"}>
+              <RequireAuth>
+                <Analytics />
+              </RequireAuth>
+            </Route>
+            <Route path={"/billing"}>
+              <RequireAuth>
+                <Billing />
+              </RequireAuth>
+            </Route>
+            <Route path={"/404"} component={NotFound} />
+            <Route component={NotFound} />
+          </Switch>
         </Suspense>
       </div>
     </>
@@ -300,21 +302,6 @@ function Router() {
 }
 
 function App() {
-  useEffect(() => {
-    if ("serviceWorker" in navigator) {
-      let updateInterval: ReturnType<typeof setInterval> | null = null;
-      navigator.serviceWorker
-        .register("/sw.js")
-        .then(reg => {
-          updateInterval = setInterval(() => reg.update(), 300_000);
-        })
-        .catch(err => console.warn("[SW] Registration failed:", err));
-      return () => {
-        if (updateInterval) clearInterval(updateInterval);
-      };
-    }
-  }, []);
-
   // Prefetch sibling page chunks after first paint — but *politely*:
   //   • Skipped entirely for Save-Data / 2G visitors (their data quota wins).
   //   • Warmed ONE chunk at a time so background traffic never competes with
@@ -325,7 +312,10 @@ function App() {
       connection?: { saveData?: boolean; effectiveType?: string };
     };
     if (nav.connection?.saveData) return;
-    if (nav.connection?.effectiveType && /^(slow-)?2g$/.test(nav.connection.effectiveType))
+    if (
+      nav.connection?.effectiveType &&
+      /^(slow-)?2g$/.test(nav.connection.effectiveType)
+    )
       return;
 
     const chunks: Array<() => Promise<unknown>> = [
@@ -373,10 +363,12 @@ function App() {
     };
 
     const idle =
-      (window as Window &
-        typeof globalThis & {
-          requestIdleCallback: (cb: () => void) => number;
-        }).requestIdleCallback ??
+      (
+        window as Window &
+          typeof globalThis & {
+            requestIdleCallback: (cb: () => void) => number;
+          }
+      ).requestIdleCallback ??
       ((cb: () => void) => window.setTimeout(cb, 2000));
     const t = idle(pump);
     return () => {

@@ -10,7 +10,9 @@ export function DeniedScreen({ message }: { message?: string }) {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-600">
             <ShieldAlert className="h-8 w-8" />
           </div>
-          <h2 className="text-lg font-bold text-slate-800">ليس لديك صلاحية الوصول</h2>
+          <h2 className="text-lg font-bold text-slate-800">
+            ليس لديك صلاحية الوصول
+          </h2>
           <p className="mt-1 text-sm text-slate-500">
             {message ?? "هذه الصفحة متاحة لمديري المؤسسة فقط."}
           </p>

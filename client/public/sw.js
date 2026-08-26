@@ -11,11 +11,9 @@ const SHELL = [
   "/manifest.webmanifest",
 ];
 
-self.addEventListener("install", (event) => {
+self.addEventListener("install", event => {
   event.waitUntil(
-    caches
-      .open(CACHE)
-      .then((c) => c.addAll(SHELL).catch(() => {}))
+    caches.open(CACHE).then(c => c.addAll(SHELL).catch(() => {}))
     // NOTE: we deliberately do NOT call self.skipWaiting() here. Letting a new
     // worker wait gives the app a chance to notify the user (SWUpdateToast) and
     // apply the update when *they* choose — instead of silently switching to a
@@ -24,26 +22,24 @@ self.addEventListener("install", (event) => {
 });
 
 // Honour the app's "تحديث الآن" request (see client/src/lib/use-sw-update.ts).
-self.addEventListener("message", (event) => {
+self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
 });
 
-self.addEventListener("activate", (event) => {
+self.addEventListener("activate", event => {
   event.waitUntil(
     caches
       .keys()
-      .then((keys) =>
-        Promise.all(
-          keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))
-        )
+      .then(keys =>
+        Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
       )
       .then(() => self.clients.claim())
   );
 });
 
-self.addEventListener("fetch", (event) => {
+self.addEventListener("fetch", event => {
   const req = event.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
@@ -57,10 +53,10 @@ self.addEventListener("fetch", (event) => {
   }
 
   event.respondWith(
-    caches.match(req).then((cached) => {
+    caches.match(req).then(cached => {
       if (cached) return cached;
       return fetch(req)
-        .then((res) => {
+        .then(res => {
           const isAsset =
             res &&
             res.ok &&
@@ -68,7 +64,7 @@ self.addEventListener("fetch", (event) => {
               /\.(png|svg|webmanifest|css|js)$/.test(url.pathname));
           if (isAsset) {
             const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(req, copy));
+            caches.open(CACHE).then(c => c.put(req, copy));
           }
           return res;
         })

@@ -62,9 +62,14 @@ export function useServiceWorkerUpdate() {
     return () => {
       swContainer.removeEventListener("controllerchange", onControllerChange);
       if (stateChangeListener) {
-        swContainer.getRegistration().then(reg =>
-          reg?.installing?.removeEventListener("statechange", stateChangeListener!)
-        );
+        swContainer
+          .getRegistration()
+          .then(reg =>
+            reg?.installing?.removeEventListener(
+              "statechange",
+              stateChangeListener!
+            )
+          );
       }
     };
   }, []);

@@ -105,7 +105,8 @@ export const brand = {
     corporate: {
       key: "corporate",
       title: "الاستشارات المؤسسية والإدارية",
-      subtitle: "لأن المؤسسة الناجحة تُبنى على قرارات مبنية على أرقام، لا توقعات",
+      subtitle:
+        "لأن المؤسسة الناجحة تُبنى على قرارات مبنية على أرقام، لا توقعات",
       heroQuestion: "هل تعرف حقاً كيف تسير مؤسستك؟",
       heroAnswer:
         "وفق أطر الرقابة الداخلية (COSO) وأسس التقارير المالية الدولية (IFRS)، نبني منظومة رقابة دورية تكشف الانحرافات لحظة حدوثها — عبر تحليل الفروقات ومؤشرات الأداء الرئيسية — ليتخذ قرارك على بيانات محدثة لا على مفاجآت نهاية العام.",
@@ -413,25 +414,29 @@ export const brand = {
     {
       key: "accounting",
       title: "النظام المحاسبي المتقدم",
-      summary: "قيد مزدوج، دليل حسابات شجري، ميزان مراجعة، وقوائم مالية وإقفال سنوي تلقائي.",
+      summary:
+        "قيد مزدوج، دليل حسابات شجري، ميزان مراجعة، وقوائم مالية وإقفال سنوي تلقائي.",
       icon: "Building2",
     },
     {
       key: "engineering",
       title: "الاستشارات الهندسية والمقاولات",
-      summary: "مخططات تنفيذية، رفع مساحي، جداول BOQ، وحساب الحفر والردم للمقاولين والأراضي.",
+      summary:
+        "مخططات تنفيذية، رفع مساحي، جداول BOQ، وحساب الحفر والردم للمقاولين والأراضي.",
       icon: "HardHat",
     },
     {
       key: "commercial",
       title: "المبيعات والمخازن والعملاء",
-      summary: "فواتير، سندات، حركة مخزون، وربط طلبات المتجر بكتالوج المنتجات آلياً.",
+      summary:
+        "فواتير، سندات، حركة مخزون، وربط طلبات المتجر بكتالوج المنتجات آلياً.",
       icon: "ShoppingCart",
     },
     {
       key: "library",
       title: "مكتبة الحسينية وصيانة الأجهزة",
-      summary: "خدمات طلابية، تصاميم، أبحاث، وتصليح الموبايل والكمبيوتر تحت سقف واحد.",
+      summary:
+        "خدمات طلابية، تصاميم، أبحاث، وتصليح الموبايل والكمبيوتر تحت سقف واحد.",
       icon: "BookOpen",
     },
   ],
@@ -440,7 +445,10 @@ export const brand = {
 export type Brand = typeof brand;
 
 /** Build a wa.me deep link with pre-filled Arabic text. */
-export function whatsappLink(text: string, phone: string = brand.contact.whatsapp): string {
+export function whatsappLink(
+  text: string,
+  phone: string = brand.contact.whatsapp
+): string {
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
 
@@ -456,4 +464,3 @@ export function uamexDemoLink(): string {
     "السلام عليكم، أود الحصول على عرض توضيحي لنظام Uamex_erp وأسعار الاشتراك."
   );
 }
-

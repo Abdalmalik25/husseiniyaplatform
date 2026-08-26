@@ -22,9 +22,12 @@ export default function Permissions() {
     trpc.modules.rbac.listUsers.useQuery(undefined, { staleTime: 60_000 });
   const { data: roles, isPending: loadingRoles } =
     trpc.modules.rbac.listRoles.useQuery(undefined, { staleTime: 60_000 });
-  const { data: perms } = trpc.modules.rbac.listPermissions.useQuery(undefined, {
-    staleTime: 300_000,
-  });
+  const { data: perms } = trpc.modules.rbac.listPermissions.useQuery(
+    undefined,
+    {
+      staleTime: 300_000,
+    }
+  );
 
   const createRole = trpc.modules.rbac.createRole.useMutation({
     onSuccess: () => {
@@ -55,7 +58,9 @@ export default function Permissions() {
             <ShieldCheck className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-foreground">الصلاحيات والأدوار</h1>
+            <h1 className="text-xl font-bold text-foreground">
+              الصلاحيات والأدوار
+            </h1>
             <p className="text-[11px] text-muted-foreground">
               إدارة المستخدمين والأدوار والصلاحيات
             </p>
@@ -63,9 +68,24 @@ export default function Permissions() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <StatCard label="المستخدمون" value={users?.length ?? 0} tone="info" icon={Users} />
-          <StatCard label="الأدوار" value={roles?.length ?? 0} tone="positive" icon={ShieldCheck} />
-          <StatCard label="مفاتيح الصلاحيات" value={perms?.length ?? 0} tone="neutral" icon={UserCog} />
+          <StatCard
+            label="المستخدمون"
+            value={users?.length ?? 0}
+            tone="info"
+            icon={Users}
+          />
+          <StatCard
+            label="الأدوار"
+            value={roles?.length ?? 0}
+            tone="positive"
+            icon={ShieldCheck}
+          />
+          <StatCard
+            label="مفاتيح الصلاحيات"
+            value={perms?.length ?? 0}
+            tone="neutral"
+            icon={UserCog}
+          />
         </div>
 
         <div className="flex gap-2">
@@ -102,8 +122,12 @@ export default function Permissions() {
                 <tbody>
                   {(users ?? []).map((u: any) => (
                     <tr key={u.id} className="border-b border-border/60">
-                      <td className="p-2 font-bold text-foreground">{u.name}</td>
-                      <td className="p-2 text-muted-foreground">{u.email ?? "—"}</td>
+                      <td className="p-2 font-bold text-foreground">
+                        {u.name}
+                      </td>
+                      <td className="p-2 text-muted-foreground">
+                        {u.email ?? "—"}
+                      </td>
                       <td className="p-2">
                         <span className="rounded bg-[#b87945]/10 px-2 py-0.5 text-[10px] font-bold text-[#b87945]">
                           {u.role}
@@ -113,7 +137,7 @@ export default function Permissions() {
                         <select
                           className="h-8 rounded-lg border border-border bg-background px-2 text-[12px]"
                           defaultValue=""
-                          onChange={(e) => {
+                          onChange={e => {
                             if (e.target.value)
                               assignRole.mutate({
                                 userId: u.id,
@@ -138,19 +162,27 @@ export default function Permissions() {
         ) : (
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-              <h2 className="text-sm font-bold text-foreground">أدوار المؤسسة</h2>
+              <h2 className="text-sm font-bold text-foreground">
+                أدوار المؤسسة
+              </h2>
               <div className="space-y-2">
                 {(roles ?? []).map((r: any) => (
                   <div
                     key={r.id}
                     className="rounded-xl border border-border bg-muted/30 p-2"
                   >
-                    <div className="font-bold text-[12px] text-foreground">{r.name}</div>
-                    <div className="text-[10px] text-muted-foreground">{r.code}</div>
+                    <div className="font-bold text-[12px] text-foreground">
+                      {r.name}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground">
+                      {r.code}
+                    </div>
                   </div>
                 ))}
                 {!roles?.length && (
-                  <p className="text-[12px] text-muted-foreground">لا توجد أدوار بعد</p>
+                  <p className="text-[12px] text-muted-foreground">
+                    لا توجد أدوار بعد
+                  </p>
                 )}
               </div>
             </div>
@@ -162,7 +194,7 @@ export default function Permissions() {
                 <Label className="text-[11px]">الاسم</Label>
                 <Input
                   value={roleName}
-                  onChange={(e) => setRoleName(e.target.value)}
+                  onChange={e => setRoleName(e.target.value)}
                   placeholder="مثال: مدير مالي"
                 />
               </div>
@@ -170,7 +202,7 @@ export default function Permissions() {
                 <Label className="text-[11px]">الرمز (كود)</Label>
                 <Input
                   value={roleCode}
-                  onChange={(e) => setRoleCode(e.target.value)}
+                  onChange={e => setRoleCode(e.target.value)}
                   placeholder="finance_manager"
                 />
               </div>
@@ -179,7 +211,7 @@ export default function Permissions() {
                 <textarea
                   className="h-20 w-full rounded-lg border border-border bg-background p-2 text-[11px]"
                   value={rolePerms}
-                  onChange={(e) => setRolePerms(e.target.value)}
+                  onChange={e => setRolePerms(e.target.value)}
                   placeholder='["view_accounting","post_entries"]'
                 />
               </div>

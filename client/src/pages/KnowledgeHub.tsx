@@ -38,7 +38,7 @@ interface GuideItem {
 
 export default function KnowledgeHub() {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("" );
+  const [searchQuery, setSearchQuery] = useState<string>("");
 
   const guides: GuideItem[] = [
     {
@@ -103,7 +103,8 @@ export default function KnowledgeHub() {
       category: "engineering",
       categoryLabel: "هندسة ومقاولات ومساحة",
       categoryColor: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-      title: "الرفع المساحي الرقمي وتثبيت حدود الأراضي: حماية الاستثمار العقاري",
+      title:
+        "الرفع المساحي الرقمي وتثبيت حدود الأراضي: حماية الاستثمار العقاري",
       targetPersona: "لأصحاب الأراضي، المطورين العقاريين، والمكاتب الهندسية",
       readTime: "5 دقائق قراءة استشارية",
       summary:
@@ -160,7 +161,8 @@ export default function KnowledgeHub() {
       categoryLabel: "دراسات وبحوث وتصاميم",
       categoryColor: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
       title: "منهجية إعداد البحوث العلمية والتحليل الإحصائي القياسي للباحثين",
-      targetPersona: "لطلاب الدراسات العليا، الباحثين الأكاديميين، والمراكز الاستشارية",
+      targetPersona:
+        "لطلاب الدراسات العليا، الباحثين الأكاديميين، والمراكز الاستشارية",
       readTime: "5 دقائق قراءة استشارية",
       summary:
         "معايير إعداد خطط البحث (Research Proposal)، التحليل الإحصائي بالـ SPSS، وضمان الأصالة والتوثيق المعتمد.",
@@ -188,7 +190,8 @@ export default function KnowledgeHub() {
       category: "research",
       categoryLabel: "خدمات مكتبية وأكاديمية",
       categoryColor: "bg-sky-500/10 text-sky-500 border-sky-500/20",
-      title: "دليل التجهيز الأكاديمي والتصاميم الطلابية وصيانة الأجهزة في مكتبة الحسينية الحديثة",
+      title:
+        "دليل التجهيز الأكاديمي والتصاميم الطلابية وصيانة الأجهزة في مكتبة الحسينية الحديثة",
       targetPersona: "لطلاب الجامعات، الدراسات العليا، وأصحاب المكاتب والشركات",
       readTime: "4 دقائق قراءة استشارية",
       summary:
@@ -247,9 +250,9 @@ export default function KnowledgeHub() {
       category: "tech",
       categoryLabel: "أنظمة ERP والتحول الرقمي",
       categoryColor: "bg-amber-500/10 text-amber-600 border-amber-500/20",
-      title:
-        "قائمة الفحص التنفيذية لجاهزية أمن المعلومات وفق ISO/IEC 27001",
-      targetPersona: "لمدراء العمليات ومسؤولي التقنية في المؤسسات الناشئة والصغيرة",
+      title: "قائمة الفحص التنفيذية لجاهزية أمن المعلومات وفق ISO/IEC 27001",
+      targetPersona:
+        "لمدراء العمليات ومسؤولي التقنية في المؤسسات الناشئة والصغيرة",
       readTime: "7 دقائق قراءة معيارية",
       summary:
         "خارطة طريق عملية لضوابط الملحق A (Annex A Controls) مصغّرة بذكاء لتناسب حجم المؤسسات الصغيرة والمتوسطة ومواردها.",
@@ -274,7 +277,7 @@ export default function KnowledgeHub() {
     },
   ];
 
-  const filteredGuides = guides.filter((g) => {
+  const filteredGuides = guides.filter(g => {
     const matchesCategory =
       selectedCategory === "all" || g.category === selectedCategory;
     const matchesSearch =
@@ -309,7 +312,10 @@ export default function KnowledgeHub() {
           </div>
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight text-balance">
             منهجيات ومعايير حقيقية
-            <span className="block gradient-text-white"> لا تنظير ولا مبالغة</span>
+            <span className="block gradient-text-white">
+              {" "}
+              لا تنظير ولا مبالغة
+            </span>
           </h1>
           <p className="max-w-2xl mx-auto text-base text-white/65 leading-relaxed font-light">
             أدلة تشغيلية، دراسات حالة ميدانية، ومعايير حسابية وهندسية موجهة
@@ -323,7 +329,7 @@ export default function KnowledgeHub() {
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={e => setSearchQuery(e.target.value)}
                 placeholder="ابحث في الأدلة: BOQ، مشتريات، مساحة، ERP، بحوث..."
                 className="w-full h-12 pr-12 pl-4 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-white/40 text-sm focus:outline-none focus:border-brand-300 transition-all"
               />
@@ -370,7 +376,7 @@ export default function KnowledgeHub() {
       {/* ── Guides List ─────────────────────────────── */}
       <section className="max-w-7xl mx-auto px-4 pb-20">
         <div className="space-y-8">
-          {filteredGuides.map((guide) => (
+          {filteredGuides.map(guide => (
             <Card
               key={guide.id}
               className="rounded-3xl border-border bg-card p-6 sm:p-8 shadow-sm hover:shadow-xl hover:border-brand/30 transition-all"

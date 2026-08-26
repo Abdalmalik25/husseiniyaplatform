@@ -37,7 +37,13 @@ export default function ManualJournal() {
   const [narration, setNarration] = useState("");
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [lines, setLines] = useState<Line[]>([
-    { key: Date.now(), accountId: "", type: "debit", amount: "", narration: "" },
+    {
+      key: Date.now(),
+      accountId: "",
+      type: "debit",
+      amount: "",
+      narration: "",
+    },
   ]);
 
   const { data: accounts } = trpc.modules.accounts.list.useQuery(undefined, {
@@ -57,7 +63,13 @@ export default function ManualJournal() {
       toast.success(`تم إنشاء القيد #${je.id} وترحيله للدفتر الموحّد`);
       setNarration("");
       setLines([
-        { key: Date.now(), accountId: "", type: "debit", amount: "", narration: "" },
+        {
+          key: Date.now(),
+          accountId: "",
+          type: "debit",
+          amount: "",
+          narration: "",
+        },
       ]);
       utils.modules.journal.list.invalidate();
     },
@@ -71,7 +83,7 @@ export default function ManualJournal() {
   }, [accounts]);
 
   const addLine = () =>
-    setLines((prev) => [
+    setLines(prev => [
       ...prev,
       {
         key: Date.now() + prev.length,
@@ -82,15 +94,15 @@ export default function ManualJournal() {
       },
     ]);
   const updateLine = (key: number, patch: Partial<Line>) =>
-    setLines((prev) => prev.map((l) => (l.key === key ? { ...l, ...patch } : l)));
+    setLines(prev => prev.map(l => (l.key === key ? { ...l, ...patch } : l)));
   const removeLine = (key: number) =>
-    setLines((prev) => prev.filter((l) => l.key !== key));
+    setLines(prev => prev.filter(l => l.key !== key));
 
   const totalDebit = lines
-    .filter((l) => l.type === "debit")
+    .filter(l => l.type === "debit")
     .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
   const totalCredit = lines
-    .filter((l) => l.type === "credit")
+    .filter(l => l.type === "credit")
     .reduce((s, l) => s + (parseFloat(l.amount) || 0), 0);
   const balanced = Math.abs(totalDebit - totalCredit) < 0.01 && totalDebit > 0;
 
@@ -103,7 +115,7 @@ export default function ManualJournal() {
       toast.error("أدخل بيان القيد");
       return;
     }
-    if (lines.some((l) => !l.accountId || !(parseFloat(l.amount) > 0))) {
+    if (lines.some(l => !l.accountId || !(parseFloat(l.amount) > 0))) {
       toast.error("تأكد من اكتمال كل الحركات (حساب + مبلغ)");
       return;
     }
@@ -115,7 +127,7 @@ export default function ManualJournal() {
       narration,
       date,
       branchId: branchId === "" ? undefined : branchId,
-      lines: lines.map((l) => ({
+      lines: lines.map(l => ({
         accountId: Number(l.accountId),
         type: l.type,
         amount: String(parseFloat(l.amount)),
@@ -134,9 +146,12 @@ export default function ManualJournal() {
               <Scale className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">قيد محاسبي يدوي ذكي</h1>
+              <h1 className="text-xl font-bold text-slate-800">
+                قيد محاسبي يدوي ذكي
+              </h1>
               <p className="text-sm text-slate-500">
-                إنشاء قيود متوازنة مع إكمال تلقائي واقتراحات حسابات مبنية على تاريخ العمليات
+                إنشاء قيود متوازنة مع إكمال تلقائي واقتراحات حسابات مبنية على
+                تاريخ العمليات
               </p>
             </div>
           </div>
@@ -156,7 +171,7 @@ export default function ManualJournal() {
                       className="text-[13px]"
                       placeholder="مثال: قيد تسوية إيجار المكتب لشهر..."
                       value={narration}
-                      onChange={(e) => setNarration(e.target.value)}
+                      onChange={e => setNarration(e.target.value)}
                     />
                   </div>
                   <div>
@@ -167,7 +182,7 @@ export default function ManualJournal() {
                       type="date"
                       className="text-[13px]"
                       value={date}
-                      onChange={(e) => setDate(e.target.value)}
+                      onChange={e => setDate(e.target.value)}
                     />
                   </div>
                   <div>
@@ -177,8 +192,10 @@ export default function ManualJournal() {
                     <select
                       className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px]"
                       value={branchId}
-                      onChange={(e) =>
-                        setBranchId(e.target.value ? Number(e.target.value) : "")
+                      onChange={e =>
+                        setBranchId(
+                          e.target.value ? Number(e.target.value) : ""
+                        )
                       }
                     >
                       <option value="">الفرع الرئيسي (تلقائي)</option>
@@ -203,7 +220,7 @@ export default function ManualJournal() {
                 </div>
 
                 <div className="space-y-2">
-                  {lines.map((l) => (
+                  {lines.map(l => (
                     <div
                       key={l.key}
                       className="grid grid-cols-12 gap-2 items-center rounded-xl border border-slate-200 bg-slate-50 p-2"
@@ -212,9 +229,11 @@ export default function ManualJournal() {
                         <select
                           className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px] text-slate-700"
                           value={l.accountId}
-                          onChange={(e) =>
+                          onChange={e =>
                             updateLine(l.key, {
-                              accountId: e.target.value ? Number(e.target.value) : "",
+                              accountId: e.target.value
+                                ? Number(e.target.value)
+                                : "",
                             })
                           }
                         >
@@ -230,7 +249,7 @@ export default function ManualJournal() {
                         <select
                           className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px]"
                           value={l.type}
-                          onChange={(e) =>
+                          onChange={e =>
                             updateLine(l.key, {
                               type: e.target.value as "debit" | "credit",
                             })
@@ -246,7 +265,9 @@ export default function ManualJournal() {
                           type="number"
                           placeholder="المبلغ"
                           value={l.amount}
-                          onChange={(e) => updateLine(l.key, { amount: e.target.value })}
+                          onChange={e =>
+                            updateLine(l.key, { amount: e.target.value })
+                          }
                         />
                       </div>
                       <div className="col-span-2 flex justify-end">
@@ -259,7 +280,7 @@ export default function ManualJournal() {
                           className="h-8 text-[11px]"
                           placeholder="بيان الحركة (اختياري)"
                           value={l.narration}
-                          onChange={(e) =>
+                          onChange={e =>
                             updateLine(l.key, { narration: e.target.value })
                           }
                         />
@@ -303,7 +324,9 @@ export default function ManualJournal() {
                   disabled={createEntry.isPending || !balanced}
                 >
                   <Scale className="h-4 w-4" />
-                  {createEntry.isPending ? "جاري الترحيل..." : "ترحيل القيد للدفتر الموحّد"}
+                  {createEntry.isPending
+                    ? "جاري الترحيل..."
+                    : "ترحيل القيد للدفتر الموحّد"}
                 </Button>
               </CardContent>
             </Card>
@@ -327,7 +350,7 @@ export default function ManualJournal() {
                       <button
                         key={a.id}
                         onClick={() =>
-                          setLines((prev) => [
+                          setLines(prev => [
                             ...prev,
                             {
                               key: Date.now() + prev.length,

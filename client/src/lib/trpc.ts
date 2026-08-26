@@ -6,4 +6,3 @@ export const trpc = createTRPCReact<AppRouter>();
 
 /** Inferred tRPC output types — derive client types instead of hand-writing them. */
 export type RouterOutputs = inferRouterOutputs<AppRouter>;
-

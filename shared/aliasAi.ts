@@ -90,7 +90,9 @@ export function buildAliasSystemPrompt(opts?: {
   const tenantLine = opts?.tenantName
     ? `المستأجر/المؤسسة الحالية: ${opts.tenantName}.`
     : "";
-  const currencyLine = opts?.currency ? `العملة الأساسية: ${opts.currency}.` : "";
+  const currencyLine = opts?.currency
+    ? `العملة الأساسية: ${opts.currency}.`
+    : "";
   const contextLine = opts?.contextBlock
     ? [
         "",
@@ -169,7 +171,6 @@ export function buildAliasPublicPrompt(): string {
     .filter(Boolean)
     .join("\n");
 }
-
 
 /** Suggested starter prompts for the chat widget (bilingual). */
 export const ALIAS_SUGGESTED_PROMPTS = [

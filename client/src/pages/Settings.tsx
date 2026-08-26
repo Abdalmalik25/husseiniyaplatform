@@ -38,7 +38,11 @@ export default function Settings() {
   const [manager, setManager] = useState("إدارة المؤسسة");
   const [notes, setNotes] = useState("");
   const [country, setCountry] = useState("اليمن");
-  const [zatca, setZatca] = useState({ enabled: false, sellerName: "", vatNumber: "" });
+  const [zatca, setZatca] = useState({
+    enabled: false,
+    sellerName: "",
+    vatNumber: "",
+  });
   const [wsCode, setWsCode] = useState("");
   const [wsName, setWsName] = useState("");
   const [wsAddr, setWsAddr] = useState("");
@@ -47,11 +51,29 @@ export default function Settings() {
   const [devType, setDevType] = useState("pos");
 
   const workSites = trpc.workSites.list.useQuery();
-  const createWs = trpc.workSites.create.useMutation({ onSuccess: () => { setWsCode(""); setWsName(""); setWsAddr(""); workSites.refetch(); } });
-  const removeWs = trpc.workSites.remove.useMutation({ onSuccess: () => workSites.refetch() });
+  const createWs = trpc.workSites.create.useMutation({
+    onSuccess: () => {
+      setWsCode("");
+      setWsName("");
+      setWsAddr("");
+      workSites.refetch();
+    },
+  });
+  const removeWs = trpc.workSites.remove.useMutation({
+    onSuccess: () => workSites.refetch(),
+  });
   const devices = trpc.devices.list.useQuery();
-  const createDev = trpc.devices.create.useMutation({ onSuccess: () => { setDevCode(""); setDevName(""); setDevType("pos"); devices.refetch(); } });
-  const removeDev = trpc.devices.remove.useMutation({ onSuccess: () => devices.refetch() });
+  const createDev = trpc.devices.create.useMutation({
+    onSuccess: () => {
+      setDevCode("");
+      setDevName("");
+      setDevType("pos");
+      devices.refetch();
+    },
+  });
+  const removeDev = trpc.devices.remove.useMutation({
+    onSuccess: () => devices.refetch(),
+  });
 
   const [posConfig, setPosConfig] = useState("{}");
   const [salesPolicy, setSalesPolicy] = useState("{}");
@@ -70,8 +92,15 @@ export default function Settings() {
       setCountry((settingsData as any)?.country || "اليمن");
       try {
         const z = (settingsData as any)?.zatcaConfig;
-        if (z && typeof z === "object") setZatca({ enabled: !!z.enabled, sellerName: z.sellerName || "", vatNumber: z.vatNumber || "" });
-      } catch { /* ignore */ }
+        if (z && typeof z === "object")
+          setZatca({
+            enabled: !!z.enabled,
+            sellerName: z.sellerName || "",
+            vatNumber: z.vatNumber || "",
+          });
+      } catch {
+        /* ignore */
+      }
       try {
         setPosConfig(
           JSON.stringify((settingsData as any).posConfig ?? {}, null, 2)
@@ -171,7 +200,9 @@ export default function Settings() {
             <CardContent className="p-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <Label className="text-xs font-bold text-slate-700">الدولة</Label>
+                  <Label className="text-xs font-bold text-slate-700">
+                    الدولة
+                  </Label>
                   <select
                     value={country}
                     onChange={e => setCountry(e.target.value)}
@@ -408,19 +439,38 @@ export default function Settings() {
                 <input
                   type="checkbox"
                   checked={zatca.enabled}
-                  onChange={e => setZatca({ ...zatca, enabled: e.target.checked })}
+                  onChange={e =>
+                    setZatca({ ...zatca, enabled: e.target.checked })
+                  }
                 />
                 تفعيل ZATCA (الفوترة الإلكترونية)
               </label>
               {zatca.enabled && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700">اسم البائع المسجل</Label>
-                    <Input value={zatca.sellerName} onChange={e => setZatca({ ...zatca, sellerName: e.target.value })} className="bg-white border-slate-200 text-xs h-9" />
+                    <Label className="text-xs font-bold text-slate-700">
+                      اسم البائع المسجل
+                    </Label>
+                    <Input
+                      value={zatca.sellerName}
+                      onChange={e =>
+                        setZatca({ ...zatca, sellerName: e.target.value })
+                      }
+                      className="bg-white border-slate-200 text-xs h-9"
+                    />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-xs font-bold text-slate-700">الرقم الضريبي (VAT Number)</Label>
-                    <Input value={zatca.vatNumber} onChange={e => setZatca({ ...zatca, vatNumber: e.target.value })} className="bg-white border-slate-200 text-xs h-9" placeholder="مثل: 300000000000003" />
+                    <Label className="text-xs font-bold text-slate-700">
+                      الرقم الضريبي (VAT Number)
+                    </Label>
+                    <Input
+                      value={zatca.vatNumber}
+                      onChange={e =>
+                        setZatca({ ...zatca, vatNumber: e.target.value })
+                      }
+                      className="bg-white border-slate-200 text-xs h-9"
+                      placeholder="مثل: 300000000000003"
+                    />
                   </div>
                 </div>
               )}
@@ -440,35 +490,106 @@ export default function Settings() {
             </CardHeader>
             <CardContent className="p-5 space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                <Input className="h-9 text-xs" placeholder="كود الموقع" value={wsCode} onChange={e => setWsCode(e.target.value)} />
-                <Input className="h-9 text-xs" placeholder="اسم الموقع" value={wsName} onChange={e => setWsName(e.target.value)} />
-                <Input className="h-9 text-xs" placeholder="العنوان" value={wsAddr} onChange={e => setWsAddr(e.target.value)} />
-                <Button size="sm" className="bg-[#102a2b] hover:bg-[#0c2021] text-xs" disabled={!wsCode || !wsName || createWs.isPending} onClick={() => createWs.mutate({ code: wsCode, name: wsName, address: wsAddr })}>إضافة موقع</Button>
+                <Input
+                  className="h-9 text-xs"
+                  placeholder="كود الموقع"
+                  value={wsCode}
+                  onChange={e => setWsCode(e.target.value)}
+                />
+                <Input
+                  className="h-9 text-xs"
+                  placeholder="اسم الموقع"
+                  value={wsName}
+                  onChange={e => setWsName(e.target.value)}
+                />
+                <Input
+                  className="h-9 text-xs"
+                  placeholder="العنوان"
+                  value={wsAddr}
+                  onChange={e => setWsAddr(e.target.value)}
+                />
+                <Button
+                  size="sm"
+                  className="bg-[#102a2b] hover:bg-[#0c2021] text-xs"
+                  disabled={!wsCode || !wsName || createWs.isPending}
+                  onClick={() =>
+                    createWs.mutate({
+                      code: wsCode,
+                      name: wsName,
+                      address: wsAddr,
+                    })
+                  }
+                >
+                  إضافة موقع
+                </Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {(workSites.data || []).map(w => (
-                  <span key={w.id} className="inline-flex items-center text-[11px] bg-slate-100 rounded-full px-2 py-1">
+                  <span
+                    key={w.id}
+                    className="inline-flex items-center text-[11px] bg-slate-100 rounded-full px-2 py-1"
+                  >
                     {w.code} - {w.name}
-                    <button className="ml-1 text-rose-600" onClick={() => removeWs.mutate({ id: w.id })}>×</button>
+                    <button
+                      className="ml-1 text-rose-600"
+                      onClick={() => removeWs.mutate({ id: w.id })}
+                    >
+                      ×
+                    </button>
                   </span>
                 ))}
               </div>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-2 pt-2 border-t">
-                <Input className="h-9 text-xs" placeholder="كود الجهاز" value={devCode} onChange={e => setDevCode(e.target.value)} />
-                <Input className="h-9 text-xs" placeholder="اسم الجهاز" value={devName} onChange={e => setDevName(e.target.value)} />
-                <select className="h-9 rounded-md border border-slate-200 bg-white text-xs px-2" value={devType} onChange={e => setDevType(e.target.value)}>
+                <Input
+                  className="h-9 text-xs"
+                  placeholder="كود الجهاز"
+                  value={devCode}
+                  onChange={e => setDevCode(e.target.value)}
+                />
+                <Input
+                  className="h-9 text-xs"
+                  placeholder="اسم الجهاز"
+                  value={devName}
+                  onChange={e => setDevName(e.target.value)}
+                />
+                <select
+                  className="h-9 rounded-md border border-slate-200 bg-white text-xs px-2"
+                  value={devType}
+                  onChange={e => setDevType(e.target.value)}
+                >
                   <option value="pos">نقطة بيع</option>
                   <option value="scanner">ماسح</option>
                   <option value="scale">ميزان</option>
                   <option value="other">أخرى</option>
                 </select>
-                <Button size="sm" className="bg-[#102a2b] hover:bg-[#0c2021] text-xs" disabled={!devCode || !devName || createDev.isPending} onClick={() => createDev.mutate({ code: devCode, name: devName, type: devType })}>إضافة جهاز</Button>
+                <Button
+                  size="sm"
+                  className="bg-[#102a2b] hover:bg-[#0c2021] text-xs"
+                  disabled={!devCode || !devName || createDev.isPending}
+                  onClick={() =>
+                    createDev.mutate({
+                      code: devCode,
+                      name: devName,
+                      type: devType,
+                    })
+                  }
+                >
+                  إضافة جهاز
+                </Button>
               </div>
               <div className="flex flex-wrap gap-2">
                 {(devices.data || []).map(d => (
-                  <span key={d.id} className="inline-flex items-center text-[11px] bg-slate-100 rounded-full px-2 py-1">
+                  <span
+                    key={d.id}
+                    className="inline-flex items-center text-[11px] bg-slate-100 rounded-full px-2 py-1"
+                  >
                     {d.code} - {d.name} ({d.type})
-                    <button className="ml-1 text-rose-600" onClick={() => removeDev.mutate({ id: d.id })}>×</button>
+                    <button
+                      className="ml-1 text-rose-600"
+                      onClick={() => removeDev.mutate({ id: d.id })}
+                    >
+                      ×
+                    </button>
                   </span>
                 ))}
               </div>

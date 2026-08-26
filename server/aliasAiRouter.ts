@@ -9,11 +9,7 @@
  */
 
 import { z } from "zod";
-import {
-  router,
-  tenantProcedure,
-  publicProcedure,
-} from "./_core/trpc";
+import { router, tenantProcedure, publicProcedure } from "./_core/trpc";
 import { invokeLLM } from "./_core/llm";
 import { ENV } from "./_core/env";
 import { getDb } from "./db";
@@ -34,7 +30,9 @@ const hits = new Map<number, number[]>();
 
 function checkRate(tenantId: number): boolean {
   const now = Date.now();
-  const list = (hits.get(tenantId) || []).filter(t => now - t < RATE_LIMIT.windowMs);
+  const list = (hits.get(tenantId) || []).filter(
+    t => now - t < RATE_LIMIT.windowMs
+  );
   if (list.length >= RATE_LIMIT.max) {
     hits.set(tenantId, list);
     return false;
@@ -118,7 +116,8 @@ export const aliasAiRouter = router({
 
       // ── Intelligence layer: classify intent, then ground with live data ──
       const lastUserMessage =
-        [...input.messages].reverse().find(m => m.role === "user")?.content ?? "";
+        [...input.messages].reverse().find(m => m.role === "user")?.content ??
+        "";
       const intent = classifyIntent(lastUserMessage);
       const contextBlock = await buildTenantContext(tenantId, intent);
       const suggestions = ALIAS_ACTION_SUGGESTIONS[intent];
@@ -230,7 +229,11 @@ export const aliasAiRouter = router({
         "أهلاً بك في منصة الحسينية! تعذّر الاتصال بمحرك الذكاء الآن. المنصة تقدم محاسبة كاملة بالقيد المزدوج، مخزوناً ذكياً بالدفعات والصلاحيات، نقطة بيع تعمل أوفلاين، ومشتريات باعتمادات متعددة — جرّب النظام أو اطلب عرضاً عبر صفحة التواصل.";
 
       if (!ENV.forgeApiKey) {
-        return { content: fallbackPublic, degraded: true, suggestions: platformSuggestions };
+        return {
+          content: fallbackPublic,
+          degraded: true,
+          suggestions: platformSuggestions,
+        };
       }
 
       try {
@@ -239,7 +242,10 @@ export const aliasAiRouter = router({
             () =>
               invokeLLM({
                 messages: [
-                  { role: "system" as const, content: buildAliasPublicPrompt() },
+                  {
+                    role: "system" as const,
+                    content: buildAliasPublicPrompt(),
+                  },
                   ...input.messages,
                 ],
               }),
@@ -258,7 +264,11 @@ export const aliasAiRouter = router({
         };
       } catch (e) {
         console.warn("[alias-ai] public chat failed:", e);
-        return { content: fallbackPublic, degraded: true, suggestions: platformSuggestions };
+        return {
+          content: fallbackPublic,
+          degraded: true,
+          suggestions: platformSuggestions,
+        };
       }
     }),
 });

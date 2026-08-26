@@ -98,7 +98,7 @@ export default function Operations() {
             isPending ? "opacity-60 animate-pulse" : ""
           }`}
         >
-          {metrics.map((m) => (
+          {metrics.map(m => (
             <button
               key={m.label}
               onClick={() => setLocation(m.route)}
@@ -117,9 +117,11 @@ export default function Operations() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
           <div className="lg:col-span-2 rounded-2xl border border-line bg-surface/80 p-5">
-            <h2 className="font-bold text-ink mb-3">إجراءات سريعة حسب الوحدة</h2>
+            <h2 className="font-bold text-ink mb-3">
+              إجراءات سريعة حسب الوحدة
+            </h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {metrics.map((m) => {
+              {metrics.map(m => {
                 const Icon = m.icon;
                 return (
                   <button
@@ -210,12 +212,26 @@ export default function Operations() {
             <StatCard
               label="تسليمات متأخرة"
               value={deliveryQ.data?.overdue.length ?? 0}
-              tone={(deliveryQ.data?.overdue.length ?? 0) > 0 ? "negative" : "positive"}
+              tone={
+                (deliveryQ.data?.overdue.length ?? 0) > 0
+                  ? "negative"
+                  : "positive"
+              }
               icon={AlarmClock}
               hint="تجاوزت تاريخ التسليم"
             />
-            <StatCard label="طلبات مُسلَّمة" value={deliveryQ.data?.deliveredCount ?? 0} tone="positive" icon={CheckCircle2} />
-            <StatCard label="طلبات ملغاة" value={deliveryQ.data?.cancelledCount ?? 0} tone="negative" icon={AlertCircle} />
+            <StatCard
+              label="طلبات مُسلَّمة"
+              value={deliveryQ.data?.deliveredCount ?? 0}
+              tone="positive"
+              icon={CheckCircle2}
+            />
+            <StatCard
+              label="طلبات ملغاة"
+              value={deliveryQ.data?.cancelledCount ?? 0}
+              tone="negative"
+              icon={AlertCircle}
+            />
           </div>
 
           {(deliveryQ.data?.overdue ?? []).length > 0 && (
@@ -233,12 +249,18 @@ export default function Operations() {
                 <tbody>
                   {(deliveryQ.data?.overdue ?? []).slice(0, 8).map(o => (
                     <tr key={o.id} className="border-t border-line/60">
-                      <td className="px-3 py-2 font-mono font-bold">{o.orderNumber}</td>
+                      <td className="px-3 py-2 font-mono font-bold">
+                        {o.orderNumber}
+                      </td>
                       <td className="px-3 py-2">{o.customerName ?? "—"}</td>
                       <td className="px-3 py-2 text-center">{o.status}</td>
-                      <td className="px-3 py-2 text-left font-mono">{Number(o.total).toLocaleString()}</td>
+                      <td className="px-3 py-2 text-left font-mono">
+                        {Number(o.total).toLocaleString()}
+                      </td>
                       <td className="px-3 py-2 text-rose-600">
-                        {o.deliveryDate ? new Date(o.deliveryDate).toLocaleDateString("ar") : "—"}
+                        {o.deliveryDate
+                          ? new Date(o.deliveryDate).toLocaleDateString("ar")
+                          : "—"}
                       </td>
                     </tr>
                   ))}

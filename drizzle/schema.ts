@@ -133,79 +133,93 @@ export type LoginAttempt = typeof loginAttempts.$inferSelect;
 
 // ─── Tenants (Institutions) ───────────────────────────────────────
 
-export const tenants = pgTable("tenants", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  name: varchar("name", { length: 255 }).notNull(),
-  code: varchar("code", { length: 50 }).notNull().unique(),
-  ownerUserId: integer("ownerUserId"),
-  currency: varchar("currency", { length: 20 }).default("YER").notNull(),
-  country: varchar("country", { length: 100 }).default("اليمن").notNull(),
-  subscriptionPlan: varchar("subscriptionPlan", { length: 50 })
-    .default("standard")
-    .notNull(),
-  sector: varchar("sector", { length: 50 }).default("general").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId"),
-}, (t) => [
-  check("chk_tenant_currency_valid", sql`${t.currency} ~ '^[A-Z]{3}$'`),
-]);
+export const tenants = pgTable(
+  "tenants",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    ownerUserId: integer("ownerUserId"),
+    currency: varchar("currency", { length: 20 }).default("YER").notNull(),
+    country: varchar("country", { length: 100 }).default("اليمن").notNull(),
+    subscriptionPlan: varchar("subscriptionPlan", { length: 50 })
+      .default("standard")
+      .notNull(),
+    sector: varchar("sector", { length: 50 }).default("general").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [check("chk_tenant_currency_valid", sql`${t.currency} ~ '^[A-Z]{3}$'`)]
+);
 
 export type Tenant = typeof tenants.$inferSelect;
 export type InsertTenant = typeof tenants.$inferInsert;
 
 // ─── Branches ─────────────────────────────────────────────────────
 
-export const branches = pgTable("branches", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId").default(1).notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  code: varchar("code", { length: 50 }).notNull(),
-  city: varchar("city", { length: 100 }),
-  isMain: boolean("isMain").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId"),
-}, (t) => [
-  unique("branches_code_tenant_unique").on(t.code, t.tenantId),
-  check("chk_branch_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-]);
+export const branches = pgTable(
+  "branches",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").default(1).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    code: varchar("code", { length: 50 }).notNull(),
+    city: varchar("city", { length: 100 }),
+    isMain: boolean("isMain").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    unique("branches_code_tenant_unique").on(t.code, t.tenantId),
+    check("chk_branch_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+  ]
+);
 
 export type Branch = typeof branches.$inferSelect;
 export type InsertBranch = typeof branches.$inferInsert;
 
 // ─── User branch permissions & custom roles ───────────────────────
 
-export const userBranchPermissions = pgTable("user_branch_permissions", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId").notNull(),
-  userId: integer("userId").notNull(),
-  branchId: integer("branchId").notNull(),
-  canView: boolean("canView").default(true).notNull(),
-  canInsert: boolean("canInsert").default(true).notNull(),
-  canApprove: boolean("canApprove").default(false).notNull(),
-  canPost: boolean("canPost").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId"),
-}, (t) => [
-  unique("userBranchPermissions_tenant_user_branch_unique").on(t.tenantId, t.userId, t.branchId),
-]);
+export const userBranchPermissions = pgTable(
+  "user_branch_permissions",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    userId: integer("userId").notNull(),
+    branchId: integer("branchId").notNull(),
+    canView: boolean("canView").default(true).notNull(),
+    canInsert: boolean("canInsert").default(true).notNull(),
+    canApprove: boolean("canApprove").default(false).notNull(),
+    canPost: boolean("canPost").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    unique("userBranchPermissions_tenant_user_branch_unique").on(
+      t.tenantId,
+      t.userId,
+      t.branchId
+    ),
+  ]
+);
 
 export type UserBranchPermission = typeof userBranchPermissions.$inferSelect;
 export type InsertUserBranchPermission =
@@ -280,8 +294,12 @@ export const transactions = pgTable(
     aggregateId: uuid("aggregateId"),
     // Financial constraints
     currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
   },
   t => [
     index("idx_transactions_tenant").on(t.tenantId),
@@ -294,9 +312,16 @@ export const transactions = pgTable(
     index("idx_transactions_tenant_status").on(t.tenantId, t.lifecycleStatus),
     index("idx_transactions_tenant_reversed").on(t.tenantId, t.isReversed),
     index("idx_transactions_tenant_date").on(t.tenantId, t.transactionDate),
-    index("idx_transactions_tenant_account_date").on(t.tenantId, t.accountId, t.transactionDate),
+    index("idx_transactions_tenant_account_date").on(
+      t.tenantId,
+      t.accountId,
+      t.transactionDate
+    ),
     check("chk_transaction_amount_not_negative", sql`${t.amount} >= 0`),
-    check("chk_transaction_base_amount_not_negative", sql`${t.baseAmount} >= 0`),
+    check(
+      "chk_transaction_base_amount_not_negative",
+      sql`${t.baseAmount} >= 0`
+    ),
     check("chk_transaction_exchange_rate_positive", sql`${t.exchangeRate} > 0`),
     check("chk_transaction_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
     check("chk_transaction_account_not_null", sql`${t.accountId} IS NOT NULL`),
@@ -327,14 +352,25 @@ export const openingBalances = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
   },
   t => [
     index("idx_openingBalances_tenant").on(t.tenantId),
-    unique("openingBalances_account_period_tenant_unique").on(t.accountId, t.periodName, t.tenantId),
+    unique("openingBalances_account_period_tenant_unique").on(
+      t.accountId,
+      t.periodName,
+      t.tenantId
+    ),
     check("chk_opening_balance_amount_not_negative", sql`${t.amount} >= 0`),
-    check("chk_opening_balance_exchange_rate_positive", sql`${t.exchangeRate} > 0`),
+    check(
+      "chk_opening_balance_exchange_rate_positive",
+      sql`${t.exchangeRate} > 0`
+    ),
   ]
 );
 
@@ -428,44 +464,46 @@ export type InsertFiscalPeriod = typeof fiscalPeriods.$inferInsert;
 
 // ─── Settings ─────────────────────────────────────────────────────
 
-export const settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId").notNull().unique(),
-  institutionName: varchar("institutionName", { length: 255 })
-    .default("مؤسسة الحسينية لخدمات الأعمال")
-    .notNull(),
-  currency: varchar("currency", { length: 50 })
-    .default("ريال يمني (YER)")
-    .notNull(),
-  country: varchar("country", { length: 100 }).default("اليمن").notNull(),
-  accountingPeriod: varchar("accountingPeriod", { length: 50 })
-    .default("2026")
-    .notNull(),
-  managerName: varchar("managerName", { length: 255 })
-    .default("إدارة المؤسسة")
-    .notNull(),
-  notes: text("notes"),
-  subscriptionStatus: subscriptionStatusEnum("subscriptionStatus")
-    .default("trial")
-    .notNull(),
-  trialEndsAt: timestamp("trialEndsAt"),
-  // ─── POS / Sales configuration (stored as JSON text) ─────────────
-  posConfig: text("posConfig"),
-  salesPolicy: text("salesPolicy"),
-  paymentMethods: text("paymentMethods"),
-  postingRules: text("postingRules"),
-  // ─── ZATCA (Saudi e-invoicing) configuration ────────────────────
-  zatcaConfig: text("zatcaConfig"),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId"),
-}, (t) => [
-  check("chk_settings_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-]);
+export const settings = pgTable(
+  "settings",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull().unique(),
+    institutionName: varchar("institutionName", { length: 255 })
+      .default("مؤسسة الحسينية لخدمات الأعمال")
+      .notNull(),
+    currency: varchar("currency", { length: 50 })
+      .default("ريال يمني (YER)")
+      .notNull(),
+    country: varchar("country", { length: 100 }).default("اليمن").notNull(),
+    accountingPeriod: varchar("accountingPeriod", { length: 50 })
+      .default("2026")
+      .notNull(),
+    managerName: varchar("managerName", { length: 255 })
+      .default("إدارة المؤسسة")
+      .notNull(),
+    notes: text("notes"),
+    subscriptionStatus: subscriptionStatusEnum("subscriptionStatus")
+      .default("trial")
+      .notNull(),
+    trialEndsAt: timestamp("trialEndsAt"),
+    // ─── POS / Sales configuration (stored as JSON text) ─────────────
+    posConfig: text("posConfig"),
+    salesPolicy: text("salesPolicy"),
+    paymentMethods: text("paymentMethods"),
+    postingRules: text("postingRules"),
+    // ─── ZATCA (Saudi e-invoicing) configuration ────────────────────
+    zatcaConfig: text("zatcaConfig"),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [check("chk_settings_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)]
+);
 
 export type Setting = typeof settings.$inferSelect;
 export type InsertSetting = typeof settings.$inferInsert;
@@ -578,7 +616,9 @@ export const products = pgTable(
     cogsAccountId: integer("cogsAccountId"),
     inventoryAccountId: integer("inventoryAccountId"),
     // ─── Inventory / unit flexibility ──────────────────────────────
-    unitOfMeasure: varchar("unitOfMeasure", { length: 50 }).default("قطعة").notNull(),
+    unitOfMeasure: varchar("unitOfMeasure", { length: 50 })
+      .default("قطعة")
+      .notNull(),
     secondaryUnit: varchar("secondaryUnit", { length: 50 }),
     conversionFactor: decimal("conversionFactor", { precision: 15, scale: 4 })
       .default("1")
@@ -589,12 +629,20 @@ export const products = pgTable(
     alternativeIds: text("alternativeIds"), // JSON: number[]
     attachmentUrl: text("attachmentUrl"),
     // ─── Services costing & pricing ───────────────────────────────
-    costMethod: varchar("costMethod", { length: 30 }).default("average").notNull(),
-    directCost: decimal("directCost", { precision: 15, scale: 2 }).default("0").notNull(),
-    indirectCost: decimal("indirectCost", { precision: 15, scale: 2 }).default("0").notNull(),
+    costMethod: varchar("costMethod", { length: 30 })
+      .default("average")
+      .notNull(),
+    directCost: decimal("directCost", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    indirectCost: decimal("indirectCost", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     productionMinutes: integer("productionMinutes"),
     priceMode: varchar("priceMode", { length: 20 }).default("direct").notNull(), // direct | costPlus
-    marginPct: decimal("marginPct", { precision: 6, scale: 2 }).default("0").notNull(),
+    marginPct: decimal("marginPct", { precision: 6, scale: 2 })
+      .default("0")
+      .notNull(),
     isActive: boolean("isActive").default(true).notNull(),
     // ─── Reorder automation (Module C) ─────────────────────────────
     reorderPoint: decimal("reorderPoint", { precision: 15, scale: 2 })
@@ -620,10 +668,19 @@ export const products = pgTable(
     index("idx_products_supplier").on(t.supplierId),
     index("idx_products_currency").on(t.currencyId),
     unique("products_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_product_purchase_price_not_negative", sql`${t.purchasePrice} >= 0`),
+    check(
+      "chk_product_purchase_price_not_negative",
+      sql`${t.purchasePrice} >= 0`
+    ),
     check("chk_product_sale_price_not_negative", sql`${t.salePrice} >= 0`),
-    check("chk_product_wholesale_price_not_negative", sql`${t.wholesalePrice} >= 0`),
-    check("chk_product_conversion_factor_positive", sql`${t.conversionFactor} > 0`),
+    check(
+      "chk_product_wholesale_price_not_negative",
+      sql`${t.wholesalePrice} >= 0`
+    ),
+    check(
+      "chk_product_conversion_factor_positive",
+      sql`${t.conversionFactor} > 0`
+    ),
     check("chk_product_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -753,7 +810,10 @@ export const inventoryMovements = pgTable(
     index("idx_inventoryMovements_product").on(t.productId),
     index("idx_inventoryMovements_warehouse").on(t.warehouseId),
     check("chk_inventory_movement_quantity_not_zero", sql`${t.quantity} != 0`),
-    check("chk_inventory_movement_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_inventory_movement_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -785,7 +845,10 @@ export const stockAdjustments = pgTable(
   t => [
     index("idx_stockAdjustments_tenant").on(t.tenantId),
     unique("stockAdjustments_gc_tenant_unique").on(t.tenantId, t.globalCode),
-    check("chk_stock_adjustment_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_stock_adjustment_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -817,8 +880,14 @@ export const warehouseTransfers = pgTable(
     index("idx_warehouseTransfers_tenant").on(t.tenantId),
     unique("warehouseTransfers_gc_tenant_unique").on(t.tenantId, t.globalCode),
     check("chk_warehouse_transfer_quantity_positive", sql`${t.quantity} > 0`),
-    check("chk_warehouse_transfer_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-    check("chk_warehouse_transfer_from_to_different", sql`${t.fromWarehouseId} != ${t.toWarehouseId}`),
+    check(
+      "chk_warehouse_transfer_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
+    check(
+      "chk_warehouse_transfer_from_to_different",
+      sql`${t.fromWarehouseId} != ${t.toWarehouseId}`
+    ),
   ]
 );
 
@@ -850,11 +919,24 @@ export const warehouseStock = pgTable(
     index("idx_warehouseStock_tenant").on(t.tenantId),
     index("idx_warehouseStock_product").on(t.productId),
     index("idx_warehouseStock_warehouse").on(t.warehouseId),
-    unique("warehouseStock_product_warehouse_tenant_unique").on(t.productId, t.warehouseId, t.tenantId),
+    unique("warehouseStock_product_warehouse_tenant_unique").on(
+      t.productId,
+      t.warehouseId,
+      t.tenantId
+    ),
     check("chk_warehouse_stock_qty_not_negative", sql`${t.quantity} >= 0`),
-    check("chk_warehouse_stock_reserved_not_negative", sql`${t.reservedQty} >= 0`),
-    check("chk_warehouse_stock_available_not_negative", sql`${t.availableQty} >= 0`),
-    check("chk_warehouse_stock_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_warehouse_stock_reserved_not_negative",
+      sql`${t.reservedQty} >= 0`
+    ),
+    check(
+      "chk_warehouse_stock_available_not_negative",
+      sql`${t.availableQty} >= 0`
+    ),
+    check(
+      "chk_warehouse_stock_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -884,7 +966,9 @@ export const inventoryBatches = pgTable(
     expiryDate: timestamp("expiryDate"),
     quantity: integer("quantity").default(0).notNull(),
     reservedQty: integer("reservedQty").default(0).notNull(),
-    unitCost: decimal("unitCost", { precision: 15, scale: 4 }).default("0").notNull(),
+    unitCost: decimal("unitCost", { precision: 15, scale: 4 })
+      .default("0")
+      .notNull(),
     purchaseInvoiceId: integer("purchaseInvoiceId"),
     purchaseInvoiceItemId: integer("purchaseInvoiceItemId"),
     notes: text("notes"),
@@ -903,10 +987,21 @@ export const inventoryBatches = pgTable(
     index("idx_inventoryBatches_warehouse").on(t.warehouseId),
     index("idx_inventoryBatches_expiry").on(t.expiryDate),
     index("idx_inventoryBatches_batchNumber").on(t.batchNumber),
-    unique("inventoryBatches_product_warehouse_batch_tenant_unique").on(t.productId, t.warehouseId, t.batchNumber, t.tenantId),
+    unique("inventoryBatches_product_warehouse_batch_tenant_unique").on(
+      t.productId,
+      t.warehouseId,
+      t.batchNumber,
+      t.tenantId
+    ),
     check("chk_inventory_batch_qty_not_negative", sql`${t.quantity} >= 0`),
-    check("chk_inventory_batch_reserved_not_negative", sql`${t.reservedQty} >= 0`),
-    check("chk_inventory_batch_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_inventory_batch_reserved_not_negative",
+      sql`${t.reservedQty} >= 0`
+    ),
+    check(
+      "chk_inventory_batch_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -965,7 +1060,10 @@ export const stockReservations = pgTable(
     index("idx_stockReservations_source").on(t.source, t.sourceId),
     index("idx_stockReservations_expires").on(t.expiresAt),
     check("chk_stock_reservation_qty_positive", sql`${t.quantity} > 0`),
-    check("chk_stock_reservation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_stock_reservation_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -997,7 +1095,9 @@ export const cycleCounts = pgTable(
     approvedAt: timestamp("approvedAt"),
     approvedById: integer("approvedById"),
     assignedToId: integer("assignedToId"),
-    varianceThreshold: decimal("varianceThreshold", { precision: 5, scale: 2 }).default("5").notNull(),
+    varianceThreshold: decimal("varianceThreshold", { precision: 5, scale: 2 })
+      .default("5")
+      .notNull(),
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -1012,7 +1112,10 @@ export const cycleCounts = pgTable(
     index("idx_cycleCounts_warehouse").on(t.warehouseId),
     index("idx_cycleCounts_status").on(t.status),
     index("idx_cycleCounts_plannedDate").on(t.plannedDate),
-    unique("cycleCounts_countNumber_tenant_unique").on(t.countNumber, t.tenantId),
+    unique("cycleCounts_countNumber_tenant_unique").on(
+      t.countNumber,
+      t.tenantId
+    ),
     check("chk_cycle_count_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -1052,8 +1155,16 @@ export const cycleCountLines = pgTable(
     index("idx_cycleCountLines_tenant").on(t.tenantId),
     index("idx_cycleCountLines_cycleCount").on(t.cycleCountId),
     index("idx_cycleCountLines_product").on(t.productId),
-    unique("cycleCountLines_cycleCount_product_warehouse_batch_unique").on(t.cycleCountId, t.productId, t.warehouseId, t.batchId),
-    check("chk_cycle_count_line_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    unique("cycleCountLines_cycleCount_product_warehouse_batch_unique").on(
+      t.cycleCountId,
+      t.productId,
+      t.warehouseId,
+      t.batchId
+    ),
+    check(
+      "chk_cycle_count_line_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -1096,14 +1207,22 @@ export const inventoryValuationLayers = pgTable(
     index("idx_valuationLayers_layerDate").on(t.layerDate),
     index("idx_valuationLayers_active").on(t.isActive),
     check("chk_valuation_layer_qty_positive", sql`${t.quantity} > 0`),
-    check("chk_valuation_layer_remaining_not_negative", sql`${t.remainingQty} >= 0`),
+    check(
+      "chk_valuation_layer_remaining_not_negative",
+      sql`${t.remainingQty} >= 0`
+    ),
     check("chk_valuation_layer_unit_cost_positive", sql`${t.unitCost} > 0`),
-    check("chk_valuation_layer_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_valuation_layer_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
-export type InventoryValuationLayer = typeof inventoryValuationLayers.$inferSelect;
-export type InsertInventoryValuationLayer = typeof inventoryValuationLayers.$inferInsert;
+export type InventoryValuationLayer =
+  typeof inventoryValuationLayers.$inferSelect;
+export type InsertInventoryValuationLayer =
+  typeof inventoryValuationLayers.$inferInsert;
 
 // ─── Customers & Suppliers ────────────────────────────────────────
 
@@ -1293,22 +1412,39 @@ export const salesInvoices = pgTable(
     index("idx_salesInvoices_currency").on(t.currencyId),
     index("idx_salesInvoices_salesRep").on(t.salesRepId),
     index("idx_salesInvoices_tenant_salesrep").on(t.tenantId, t.salesRepId),
-    index("idx_salesInvoices_tenant_status_date").on(t.tenantId, t.status, t.invoiceDate),
-    index("idx_salesInvoices_tenant_customer_date").on(t.tenantId, t.customerId, t.invoiceDate),
+    index("idx_salesInvoices_tenant_status_date").on(
+      t.tenantId,
+      t.status,
+      t.invoiceDate
+    ),
+    index("idx_salesInvoices_tenant_customer_date").on(
+      t.tenantId,
+      t.customerId,
+      t.invoiceDate
+    ),
     unique("salesInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
     check("chk_sales_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
     check("chk_sales_invoice_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
-    check("chk_sales_invoice_tax_amount_not_negative", sql`${t.taxAmount} >= 0`),
+    check(
+      "chk_sales_invoice_tax_amount_not_negative",
+      sql`${t.taxAmount} >= 0`
+    ),
     check("chk_sales_invoice_discount_not_negative", sql`${t.discount} >= 0`),
     check("chk_sales_invoice_total_not_negative", sql`${t.total} >= 0`),
     check("chk_sales_invoice_paid_not_negative", sql`${t.paidAmount} >= 0`),
-    check("chk_sales_invoice_currency_rate_positive", sql`${t.currencyRate} > 0`),
+    check(
+      "chk_sales_invoice_currency_rate_positive",
+      sql`${t.currencyRate} > 0`
+    ),
     check("chk_sales_invoice_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-    check("chk_sales_invoice_status_posted_immutable", sql`
+    check(
+      "chk_sales_invoice_status_posted_immutable",
+      sql`
       CASE WHEN ${t.status} IN ('paid', 'cancelled') THEN
         ${t.postedAt} IS NOT NULL
       ELSE TRUE END
-    `),
+    `
+    ),
   ]
 );
 
@@ -1379,8 +1515,12 @@ export const purchaseInvoices = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     // Posted/Reversed immutable tracking
     postedAt: timestamp("postedAt"),
     postedById: integer("postedById"),
@@ -1394,15 +1534,33 @@ export const purchaseInvoices = pgTable(
     index("idx_purchaseInvoices_status").on(t.status),
     index("idx_purchaseInvoices_currency").on(t.currencyId),
     unique("purchaseInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
-    check("chk_purchase_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
+    check(
+      "chk_purchase_invoice_subtotal_not_negative",
+      sql`${t.subtotal} >= 0`
+    ),
     check("chk_purchase_invoice_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
-    check("chk_purchase_invoice_tax_amount_not_negative", sql`${t.taxAmount} >= 0`),
-    check("chk_purchase_invoice_discount_not_negative", sql`${t.discount} >= 0`),
+    check(
+      "chk_purchase_invoice_tax_amount_not_negative",
+      sql`${t.taxAmount} >= 0`
+    ),
+    check(
+      "chk_purchase_invoice_discount_not_negative",
+      sql`${t.discount} >= 0`
+    ),
     check("chk_purchase_invoice_total_not_negative", sql`${t.total} >= 0`),
     check("chk_purchase_invoice_paid_not_negative", sql`${t.paidAmount} >= 0`),
-    check("chk_purchase_invoice_exchange_rate_positive", sql`${t.exchangeRate} > 0`),
-    check("chk_purchase_invoice_base_amount_not_negative", sql`${t.baseAmount} >= 0`),
-    check("chk_purchase_invoice_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_purchase_invoice_exchange_rate_positive",
+      sql`${t.exchangeRate} > 0`
+    ),
+    check(
+      "chk_purchase_invoice_base_amount_not_negative",
+      sql`${t.baseAmount} >= 0`
+    ),
+    check(
+      "chk_purchase_invoice_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -1517,8 +1675,12 @@ export const payments = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
   },
   t => [
     index("idx_payments_tenant").on(t.tenantId),
@@ -1532,33 +1694,49 @@ export const payments = pgTable(
 );
 
 // ─── Subscription Plans ──────────────────────────────────────────
-export const subscriptionPlans = pgTable("subscription_plans", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  name: varchar("name", { length: 100 }).notNull(),
-  code: varchar("code", { length: 50 }).notNull().unique(),
-  description: text("description"),
-  priceMonthly: decimal("priceMonthly", { precision: 10, scale: 2 }).notNull(),
-  priceYearly: decimal("priceYearly", { precision: 10, scale: 2 }).notNull(),
-  currency: varchar("currency", { length: 10 }).default("USD").notNull(),
-  maxUsers: integer("maxUsers").default(5).notNull(),
-  maxBranches: integer("maxBranches").default(1).notNull(),
-  maxTransactions: integer("maxTransactions").default(1000).notNull(),
-  features: jsonb("features"),
-  isActive: boolean("isActive").default(true).notNull(),
-  sortOrder: integer("sortOrder").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId"),
-}, (t) => [
-  check("chk_subscription_plan_price_monthly_positive", sql`${t.priceMonthly} > 0`),
-  check("chk_subscription_plan_price_yearly_positive", sql`${t.priceYearly} > 0`),
-  check("chk_subscription_plan_currency_format", sql`${t.currency} ~ '^[A-Z]{3}$'`),
-]);
+export const subscriptionPlans = pgTable(
+  "subscription_plans",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    name: varchar("name", { length: 100 }).notNull(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    description: text("description"),
+    priceMonthly: decimal("priceMonthly", {
+      precision: 10,
+      scale: 2,
+    }).notNull(),
+    priceYearly: decimal("priceYearly", { precision: 10, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 10 }).default("USD").notNull(),
+    maxUsers: integer("maxUsers").default(5).notNull(),
+    maxBranches: integer("maxBranches").default(1).notNull(),
+    maxTransactions: integer("maxTransactions").default(1000).notNull(),
+    features: jsonb("features"),
+    isActive: boolean("isActive").default(true).notNull(),
+    sortOrder: integer("sortOrder").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    check(
+      "chk_subscription_plan_price_monthly_positive",
+      sql`${t.priceMonthly} > 0`
+    ),
+    check(
+      "chk_subscription_plan_price_yearly_positive",
+      sql`${t.priceYearly} > 0`
+    ),
+    check(
+      "chk_subscription_plan_currency_format",
+      sql`${t.currency} ~ '^[A-Z]{3}$'`
+    ),
+  ]
+);
 
 export type SubscriptionPlan = typeof subscriptionPlans.$inferSelect;
 export type InsertSubscriptionPlan = typeof subscriptionPlans.$inferInsert;
@@ -1640,7 +1818,10 @@ export const billingInvoices = pgTable(
     check("chk_billing_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
     check("chk_billing_invoice_tax_not_negative", sql`${t.taxAmount} >= 0`),
     check("chk_billing_invoice_total_not_negative", sql`${t.total} >= 0`),
-    check("chk_billing_invoice_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_billing_invoice_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -1679,8 +1860,14 @@ export const paymentHistory = pgTable(
     index("idx_payment_history_invoice").on(t.invoiceId),
     index("idx_payment_history_currency").on(t.currencyId),
     check("chk_payment_history_amount_positive", sql`${t.amount} > 0`),
-    check("chk_payment_history_refund_not_negative", sql`${t.refundedAmount} >= 0`),
-    check("chk_payment_history_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_payment_history_refund_not_negative",
+      sql`${t.refundedAmount} >= 0`
+    ),
+    check(
+      "chk_payment_history_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -1797,7 +1984,10 @@ export const teamInvitations = pgTable(
   t => [
     index("idx_team_inv_tenant").on(t.tenantId),
     index("idx_team_inv_email").on(t.email),
-    check("chk_team_invitation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_team_invitation_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -1805,29 +1995,33 @@ export type TeamInvitation = typeof teamInvitations.$inferSelect;
 export type InsertTeamInvitation = typeof teamInvitations.$inferInsert;
 
 // ─── Currencies ──────────────────────────────────────────────────
-export const currencies = pgTable("currencies", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId"),
-  code: varchar("code", { length: 10 }).notNull().unique(),
-  name: varchar("name", { length: 100 }).notNull(),
-  symbol: varchar("symbol", { length: 10 }).notNull(),
-  rate: decimal("rate", { precision: 18, scale: 8 }).default("1").notNull(),
-  isDefault: boolean("isDefault").default(false).notNull(),
-  decimalPlaces: integer("decimalPlaces").default(2).notNull(),
-  isActive: boolean("isActive").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId"),
-}, (t) => [
-  index("idx_currencies_tenant").on(t.tenantId),
-  check("chk_currency_rate_positive", sql`${t.rate} > 0`),
-  check("chk_currency_code_format", sql`${t.code} ~ '^[A-Z]{3}$'`),
-]);
+export const currencies = pgTable(
+  "currencies",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId"),
+    code: varchar("code", { length: 10 }).notNull().unique(),
+    name: varchar("name", { length: 100 }).notNull(),
+    symbol: varchar("symbol", { length: 10 }).notNull(),
+    rate: decimal("rate", { precision: 18, scale: 8 }).default("1").notNull(),
+    isDefault: boolean("isDefault").default(false).notNull(),
+    decimalPlaces: integer("decimalPlaces").default(2).notNull(),
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_currencies_tenant").on(t.tenantId),
+    check("chk_currency_rate_positive", sql`${t.rate} > 0`),
+    check("chk_currency_code_format", sql`${t.code} ~ '^[A-Z]{3}$'`),
+  ]
+);
 
 export type Currency = typeof currencies.$inferSelect;
 export type InsertCurrency = typeof currencies.$inferInsert;
@@ -1855,7 +2049,11 @@ export const exchangeRates = pgTable(
   t => [
     index("idx_exchange_rates_pair").on(t.baseCurrency, t.quoteCurrency),
     index("idx_exchange_rates_effective").on(t.effectiveFrom),
-    unique("exchange_rates_pair_effective_unique").on(t.baseCurrency, t.quoteCurrency, t.effectiveFrom),
+    unique("exchange_rates_pair_effective_unique").on(
+      t.baseCurrency,
+      t.quoteCurrency,
+      t.effectiveFrom
+    ),
     check("chk_exchange_rate_positive", sql`${t.rate} > 0`),
   ]
 );
@@ -1902,7 +2100,9 @@ export const fileUploads = pgTable(
     lat: decimal("lat", { precision: 10, scale: 7 }),
     lng: decimal("lng", { precision: 10, scale: 7 }),
     // Retention
-    retentionPolicy: varchar("retentionPolicy", { length: 50 }).default("standard"),
+    retentionPolicy: varchar("retentionPolicy", { length: 50 }).default(
+      "standard"
+    ),
     retentionExpiresAt: timestamp("retentionExpiresAt"),
     legalHold: boolean("legalHold").default(false).notNull(),
     // Sync columns
@@ -2290,9 +2490,15 @@ export const payrollItems = pgTable(
     index("idx_payroll_items_tenant").on(t.tenantId),
     index("idx_payroll_items_run").on(t.payrollRunId),
     index("idx_payroll_items_employee").on(t.employeeId),
-    unique("payroll_items_run_employee_unique").on(t.payrollRunId, t.employeeId),
+    unique("payroll_items_run_employee_unique").on(
+      t.payrollRunId,
+      t.employeeId
+    ),
     check("chk_payroll_item_basic_not_negative", sql`${t.basicSalary} >= 0`),
-    check("chk_payroll_item_deductions_not_negative", sql`${t.deductions} >= 0`),
+    check(
+      "chk_payroll_item_deductions_not_negative",
+      sql`${t.deductions} >= 0`
+    ),
     check("chk_payroll_item_net_not_negative", sql`${t.net} >= 0`),
     check("chk_payroll_item_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
@@ -2397,7 +2603,10 @@ export const projectMembers = pgTable(
     index("idx_project_members_tenant").on(t.tenantId),
     index("idx_project_members_project").on(t.projectId),
     index("idx_project_members_employee").on(t.employeeId),
-    unique("project_members_project_employee_unique").on(t.projectId, t.employeeId),
+    unique("project_members_project_employee_unique").on(
+      t.projectId,
+      t.employeeId
+    ),
     check("chk_project_member_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -2450,7 +2659,10 @@ export const procurements = pgTable(
       t.requisitionNumber
     ),
     check("chk_procurement_quantity_positive", sql`${t.quantity} > 0`),
-    check("chk_procurement_estimated_cost_not_negative", sql`${t.estimatedCost} >= 0`),
+    check(
+      "chk_procurement_estimated_cost_not_negative",
+      sql`${t.estimatedCost} >= 0`
+    ),
     check("chk_procurement_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -2481,8 +2693,14 @@ export const procurementApprovals = pgTable(
   t => [
     index("idx_procurement_approvals_tenant").on(t.tenantId),
     index("idx_procurement_approvals_proc").on(t.procurementId),
-    unique("procurement_approvals_proc_level_unique").on(t.procurementId, t.level),
-    check("chk_procurement_approval_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    unique("procurement_approvals_proc_level_unique").on(
+      t.procurementId,
+      t.level
+    ),
+    check(
+      "chk_procurement_approval_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -2550,7 +2768,10 @@ export const qualityInspections = pgTable(
   t => [
     index("idx_quality_inspections_tenant").on(t.tenantId),
     uniqueIndex("uq_quality_tenant_code").on(t.tenantId, t.code),
-    check("chk_quality_score_range", sql`${t.score} IS NULL OR (${t.score} >= 0 AND ${t.score} <= 100)`),
+    check(
+      "chk_quality_score_range",
+      sql`${t.score} IS NULL OR (${t.score} >= 0 AND ${t.score} <= 100)`
+    ),
     check("chk_quality_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -2577,7 +2798,9 @@ export const journalEntries = pgTable(
     sourceRefId: integer("sourceRefId"),
     referenceNo: varchar("referenceNo", { length: 80 }),
     status: varchar("status", { length: 20 }).default("posted").notNull(),
-    totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).default("0"),
+    totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).default(
+      "0"
+    ),
     memo: text("memo"),
     createdById: integer("createdById"),
     postedAt: timestamp("postedAt"),
@@ -2598,9 +2821,12 @@ export const journalEntries = pgTable(
     index("idx_journal_currency").on(t.currencyId),
     check("chk_journal_total_not_negative", sql`${t.totalAmount} >= 0`),
     check("chk_journal_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-    check("chk_journal_immutable_posted", sql`
+    check(
+      "chk_journal_immutable_posted",
+      sql`
       CASE WHEN ${t.status} = 'posted' THEN ${t.isImmutable} = true ELSE true END
-    `),
+    `
+    ),
   ]
 );
 
@@ -2617,7 +2843,9 @@ export const scheduledJournalEntries = pgTable(
     name: varchar("name", { length: 200 }).notNull(),
     description: text("description"),
     branchId: integer("branchId"),
-    frequency: varchar("frequency", { length: 20 }).default("monthly").notNull(),
+    frequency: varchar("frequency", { length: 20 })
+      .default("monthly")
+      .notNull(),
     nextRunAt: timestamp("nextRunAt"),
     isActive: boolean("isActive").default(true).notNull(),
     legs: jsonb("legs"),
@@ -2630,10 +2858,13 @@ export const scheduledJournalEntries = pgTable(
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_scheduledJournal_tenant").on(t.tenantId),
     index("idx_scheduledJournal_nextRun").on(t.nextRunAt),
-    check("chk_scheduled_journal_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_scheduled_journal_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -2650,21 +2881,21 @@ export const recurringExpenseStatusEnum = pgEnum("recurring_expense_status", [
   "cancelled",
 ]);
 
-export const recurringExpenseFrequencyEnum = pgEnum("recurring_expense_frequency", [
-  "daily",
-  "weekly",
-  "biweekly",
-  "monthly",
-  "quarterly",
-  "semiannual",
-  "annual",
-  "custom",
-]);
+export const recurringExpenseFrequencyEnum = pgEnum(
+  "recurring_expense_frequency",
+  [
+    "daily",
+    "weekly",
+    "biweekly",
+    "monthly",
+    "quarterly",
+    "semiannual",
+    "annual",
+    "custom",
+  ]
+);
 
-export const expenseBasisEnum = pgEnum("expense_basis", [
-  "accrual",
-  "cash",
-]);
+export const expenseBasisEnum = pgEnum("expense_basis", ["accrual", "cash"]);
 
 export const expenseApprovalStatusEnum = pgEnum("expense_approval_status", [
   "pending",
@@ -2683,14 +2914,22 @@ export const recurringExpenses = pgTable(
     description: text("description"),
     categoryId: integer("categoryId").references(() => categories.id),
     vendorId: integer("vendorId").references(() => suppliers.id),
-    accountId: integer("accountId").references(() => accounts.id).notNull(),
+    accountId: integer("accountId")
+      .references(() => accounts.id)
+      .notNull(),
     branchId: integer("branchId").references(() => branches.id),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 10 }).default("YER").notNull(),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    taxRate: decimal("taxRate", { precision: 5, scale: 2 })
+      .default("0")
+      .notNull(),
     taxAccountId: integer("taxAccountId").references(() => accounts.id),
-    frequency: recurringExpenseFrequencyEnum("frequency").default("monthly").notNull(),
+    frequency: recurringExpenseFrequencyEnum("frequency")
+      .default("monthly")
+      .notNull(),
     customCron: varchar("customCron", { length: 100 }),
     dayOfMonth: integer("dayOfMonth"),
     dayOfWeek: integer("dayOfWeek"),
@@ -2701,7 +2940,9 @@ export const recurringExpenses = pgTable(
     occurrencesCount: integer("occurrencesCount").default(0).notNull(),
     basis: expenseBasisEnum("basis").default("accrual").notNull(),
     status: recurringExpenseStatusEnum("status").default("draft").notNull(),
-    approvalStatus: expenseApprovalStatusEnum("approvalStatus").default("pending").notNull(),
+    approvalStatus: expenseApprovalStatusEnum("approvalStatus")
+      .default("pending")
+      .notNull(),
     approverId: integer("approverId").references(() => users.id),
     approvedAt: timestamp("approvedAt"),
     approvedById: integer("approvedById").references(() => users.id),
@@ -2727,7 +2968,7 @@ export const recurringExpenses = pgTable(
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_recurring_expenses_tenant").on(t.tenantId),
     index("idx_recurring_expenses_status").on(t.status),
     index("idx_recurring_expenses_next_run").on(t.nextRunAt),
@@ -2736,11 +2977,26 @@ export const recurringExpenses = pgTable(
     index("idx_recurring_expenses_account").on(t.accountId),
     index("idx_recurring_expenses_budget").on(t.budgetId),
     check("chk_recurring_expense_amount_positive", sql`${t.amount} > 0`),
-    check("chk_recurring_expense_exchange_rate_positive", sql`${t.exchangeRate} > 0`),
-    check("chk_recurring_expense_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
-    check("chk_recurring_expense_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-    check("chk_recurring_expense_account_not_null", sql`${t.accountId} IS NOT NULL`),
-    check("chk_recurring_expense_dates", sql`${t.startDate} <= ${t.endDate} OR ${t.endDate} IS NULL`),
+    check(
+      "chk_recurring_expense_exchange_rate_positive",
+      sql`${t.exchangeRate} > 0`
+    ),
+    check(
+      "chk_recurring_expense_tax_rate_not_negative",
+      sql`${t.taxRate} >= 0`
+    ),
+    check(
+      "chk_recurring_expense_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
+    check(
+      "chk_recurring_expense_account_not_null",
+      sql`${t.accountId} IS NOT NULL`
+    ),
+    check(
+      "chk_recurring_expense_dates",
+      sql`${t.startDate} <= ${t.endDate} OR ${t.endDate} IS NULL`
+    ),
   ]
 );
 
@@ -2753,19 +3009,33 @@ export const recurringExpenseRuns = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId").notNull(),
-    recurringExpenseId: integer("recurringExpenseId").notNull().references(() => recurringExpenses.id),
+    recurringExpenseId: integer("recurringExpenseId")
+      .notNull()
+      .references(() => recurringExpenses.id),
     runNumber: integer("runNumber").notNull(),
     scheduledDate: timestamp("scheduledDate").notNull(),
     executedDate: timestamp("executedDate"),
     status: varchar("status", { length: 20 }).default("pending").notNull(),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    journalEntryId: integer("journalEntryId").references(() => journalEntries.id),
-    purchaseInvoiceId: integer("purchaseInvoiceId").references(() => purchaseInvoices.id),
-    paymentTransactionId: integer("paymentTransactionId").references(() => transactions.id),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    journalEntryId: integer("journalEntryId").references(
+      () => journalEntries.id
+    ),
+    purchaseInvoiceId: integer("purchaseInvoiceId").references(
+      () => purchaseInvoices.id
+    ),
+    paymentTransactionId: integer("paymentTransactionId").references(
+      () => transactions.id
+    ),
     errorMessage: text("errorMessage"),
     processedById: integer("processedById").references(() => users.id),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -2776,19 +3046,26 @@ export const recurringExpenseRuns = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_recurring_expense_runs_tenant").on(t.tenantId),
     index("idx_recurring_expense_runs_recurring").on(t.recurringExpenseId),
     index("idx_recurring_expense_runs_scheduled").on(t.scheduledDate),
     index("idx_recurring_expense_runs_status").on(t.status),
-    unique("recurring_expense_runs_unique").on(t.recurringExpenseId, t.runNumber),
+    unique("recurring_expense_runs_unique").on(
+      t.recurringExpenseId,
+      t.runNumber
+    ),
     check("chk_recurring_expense_run_amount_positive", sql`${t.amount} > 0`),
-    check("chk_recurring_expense_run_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_recurring_expense_run_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
 export type RecurringExpenseRun = typeof recurringExpenseRuns.$inferSelect;
-export type InsertRecurringExpenseRun = typeof recurringExpenseRuns.$inferInsert;
+export type InsertRecurringExpenseRun =
+  typeof recurringExpenseRuns.$inferInsert;
 
 // ─── Master Data: Units of Measure ───────────────────────────────────────
 export const units = pgTable(
@@ -2802,8 +3079,10 @@ export const units = pgTable(
     nameAr: varchar("nameAr", { length: 80 }),
     symbol: varchar("symbol", { length: 20 }),
     baseUnitId: integer("baseUnitId"),
-    conversionFactor: decimal("conversionFactor", { precision: 15, scale: 6 })
-      .default("1"),
+    conversionFactor: decimal("conversionFactor", {
+      precision: 15,
+      scale: 6,
+    }).default("1"),
     isActive: boolean("isActive").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -2846,11 +3125,14 @@ export const productUnits = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_productUnits_tenant").on(t.tenantId),
     index("idx_productUnits_product").on(t.productId),
     unique("product_units_product_unit_unique").on(t.productId, t.unitId),
-    check("chk_product_unit_conversion_positive", sql`${t.conversionFactor} > 0`),
+    check(
+      "chk_product_unit_conversion_positive",
+      sql`${t.conversionFactor} > 0`
+    ),
     check("chk_product_unit_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -2961,9 +3243,7 @@ export const permissions = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
   },
-  t => [
-    uniqueIndex("uq_permissions_key").on(t.key),
-  ]
+  t => [uniqueIndex("uq_permissions_key").on(t.key)]
 );
 
 export type Permission = typeof permissions.$inferSelect;
@@ -3045,7 +3325,9 @@ export const posSessions = pgTable(
     openedById: integer("openedById").notNull(),
     openedAt: timestamp("openedAt").defaultNow().notNull(),
     closedAt: timestamp("closedAt"),
-    openingFloat: decimal("openingFloat", { precision: 15, scale: 2 }).default("0"),
+    openingFloat: decimal("openingFloat", { precision: 15, scale: 2 }).default(
+      "0"
+    ),
     closingFloat: decimal("closingFloat", { precision: 15, scale: 2 }),
     expectedCash: decimal("expectedCash", { precision: 15, scale: 2 }),
     countedCash: decimal("countedCash", { precision: 15, scale: 2 }),
@@ -3139,7 +3421,10 @@ export const customFieldDefs = pgTable(
       t.entityType,
       t.key
     ),
-    check("chk_custom_field_def_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_custom_field_def_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -3170,8 +3455,15 @@ export const customFieldValues = pgTable(
       t.entityType,
       t.entityId
     ),
-    unique("custom_field_values_entity_field_unique").on(t.entityType, t.entityId, t.fieldKey),
-    check("chk_custom_field_value_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    unique("custom_field_values_entity_field_unique").on(
+      t.entityType,
+      t.entityId,
+      t.fieldKey
+    ),
+    check(
+      "chk_custom_field_value_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -3212,7 +3504,10 @@ export const salesReps = pgTable(
   t => [
     index("idx_sales_reps_tenant").on(t.tenantId),
     index("idx_sales_reps_currency").on(t.currencyId),
-    check("chk_sales_rep_commission_not_negative", sql`${t.commissionValue} >= 0`),
+    check(
+      "chk_sales_rep_commission_not_negative",
+      sql`${t.commissionValue} >= 0`
+    ),
     check("chk_sales_rep_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -3284,7 +3579,11 @@ export const translations = pgTable(
   t => [
     index("idx_translations_tenant").on(t.tenantId),
     index("idx_translations_culture").on(t.culture),
-    unique("translations_key_culture_tenant_unique").on(t.key, t.culture, t.tenantId),
+    unique("translations_key_culture_tenant_unique").on(
+      t.key,
+      t.culture,
+      t.tenantId
+    ),
     check("chk_translation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -3332,7 +3631,10 @@ export const biometricTemplates = pgTable(
     index("idx_biometric_type").on(t.type),
     index("idx_biometric_status").on(t.status),
     unique("biometric_template_user_type_unique").on(t.userId, t.type),
-    check("chk_biometric_quality_score_range", sql`${t.qualityScore} IS NULL OR (${t.qualityScore} >= 0 AND ${t.qualityScore} <= 100)`),
+    check(
+      "chk_biometric_quality_score_range",
+      sql`${t.qualityScore} IS NULL OR (${t.qualityScore} >= 0 AND ${t.qualityScore} <= 100)`
+    ),
     check("chk_biometric_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -3353,7 +3655,9 @@ export const syncMetadata = pgTable(
     entityGlobalId: uuid("entityGlobalId").notNull(),
     serverVersion: integer("serverVersion").default(1).notNull(),
     clientVersion: integer("clientVersion").default(0).notNull(),
-    conflictState: varchar("conflictState", { length: 20 }).default("none").notNull(), // none, client_wins, server_wins, manual
+    conflictState: varchar("conflictState", { length: 20 })
+      .default("none")
+      .notNull(), // none, client_wins, server_wins, manual
     conflictData: jsonb("conflictData"), // { clientValue, serverValue, resolvedValue }
     lastSyncAt: timestamp("lastSyncAt").defaultNow().notNull(),
     lastConflictAt: timestamp("lastConflictAt"),
@@ -3366,7 +3670,11 @@ export const syncMetadata = pgTable(
     index("idx_sync_metadata_tenant").on(t.tenantId),
     index("idx_sync_metadata_aggregate").on(t.aggregateId),
     index("idx_sync_metadata_entity").on(t.entityType, t.entityId),
-    unique("sync_metadata_aggregate_entity_unique").on(t.aggregateId, t.entityType, t.entityId),
+    unique("sync_metadata_aggregate_entity_unique").on(
+      t.aggregateId,
+      t.entityType,
+      t.entityId
+    ),
     check("chk_sync_metadata_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -3380,10 +3688,10 @@ export type InsertSyncMetadata = typeof syncMetadata.$inferInsert;
 
 // ─── Cost Centers / Profit Centers (مراكز التكلفة والربح) ────────────────
 export const costCenterTypeEnum = pgEnum("cost_center_type", [
-  "cost",       // مركز تكلفة
-  "profit",     // مركز ربح
+  "cost", // مركز تكلفة
+  "profit", // مركز ربح
   "investment", // مركز استثمار
-  "revenue",    // مركز إيراد
+  "revenue", // مركز إيراد
 ]);
 
 export const costCenters = pgTable(
@@ -3404,7 +3712,10 @@ export const costCenters = pgTable(
     description: text("description"),
     // Allocation configuration
     allocationBase: varchar("allocationBase", { length: 50 }), // headcount, area, revenue, direct_hours, machine_hours, custom
-    allocationWeight: decimal("allocationWeight", { precision: 10, scale: 4 }).default("1"),
+    allocationWeight: decimal("allocationWeight", {
+      precision: 10,
+      scale: 4,
+    }).default("1"),
     // Hierarchy path for fast queries
     path: varchar("path", { length: 500 }), // e.g., /1/5/12/
     level: integer("level").default(0).notNull(),
@@ -3432,11 +3743,11 @@ export type InsertCostCenter = typeof costCenters.$inferInsert;
 
 // ─── Allocation Rules (قواعد التوزيع الآلي) ──────────────────────────────
 export const allocationMethodEnum = pgEnum("allocation_method", [
-  "fixed",           // نسبة ثابتة
-  "proportional",    // تناسبي حسب الأساس
-  "step_down",       // خطوة بخطوة (sequential)
-  "reciprocal",      // تبادلي (simultaneous equations)
-  "activity_based",  // القائم على الأنشطة (ABC)
+  "fixed", // نسبة ثابتة
+  "proportional", // تناسبي حسب الأساس
+  "step_down", // خطوة بخطوة (sequential)
+  "reciprocal", // تبادلي (simultaneous equations)
+  "activity_based", // القائم على الأنشطة (ABC)
 ]);
 
 export const allocationRules = pgTable(
@@ -3452,7 +3763,10 @@ export const allocationRules = pgTable(
     sourceType: varchar("sourceType", { length: 30 }).notNull(), // cost_center, account, fixed_amount
     sourceCostCenterId: integer("sourceCostCenterId"),
     sourceAccountId: integer("sourceAccountId"),
-    sourceFixedAmount: decimal("sourceFixedAmount", { precision: 15, scale: 2 }),
+    sourceFixedAmount: decimal("sourceFixedAmount", {
+      precision: 15,
+      scale: 2,
+    }),
     // Target: куда يتم التوزيع
     targetCostCenterIds: jsonb("targetCostCenterIds").notNull(), // array of cost center IDs
     // Basis: أساس التوزيع
@@ -3482,7 +3796,10 @@ export const allocationRules = pgTable(
     index("idx_allocation_rules_tenant").on(t.tenantId),
     index("idx_allocation_rules_source_cc").on(t.sourceCostCenterId),
     index("idx_allocation_rules_next_run").on(t.nextRunAt),
-    check("chk_allocation_rule_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_allocation_rule_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -3499,7 +3816,10 @@ export const allocationRuns = pgTable(
     ruleId: integer("ruleId").notNull(),
     periodName: varchar("periodName", { length: 50 }).notNull(),
     status: varchar("status", { length: 20 }).default("draft").notNull(), // draft, posted, reversed
-    totalAllocated: decimal("totalAllocated", { precision: 15, scale: 2 }).default("0"),
+    totalAllocated: decimal("totalAllocated", {
+      precision: 15,
+      scale: 2,
+    }).default("0"),
     details: jsonb("details"), // [{ targetCostCenterId, basisValue, allocatedAmount }]
     postedAt: timestamp("postedAt"),
     postedById: integer("postedById"),
@@ -3562,8 +3882,15 @@ export const budgetScenarios = pgTable(
   t => [
     index("idx_budget_scenarios_tenant").on(t.tenantId),
     index("idx_budget_scenarios_period").on(t.periodName),
-    unique("budget_scenarios_tenant_name_period_unique").on(t.tenantId, t.name, t.periodName),
-    check("chk_budget_scenario_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    unique("budget_scenarios_tenant_name_period_unique").on(
+      t.tenantId,
+      t.name,
+      t.periodName
+    ),
+    check(
+      "chk_budget_scenario_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -3581,7 +3908,9 @@ export const budgetLines = pgTable(
     accountId: integer("accountId").notNull(),
     costCenterId: integer("costCenterId"),
     periodName: varchar("periodName", { length: 50 }).notNull(), // monthly breakdown
-    amount: decimal("amount", { precision: 15, scale: 2 }).default("0").notNull(),
+    amount: decimal("amount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     quantity: decimal("quantity", { precision: 15, scale: 4 }), // for driver-based budgets
     unitPrice: decimal("unitPrice", { precision: 15, scale: 4 }),
     notes: text("notes"),
@@ -3598,7 +3927,12 @@ export const budgetLines = pgTable(
     index("idx_budget_lines_scenario").on(t.scenarioId),
     index("idx_budget_lines_account").on(t.accountId),
     index("idx_budget_lines_cc_period").on(t.costCenterId, t.periodName),
-    unique("budget_lines_scenario_account_cc_period_unique").on(t.scenarioId, t.accountId, t.costCenterId, t.periodName),
+    unique("budget_lines_scenario_account_cc_period_unique").on(
+      t.scenarioId,
+      t.accountId,
+      t.costCenterId,
+      t.periodName
+    ),
     check("chk_budget_line_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -3617,16 +3951,35 @@ export const varianceAnalyses = pgTable(
     periodName: varchar("periodName", { length: 50 }).notNull(),
     accountId: integer("accountId").notNull(),
     costCenterId: integer("costCenterId"),
-    budgetAmount: decimal("budgetAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    actualAmount: decimal("actualAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    varianceAmount: decimal("varianceAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    variancePercent: decimal("variancePercent", { precision: 10, scale: 2 }).default("0").notNull(),
+    budgetAmount: decimal("budgetAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    actualAmount: decimal("actualAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    varianceAmount: decimal("varianceAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    variancePercent: decimal("variancePercent", { precision: 10, scale: 2 })
+      .default("0")
+      .notNull(),
     varianceType: varchar("varianceType", { length: 20 }), // favorable, unfavorable
     // Variance breakdown
-    priceVariance: decimal("priceVariance", { precision: 15, scale: 2 }).default("0"),
-    quantityVariance: decimal("quantityVariance", { precision: 15, scale: 2 }).default("0"),
-    mixVariance: decimal("mixVariance", { precision: 15, scale: 2 }).default("0"),
-    volumeVariance: decimal("volumeVariance", { precision: 15, scale: 2 }).default("0"),
+    priceVariance: decimal("priceVariance", {
+      precision: 15,
+      scale: 2,
+    }).default("0"),
+    quantityVariance: decimal("quantityVariance", {
+      precision: 15,
+      scale: 2,
+    }).default("0"),
+    mixVariance: decimal("mixVariance", { precision: 15, scale: 2 }).default(
+      "0"
+    ),
+    volumeVariance: decimal("volumeVariance", {
+      precision: 15,
+      scale: 2,
+    }).default("0"),
     // Commentary
     commentary: text("commentary"),
     reviewedById: integer("reviewedById"),
@@ -3644,7 +3997,12 @@ export const varianceAnalyses = pgTable(
     index("idx_variance_scenario").on(t.scenarioId),
     index("idx_variance_account_cc").on(t.accountId, t.costCenterId),
     index("idx_variance_period").on(t.periodName),
-    unique("variance_scenario_account_cc_period_unique").on(t.scenarioId, t.accountId, t.costCenterId, t.periodName),
+    unique("variance_scenario_account_cc_period_unique").on(
+      t.scenarioId,
+      t.accountId,
+      t.costCenterId,
+      t.periodName
+    ),
     check("chk_variance_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -3694,7 +4052,10 @@ export const kpis = pgTable(
     targetMax: decimal("targetMax", { precision: 15, scale: 4 }),
     // Thresholds for alerts
     warningThreshold: decimal("warningThreshold", { precision: 15, scale: 4 }),
-    criticalThreshold: decimal("criticalThreshold", { precision: 15, scale: 4 }),
+    criticalThreshold: decimal("criticalThreshold", {
+      precision: 15,
+      scale: 4,
+    }),
     // Direction
     higherIsBetter: boolean("higherIsBetter").default(true).notNull(),
     // Display
@@ -3751,8 +4112,15 @@ export const kpiMeasurements = pgTable(
     index("idx_kpi_measurements_kpi").on(t.kpiId),
     index("idx_kpi_measurements_period").on(t.periodName),
     index("idx_kpi_measurements_status").on(t.status),
-    unique("kpi_measurements_kpi_period_cc_unique").on(t.kpiId, t.periodName, t.costCenterId),
-    check("chk_kpi_measurement_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    unique("kpi_measurements_kpi_period_cc_unique").on(
+      t.kpiId,
+      t.periodName,
+      t.costCenterId
+    ),
+    check(
+      "chk_kpi_measurement_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -3852,7 +4220,10 @@ export const reportExecutions = pgTable(
     index("idx_report_executions_tenant").on(t.tenantId),
     index("idx_report_executions_report").on(t.reportId),
     index("idx_report_executions_status").on(t.status),
-    check("chk_report_execution_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_report_execution_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -3861,9 +4232,9 @@ export type InsertReportExecution = typeof reportExecutions.$inferInsert;
 
 // ─── Consolidation Entities (كيانات الدمج المحاسبي) ──────────────────────────
 export const consolidationMethodEnum = pgEnum("consolidation_method", [
-  "full",           // دمج كامل
-  "proportional",   // تناسبي (equity method)
-  "cost",           // تكلفة
+  "full", // دمج كامل
+  "proportional", // تناسبي (equity method)
+  "cost", // تكلفة
 ]);
 
 export const consolidationEntities = pgTable(
@@ -3875,10 +4246,16 @@ export const consolidationEntities = pgTable(
     code: varchar("code", { length: 30 }).notNull(),
     name: varchar("name", { length: 150 }).notNull(),
     entityTenantId: integer("entityTenantId").notNull(), // child/subsidiary tenant
-    ownershipPercent: decimal("ownershipPercent", { precision: 5, scale: 2 }).default("100").notNull(),
+    ownershipPercent: decimal("ownershipPercent", { precision: 5, scale: 2 })
+      .default("100")
+      .notNull(),
     method: consolidationMethodEnum("method").default("full").notNull(),
-    functionalCurrency: varchar("functionalCurrency", { length: 10 }).default("YER").notNull(),
-    reportingCurrency: varchar("reportingCurrency", { length: 10 }).default("YER").notNull(),
+    functionalCurrency: varchar("functionalCurrency", { length: 10 })
+      .default("YER")
+      .notNull(),
+    reportingCurrency: varchar("reportingCurrency", { length: 10 })
+      .default("YER")
+      .notNull(),
     // Elimination rules
     eliminationRules: jsonb("eliminationRules"), // [{ fromEntity, toEntity, accountId, rule }]
     // Status
@@ -3895,13 +4272,17 @@ export const consolidationEntities = pgTable(
     index("idx_consolidation_entities_tenant").on(t.tenantId),
     index("idx_consolidation_entities_entity").on(t.entityTenantId),
     unique("consolidation_entities_tenant_code_unique").on(t.tenantId, t.code),
-    check("chk_consolidation_ownership", sql`${t.ownershipPercent} > 0 AND ${t.ownershipPercent} <= 100`),
+    check(
+      "chk_consolidation_ownership",
+      sql`${t.ownershipPercent} > 0 AND ${t.ownershipPercent} <= 100`
+    ),
     check("chk_consolidation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 
 export type ConsolidationEntity = typeof consolidationEntities.$inferSelect;
-export type InsertConsolidationEntity = typeof consolidationEntities.$inferInsert;
+export type InsertConsolidationEntity =
+  typeof consolidationEntities.$inferInsert;
 
 // ─── Consolidation Adjustments (قوائم الدمج) ────────────────────────────────
 export const consolidationAdjustments = pgTable(
@@ -3916,7 +4297,9 @@ export const consolidationAdjustments = pgTable(
     accountId: integer("accountId").notNull(),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 10 }).notNull(),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1"),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default(
+      "1"
+    ),
     description: text("description"),
     postedAt: timestamp("postedAt"),
     postedById: integer("postedById"),
@@ -3932,9 +4315,14 @@ export const consolidationAdjustments = pgTable(
     index("idx_consolidation_adj_tenant").on(t.tenantId),
     index("idx_consolidation_adj_period").on(t.periodName),
     index("idx_consolidation_adj_entity").on(t.consolidationEntityId),
-    check("chk_consolidation_adj_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_consolidation_adj_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
-export type ConsolidationAdjustment = typeof consolidationAdjustments.$inferSelect;
-export type InsertConsolidationAdjustment = typeof consolidationAdjustments.$inferInsert;
+export type ConsolidationAdjustment =
+  typeof consolidationAdjustments.$inferSelect;
+export type InsertConsolidationAdjustment =
+  typeof consolidationAdjustments.$inferInsert;

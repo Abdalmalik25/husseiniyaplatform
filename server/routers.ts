@@ -3,10 +3,19 @@ import { sdk } from "./_core/sdk";
 import { COOKIE_NAME, ONE_MONTH_MS } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { invokeLLM } from "./_core/llm";
-import { systemRouter, provisionGenericTenant, applyAuthSchema } from "./_core/systemRouter";
+import {
+  systemRouter,
+  provisionGenericTenant,
+  applyAuthSchema,
+} from "./_core/systemRouter";
 import { hashPassword, verifyPassword } from "./_core/password";
 import { getClientIp, geolocate, parseDevice } from "./_core/geo";
-import { genGlobalCode, isSaudiCountry, buildZatcaQr, invoiceHash } from "./_core/governance";
+import {
+  genGlobalCode,
+  isSaudiCountry,
+  buildZatcaQr,
+  invoiceHash,
+} from "./_core/governance";
 import { erpRouter } from "./erpRouter";
 import { modulesRouter } from "./modulesRouter";
 import { aliasAiRouter } from "./aliasAiRouter";
@@ -27,20 +36,34 @@ import {
   placeOrderInputSchema,
 } from "./webStore";
 import { checkRateLimit } from "./_core/rateLimit";
-import { runScheduledJournalEntries, runRecurringExpenses, scheduleNextRun, generateUpcomingRuns, processRecurringExpenseRun } from "./automation";
+import {
+  runScheduledJournalEntries,
+  runRecurringExpenses,
+  scheduleNextRun,
+  generateUpcomingRuns,
+  processRecurringExpenseRun,
+} from "./automation";
 import { TRPCError } from "@trpc/server";
 
 // Helper function for monthly frequency factor
 function getMonthlyFactor(frequency: string): number {
   switch (frequency) {
-    case "daily": return 30;
-    case "weekly": return 4.33;
-    case "biweekly": return 2.17;
-    case "monthly": return 1;
-    case "quarterly": return 1 / 3;
-    case "semiannual": return 1 / 6;
-    case "annual": return 1 / 12;
-    default: return 1;
+    case "daily":
+      return 30;
+    case "weekly":
+      return 4.33;
+    case "biweekly":
+      return 2.17;
+    case "monthly":
+      return 1;
+    case "quarterly":
+      return 1 / 3;
+    case "semiannual":
+      return 1 / 6;
+    case "annual":
+      return 1 / 12;
+    default:
+      return 1;
   }
 }
 
@@ -423,7 +446,8 @@ const DEFAULT_POSTING_RULES = {
 type AnyConfig = Record<string, any>;
 function parseConfig<T>(v: any, def: T): T {
   if (v == null) return def;
-  if (typeof v === "object") return { ...(def as AnyConfig), ...(v as AnyConfig) } as T;
+  if (typeof v === "object")
+    return { ...(def as AnyConfig), ...(v as AnyConfig) } as T;
   try {
     const p = JSON.parse(v);
     return { ...(def as AnyConfig), ...(p as AnyConfig) } as T;
@@ -580,7 +604,9 @@ async function postInvoiceGlEntries(
   const pm = opts.paymentMethod || cfg.salesPolicy.defaultPayment || "cash";
   const paymentAccountCode = () => {
     if (pm === "credit") return cfg.postingRules.receivablesCode;
-    const pmDef = (cfg.paymentMethods || []).find((m: any) => m.key === pm && m.enabled);
+    const pmDef = (cfg.paymentMethods || []).find(
+      (m: any) => m.key === pm && m.enabled
+    );
     return pmDef?.accountCode || cfg.postingRules.cashCode;
   };
 
@@ -592,12 +618,22 @@ async function postInvoiceGlEntries(
     if (paid > 0) {
       const paidAcc = await findAccount(paymentAccountCode());
       if (paidAcc)
-        await entry(paidAcc.id, "debit", paid, `تحصيل — فاتورة ${opts.invoiceNumber} (${pm})`);
+        await entry(
+          paidAcc.id,
+          "debit",
+          paid,
+          `تحصيل — فاتورة ${opts.invoiceNumber} (${pm})`
+        );
     }
     if (unpaid > 0) {
       const recAcc = await findAccount(cfg.postingRules.receivablesCode);
       if (recAcc)
-        await entry(recAcc.id, "debit", unpaid, `ذمم عملاء — فاتورة ${opts.invoiceNumber}`);
+        await entry(
+          recAcc.id,
+          "debit",
+          unpaid,
+          `ذمم عملاء — فاتورة ${opts.invoiceNumber}`
+        );
     }
 
     // 2) Revenue (detailed by item when available → mixed goods + services)
@@ -624,14 +660,29 @@ async function postInvoiceGlEntries(
           const cogsAcc = await findAccount(cfg.postingRules.cogsCode);
           const invAcc = await findAccount(cfg.postingRules.inventoryCode);
           if (cogsAcc)
-            await entry(cogsAcc.id, "debit", cogs, `تكلفة مبيعات — ${opts.invoiceNumber}`);
+            await entry(
+              cogsAcc.id,
+              "debit",
+              cogs,
+              `تكلفة مبيعات — ${opts.invoiceNumber}`
+            );
           if (invAcc)
-            await entry(invAcc.id, "credit", cogs, `تخفيض مخزون — ${opts.invoiceNumber}`);
+            await entry(
+              invAcc.id,
+              "credit",
+              cogs,
+              `تخفيض مخزون — ${opts.invoiceNumber}`
+            );
         }
       }
       for (const [accId, amt] of Object.entries(byAcc)) {
         if (amt === 0) continue;
-        await entry(Number(accId), "credit", amt, `إيراد مبيعات — فاتورة ${opts.invoiceNumber}`);
+        await entry(
+          Number(accId),
+          "credit",
+          amt,
+          `إيراد مبيعات — فاتورة ${opts.invoiceNumber}`
+        );
       }
     } else {
       await entry(
@@ -646,7 +697,12 @@ async function postInvoiceGlEntries(
     if (tax > 0) {
       const vatAcc = await findAccount(cfg.postingRules.vatCode);
       if (vatAcc)
-        await entry(vatAcc.id, "credit", tax, `ضريبة مبيعات — فاتورة ${opts.invoiceNumber}`);
+        await entry(
+          vatAcc.id,
+          "credit",
+          tax,
+          `ضريبة مبيعات — فاتورة ${opts.invoiceNumber}`
+        );
     }
   } else {
     // purchase
@@ -661,17 +717,32 @@ async function postInvoiceGlEntries(
     if (tax > 0) {
       const vatAcc = await findAccount(cfg.postingRules.vatCode);
       if (vatAcc)
-        await entry(vatAcc.id, "debit", tax, `ضريبة مدخلات — فاتورة ${opts.invoiceNumber}`);
+        await entry(
+          vatAcc.id,
+          "debit",
+          tax,
+          `ضريبة مدخلات — فاتورة ${opts.invoiceNumber}`
+        );
     }
     if (paid > 0) {
       const cashAcc = await findAccount(paymentAccountCode());
       if (cashAcc)
-        await entry(cashAcc.id, "credit", paid, `دفع — فاتورة مشتريات ${opts.invoiceNumber}`);
+        await entry(
+          cashAcc.id,
+          "credit",
+          paid,
+          `دفع — فاتورة مشتريات ${opts.invoiceNumber}`
+        );
     }
     if (unpaid > 0) {
       const payablesAcc = await findAccount("2010");
       if (payablesAcc)
-        await entry(payablesAcc.id, "credit", unpaid, `ذمم موردين — فاتورة مشتريات ${opts.invoiceNumber}`);
+        await entry(
+          payablesAcc.id,
+          "credit",
+          unpaid,
+          `ذمم موردين — فاتورة مشتريات ${opts.invoiceNumber}`
+        );
     }
   }
 
@@ -846,10 +917,7 @@ export const appRouter = router({
               tenantId: extra.tenantId ?? null,
             });
           } catch (e) {
-            console.warn(
-              "[login] attempt log failed",
-              (e as any)?.message
-            );
+            console.warn("[login] attempt log failed", (e as any)?.message);
           }
         };
 
@@ -905,8 +973,7 @@ export const appRouter = router({
                           .orderBy(loginAttempts.createdAt)
                           .limit(1)
                       )[0]?.c || new Date()
-                    ).getTime()
-                  )) /
+                    ).getTime())) /
                   60000
               )
             )}`,
@@ -1166,7 +1233,9 @@ export const appRouter = router({
         const tid = requireTenantId(ctx);
         await db
           .delete(warehouses)
-          .where(and(eq(warehouses.id, input.id), eq(warehouses.tenantId, tid)));
+          .where(
+            and(eq(warehouses.id, input.id), eq(warehouses.tenantId, tid))
+          );
         return { success: true };
       }),
   }),
@@ -1376,11 +1445,16 @@ export const appRouter = router({
           .where(eq(settings.tenantId, ctx.tenantId))
           .limit(1);
         const payload: any = { ...input };
-        if (input.posConfig !== undefined) payload.posConfig = stringifyConfig(input.posConfig);
-        if (input.salesPolicy !== undefined) payload.salesPolicy = stringifyConfig(input.salesPolicy);
-        if (input.paymentMethods !== undefined) payload.paymentMethods = stringifyConfig(input.paymentMethods);
-        if (input.postingRules !== undefined) payload.postingRules = stringifyConfig(input.postingRules);
-        if (input.zatcaConfig !== undefined) payload.zatcaConfig = stringifyConfig(input.zatcaConfig);
+        if (input.posConfig !== undefined)
+          payload.posConfig = stringifyConfig(input.posConfig);
+        if (input.salesPolicy !== undefined)
+          payload.salesPolicy = stringifyConfig(input.salesPolicy);
+        if (input.paymentMethods !== undefined)
+          payload.paymentMethods = stringifyConfig(input.paymentMethods);
+        if (input.postingRules !== undefined)
+          payload.postingRules = stringifyConfig(input.postingRules);
+        if (input.zatcaConfig !== undefined)
+          payload.zatcaConfig = stringifyConfig(input.zatcaConfig);
         if (existing.length > 0) {
           await db
             .update(settings)
@@ -1621,7 +1695,12 @@ export const appRouter = router({
         const account = await db
           .select()
           .from(accounts)
-          .where(and(eq(accounts.id, input.accountId), eq(accounts.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(accounts.id, input.accountId),
+              eq(accounts.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
         if (account.length === 0) throw new Error("الحساب غير موجود");
 
@@ -1736,7 +1815,12 @@ export const appRouter = router({
         const account = await db
           .select()
           .from(accounts)
-          .where(and(eq(accounts.id, input.accountId), eq(accounts.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(accounts.id, input.accountId),
+              eq(accounts.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
         if (account.length === 0) throw new Error("الحساب غير موجود");
 
@@ -1779,7 +1863,12 @@ export const appRouter = router({
         const existing = await db
           .select()
           .from(transactions)
-          .where(and(eq(transactions.id, input.id), eq(transactions.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(transactions.id, input.id),
+              eq(transactions.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
         if (existing.length === 0) throw new Error("الحركة غير موجودة");
 
@@ -1801,7 +1890,12 @@ export const appRouter = router({
               ? { reversalReason: input.reversalReason, isReversed: true }
               : {}),
           })
-          .where(and(eq(transactions.id, input.id), eq(transactions.tenantId, ctx.tenantId!)));
+          .where(
+            and(
+              eq(transactions.id, input.id),
+              eq(transactions.tenantId, ctx.tenantId!)
+            )
+          );
 
         // Log activity
         await db.insert(activityLogs).values({
@@ -1833,7 +1927,12 @@ export const appRouter = router({
         const existing = await db
           .select()
           .from(transactions)
-          .where(and(eq(transactions.id, input.id), eq(transactions.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(transactions.id, input.id),
+              eq(transactions.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
         if (existing.length === 0) throw new Error("الحركة غير موجودة");
         if (existing[0]?.lifecycleStatus !== "saved") {
@@ -1849,7 +1948,12 @@ export const appRouter = router({
             narration: input.narration || null,
             notes: input.notes || null,
           })
-          .where(and(eq(transactions.id, input.id), eq(transactions.tenantId, ctx.tenantId!)));
+          .where(
+            and(
+              eq(transactions.id, input.id),
+              eq(transactions.tenantId, ctx.tenantId!)
+            )
+          );
 
         return { success: true };
       }),
@@ -1869,7 +1973,12 @@ export const appRouter = router({
         const existing = await db
           .select()
           .from(transactions)
-          .where(and(eq(transactions.id, input.id), eq(transactions.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(transactions.id, input.id),
+              eq(transactions.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
         if (existing.length === 0) throw new Error("الحركة غير موجودة");
         if (existing[0].lifecycleStatus !== "saved") {
@@ -1877,7 +1986,14 @@ export const appRouter = router({
             "لا يمكن حذف حركة معتمدة أو مرسلة — استخدم الإلغاء العكسي"
           );
         }
-        await db.delete(transactions).where(and(eq(transactions.id, input.id), eq(transactions.tenantId, ctx.tenantId!)));
+        await db
+          .delete(transactions)
+          .where(
+            and(
+              eq(transactions.id, input.id),
+              eq(transactions.tenantId, ctx.tenantId!)
+            )
+          );
         await db.insert(activityLogs).values({
           userId: ctx.user.id,
           action: `حذف حركة مالية #${input.id}`,
@@ -1962,7 +2078,9 @@ export const appRouter = router({
           if (isRevenue) {
             candidates = candidates.filter(
               (a: any) =>
-                a.type === "revenue" || a.type === "asset" || a.type === "equity"
+                a.type === "revenue" ||
+                a.type === "asset" ||
+                a.type === "equity"
             );
           } else if (isExpense) {
             candidates = candidates.filter(
@@ -2008,7 +2126,9 @@ export const appRouter = router({
               `القيد العام غير متوازن بفارق ${fmt2(Math.abs(balance))} ر.ي — يُنصح بمراجعة الحركات غير المرتبطة بقيود.`
             );
           } else {
-            insights.push("دفتر الأستاذ متوازن (مدين = دائن) — جاهز للإقفال المالي.");
+            insights.push(
+              "دفتر الأستاذ متوازن (مدين = دائن) — جاهز للإقفال المالي."
+            );
           }
           if (matchedAccounts[0]) {
             insights.push(
@@ -2043,7 +2163,10 @@ export const appRouter = router({
                 type: z.enum(["debit", "credit"]),
                 amount: z
                   .string()
-                  .refine((v) => parseFloat(v) > 0, "المبلغ يجب أن يكون أكبر من صفر"),
+                  .refine(
+                    v => parseFloat(v) > 0,
+                    "المبلغ يجب أن يكون أكبر من صفر"
+                  ),
                 narration: z.string().optional(),
               })
             )
@@ -2057,16 +2180,19 @@ export const appRouter = router({
         const tenantId = ctx.tenantId;
 
         const totalDebit = input.lines
-          .filter((l) => l.type === "debit")
+          .filter(l => l.type === "debit")
           .reduce((s, l) => s + parseFloat(l.amount), 0);
         const totalCredit = input.lines
-          .filter((l) => l.type === "credit")
+          .filter(l => l.type === "credit")
           .reduce((s, l) => s + parseFloat(l.amount), 0);
         if (Math.abs(totalDebit - totalCredit) > 0.01)
-          throw new Error("القيد غير متوازن: مجموع المدين يجب أن يساوي مجموع الدائن");
+          throw new Error(
+            "القيد غير متوازن: مجموع المدين يجب أن يساوي مجموع الدائن"
+          );
 
         const txDate = input.date ? new Date(input.date) : new Date();
-        const ref = input.referenceNo || `MAN-${Date.now().toString().slice(-6)}`;
+        const ref =
+          input.referenceNo || `MAN-${Date.now().toString().slice(-6)}`;
         const bRows = await db
           .select()
           .from(branches)
@@ -2176,7 +2302,9 @@ export const appRouter = router({
             name: z.string().optional(),
             description: z.string().optional(),
             branchId: z.number().optional(),
-            frequency: z.enum(["once", "daily", "weekly", "monthly"]).optional(),
+            frequency: z
+              .enum(["once", "daily", "weekly", "monthly"])
+              .optional(),
             nextRunAt: z.string().optional(),
             isActive: z.boolean().optional(),
             legs: z
@@ -2235,13 +2363,15 @@ export const appRouter = router({
     recurringExpenses: router({
       list: tenantProcedure
         .input(
-          z.object({
-            status: z.string().optional(),
-            categoryId: z.number().optional(),
-            vendorId: z.number().optional(),
-            limit: z.number().default(100).optional(),
-            offset: z.number().default(0).optional(),
-          }).optional()
+          z
+            .object({
+              status: z.string().optional(),
+              categoryId: z.number().optional(),
+              vendorId: z.number().optional(),
+              limit: z.number().default(100).optional(),
+              offset: z.number().default(0).optional(),
+            })
+            .optional()
         )
         .query(async ({ ctx, input }) => {
           if (!ctx.tenantId) return [];
@@ -2249,9 +2379,15 @@ export const appRouter = router({
           if (!db) return [];
           const where = [
             eq(recurringExpenses.tenantId, ctx.tenantId),
-            input?.status ? eq(recurringExpenses.status, input.status as any) : undefined,
-            input?.categoryId ? eq(recurringExpenses.categoryId, input.categoryId) : undefined,
-            input?.vendorId ? eq(recurringExpenses.vendorId, input.vendorId) : undefined,
+            input?.status
+              ? eq(recurringExpenses.status, input.status as any)
+              : undefined,
+            input?.categoryId
+              ? eq(recurringExpenses.categoryId, input.categoryId)
+              : undefined,
+            input?.vendorId
+              ? eq(recurringExpenses.vendorId, input.vendorId)
+              : undefined,
           ].filter(Boolean) as any[];
           return db
             .select()
@@ -2323,8 +2459,12 @@ export const appRouter = router({
             endDate: z.string().optional(),
             maxOccurrences: z.number().optional(),
             basis: z.enum(["accrual", "cash"]).default("accrual"),
-            status: z.enum(["draft", "active", "paused", "completed", "cancelled"]).default("draft"),
-            approvalStatus: z.enum(["pending", "approved", "rejected", "auto_approved"]).default("pending"),
+            status: z
+              .enum(["draft", "active", "paused", "completed", "cancelled"])
+              .default("draft"),
+            approvalStatus: z
+              .enum(["pending", "approved", "rejected", "auto_approved"])
+              .default("pending"),
             approverId: z.number().optional(),
             paymentMethod: z.string().optional(),
             paymentAccountId: z.number().optional(),
@@ -2349,10 +2489,16 @@ export const appRouter = router({
           const [account] = await db
             .select()
             .from(accounts)
-            .where(and(eq(accounts.id, input.accountId), eq(accounts.tenantId, ctx.tenantId)))
+            .where(
+              and(
+                eq(accounts.id, input.accountId),
+                eq(accounts.tenantId, ctx.tenantId)
+              )
+            )
             .limit(1);
           if (!account) throw new Error("الحساب غير موجود");
-          if (account.type !== "expense") throw new Error("الحساب يجب أن يكون من نوع مصروف");
+          if (account.type !== "expense")
+            throw new Error("الحساب يجب أن يكون من نوع مصروف");
 
           const [row] = await db
             .insert(recurringExpenses)
@@ -2435,8 +2581,12 @@ export const appRouter = router({
             endDate: z.string().nullish(),
             maxOccurrences: z.number().nullish(),
             basis: z.enum(["accrual", "cash"]).optional(),
-            status: z.enum(["draft", "active", "paused", "completed", "cancelled"]).optional(),
-            approvalStatus: z.enum(["pending", "approved", "rejected", "auto_approved"]).optional(),
+            status: z
+              .enum(["draft", "active", "paused", "completed", "cancelled"])
+              .optional(),
+            approvalStatus: z
+              .enum(["pending", "approved", "rejected", "auto_approved"])
+              .optional(),
             approverId: z.number().nullish(),
             paymentMethod: z.string().optional(),
             paymentAccountId: z.number().nullish(),
@@ -2454,7 +2604,8 @@ export const appRouter = router({
           const { id, ...rest } = input;
           const set: any = { ...rest };
           if (rest.startDate) set.startDate = new Date(rest.startDate);
-          if (rest.endDate !== undefined) set.endDate = rest.endDate ? new Date(rest.endDate) : null;
+          if (rest.endDate !== undefined)
+            set.endDate = rest.endDate ? new Date(rest.endDate) : null;
           if (rest.tags) set.tags = rest.tags;
           if (rest.metadata) set.metadata = rest.metadata;
 
@@ -2462,7 +2613,12 @@ export const appRouter = router({
           const [current] = await db
             .select()
             .from(recurringExpenses)
-            .where(and(eq(recurringExpenses.id, id), eq(recurringExpenses.tenantId, ctx.tenantId!)))
+            .where(
+              and(
+                eq(recurringExpenses.id, id),
+                eq(recurringExpenses.tenantId, ctx.tenantId!)
+              )
+            )
             .limit(1);
 
           await db
@@ -2478,14 +2634,21 @@ export const appRouter = router({
           // Recalculate nextRunAt if frequency or dates changed
           if (
             current &&
-            (rest.frequency || rest.startDate || rest.dayOfMonth || rest.dayOfWeek || rest.weekOfMonth)
+            (rest.frequency ||
+              rest.startDate ||
+              rest.dayOfMonth ||
+              rest.dayOfWeek ||
+              rest.weekOfMonth)
           ) {
             const updated = await db
               .select()
               .from(recurringExpenses)
               .where(eq(recurringExpenses.id, id))
               .limit(1);
-            if (updated[0]?.status === "active" && updated[0]?.approvalStatus === "approved") {
+            if (
+              updated[0]?.status === "active" &&
+              updated[0]?.approvalStatus === "approved"
+            ) {
               await scheduleNextRun(db, id, ctx.tenantId!);
             }
           }
@@ -2514,17 +2677,29 @@ export const appRouter = router({
         }),
 
       approve: adminProcedure
-        .input(z.object({ id: z.number(), decision: z.enum(["approved", "rejected"]), note: z.string().optional() }))
+        .input(
+          z.object({
+            id: z.number(),
+            decision: z.enum(["approved", "rejected"]),
+            note: z.string().optional(),
+          })
+        )
         .mutation(async ({ input, ctx }) => {
           const db = await getDb();
           if (!db) throw new Error("Database not available");
           const [rec] = await db
             .select()
             .from(recurringExpenses)
-            .where(and(eq(recurringExpenses.id, input.id), eq(recurringExpenses.tenantId, ctx.tenantId!)))
+            .where(
+              and(
+                eq(recurringExpenses.id, input.id),
+                eq(recurringExpenses.tenantId, ctx.tenantId!)
+              )
+            )
             .limit(1);
           if (!rec) throw new Error("المصروف الدوري غير موجود");
-          if (rec.approvalStatus === "approved") throw new Error("تم اعتماده مسبقاً");
+          if (rec.approvalStatus === "approved")
+            throw new Error("تم اعتماده مسبقاً");
 
           await db
             .update(recurringExpenses)
@@ -2565,11 +2740,20 @@ export const appRouter = router({
           const where = [
             eq(recurringExpenseRuns.tenantId, ctx.tenantId),
             input?.recurringExpenseId
-              ? eq(recurringExpenseRuns.recurringExpenseId, input.recurringExpenseId)
+              ? eq(
+                  recurringExpenseRuns.recurringExpenseId,
+                  input.recurringExpenseId
+                )
               : undefined,
-            input?.status ? eq(recurringExpenseRuns.status, input.status as any) : undefined,
-            input?.from ? gte(recurringExpenseRuns.scheduledDate, new Date(input.from)) : undefined,
-            input?.to ? lte(recurringExpenseRuns.scheduledDate, new Date(input.to)) : undefined,
+            input?.status
+              ? eq(recurringExpenseRuns.status, input.status as any)
+              : undefined,
+            input?.from
+              ? gte(recurringExpenseRuns.scheduledDate, new Date(input.from))
+              : undefined,
+            input?.to
+              ? lte(recurringExpenseRuns.scheduledDate, new Date(input.to))
+              : undefined,
           ].filter(Boolean) as any[];
           return db
             .select()
@@ -2596,7 +2780,8 @@ export const appRouter = router({
             )
             .limit(1);
           if (!run) throw new Error("تشغيل غير موجود");
-          if (run.status === "completed") throw new Error("تم تنفيذ هذا التشغيل مسبقاً");
+          if (run.status === "completed")
+            throw new Error("تم تنفيذ هذا التشغيل مسبقاً");
 
           await db
             .update(recurringExpenseRuns)
@@ -2615,7 +2800,9 @@ export const appRouter = router({
           if (!ctx.tenantId) return [];
           const db = await getDb();
           if (!db) return [];
-          const until = new Date(Date.now() + (input.days || 30) * 24 * 60 * 60 * 1000);
+          const until = new Date(
+            Date.now() + (input.days || 30) * 24 * 60 * 60 * 1000
+          );
           return db
             .select()
             .from(recurringExpenses)
@@ -2624,16 +2811,30 @@ export const appRouter = router({
                 eq(recurringExpenses.tenantId, ctx.tenantId),
                 eq(recurringExpenses.status, "active"),
                 eq(recurringExpenses.approvalStatus, "approved"),
-                lte(recurringExpenses.nextRunAt, until),
+                lte(recurringExpenses.nextRunAt, until)
               )
             )
             .orderBy(asc(recurringExpenses.nextRunAt));
         }),
 
       getStats: tenantProcedure.query(async ({ ctx }) => {
-        if (!ctx.tenantId) return { total: 0, active: 0, pending: 0, overdue: 0, totalMonthly: 0 };
+        if (!ctx.tenantId)
+          return {
+            total: 0,
+            active: 0,
+            pending: 0,
+            overdue: 0,
+            totalMonthly: 0,
+          };
         const db = await getDb();
-        if (!db) return { total: 0, active: 0, pending: 0, overdue: 0, totalMonthly: 0 };
+        if (!db)
+          return {
+            total: 0,
+            active: 0,
+            pending: 0,
+            overdue: 0,
+            totalMonthly: 0,
+          };
 
         const [total] = await db
           .select({ c: sql`count(*)` })
@@ -2642,11 +2843,21 @@ export const appRouter = router({
         const [active] = await db
           .select({ c: sql`count(*)` })
           .from(recurringExpenses)
-          .where(and(eq(recurringExpenses.tenantId, ctx.tenantId), eq(recurringExpenses.status, "active")));
+          .where(
+            and(
+              eq(recurringExpenses.tenantId, ctx.tenantId),
+              eq(recurringExpenses.status, "active")
+            )
+          );
         const [pending] = await db
           .select({ c: sql`count(*)` })
           .from(recurringExpenses)
-          .where(and(eq(recurringExpenses.tenantId, ctx.tenantId), eq(recurringExpenses.approvalStatus, "pending")));
+          .where(
+            and(
+              eq(recurringExpenses.tenantId, ctx.tenantId),
+              eq(recurringExpenses.approvalStatus, "pending")
+            )
+          );
         const [overdue] = await db
           .select({ c: sql`count(*)` })
           .from(recurringExpenses)
@@ -2661,7 +2872,10 @@ export const appRouter = router({
 
         // Calculate estimated monthly total
         const activeExpenses = await db
-          .select({ amount: recurringExpenses.amount, frequency: recurringExpenses.frequency })
+          .select({
+            amount: recurringExpenses.amount,
+            frequency: recurringExpenses.frequency,
+          })
           .from(recurringExpenses)
           .where(
             and(
@@ -3022,12 +3236,12 @@ export const appRouter = router({
             asOfDate: z.string().optional(),
           })
         )
-      .query(async ({ input, ctx }) => {
-        const db = await getDb();
-        if (!db)
-          return { rows: [], revenueTotal: 0, expenseTotal: 0, netProfit: 0 };
-        const tid = requireTenantId(ctx);
-        const asOf = input.asOfDate ? new Date(input.asOfDate) : new Date();
+        .query(async ({ input, ctx }) => {
+          const db = await getDb();
+          if (!db)
+            return { rows: [], revenueTotal: 0, expenseTotal: 0, netProfit: 0 };
+          const tid = requireTenantId(ctx);
+          const asOf = input.asOfDate ? new Date(input.asOfDate) : new Date();
 
           const allAccounts = await db
             .select()
@@ -3116,20 +3330,20 @@ export const appRouter = router({
         .mutation(async ({ input, ctx }) => {
           const db = await getDb();
           if (!db) throw new Error("Database not available");
-        const asOf = input.asOfDate ? new Date(input.asOfDate) : new Date();
-        const tid = requireTenantId(ctx);
+          const asOf = input.asOfDate ? new Date(input.asOfDate) : new Date();
+          const tid = requireTenantId(ctx);
 
-        const already = await db
-          .select()
-          .from(transactions)
-          .where(
-            and(
-              eq(transactions.tenantId, tid),
-              eq(transactions.referenceType, "closing"),
-              ilike(transactions.narration, `%${input.periodName}%`)
+          const already = await db
+            .select()
+            .from(transactions)
+            .where(
+              and(
+                eq(transactions.tenantId, tid),
+                eq(transactions.referenceType, "closing"),
+                ilike(transactions.narration, `%${input.periodName}%`)
+              )
             )
-          )
-          .limit(1);
+            .limit(1);
           if (already.length > 0)
             throw new Error(
               `تم إقفال الدورة "${input.periodName}" مسبقاً — القيود لا يمكن تكرارها`
@@ -3156,7 +3370,10 @@ export const appRouter = router({
                       .select()
                       .from(accounts)
                       .where(
-                        and(eq(accounts.tenantId, tid), eq(accounts.type, "equity"))
+                        and(
+                          eq(accounts.tenantId, tid),
+                          eq(accounts.type, "equity")
+                        )
                       )
                       .limit(1)
                   )[0]?.id;
@@ -4493,7 +4710,10 @@ ${analysisText}
                 .select()
                 .from(accounts)
                 .where(
-                  and(eq(accounts.tenantId, tid), gte(accounts.updatedAt, sinceDate))
+                  and(
+                    eq(accounts.tenantId, tid),
+                    gte(accounts.updatedAt, sinceDate)
+                  )
                 );
               break;
             case "transactions":
@@ -4518,7 +4738,10 @@ ${analysisText}
                 .select()
                 .from(budgets)
                 .where(
-                  and(eq(budgets.tenantId, tid), gte(budgets.createdAt, sinceDate))
+                  and(
+                    eq(budgets.tenantId, tid),
+                    gte(budgets.createdAt, sinceDate)
+                  )
                 );
               break;
             case "openingBalances":
@@ -4537,7 +4760,11 @@ ${analysisText}
                 .select()
                 .from(products)
                 .where(
-                  and(eq(products.tenantId, tid), gte(products.updatedAt, sinceDate), isNull(products.deletedAt))
+                  and(
+                    eq(products.tenantId, tid),
+                    gte(products.updatedAt, sinceDate),
+                    isNull(products.deletedAt)
+                  )
                 );
               break;
             case "warehouses":
@@ -4567,7 +4794,11 @@ ${analysisText}
                 .select()
                 .from(customers)
                 .where(
-                  and(eq(customers.tenantId, tid), gte(customers.updatedAt, sinceDate), isNull(customers.deletedAt))
+                  and(
+                    eq(customers.tenantId, tid),
+                    gte(customers.updatedAt, sinceDate),
+                    isNull(customers.deletedAt)
+                  )
                 );
               break;
             case "suppliers":
@@ -4575,7 +4806,11 @@ ${analysisText}
                 .select()
                 .from(suppliers)
                 .where(
-                  and(eq(suppliers.tenantId, tid), gte(suppliers.updatedAt, sinceDate), isNull(suppliers.deletedAt))
+                  and(
+                    eq(suppliers.tenantId, tid),
+                    gte(suppliers.updatedAt, sinceDate),
+                    isNull(suppliers.deletedAt)
+                  )
                 );
               break;
             case "salesInvoices":
@@ -4627,7 +4862,10 @@ ${analysisText}
                 .select()
                 .from(orders)
                 .where(
-                  and(eq(orders.tenantId, tid), gte(orders.updatedAt, sinceDate))
+                  and(
+                    eq(orders.tenantId, tid),
+                    gte(orders.updatedAt, sinceDate)
+                  )
                 );
               break;
             case "orderItems":
@@ -4646,7 +4884,10 @@ ${analysisText}
                 .select()
                 .from(payments)
                 .where(
-                  and(eq(payments.tenantId, tid), gte(payments.createdAt, sinceDate))
+                  and(
+                    eq(payments.tenantId, tid),
+                    gte(payments.createdAt, sinceDate)
+                  )
                 );
               break;
             case "activityLogs":
@@ -4665,7 +4906,10 @@ ${analysisText}
                 .select()
                 .from(branches)
                 .where(
-                  and(eq(branches.tenantId, tid), gte(branches.createdAt, sinceDate))
+                  and(
+                    eq(branches.tenantId, tid),
+                    gte(branches.createdAt, sinceDate)
+                  )
                 );
               break;
             case "tenants":
@@ -4679,7 +4923,10 @@ ${analysisText}
                 .select()
                 .from(warehouseStock)
                 .where(
-                  and(eq(warehouseStock.tenantId, tid), gte(warehouseStock.updatedAt, sinceDate))
+                  and(
+                    eq(warehouseStock.tenantId, tid),
+                    gte(warehouseStock.updatedAt, sinceDate)
+                  )
                 );
               break;
             case "inventoryBatches":
@@ -4687,7 +4934,10 @@ ${analysisText}
                 .select()
                 .from(inventoryBatches)
                 .where(
-                  and(eq(inventoryBatches.tenantId, tid), gte(inventoryBatches.updatedAt, sinceDate))
+                  and(
+                    eq(inventoryBatches.tenantId, tid),
+                    gte(inventoryBatches.updatedAt, sinceDate)
+                  )
                 );
               break;
             case "stockReservations":
@@ -4695,7 +4945,10 @@ ${analysisText}
                 .select()
                 .from(stockReservations)
                 .where(
-                  and(eq(stockReservations.tenantId, tid), gte(stockReservations.updatedAt, sinceDate))
+                  and(
+                    eq(stockReservations.tenantId, tid),
+                    gte(stockReservations.updatedAt, sinceDate)
+                  )
                 );
               break;
             case "cycleCounts":
@@ -4703,7 +4956,10 @@ ${analysisText}
                 .select()
                 .from(cycleCounts)
                 .where(
-                  and(eq(cycleCounts.tenantId, tid), gte(cycleCounts.updatedAt, sinceDate))
+                  and(
+                    eq(cycleCounts.tenantId, tid),
+                    gte(cycleCounts.updatedAt, sinceDate)
+                  )
                 );
               break;
             case "cycleCountLines":
@@ -4711,7 +4967,10 @@ ${analysisText}
                 .select()
                 .from(cycleCountLines)
                 .where(
-                  and(eq(cycleCountLines.tenantId, tid), gte(cycleCountLines.updatedAt, sinceDate))
+                  and(
+                    eq(cycleCountLines.tenantId, tid),
+                    gte(cycleCountLines.updatedAt, sinceDate)
+                  )
                 );
               break;
             case "inventoryValuationLayers":
@@ -4719,7 +4978,10 @@ ${analysisText}
                 .select()
                 .from(inventoryValuationLayers)
                 .where(
-                  and(eq(inventoryValuationLayers.tenantId, tid), gte(inventoryValuationLayers.updatedAt, sinceDate))
+                  and(
+                    eq(inventoryValuationLayers.tenantId, tid),
+                    gte(inventoryValuationLayers.updatedAt, sinceDate)
+                  )
                 );
               break;
           }
@@ -5034,7 +5296,12 @@ ${analysisText}
           const defaultWarehouse = await tx
             .select({ id: warehouses.id })
             .from(warehouses)
-            .where(and(eq(warehouses.tenantId, ctx.tenantId!), eq(warehouses.isActive, true)))
+            .where(
+              and(
+                eq(warehouses.tenantId, ctx.tenantId!),
+                eq(warehouses.isActive, true)
+              )
+            )
             .orderBy(asc(warehouses.code))
             .limit(1);
 
@@ -5054,7 +5321,11 @@ ${analysisText}
                   lastMovementAt: new Date(),
                 })
                 .onConflictDoUpdate({
-                  target: [warehouseStock.productId, warehouseStock.warehouseId, warehouseStock.tenantId],
+                  target: [
+                    warehouseStock.productId,
+                    warehouseStock.warehouseId,
+                    warehouseStock.tenantId,
+                  ],
                   set: {
                     quantity: sql`${warehouseStock.quantity} + ${input.quantity}`,
                     availableQty: sql`${warehouseStock.availableQty} + ${input.quantity}`,
@@ -5091,7 +5362,11 @@ ${analysisText}
                   lastMovementAt: new Date(),
                 })
                 .onConflictDoUpdate({
-                  target: [warehouseStock.productId, warehouseStock.warehouseId, warehouseStock.tenantId],
+                  target: [
+                    warehouseStock.productId,
+                    warehouseStock.warehouseId,
+                    warehouseStock.tenantId,
+                  ],
                   set: {
                     quantity: input.quantity,
                     availableQty: input.quantity,
@@ -5171,7 +5446,10 @@ ${analysisText}
           .select()
           .from(products)
           .where(
-            and(eq(products.id, input.productId), eq(products.tenantId, ctx.tenantId))
+            and(
+              eq(products.id, input.productId),
+              eq(products.tenantId, ctx.tenantId)
+            )
           )
           .limit(1);
         if (!prod.length) throw new Error("المنتج غير موجود");
@@ -5181,7 +5459,12 @@ ${analysisText}
         const defaultWarehouse = await db
           .select({ id: warehouses.id })
           .from(warehouses)
-          .where(and(eq(warehouses.tenantId, ctx.tenantId!), eq(warehouses.isActive, true)))
+          .where(
+            and(
+              eq(warehouses.tenantId, ctx.tenantId!),
+              eq(warehouses.isActive, true)
+            )
+          )
           .orderBy(asc(warehouses.code))
           .limit(1);
 
@@ -5206,7 +5489,11 @@ ${analysisText}
                 lastMovementAt: new Date(),
               })
               .onConflictDoUpdate({
-                target: [warehouseStock.productId, warehouseStock.warehouseId, warehouseStock.tenantId],
+                target: [
+                  warehouseStock.productId,
+                  warehouseStock.warehouseId,
+                  warehouseStock.tenantId,
+                ],
                 set: {
                   quantity: input.quantity,
                   availableQty: input.quantity,
@@ -5253,7 +5540,11 @@ ${analysisText}
             notes: `جرد افتتاحي: ${previous} ← ${input.quantity}`,
           });
         });
-        return { success: true, previousStock: previous, newStock: input.quantity };
+        return {
+          success: true,
+          previousStock: previous,
+          newStock: input.quantity,
+        };
       }),
 
     // Transfer stock between warehouses (logged; global on-hand unchanged)
@@ -5287,7 +5578,9 @@ ${analysisText}
           )
           .limit(1);
         if (!fromStock || (fromStock.available || 0) < input.quantity) {
-          throw new Error(`المخزون المتاح في المخزن المصدر غير كافٍ — متاح: ${fromStock?.available || 0}`);
+          throw new Error(
+            `المخزون المتاح في المخزن المصدر غير كافٍ — متاح: ${fromStock?.available || 0}`
+          );
         }
 
         await (db as any).transaction(async (tx: any) => {
@@ -5330,7 +5623,11 @@ ${analysisText}
               lastMovementAt: new Date(),
             })
             .onConflictDoUpdate({
-              target: [warehouseStock.productId, warehouseStock.warehouseId, warehouseStock.tenantId],
+              target: [
+                warehouseStock.productId,
+                warehouseStock.warehouseId,
+                warehouseStock.tenantId,
+              ],
               set: {
                 quantity: sql`${warehouseStock.quantity} + ${input.quantity}`,
                 availableQty: sql`${warehouseStock.availableQty} + ${input.quantity}`,
@@ -5373,7 +5670,9 @@ ${analysisText}
         const [product] = await db
           .select()
           .from(products)
-          .where(and(eq(products.id, input.productId), eq(products.tenantId, tid)))
+          .where(
+            and(eq(products.id, input.productId), eq(products.tenantId, tid))
+          )
           .limit(1);
         const movements = await db
           .select()
@@ -5421,7 +5720,13 @@ ${analysisText}
       const rows = await db
         .select()
         .from(products)
-        .where(and(eq(products.tenantId, tid), eq(products.isActive, true), isNull(products.deletedAt)));
+        .where(
+          and(
+            eq(products.tenantId, tid),
+            eq(products.isActive, true),
+            isNull(products.deletedAt)
+          )
+        );
       const items = rows.map(p => {
         const qty = p.currentStock || 0;
         const cost = parseFloat(p.purchasePrice || "0");
@@ -5460,7 +5765,13 @@ ${analysisText}
       const rows = await db
         .select()
         .from(products)
-        .where(and(eq(products.tenantId, tid), eq(products.isActive, true), isNull(products.deletedAt)));
+        .where(
+          and(
+            eq(products.tenantId, tid),
+            eq(products.isActive, true),
+            isNull(products.deletedAt)
+          )
+        );
       const byCat: Record<string, { qty: number; value: number }> = {};
       let totalGoods = 0;
       let totalServices = 0;
@@ -5529,21 +5840,27 @@ ${analysisText}
     // ─── Warehouse Stock (Per-location inventory) ─────────────────────
     warehouseStockList: tenantProcedure
       .input(
-        z.object({
-          warehouseId: z.number().optional(),
-          productId: z.number().optional(),
-          lowStockOnly: z.boolean().optional(),
-        }).optional()
+        z
+          .object({
+            warehouseId: z.number().optional(),
+            productId: z.number().optional(),
+            lowStockOnly: z.boolean().optional(),
+          })
+          .optional()
       )
       .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return [];
         const tid = requireTenantId(ctx);
         const conditions = [eq(warehouseStock.tenantId, tid)];
-        if (input?.warehouseId) conditions.push(eq(warehouseStock.warehouseId, input.warehouseId));
-        if (input?.productId) conditions.push(eq(warehouseStock.productId, input.productId));
+        if (input?.warehouseId)
+          conditions.push(eq(warehouseStock.warehouseId, input.warehouseId));
+        if (input?.productId)
+          conditions.push(eq(warehouseStock.productId, input.productId));
         if (input?.lowStockOnly) {
-          conditions.push(sql`${warehouseStock.availableQty} <= (SELECT minStock FROM products WHERE products.id = ${warehouseStock.productId})`);
+          conditions.push(
+            sql`${warehouseStock.availableQty} <= (SELECT minStock FROM products WHERE products.id = ${warehouseStock.productId})`
+          );
         }
         return await db
           .select({
@@ -5591,20 +5908,27 @@ ${analysisText}
     // ─── Inventory Batches (Traceability) ─────────────────────────────
     batchList: tenantProcedure
       .input(
-        z.object({
-          productId: z.number().optional(),
-          warehouseId: z.number().optional(),
-          expiringSoon: z.boolean().optional(),
-          daysAhead: z.number().optional(),
-        }).optional()
+        z
+          .object({
+            productId: z.number().optional(),
+            warehouseId: z.number().optional(),
+            expiringSoon: z.boolean().optional(),
+            daysAhead: z.number().optional(),
+          })
+          .optional()
       )
       .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return [];
         const tid = requireTenantId(ctx);
-        const conditions = [eq(inventoryBatches.tenantId, tid), eq(inventoryBatches.isActive, true)];
-        if (input?.productId) conditions.push(eq(inventoryBatches.productId, input.productId));
-        if (input?.warehouseId) conditions.push(eq(inventoryBatches.warehouseId, input.warehouseId));
+        const conditions = [
+          eq(inventoryBatches.tenantId, tid),
+          eq(inventoryBatches.isActive, true),
+        ];
+        if (input?.productId)
+          conditions.push(eq(inventoryBatches.productId, input.productId));
+        if (input?.warehouseId)
+          conditions.push(eq(inventoryBatches.warehouseId, input.warehouseId));
         if (input?.expiringSoon) {
           const days = input.daysAhead || 30;
           const futureDate = new Date();
@@ -5636,7 +5960,10 @@ ${analysisText}
           .leftJoin(products, eq(inventoryBatches.productId, products.id))
           .leftJoin(warehouses, eq(inventoryBatches.warehouseId, warehouses.id))
           .where(and(...conditions))
-          .orderBy(asc(inventoryBatches.expiryDate), asc(inventoryBatches.batchNumber));
+          .orderBy(
+            asc(inventoryBatches.expiryDate),
+            asc(inventoryBatches.batchNumber)
+          );
       }),
 
     batchCreate: tenantProcedure
@@ -5671,7 +5998,8 @@ ${analysisText}
             )
           )
           .limit(1);
-        if (existing.length > 0) throw new Error("رقم الدفعة موجود مسبقاً لهذا الصنف والمخزن");
+        if (existing.length > 0)
+          throw new Error("رقم الدفعة موجود مسبقاً لهذا الصنف والمخزن");
         const [row] = await db
           .insert(inventoryBatches)
           .values({
@@ -5681,7 +6009,9 @@ ${analysisText}
             batchNumber: input.batchNumber,
             lotNumber: input.lotNumber || null,
             serialNumber: input.serialNumber || null,
-            manufacturingDate: input.manufacturingDate ? new Date(input.manufacturingDate) : null,
+            manufacturingDate: input.manufacturingDate
+              ? new Date(input.manufacturingDate)
+              : null,
             expiryDate: input.expiryDate ? new Date(input.expiryDate) : null,
             quantity: input.quantity,
             reservedQty: 0,
@@ -5696,24 +6026,31 @@ ${analysisText}
     // ─── Stock Reservations ──────────────────────────────────────────
     reservationList: tenantProcedure
       .input(
-        z.object({
-          productId: z.number().optional(),
-          warehouseId: z.number().optional(),
-          status: z.string().optional(),
-          source: z.string().optional(),
-          sourceId: z.number().optional(),
-        }).optional()
+        z
+          .object({
+            productId: z.number().optional(),
+            warehouseId: z.number().optional(),
+            status: z.string().optional(),
+            source: z.string().optional(),
+            sourceId: z.number().optional(),
+          })
+          .optional()
       )
       .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return [];
         const tid = requireTenantId(ctx);
         const conditions = [eq(stockReservations.tenantId, tid)];
-        if (input?.productId) conditions.push(eq(stockReservations.productId, input.productId));
-        if (input?.warehouseId) conditions.push(eq(stockReservations.warehouseId, input.warehouseId));
-        if (input?.status) conditions.push(eq(stockReservations.status, input.status as any));
-        if (input?.source) conditions.push(eq(stockReservations.source, input.source as any));
-        if (input?.sourceId) conditions.push(eq(stockReservations.sourceId, input.sourceId));
+        if (input?.productId)
+          conditions.push(eq(stockReservations.productId, input.productId));
+        if (input?.warehouseId)
+          conditions.push(eq(stockReservations.warehouseId, input.warehouseId));
+        if (input?.status)
+          conditions.push(eq(stockReservations.status, input.status as any));
+        if (input?.source)
+          conditions.push(eq(stockReservations.source, input.source as any));
+        if (input?.sourceId)
+          conditions.push(eq(stockReservations.sourceId, input.sourceId));
         return await db
           .select({
             id: stockReservations.id,
@@ -5737,8 +6074,14 @@ ${analysisText}
           })
           .from(stockReservations)
           .leftJoin(products, eq(stockReservations.productId, products.id))
-          .leftJoin(warehouses, eq(stockReservations.warehouseId, warehouses.id))
-          .leftJoin(inventoryBatches, eq(stockReservations.batchId, inventoryBatches.id))
+          .leftJoin(
+            warehouses,
+            eq(stockReservations.warehouseId, warehouses.id)
+          )
+          .leftJoin(
+            inventoryBatches,
+            eq(stockReservations.batchId, inventoryBatches.id)
+          )
           .where(and(...conditions))
           .orderBy(desc(stockReservations.createdAt));
       }),
@@ -5779,16 +6122,24 @@ ${analysisText}
             eq(warehouseStock.tenantId, tid),
             eq(warehouseStock.productId, input.productId),
           ];
-          if (input.warehouseId) whConditions.push(eq(warehouseStock.warehouseId, input.warehouseId));
+          if (input.warehouseId)
+            whConditions.push(
+              eq(warehouseStock.warehouseId, input.warehouseId)
+            );
           const stockRows = await db
             .select({ available: warehouseStock.availableQty })
             .from(warehouseStock)
             .where(and(...whConditions));
-          availableQty = stockRows.reduce((sum, s) => sum + (s.available || 0), 0);
+          availableQty = stockRows.reduce(
+            (sum, s) => sum + (s.available || 0),
+            0
+          );
         }
 
         if (availableQty < input.quantity) {
-          throw new Error(`المخزون المتاح غير كافٍ — متاح: ${availableQty}, مطلوب: ${input.quantity}`);
+          throw new Error(
+            `المخزون المتاح غير كافٍ — متاح: ${availableQty}, مطلوب: ${input.quantity}`
+          );
         }
 
         // Reserve stock
@@ -5796,12 +6147,17 @@ ${analysisText}
           if (input.batchId) {
             await tx
               .update(inventoryBatches)
-              .set({ reservedQty: sql`${inventoryBatches.reservedQty} + ${input.quantity}` })
+              .set({
+                reservedQty: sql`${inventoryBatches.reservedQty} + ${input.quantity}`,
+              })
               .where(eq(inventoryBatches.id, input.batchId));
           } else if (input.warehouseId) {
             await tx
               .update(warehouseStock)
-              .set({ reservedQty: sql`${warehouseStock.reservedQty} + ${input.quantity}`, availableQty: sql`${warehouseStock.availableQty} - ${input.quantity}` })
+              .set({
+                reservedQty: sql`${warehouseStock.reservedQty} + ${input.quantity}`,
+                availableQty: sql`${warehouseStock.availableQty} - ${input.quantity}`,
+              })
               .where(
                 and(
                   eq(warehouseStock.tenantId, tid),
@@ -5841,7 +6197,12 @@ ${analysisText}
         const [res] = await db
           .select()
           .from(stockReservations)
-          .where(and(eq(stockReservations.id, input.id), eq(stockReservations.tenantId, tid)))
+          .where(
+            and(
+              eq(stockReservations.id, input.id),
+              eq(stockReservations.tenantId, tid)
+            )
+          )
           .limit(1);
         if (!res) throw new Error("الحجز غير موجود");
         if (res.status !== "active") throw new Error("الحجز غير نشط");
@@ -5850,12 +6211,17 @@ ${analysisText}
           if (res.batchId) {
             await tx
               .update(inventoryBatches)
-              .set({ reservedQty: sql`${inventoryBatches.reservedQty} - ${res.quantity}` })
+              .set({
+                reservedQty: sql`${inventoryBatches.reservedQty} - ${res.quantity}`,
+              })
               .where(eq(inventoryBatches.id, res.batchId));
           } else if (res.warehouseId) {
             await tx
               .update(warehouseStock)
-              .set({ reservedQty: sql`${warehouseStock.reservedQty} - ${res.quantity}`, availableQty: sql`${warehouseStock.availableQty} + ${res.quantity}` })
+              .set({
+                reservedQty: sql`${warehouseStock.reservedQty} - ${res.quantity}`,
+                availableQty: sql`${warehouseStock.availableQty} + ${res.quantity}`,
+              })
               .where(
                 and(
                   eq(warehouseStock.tenantId, tid),
@@ -5867,7 +6233,11 @@ ${analysisText}
 
           await tx
             .update(stockReservations)
-            .set({ status: "released", releasedAt: new Date(), notes: input.reason || null })
+            .set({
+              status: "released",
+              releasedAt: new Date(),
+              notes: input.reason || null,
+            })
             .where(eq(stockReservations.id, input.id));
         });
 
@@ -5885,7 +6255,12 @@ ${analysisText}
         const [res] = await db
           .select()
           .from(stockReservations)
-          .where(and(eq(stockReservations.id, input.id), eq(stockReservations.tenantId, tid)))
+          .where(
+            and(
+              eq(stockReservations.id, input.id),
+              eq(stockReservations.tenantId, tid)
+            )
+          )
           .limit(1);
         if (!res) throw new Error("الحجز غير موجود");
         if (res.status !== "active") throw new Error("الحجز غير نشط");
@@ -5926,14 +6301,23 @@ ${analysisText}
 
     // ─── Cycle Counting ───────────────────────────────────────────────
     cycleCountList: tenantProcedure
-      .input(z.object({ status: z.string().optional(), warehouseId: z.number().optional() }).optional())
+      .input(
+        z
+          .object({
+            status: z.string().optional(),
+            warehouseId: z.number().optional(),
+          })
+          .optional()
+      )
       .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return [];
         const tid = requireTenantId(ctx);
         const conditions = [eq(cycleCounts.tenantId, tid)];
-        if (input?.status) conditions.push(eq(cycleCounts.status, input.status as any));
-        if (input?.warehouseId) conditions.push(eq(cycleCounts.warehouseId, input.warehouseId));
+        if (input?.status)
+          conditions.push(eq(cycleCounts.status, input.status as any));
+        if (input?.warehouseId)
+          conditions.push(eq(cycleCounts.warehouseId, input.warehouseId));
         return await db
           .select({
             id: cycleCounts.id,
@@ -6000,7 +6384,9 @@ ${analysisText}
         const [cc] = await db
           .select()
           .from(cycleCounts)
-          .where(and(eq(cycleCounts.id, input.id), eq(cycleCounts.tenantId, tid)))
+          .where(
+            and(eq(cycleCounts.id, input.id), eq(cycleCounts.tenantId, tid))
+          )
           .limit(1);
         if (!cc) throw new Error("الجرد غير موجود");
         if (cc.status !== "planned") throw new Error("الجرد ليس في حالة مخطط");
@@ -6030,7 +6416,7 @@ ${analysisText}
 
           if (stockRows.length > 0) {
             await tx.insert(cycleCountLines).values(
-              stockRows.map((s) => ({
+              stockRows.map(s => ({
                 tenantId: tid,
                 cycleCountId: input.id,
                 productId: s.productId,
@@ -6081,16 +6467,25 @@ ${analysisText}
         const [cc] = await db
           .select()
           .from(cycleCounts)
-          .where(and(eq(cycleCounts.id, input.cycleCountId), eq(cycleCounts.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(cycleCounts.id, input.cycleCountId),
+              eq(cycleCounts.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
 
         const varianceQty = input.countedQty - (line.systemQty || 0);
-        const variancePct = line.systemQty ? ((varianceQty / line.systemQty) * 100).toFixed(2) : "0";
+        const variancePct = line.systemQty
+          ? ((varianceQty / line.systemQty) * 100).toFixed(2)
+          : "0";
         const unitCost = parseFloat(String(line.unitCost || "0"));
         const varianceValue = varianceQty * unitCost;
-        const status = Math.abs(parseFloat(variancePct)) > parseFloat(String(cc?.varianceThreshold || "5"))
-          ? "variance"
-          : "ok";
+        const status =
+          Math.abs(parseFloat(variancePct)) >
+          parseFloat(String(cc?.varianceThreshold || "5"))
+            ? "variance"
+            : "ok";
 
         await db
           .update(cycleCountLines)
@@ -6120,17 +6515,20 @@ ${analysisText}
         const [cc] = await db
           .select()
           .from(cycleCounts)
-          .where(and(eq(cycleCounts.id, input.id), eq(cycleCounts.tenantId, tid)))
+          .where(
+            and(eq(cycleCounts.id, input.id), eq(cycleCounts.tenantId, tid))
+          )
           .limit(1);
         if (!cc) throw new Error("الجرد غير موجود");
-        if (cc.status !== "in_progress") throw new Error("الجرد ليس قيد التنفيذ");
+        if (cc.status !== "in_progress")
+          throw new Error("الجرد ليس قيد التنفيذ");
 
         const lines = await db
           .select()
           .from(cycleCountLines)
           .where(eq(cycleCountLines.cycleCountId, input.id));
 
-        const pendingLines = lines.filter((l) => l.status === "pending");
+        const pendingLines = lines.filter(l => l.status === "pending");
         if (pendingLines.length > 0) {
           throw new Error(`يوجد ${pendingLines.length} صنف لم يتم جردها بعد`);
         }
@@ -6144,7 +6542,12 @@ ${analysisText}
       }),
 
     cycleCountApprove: tenantProcedure
-      .input(z.object({ id: z.number(), applyAdjustments: z.boolean().default(false) }))
+      .input(
+        z.object({
+          id: z.number(),
+          applyAdjustments: z.boolean().default(false),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         if (!ctx.tenantId) throw new Error("يجب إنشاء مؤسسة أولاً");
         const db = await getDb();
@@ -6154,7 +6557,9 @@ ${analysisText}
         const [cc] = await db
           .select()
           .from(cycleCounts)
-          .where(and(eq(cycleCounts.id, input.id), eq(cycleCounts.tenantId, tid)))
+          .where(
+            and(eq(cycleCounts.id, input.id), eq(cycleCounts.tenantId, tid))
+          )
           .limit(1);
         if (!cc) throw new Error("الجرد غير موجود");
         if (cc.status !== "completed") throw new Error("الجرد لم يكتمل بعد");
@@ -6163,7 +6568,12 @@ ${analysisText}
           const varianceLines = await db
             .select()
             .from(cycleCountLines)
-            .where(and(eq(cycleCountLines.cycleCountId, input.id), ne(cycleCountLines.varianceQty, 0)));
+            .where(
+              and(
+                eq(cycleCountLines.cycleCountId, input.id),
+                ne(cycleCountLines.varianceQty, 0)
+              )
+            );
 
           await (db as any).transaction(async (tx: any) => {
             for (const line of varianceLines) {
@@ -6212,7 +6622,11 @@ ${analysisText}
 
         await db
           .update(cycleCounts)
-          .set({ status: "approved", approvedAt: new Date(), approvedById: ctx.user.id })
+          .set({
+            status: "approved",
+            approvedAt: new Date(),
+            approvedById: ctx.user.id,
+          })
           .where(eq(cycleCounts.id, input.id));
 
         return { success: true };
@@ -6229,7 +6643,8 @@ ${analysisText}
       )
       .query(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) return { layers: [], totalQty: 0, totalValue: 0, weightedAvgCost: 0 };
+        if (!db)
+          return { layers: [], totalQty: 0, totalValue: 0, weightedAvgCost: 0 };
         const tid = requireTenantId(ctx);
         const asOf = input.asOfDate ? new Date(input.asOfDate) : new Date();
         const conditions = [
@@ -6238,19 +6653,36 @@ ${analysisText}
           eq(inventoryValuationLayers.isActive, true),
           lte(inventoryValuationLayers.layerDate, asOf),
         ];
-        if (input.warehouseId) conditions.push(eq(inventoryValuationLayers.warehouseId, input.warehouseId));
+        if (input.warehouseId)
+          conditions.push(
+            eq(inventoryValuationLayers.warehouseId, input.warehouseId)
+          );
         const layers = await db
           .select()
           .from(inventoryValuationLayers)
           .where(and(...conditions))
           .orderBy(asc(inventoryValuationLayers.layerDate));
         const totalQty = layers.reduce((s, l) => s + (l.remainingQty || 0), 0);
-        const totalValue = layers.reduce((s, l) => s + parseFloat(String(l.unitCost)) * (l.remainingQty || 0), 0);
-        return { layers, totalQty, totalValue, weightedAvgCost: totalQty > 0 ? totalValue / totalQty : 0 };
+        const totalValue = layers.reduce(
+          (s, l) => s + parseFloat(String(l.unitCost)) * (l.remainingQty || 0),
+          0
+        );
+        return {
+          layers,
+          totalQty,
+          totalValue,
+          weightedAvgCost: totalQty > 0 ? totalValue / totalQty : 0,
+        };
       }),
 
     fifoValuation: tenantProcedure
-      .input(z.object({ productId: z.number(), warehouseId: z.number().optional(), quantity: z.number().int().min(1) }))
+      .input(
+        z.object({
+          productId: z.number(),
+          warehouseId: z.number().optional(),
+          quantity: z.number().int().min(1),
+        })
+      )
       .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return { layers: [], totalCost: 0, remainingQty: 0 };
@@ -6261,7 +6693,10 @@ ${analysisText}
           eq(inventoryValuationLayers.isActive, true),
           sql`${inventoryValuationLayers.remainingQty} > 0`,
         ];
-        if (input.warehouseId) conditions.push(eq(inventoryValuationLayers.warehouseId, input.warehouseId));
+        if (input.warehouseId)
+          conditions.push(
+            eq(inventoryValuationLayers.warehouseId, input.warehouseId)
+          );
         const layers = await db
           .select()
           .from(inventoryValuationLayers)
@@ -6282,7 +6717,13 @@ ${analysisText}
       }),
 
     lifoValuation: tenantProcedure
-      .input(z.object({ productId: z.number(), warehouseId: z.number().optional(), quantity: z.number().int().min(1) }))
+      .input(
+        z.object({
+          productId: z.number(),
+          warehouseId: z.number().optional(),
+          quantity: z.number().int().min(1),
+        })
+      )
       .query(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) return { layers: [], totalCost: 0, remainingQty: 0 };
@@ -6293,7 +6734,10 @@ ${analysisText}
           eq(inventoryValuationLayers.isActive, true),
           sql`${inventoryValuationLayers.remainingQty} > 0`,
         ];
-        if (input.warehouseId) conditions.push(eq(inventoryValuationLayers.warehouseId, input.warehouseId));
+        if (input.warehouseId)
+          conditions.push(
+            eq(inventoryValuationLayers.warehouseId, input.warehouseId)
+          );
         const layers = await db
           .select()
           .from(inventoryValuationLayers)
@@ -6817,20 +7261,24 @@ ${analysisText}
             );
           const map = new Map<
             number,
-            { productId: number; productName: string; qty: number; revenue: number }
+            {
+              productId: number;
+              productName: string;
+              qty: number;
+              revenue: number;
+            }
           >();
           for (const it of items) {
             const q = it.quantity;
             const rev =
               q * parseFloat(it.unitPrice || "0") -
               parseFloat(it.discount || "0");
-            const cur =
-              map.get(it.productId) || {
-                productId: it.productId,
-                productName: it.productName,
-                qty: 0,
-                revenue: 0,
-              };
+            const cur = map.get(it.productId) || {
+              productId: it.productId,
+              productName: it.productName,
+              qty: 0,
+              revenue: 0,
+            };
             cur.qty += q;
             cur.revenue += rev;
             map.set(it.productId, cur);
@@ -6983,10 +7431,7 @@ ${analysisText}
         for (const item of input.items) {
           const prod = productMap.get(item.productId);
           if (!prod) throw new Error(`المنتج رقم ${item.productId} غير موجود`);
-          if (
-            prod.type === "goods" &&
-            prod.currentStock < item.quantity
-          ) {
+          if (prod.type === "goods" && prod.currentStock < item.quantity) {
             throw new Error(
               `المخزون غير كافٍ للمنتج "${prod.name}" — المتوفر: ${prod.currentStock}, المطلوب: ${item.quantity}`
             );
@@ -7025,7 +7470,10 @@ ${analysisText}
           .where(eq(tenants.id, ctx.tenantId!))
           .limit(1);
         const country =
-          input.country || settingsRow?.country || tenantRow?.country || "اليمن";
+          input.country ||
+          settingsRow?.country ||
+          tenantRow?.country ||
+          "اليمن";
         const globalCode = genGlobalCode({
           country,
           tenantId: ctx.tenantId!,
@@ -7036,7 +7484,9 @@ ${analysisText}
         if (isSaudiCountry(country)) {
           let zcfg: any;
           try {
-            zcfg = settingsRow?.zatcaConfig ? JSON.parse(settingsRow.zatcaConfig) : {};
+            zcfg = settingsRow?.zatcaConfig
+              ? JSON.parse(settingsRow.zatcaConfig)
+              : {};
           } catch {
             zcfg = {};
           }
@@ -7121,7 +7571,12 @@ ${analysisText}
             const defaultWarehouse = await tx
               .select({ id: warehouses.id })
               .from(warehouses)
-              .where(and(eq(warehouses.tenantId, ctx.tenantId!), eq(warehouses.isActive, true)))
+              .where(
+                and(
+                  eq(warehouses.tenantId, ctx.tenantId!),
+                  eq(warehouses.isActive, true)
+                )
+              )
               .orderBy(asc(warehouses.code))
               .limit(1);
 
@@ -7164,7 +7619,9 @@ ${analysisText}
                 const consumeQty = Math.min(remainingQty, layer.remainingQty);
                 await tx
                   .update(inventoryValuationLayers)
-                  .set({ remainingQty: sql`${inventoryValuationLayers.remainingQty} - ${consumeQty}` })
+                  .set({
+                    remainingQty: sql`${inventoryValuationLayers.remainingQty} - ${consumeQty}`,
+                  })
                   .where(eq(inventoryValuationLayers.id, layer.id));
                 remainingQty -= consumeQty;
               }
@@ -7190,7 +7647,12 @@ ${analysisText}
               await tx
                 .update(customers)
                 .set({ balance: sql`${customers.balance} + ${unpaidAmount}` })
-                .where(and(eq(customers.id, input.customerId), eq(customers.tenantId, ctx.tenantId!)));
+                .where(
+                  and(
+                    eq(customers.id, input.customerId),
+                    eq(customers.tenantId, ctx.tenantId!)
+                  )
+                );
             }
           }
 
@@ -7211,9 +7673,9 @@ ${analysisText}
               const prod = productMap.get(item.productId);
               return {
                 productId: item.productId,
-                type:
-                  (prod?.type === "service" ? "service" : "goods") as
-                  "goods" | "service",
+                type: (prod?.type === "service" ? "service" : "goods") as
+                  | "goods"
+                  | "service",
                 quantity: item.quantity,
                 unitPrice: item.unitPrice,
                 discount: item.discount,
@@ -7262,7 +7724,12 @@ ${analysisText}
         const existing = await db
           .select()
           .from(salesInvoices)
-          .where(and(eq(salesInvoices.id, input.id), eq(salesInvoices.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(salesInvoices.id, input.id),
+              eq(salesInvoices.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
         if (existing.length === 0) throw new Error("الفاتورة غير موجودة");
         const inv = existing[0];
@@ -7482,7 +7949,9 @@ ${analysisText}
         const productRows = await db
           .select()
           .from(products)
-          .where(and(inArray(products.id, productIds), isNull(products.deletedAt)));
+          .where(
+            and(inArray(products.id, productIds), isNull(products.deletedAt))
+          );
         const productMap = new Map(productRows.map(p => [p.id, p]));
 
         // Validate all products exist
@@ -7520,7 +7989,10 @@ ${analysisText}
           .where(eq(tenants.id, ctx.tenantId!))
           .limit(1);
         const country =
-          input.country || settingsRow?.country || tenantRow?.country || "اليمن";
+          input.country ||
+          settingsRow?.country ||
+          tenantRow?.country ||
+          "اليمن";
         const globalCode = genGlobalCode({
           country,
           tenantId: ctx.tenantId!,
@@ -7531,7 +8003,9 @@ ${analysisText}
         if (isSaudiCountry(country)) {
           let zcfg: any;
           try {
-            zcfg = settingsRow?.zatcaConfig ? JSON.parse(settingsRow.zatcaConfig) : {};
+            zcfg = settingsRow?.zatcaConfig
+              ? JSON.parse(settingsRow.zatcaConfig)
+              : {};
           } catch {
             zcfg = {};
           }
@@ -7607,7 +8081,12 @@ ${analysisText}
             const defaultWarehouse = await tx
               .select({ id: warehouses.id })
               .from(warehouses)
-              .where(and(eq(warehouses.tenantId, ctx.tenantId!), eq(warehouses.isActive, true)))
+              .where(
+                and(
+                  eq(warehouses.tenantId, ctx.tenantId!),
+                  eq(warehouses.isActive, true)
+                )
+              )
               .orderBy(asc(warehouses.code))
               .limit(1);
 
@@ -7625,7 +8104,11 @@ ${analysisText}
                   lastMovementAt: new Date(),
                 })
                 .onConflictDoUpdate({
-                  target: [warehouseStock.productId, warehouseStock.warehouseId, warehouseStock.tenantId],
+                  target: [
+                    warehouseStock.productId,
+                    warehouseStock.warehouseId,
+                    warehouseStock.tenantId,
+                  ],
                   set: {
                     quantity: sql`${warehouseStock.quantity} + ${item.quantity}`,
                     availableQty: sql`${warehouseStock.availableQty} + ${item.quantity}`,
@@ -7671,7 +8154,12 @@ ${analysisText}
               await tx
                 .update(suppliers)
                 .set({ balance: sql`${suppliers.balance} + ${unpaidAmount}` })
-                .where(and(eq(suppliers.id, input.supplierId), eq(suppliers.tenantId, ctx.tenantId!)));
+                .where(
+                  and(
+                    eq(suppliers.id, input.supplierId),
+                    eq(suppliers.tenantId, ctx.tenantId!)
+                  )
+                );
             }
           }
 
@@ -7719,7 +8207,12 @@ ${analysisText}
         const existing = await db
           .select()
           .from(purchaseInvoices)
-          .where(and(eq(purchaseInvoices.id, input.id), eq(purchaseInvoices.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(purchaseInvoices.id, input.id),
+              eq(purchaseInvoices.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
         if (existing.length === 0) throw new Error("الفاتورة غير موجودة");
         const inv = existing[0];
@@ -7754,7 +8247,12 @@ ${analysisText}
               const defaultWarehouse = await tx
                 .select({ id: warehouses.id })
                 .from(warehouses)
-                .where(and(eq(warehouses.tenantId, ctx.tenantId!), eq(warehouses.isActive, true)))
+                .where(
+                  and(
+                    eq(warehouses.tenantId, ctx.tenantId!),
+                    eq(warehouses.isActive, true)
+                  )
+                )
                 .orderBy(asc(warehouses.code))
                 .limit(1);
 
@@ -8017,7 +8515,9 @@ ${analysisText}
         const productRows = await db
           .select()
           .from(products)
-          .where(and(inArray(products.id, productIds), isNull(products.deletedAt)));
+          .where(
+            and(inArray(products.id, productIds), isNull(products.deletedAt))
+          );
         if (productRows.length !== productIds.length)
           throw new Error("واحد أو أكثر من المنتجات غير موجودة");
 
@@ -8044,7 +8544,10 @@ ${analysisText}
           .where(eq(tenants.id, ctx.tenantId!))
           .limit(1);
         const country =
-          input.country || settingsRow?.country || tenantRow?.country || "اليمن";
+          input.country ||
+          settingsRow?.country ||
+          tenantRow?.country ||
+          "اليمن";
         const globalCode = genGlobalCode({
           country,
           tenantId: ctx.tenantId!,
@@ -8149,7 +8652,9 @@ ${analysisText}
         const existing = await db
           .select()
           .from(orders)
-          .where(and(eq(orders.id, input.id), eq(orders.tenantId, ctx.tenantId!)))
+          .where(
+            and(eq(orders.id, input.id), eq(orders.tenantId, ctx.tenantId!))
+          )
           .limit(1);
         if (existing.length === 0) throw new Error("الطلب غير موجود");
         const currentStatus = existing[0].status;
@@ -8164,7 +8669,9 @@ ${analysisText}
           await tx
             .update(orders)
             .set({ status: input.status, updatedAt: new Date() })
-            .where(and(eq(orders.id, input.id), eq(orders.tenantId, ctx.tenantId!)));
+            .where(
+              and(eq(orders.id, input.id), eq(orders.tenantId, ctx.tenantId!))
+            );
 
           // Cancelling an order releases its reserved stock — unless it was already
           // converted into a sales invoice (the invoice owns the stock then).
@@ -8238,7 +8745,12 @@ ${analysisText}
         const [order] = await db
           .select()
           .from(orders)
-          .where(and(eq(orders.id, input.orderId), eq(orders.tenantId, ctx.tenantId!)))
+          .where(
+            and(
+              eq(orders.id, input.orderId),
+              eq(orders.tenantId, ctx.tenantId!)
+            )
+          )
           .limit(1);
         if (!order) throw new Error("الطلب غير موجود");
         if (order.status === "cancelled")
@@ -8417,7 +8929,11 @@ ${analysisText}
         .select()
         .from(products)
         .where(
-          and(eq(products.isActive, true), eq(products.tenantId, ctx.tenantId!), isNull(products.deletedAt))
+          and(
+            eq(products.isActive, true),
+            eq(products.tenantId, ctx.tenantId!),
+            isNull(products.deletedAt)
+          )
         );
       const lowStock = allProducts
         .filter(p => p.currentStock <= p.minStock)
@@ -8458,13 +8974,22 @@ ${analysisText}
       const [ordersAgg] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(orders)
-        .where(and(eq(orders.tenantId, ctx.tenantId!), gte(orders.createdAt, monthStart)));
+        .where(
+          and(
+            eq(orders.tenantId, ctx.tenantId!),
+            gte(orders.createdAt, monthStart)
+          )
+        );
 
       const [productsCount] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(products)
         .where(
-          and(eq(products.isActive, true), eq(products.tenantId, ctx.tenantId!), isNull(products.deletedAt))
+          and(
+            eq(products.isActive, true),
+            eq(products.tenantId, ctx.tenantId!),
+            isNull(products.deletedAt)
+          )
         );
       const [customersCount] = await db
         .select({ count: sql<number>`count(*)::int` })
@@ -8507,7 +9032,12 @@ ${analysisText}
       const [ordersCount] = await db
         .select({ count: sql<number>`count(*)::int` })
         .from(orders)
-        .where(and(eq(orders.tenantId, ctx.tenantId!), ne(orders.status, "cancelled")));
+        .where(
+          and(
+            eq(orders.tenantId, ctx.tenantId!),
+            ne(orders.status, "cancelled")
+          )
+        );
 
       // Top customers by unpaid balance (highest receivables)
       const topCustomers = await db
@@ -8660,7 +9190,12 @@ ${analysisText}
           const invoices = await db
             .select()
             .from(salesInvoices)
-            .where(and(eq(salesInvoices.id, input.invoiceId), eq(salesInvoices.tenantId, ctx.tenantId!)))
+            .where(
+              and(
+                eq(salesInvoices.id, input.invoiceId),
+                eq(salesInvoices.tenantId, ctx.tenantId!)
+              )
+            )
             .limit(1);
           if (invoices.length === 0)
             throw new Error("فاتورة المبيعات غير موجودة");
@@ -8699,13 +9234,23 @@ ${analysisText}
                 status: newStatus,
                 updatedAt: new Date(),
               })
-              .where(and(eq(salesInvoices.id, input.invoiceId), eq(salesInvoices.tenantId, ctx.tenantId!)));
+              .where(
+                and(
+                  eq(salesInvoices.id, input.invoiceId),
+                  eq(salesInvoices.tenantId, ctx.tenantId!)
+                )
+              );
 
             if (inv.customerId) {
               await tx
                 .update(customers)
                 .set({ balance: sql`${customers.balance} - ${paymentAmount}` })
-                .where(and(eq(customers.id, inv.customerId), eq(customers.tenantId, ctx.tenantId!)));
+                .where(
+                  and(
+                    eq(customers.id, inv.customerId),
+                    eq(customers.tenantId, ctx.tenantId!)
+                  )
+                );
             }
             await tx.insert(activityLogs).values({
               userId: ctx.user.id,
@@ -8718,7 +9263,12 @@ ${analysisText}
           const invoices = await db
             .select()
             .from(purchaseInvoices)
-            .where(and(eq(purchaseInvoices.id, input.invoiceId), eq(purchaseInvoices.tenantId, ctx.tenantId!)))
+            .where(
+              and(
+                eq(purchaseInvoices.id, input.invoiceId),
+                eq(purchaseInvoices.tenantId, ctx.tenantId!)
+              )
+            )
             .limit(1);
           if (invoices.length === 0)
             throw new Error("فاتورة المشتريات غير موجودة");
@@ -8757,13 +9307,23 @@ ${analysisText}
                 status: newStatus,
                 updatedAt: new Date(),
               })
-              .where(and(eq(purchaseInvoices.id, input.invoiceId), eq(purchaseInvoices.tenantId, ctx.tenantId!)));
+              .where(
+                and(
+                  eq(purchaseInvoices.id, input.invoiceId),
+                  eq(purchaseInvoices.tenantId, ctx.tenantId!)
+                )
+              );
 
             if (inv.supplierId) {
               await tx
                 .update(suppliers)
                 .set({ balance: sql`${suppliers.balance} - ${paymentAmount}` })
-                .where(and(eq(suppliers.id, inv.supplierId), eq(suppliers.tenantId, ctx.tenantId!)));
+                .where(
+                  and(
+                    eq(suppliers.id, inv.supplierId),
+                    eq(suppliers.tenantId, ctx.tenantId!)
+                  )
+                );
             }
             await tx.insert(activityLogs).values({
               userId: ctx.user.id,

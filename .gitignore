@@ -43,14 +43,9 @@ Thumbs.db
 .vscode/*
 !.vscode/extensions.json
 
-.vercel
-
-b.txt
-c.txt
-t.txt
-
+# Secrets & local copies
 BACKUP_ENCRYPTION_KEY_LOCAL_COPY.txt
-.git-commit-msg.txt  
+.git-commit-msg.txt
 
 # Transient diagnostic outputs (db probes / migration tests)
 addcols.txt
@@ -59,3 +54,23 @@ migrate-test.txt
 test-run.err
 *-out.txt
 probe-*.txt
+
+# Root-level migration/diagnostic scripts (moved to scripts/)
+check-db.mjs
+apply-migration.mjs
+apply-migration-v2.mjs
+verify-reports.mjs
+verify-migration.mjs
+verify-migration-v2.mjs
+verify-migration-v3.mjs
+add-constraints.mjs
+add-columns.mjs
+create-fiscal-periods.mjs
+final-verify.mjs
+
+# Temporary files
+*.log
+*.tmp
+b.txt
+c.txt
+t.txt

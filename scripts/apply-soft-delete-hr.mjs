@@ -19,7 +19,10 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-const sql = readFileSync(new URL("./soft-delete-hr.sql", import.meta.url), "utf8");
+const sql = readFileSync(
+  new URL("./soft-delete-hr.sql", import.meta.url),
+  "utf8"
+);
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 try {

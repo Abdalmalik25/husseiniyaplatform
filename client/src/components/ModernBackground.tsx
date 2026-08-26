@@ -217,11 +217,7 @@ export function TechGridBackground({
 /**
  * GlowBlobBackground — ambient glowing radial gradients for atmospheric depth
  */
-export function GlowBlobBackground({
-  className = "",
-}: {
-  className?: string;
-}) {
+export function GlowBlobBackground({ className = "" }: { className?: string }) {
   return (
     <div
       className={`absolute inset-0 overflow-hidden pointer-events-none ${className}`}
@@ -233,4 +229,3 @@ export function GlowBlobBackground({
     </div>
   );
 }
-

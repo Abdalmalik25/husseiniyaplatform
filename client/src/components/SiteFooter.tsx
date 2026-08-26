@@ -47,7 +47,9 @@ export function SiteFooter() {
     } else {
       setLocation("/");
       setTimeout(() => {
-        document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        document
+          .getElementById(id)
+          ?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 350);
     }
   };
@@ -69,12 +71,15 @@ export function SiteFooter() {
               جاهز للبدء؟ فريقنا ينتظر مكالمتك
             </h3>
             <p className="text-white/55 text-sm">
-              تواصل معنا الآن للحصول على استشارة مجانية أو عرض Uamex_erp التجريبي
+              تواصل معنا الآن للحصول على استشارة مجانية أو عرض Uamex_erp
+              التجريبي
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3 shrink-0">
             <a
-              href={whatsappLink("السلام عليكم مؤسسة الحسينية، أود الحصول على استشارة مجانية.")}
+              href={whatsappLink(
+                "السلام عليكم مؤسسة الحسينية، أود الحصول على استشارة مجانية."
+              )}
               target="_blank"
               rel="noopener"
               className="whatsapp-btn text-sm"
@@ -96,7 +101,6 @@ export function SiteFooter() {
       {/* Main footer grid */}
       <div className="relative z-10 max-w-7xl mx-auto px-4 pt-14 pb-10">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
-
           {/* Brand Column */}
           <div className="lg:col-span-2 space-y-5">
             <div className="cursor-pointer" onClick={() => setLocation("/")}>
@@ -131,14 +135,18 @@ export function SiteFooter() {
               </a>
               <div className="flex items-start gap-2.5 text-white/50">
                 <MapPin className="w-4 h-4 text-brand shrink-0 mt-0.5" />
-                <span>{brand.contact.address} — {brand.contact.country}</span>
+                <span>
+                  {brand.contact.address} — {brand.contact.country}
+                </span>
               </div>
             </div>
 
             {/* Social / Action links */}
             <div className="flex flex-wrap gap-2 pt-1">
               <a
-                href={whatsappLink("السلام عليكم، أود الاستفسار عن خدمات الحسينية.")}
+                href={whatsappLink(
+                  "السلام عليكم، أود الاستفسار عن خدمات الحسينية."
+                )}
                 target="_blank"
                 rel="noopener"
                 className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-ink text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:scale-105"
@@ -161,7 +169,13 @@ export function SiteFooter() {
           {/* Services Column */}
           <div className="space-y-3">
             <h4 className="text-[12px] font-black text-white uppercase tracking-widest flex items-center gap-2">
-              <img src="/uamex-favicon-32.png" alt="" width={18} height={18} className="rounded-[5px]" />
+              <img
+                src="/uamex-favicon-32.png"
+                alt=""
+                width={18}
+                height={18}
+                className="rounded-[5px]"
+              />
               نظام Uamex_erp
             </h4>
             <ul className="space-y-2">
@@ -205,7 +219,9 @@ export function SiteFooter() {
               ].map((l, i) => (
                 <li key={i}>
                   <button
-                    onClick={() => l.id ? navScroll(l.id) : setLocation(l.path!)}
+                    onClick={() =>
+                      l.id ? navScroll(l.id) : setLocation(l.path!)
+                    }
                     className="text-xs text-white/50 hover:text-brand-300 transition-colors text-right flex items-center gap-1.5"
                   >
                     <span className="w-1 h-1 rounded-full bg-brand/50 shrink-0" />
@@ -215,7 +231,6 @@ export function SiteFooter() {
               ))}
             </ul>
           </div>
-
 
           {/* Newsletter column */}
           <div className="space-y-4">
@@ -273,8 +288,10 @@ export function SiteFooter() {
         {/* Legal bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 text-[11px] text-white/35 border-t border-white/10 pt-5">
           <p>
-            <span className="text-white/55 font-bold">{brand.names.legalFull}</span>
-            {" "}© {new Date().getFullYear()} — جميع الحقوق محفوظة
+            <span className="text-white/55 font-bold">
+              {brand.names.legalFull}
+            </span>{" "}
+            © {new Date().getFullYear()} — جميع الحقوق محفوظة
           </p>
           <div className="flex items-center gap-4">
             <span>نظام Uamex_erp مبني ومستضاف على بنية سحابية</span>
@@ -300,4 +317,3 @@ export function SiteFooter() {
     </footer>
   );
 }
-

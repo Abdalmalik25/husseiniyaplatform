@@ -12,7 +12,8 @@ import { resolvePageMeta } from "@/lib/pageTitles";
  *  - الوظائف مساعدة أنشأ-إن-غاب حتى يعمل المكوّن مهما كانت حالة head الأولية.
  */
 function ensureMeta(attr: "name" | "property", key: string): HTMLMetaElement {
-  const selector = attr === "name" ? `meta[name="${key}"]` : `meta[property="${key}"]`;
+  const selector =
+    attr === "name" ? `meta[name="${key}"]` : `meta[property="${key}"]`;
   let el = document.head.querySelector<HTMLMetaElement>(selector);
   if (!el) {
     el = document.createElement("meta");
@@ -23,7 +24,9 @@ function ensureMeta(attr: "name" | "property", key: string): HTMLMetaElement {
 }
 
 function ensureCanonical(): HTMLLinkElement {
-  let el = document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
+  let el = document.head.querySelector<HTMLLinkElement>(
+    'link[rel="canonical"]'
+  );
   if (!el) {
     el = document.createElement("link");
     el.setAttribute("rel", "canonical");
@@ -46,11 +49,17 @@ export function PageTitle() {
     if (meta.canonical) {
       ensureCanonical().setAttribute("href", meta.canonical);
       ensureMeta("property", "og:title").setAttribute("content", meta.title);
-      ensureMeta("property", "og:description").setAttribute("content", meta.description);
+      ensureMeta("property", "og:description").setAttribute(
+        "content",
+        meta.description
+      );
       ensureMeta("property", "og:url").setAttribute("content", meta.canonical);
       ensureMeta("property", "og:type").setAttribute("content", "website");
       ensureMeta("name", "twitter:title").setAttribute("content", meta.title);
-      ensureMeta("name", "twitter:description").setAttribute("content", meta.description);
+      ensureMeta("name", "twitter:description").setAttribute(
+        "content",
+        meta.description
+      );
       // Public route → explicitly crawler-friendly (undo any leftover noindex).
       ensureMeta("name", "robots").setAttribute("content", "index, follow");
     } else {

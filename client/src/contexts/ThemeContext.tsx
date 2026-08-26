@@ -83,7 +83,7 @@ export const THEMES: ThemeMeta[] = [
 ];
 
 const STORAGE_KEY = "alh-theme";
-const IDS: string[] = THEMES.map((t) => t.id);
+const IDS: string[] = THEMES.map(t => t.id);
 
 function isThemeId(value: unknown): value is ThemeId {
   return typeof value === "string" && IDS.includes(value);
@@ -132,7 +132,7 @@ export function ThemeProvider({
   useEffect(() => {
     const root = document.documentElement;
     root.setAttribute("data-theme", themeId);
-    const meta = THEMES.find((t) => t.id === themeId) ?? THEMES[0];
+    const meta = THEMES.find(t => t.id === themeId) ?? THEMES[0];
     root.classList.toggle("dark", meta.mode === "dark");
     // Keep the browser/PWA chrome in sync with the active surface color.
     const chrome =
@@ -156,7 +156,7 @@ export function ThemeProvider({
   }, [themeId, switchable]);
 
   const meta = useMemo(
-    () => THEMES.find((t) => t.id === themeId) ?? THEMES[0],
+    () => THEMES.find(t => t.id === themeId) ?? THEMES[0],
     [themeId]
   );
 
@@ -165,15 +165,22 @@ export function ThemeProvider({
   const toggleTheme = useMemo(() => {
     if (!switchable) return undefined;
     return () =>
-      setThemeId((prev) => {
-        const cur = THEMES.find((t) => t.id === prev) ?? THEMES[0];
+      setThemeId(prev => {
+        const cur = THEMES.find(t => t.id === prev) ?? THEMES[0];
         // Flip between the light flagship and the dark flagship.
         return cur.mode === "dark" ? THEMES[0].id : THEMES[1].id;
       });
   }, [switchable]);
 
   const value = useMemo<ThemeContextType>(
-    () => ({ theme: themeId, meta, themes: THEMES, setTheme, toggleTheme, switchable }),
+    () => ({
+      theme: themeId,
+      meta,
+      themes: THEMES,
+      setTheme,
+      toggleTheme,
+      switchable,
+    }),
     [themeId, meta, setTheme, toggleTheme, switchable]
   );
 

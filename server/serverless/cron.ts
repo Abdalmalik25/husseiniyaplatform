@@ -19,11 +19,15 @@ import {
   runScheduledJournalEntries,
   runRecurringExpenses,
 } from "../automation";
-import { tenants, featureFlags, loginAttempts, users } from "../../drizzle/schema";
+import {
+  tenants,
+  featureFlags,
+  loginAttempts,
+  users,
+} from "../../drizzle/schema";
 import { sql, count } from "drizzle-orm";
 import { runNightlyBackupIfDue } from "../_core/backup";
 
- 
 export default async function handler(req: any, res: any) {
   try {
     // SECURITY: fail closed in production — the cron surface must never be
@@ -82,9 +86,7 @@ export default async function handler(req: any, res: any) {
       // 5. Stale-session cleanup — remove login attempts older than 90 days
       await db
         .delete(loginAttempts)
-        .where(
-          sql`${loginAttempts.createdAt} < now() - interval '90 days'`
-        );
+        .where(sql`${loginAttempts.createdAt} < now() - interval '90 days'`);
 
       // 6. Aggregate analytics stats for BI dashboard (denormalized snapshot)
       const stats = await db

@@ -12,20 +12,23 @@ export function genGlobalCode(opts: {
   userId?: number | null;
 }): string {
   const COUNTRY_ISO: Record<string, string> = {
-    "السعودية": "SA",
-    "الإمارات": "AE",
-    "مصر": "EG",
-    "الكويت": "KW",
-    "الأردن": "JO",
-    "اليمن": "YE",
-    "قطر": "QA",
-    "البحرين": "BH",
-    "عمان": "OM",
+    السعودية: "SA",
+    الإمارات: "AE",
+    مصر: "EG",
+    الكويت: "KW",
+    الأردن: "JO",
+    اليمن: "YE",
+    قطر: "QA",
+    البحرين: "BH",
+    عمان: "OM",
   };
   const raw = (opts.country || "YE").toString().trim();
   const mapped =
     COUNTRY_ISO[raw] ||
-    raw.replace(/[^A-Za-z]/g, "").toUpperCase().slice(0, 4) ||
+    raw
+      .replace(/[^A-Za-z]/g, "")
+      .toUpperCase()
+      .slice(0, 4) ||
     "XX";
   const cc = mapped.slice(0, 4);
   const ts = Date.now().toString(36).toUpperCase();

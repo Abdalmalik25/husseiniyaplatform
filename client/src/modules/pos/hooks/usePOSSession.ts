@@ -1,6 +1,12 @@
 import { useState, useCallback, useEffect, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import type { POSSession, POSDevice, POSConfig, SalesPolicy, PaymentMethodConfig } from "@/modules/pos/types";
+import type {
+  POSSession,
+  POSDevice,
+  POSConfig,
+  SalesPolicy,
+  PaymentMethodConfig,
+} from "@/modules/pos/types";
 
 interface UsePOSSessionOptions {
   autoOpen?: boolean;
@@ -57,23 +63,25 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
   const [error, setError] = useState<string | null>(null);
   const [config, setConfig] = useState<POSConfig | null>(null);
   const [salesPolicy, setSalesPolicy] = useState<SalesPolicy | null>(null);
-  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodConfig[]>([]);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethodConfig[]>(
+    []
+  );
   const [devices, setDevices] = useState<POSDevice[]>([]);
 
-  const { data: sessionsData, refetch: refetchSessions } = trpc.modules.pos.listSessions.useQuery(
-    undefined,
-    { staleTime: 30_000, refetchOnWindowFocus: false }
-  );
+  const { data: sessionsData, refetch: refetchSessions } =
+    trpc.modules.pos.listSessions.useQuery(undefined, {
+      staleTime: 30_000,
+      refetchOnWindowFocus: false,
+    });
 
   const { data: branchesData } = trpc.modules.branches.list.useQuery(
     undefined,
     { staleTime: 60_000 }
   );
 
-  const { data: devicesData } = trpc.devices.list.useQuery(
-    undefined,
-    { staleTime: 60_000 }
-  );
+  const { data: devicesData } = trpc.devices.list.useQuery(undefined, {
+    staleTime: 60_000,
+  });
 
   const { data: settingsData } = trpc.accounting.getSettings.useQuery(
     undefined,
@@ -81,13 +89,13 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
   );
 
   const openSessionMutation = trpc.modules.pos.openSession.useMutation({
-    onSuccess: (newSession) => {
+    onSuccess: newSession => {
       setSession(mapServerSessionToClient(newSession));
       setError(null);
       refetchSessions();
       utils.modules.pos.listSessions.invalidate();
     },
-    onError: (err) => {
+    onError: err => {
       setError(err.message || "فشل فتح الوردية");
     },
   });
@@ -98,7 +106,7 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
       refetchSessions();
       utils.modules.pos.listSessions.invalidate();
     },
-    onError: (err) => {
+    onError: err => {
       setError(err.message || "فشل إغلاق الوردية");
     },
   });
@@ -135,20 +143,27 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
     }
   }, [devicesData]);
 
-  const openSession = useCallback(async (customOpeningFloat?: number, customBranchId?: number, customDeviceId?: number) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      await openSessionMutation.mutateAsync({
-        openingFloat: (customOpeningFloat ?? openingFloat).toString(),
-        branchId: customBranchId ?? branchId,
-      });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل فتح الوردية");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [openSessionMutation, openingFloat, branchId]);
+  const openSession = useCallback(
+    async (
+      customOpeningFloat?: number,
+      customBranchId?: number,
+      customDeviceId?: number
+    ) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        await openSessionMutation.mutateAsync({
+          openingFloat: (customOpeningFloat ?? openingFloat).toString(),
+          branchId: customBranchId ?? branchId,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "فشل فتح الوردية");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [openSessionMutation, openingFloat, branchId]
+  );
 
   const closeSession = useCallback(async () => {
     if (!activeSession) return;
@@ -203,13 +218,17 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
     return {
       session: activeSession,
       duration: Date.now() - new Date(activeSession.openedAt).getTime(),
-      expectedFloat: activeSession.openingFloat + activeSession.totalSales - activeSession.totalRefunds,
+      expectedFloat:
+        activeSession.openingFloat +
+        activeSession.totalSales -
+        activeSession.totalRefunds,
       discrepancy: 0,
     };
   }, [activeSession]);
 
   const isSessionOpen = !!activeSession && activeSession.status === "open";
-  const isSessionSuspended = !!activeSession && activeSession.status === "suspended";
+  const isSessionSuspended =
+    !!activeSession && activeSession.status === "suspended";
 
   useEffect(() => {
     if (autoOpen && !activeSession && !isLoading) {

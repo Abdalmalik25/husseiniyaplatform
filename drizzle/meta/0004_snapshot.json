@@ -163,17 +163,12 @@
         "accounts_GlobalId_unique": {
           "name": "accounts_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "accounts_code_tenant_unique": {
           "name": "accounts_code_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code",
-            "tenantId"
-          ]
+          "columns": ["code", "tenantId"]
         }
       },
       "policies": {},
@@ -436,9 +431,7 @@
         "activity_logs_GlobalId_unique": {
           "name": "activity_logs_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -588,16 +581,12 @@
         "api_keys_GlobalId_unique": {
           "name": "api_keys_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "api_keys_keyHash_unique": {
           "name": "api_keys_keyHash_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "keyHash"
-          ]
+          "columns": ["keyHash"]
         }
       },
       "policies": {},
@@ -788,17 +777,12 @@
         "attendance_GlobalId_unique": {
           "name": "attendance_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "attendance_employee_date_unique": {
           "name": "attendance_employee_date_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "employeeId",
-            "date"
-          ]
+          "columns": ["employeeId", "date"]
         }
       },
       "policies": {},
@@ -1108,9 +1092,7 @@
         "audit_logs_GlobalId_unique": {
           "name": "audit_logs_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -1318,12 +1300,8 @@
           "name": "billing_invoices_currencyId_currencies_id_fk",
           "tableFrom": "billing_invoices",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1333,16 +1311,12 @@
         "billing_invoices_GlobalId_unique": {
           "name": "billing_invoices_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "billing_invoices_invoiceNumber_unique": {
           "name": "billing_invoices_invoiceNumber_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoiceNumber"
-          ]
+          "columns": ["invoiceNumber"]
         }
       },
       "policies": {},
@@ -1615,17 +1589,12 @@
         "biometric_templates_GlobalId_unique": {
           "name": "biometric_templates_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "biometric_template_user_type_unique": {
           "name": "biometric_template_user_type_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "userId",
-            "type"
-          ]
+          "columns": ["userId", "type"]
         }
       },
       "policies": {},
@@ -1738,17 +1707,12 @@
         "branches_GlobalId_unique": {
           "name": "branches_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "branches_code_tenant_unique": {
           "name": "branches_code_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code",
-            "tenantId"
-          ]
+          "columns": ["code", "tenantId"]
         }
       },
       "policies": {},
@@ -1876,12 +1840,8 @@
           "name": "budgets_currencyId_currencies_id_fk",
           "tableFrom": "budgets",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -1891,17 +1851,12 @@
         "budgets_GlobalId_unique": {
           "name": "budgets_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "budgets_tenant_period_unique": {
           "name": "budgets_tenant_period_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "periodName"
-          ]
+          "columns": ["tenantId", "periodName"]
         }
       },
       "policies": {},
@@ -2063,9 +2018,7 @@
         "categories_GlobalId_unique": {
           "name": "categories_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -2210,16 +2163,12 @@
         "currencies_GlobalId_unique": {
           "name": "currencies_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "currencies_code_unique": {
           "name": "currencies_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -2392,9 +2341,7 @@
         "custom_field_defs_GlobalId_unique": {
           "name": "custom_field_defs_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -2529,18 +2476,12 @@
         "custom_field_values_GlobalId_unique": {
           "name": "custom_field_values_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "custom_field_values_entity_field_unique": {
           "name": "custom_field_values_entity_field_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "entity_type",
-            "entity_id",
-            "field_key"
-          ]
+          "columns": ["entity_type", "entity_id", "field_key"]
         }
       },
       "policies": {},
@@ -2755,12 +2696,8 @@
           "name": "customers_currencyId_currencies_id_fk",
           "tableFrom": "customers",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -2770,17 +2707,12 @@
         "customers_GlobalId_unique": {
           "name": "customers_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "customers_code_tenant_unique": {
           "name": "customers_code_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code",
-            "tenantId"
-          ]
+          "columns": ["code", "tenantId"]
         }
       },
       "policies": {},
@@ -2947,9 +2879,7 @@
         "departments_GlobalId_unique": {
           "name": "departments_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -3122,24 +3052,17 @@
         "devices_GlobalId_unique": {
           "name": "devices_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "devices_fingerprint_unique": {
           "name": "devices_fingerprint_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "fingerprint"
-          ]
+          "columns": ["fingerprint"]
         },
         "devices_code_tenant_unique": {
           "name": "devices_code_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code",
-            "tenantId"
-          ]
+          "columns": ["code", "tenantId"]
         }
       },
       "policies": {},
@@ -3313,9 +3236,7 @@
         "documents_GlobalId_unique": {
           "name": "documents_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -3537,12 +3458,8 @@
           "name": "employees_currencyId_currencies_id_fk",
           "tableFrom": "employees",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -3552,9 +3469,7 @@
         "employees_GlobalId_unique": {
           "name": "employees_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -3708,18 +3623,12 @@
         "exchange_rates_GlobalId_unique": {
           "name": "exchange_rates_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "exchange_rates_pair_effective_unique": {
           "name": "exchange_rates_pair_effective_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "baseCurrency",
-            "quoteCurrency",
-            "effectiveFrom"
-          ]
+          "columns": ["baseCurrency", "quoteCurrency", "effectiveFrom"]
         }
       },
       "policies": {},
@@ -3842,17 +3751,12 @@
         "feature_flags_GlobalId_unique": {
           "name": "feature_flags_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "feature_flags_tenant_key_unique": {
           "name": "feature_flags_tenant_key_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "key"
-          ]
+          "columns": ["tenantId", "key"]
         }
       },
       "policies": {},
@@ -4170,9 +4074,7 @@
         "file_uploads_GlobalId_unique": {
           "name": "file_uploads_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -4366,17 +4268,12 @@
         "fiscal_periods_GlobalId_unique": {
           "name": "fiscal_periods_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "fiscal_periods_tenant_name_unique": {
           "name": "fiscal_periods_tenant_name_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "name"
-          ]
+          "columns": ["tenantId", "name"]
         }
       },
       "policies": {},
@@ -4545,9 +4442,7 @@
         "inventory_movements_GlobalId_unique": {
           "name": "inventory_movements_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -4760,12 +4655,8 @@
           "name": "journal_entries_currencyId_currencies_id_fk",
           "tableFrom": "journal_entries",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -4775,9 +4666,7 @@
         "journal_entries_GlobalId_unique": {
           "name": "journal_entries_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -5011,9 +4900,7 @@
         "login_attempts_GlobalId_unique": {
           "name": "login_attempts_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -5180,9 +5067,7 @@
         "messages_GlobalId_unique": {
           "name": "messages_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -5371,9 +5256,7 @@
         "notifications_GlobalId_unique": {
           "name": "notifications_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -5554,9 +5437,7 @@
         "offers_GlobalId_unique": {
           "name": "offers_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -5714,12 +5595,8 @@
           "name": "opening_balances_currencyId_currencies_id_fk",
           "tableFrom": "opening_balances",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -5729,18 +5606,12 @@
         "opening_balances_GlobalId_unique": {
           "name": "opening_balances_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "openingBalances_account_period_tenant_unique": {
           "name": "openingBalances_account_period_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "accountId",
-            "periodName",
-            "tenantId"
-          ]
+          "columns": ["accountId", "periodName", "tenantId"]
         }
       },
       "policies": {},
@@ -6065,12 +5936,8 @@
           "name": "orders_currencyId_currencies_id_fk",
           "tableFrom": "orders",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6080,24 +5947,17 @@
         "orders_GlobalId_unique": {
           "name": "orders_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "orders_orderNumber_unique": {
           "name": "orders_orderNumber_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "orderNumber"
-          ]
+          "columns": ["orderNumber"]
         },
         "orders_gc_tenant_unique": {
           "name": "orders_gc_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "globalCode"
-          ]
+          "columns": ["tenantId", "globalCode"]
         }
       },
       "policies": {},
@@ -6285,12 +6145,8 @@
           "name": "payment_history_currencyId_currencies_id_fk",
           "tableFrom": "payment_history",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6300,9 +6156,7 @@
         "payment_history_GlobalId_unique": {
           "name": "payment_history_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -6503,12 +6357,8 @@
           "name": "payments_currencyId_currencies_id_fk",
           "tableFrom": "payments",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6518,9 +6368,7 @@
         "payments_GlobalId_unique": {
           "name": "payments_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -6694,17 +6542,12 @@
         "payroll_items_GlobalId_unique": {
           "name": "payroll_items_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "payroll_items_run_employee_unique": {
           "name": "payroll_items_run_employee_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "payrollRunId",
-            "employeeId"
-          ]
+          "columns": ["payrollRunId", "employeeId"]
         }
       },
       "policies": {},
@@ -6859,12 +6702,8 @@
           "name": "payroll_runs_currencyId_currencies_id_fk",
           "tableFrom": "payroll_runs",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -6874,17 +6713,12 @@
         "payroll_runs_GlobalId_unique": {
           "name": "payroll_runs_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "payroll_runs_tenant_period_unique": {
           "name": "payroll_runs_tenant_period_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "periodName"
-          ]
+          "columns": ["tenantId", "periodName"]
         }
       },
       "policies": {},
@@ -6999,9 +6833,7 @@
         "permissions_GlobalId_unique": {
           "name": "permissions_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -7153,12 +6985,8 @@
           "name": "pos_orders_currencyId_currencies_id_fk",
           "tableFrom": "pos_orders",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7168,9 +6996,7 @@
         "pos_orders_GlobalId_unique": {
           "name": "pos_orders_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -7374,12 +7200,8 @@
           "name": "pos_sessions_currencyId_currencies_id_fk",
           "tableFrom": "pos_sessions",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7389,9 +7211,7 @@
         "pos_sessions_GlobalId_unique": {
           "name": "pos_sessions_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -7538,17 +7358,12 @@
         "procurement_approvals_GlobalId_unique": {
           "name": "procurement_approvals_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "procurement_approvals_proc_level_unique": {
           "name": "procurement_approvals_proc_level_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "procurementId",
-            "level"
-          ]
+          "columns": ["procurementId", "level"]
         }
       },
       "policies": {},
@@ -7791,12 +7606,8 @@
           "name": "procurements_currencyId_currencies_id_fk",
           "tableFrom": "procurements",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -7806,9 +7617,7 @@
         "procurements_GlobalId_unique": {
           "name": "procurements_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -7962,17 +7771,12 @@
         "product_units_GlobalId_unique": {
           "name": "product_units_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "product_units_product_unit_unique": {
           "name": "product_units_product_unit_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "productId",
-            "unitId"
-          ]
+          "columns": ["productId", "unitId"]
         }
       },
       "policies": {},
@@ -8388,12 +8192,8 @@
           "name": "products_currencyId_currencies_id_fk",
           "tableFrom": "products",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8403,17 +8203,12 @@
         "products_GlobalId_unique": {
           "name": "products_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "products_code_tenant_unique": {
           "name": "products_code_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code",
-            "tenantId"
-          ]
+          "columns": ["code", "tenantId"]
         }
       },
       "policies": {},
@@ -8576,17 +8371,12 @@
         "project_members_GlobalId_unique": {
           "name": "project_members_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "project_members_project_employee_unique": {
           "name": "project_members_project_employee_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "projectId",
-            "employeeId"
-          ]
+          "columns": ["projectId", "employeeId"]
         }
       },
       "policies": {},
@@ -8773,9 +8563,7 @@
         "project_tasks_GlobalId_unique": {
           "name": "project_tasks_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -8972,12 +8760,8 @@
           "name": "projects_currencyId_currencies_id_fk",
           "tableFrom": "projects",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -8987,9 +8771,7 @@
         "projects_GlobalId_unique": {
           "name": "projects_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -9415,12 +9197,8 @@
           "name": "purchase_invoices_currencyId_currencies_id_fk",
           "tableFrom": "purchase_invoices",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -9430,24 +9208,17 @@
         "purchase_invoices_GlobalId_unique": {
           "name": "purchase_invoices_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "purchase_invoices_invoiceNumber_unique": {
           "name": "purchase_invoices_invoiceNumber_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoiceNumber"
-          ]
+          "columns": ["invoiceNumber"]
         },
         "purchaseInvoices_gc_tenant_unique": {
           "name": "purchaseInvoices_gc_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "globalCode"
-          ]
+          "columns": ["tenantId", "globalCode"]
         }
       },
       "policies": {},
@@ -9649,9 +9420,7 @@
         "quality_inspections_GlobalId_unique": {
           "name": "quality_inspections_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -9806,9 +9575,7 @@
         "roles_GlobalId_unique": {
           "name": "roles_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -10236,12 +10003,8 @@
           "name": "sales_invoices_currencyId_currencies_id_fk",
           "tableFrom": "sales_invoices",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10251,24 +10014,17 @@
         "sales_invoices_GlobalId_unique": {
           "name": "sales_invoices_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "sales_invoices_invoiceNumber_unique": {
           "name": "sales_invoices_invoiceNumber_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "invoiceNumber"
-          ]
+          "columns": ["invoiceNumber"]
         },
         "salesInvoices_gc_tenant_unique": {
           "name": "salesInvoices_gc_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "globalCode"
-          ]
+          "columns": ["tenantId", "globalCode"]
         }
       },
       "policies": {},
@@ -10464,12 +10220,8 @@
           "name": "sales_reps_currencyId_currencies_id_fk",
           "tableFrom": "sales_reps",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10479,9 +10231,7 @@
         "sales_reps_GlobalId_unique": {
           "name": "sales_reps_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -10648,12 +10398,8 @@
           "name": "scheduled_journal_entries_currencyId_currencies_id_fk",
           "tableFrom": "scheduled_journal_entries",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -10663,9 +10409,7 @@
         "scheduled_journal_entries_GlobalId_unique": {
           "name": "scheduled_journal_entries_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -10826,16 +10570,12 @@
         "settings_GlobalId_unique": {
           "name": "settings_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "settings_tenantId_unique": {
           "name": "settings_tenantId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId"
-          ]
+          "columns": ["tenantId"]
         }
       },
       "policies": {},
@@ -11007,17 +10747,12 @@
         "stock_adjustments_GlobalId_unique": {
           "name": "stock_adjustments_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "stockAdjustments_gc_tenant_unique": {
           "name": "stockAdjustments_gc_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "globalCode"
-          ]
+          "columns": ["tenantId", "globalCode"]
         }
       },
       "policies": {},
@@ -11172,16 +10907,12 @@
         "subscription_plans_GlobalId_unique": {
           "name": "subscription_plans_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "subscription_plans_code_unique": {
           "name": "subscription_plans_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -11397,12 +11128,8 @@
           "name": "suppliers_currencyId_currencies_id_fk",
           "tableFrom": "suppliers",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -11412,17 +11139,12 @@
         "suppliers_GlobalId_unique": {
           "name": "suppliers_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "suppliers_code_tenant_unique": {
           "name": "suppliers_code_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code",
-            "tenantId"
-          ]
+          "columns": ["code", "tenantId"]
         }
       },
       "policies": {},
@@ -11607,18 +11329,12 @@
         "sync_metadata_GlobalId_unique": {
           "name": "sync_metadata_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "sync_metadata_aggregate_entity_unique": {
           "name": "sync_metadata_aggregate_entity_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "aggregateId",
-            "entityType",
-            "entityId"
-          ]
+          "columns": ["aggregateId", "entityType", "entityId"]
         }
       },
       "policies": {},
@@ -11777,16 +11493,12 @@
         "team_invitations_GlobalId_unique": {
           "name": "team_invitations_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "team_invitations_token_unique": {
           "name": "team_invitations_token_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "token"
-          ]
+          "columns": ["token"]
         }
       },
       "policies": {},
@@ -11987,12 +11699,8 @@
           "name": "tenant_subscriptions_currencyId_currencies_id_fk",
           "tableFrom": "tenant_subscriptions",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12002,9 +11710,7 @@
         "tenant_subscriptions_GlobalId_unique": {
           "name": "tenant_subscriptions_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -12127,16 +11833,12 @@
         "tenants_GlobalId_unique": {
           "name": "tenants_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "tenants_code_unique": {
           "name": "tenants_code_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
+          "columns": ["code"]
         }
       },
       "policies": {},
@@ -12323,9 +12025,7 @@
         "tickets_GlobalId_unique": {
           "name": "tickets_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -12709,12 +12409,8 @@
           "name": "transactions_currencyId_currencies_id_fk",
           "tableFrom": "transactions",
           "tableTo": "currencies",
-          "columnsFrom": [
-            "currencyId"
-          ],
-          "columnsTo": [
-            "id"
-          ],
+          "columnsFrom": ["currencyId"],
+          "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
         }
@@ -12724,9 +12420,7 @@
         "transactions_GlobalId_unique": {
           "name": "transactions_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -12899,18 +12593,12 @@
         "translations_GlobalId_unique": {
           "name": "translations_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "translations_key_culture_tenant_unique": {
           "name": "translations_key_culture_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "key",
-            "culture",
-            "tenantId"
-          ]
+          "columns": ["key", "culture", "tenantId"]
         }
       },
       "policies": {},
@@ -13074,9 +12762,7 @@
         "units_GlobalId_unique": {
           "name": "units_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -13203,18 +12889,12 @@
         "user_branch_permissions_GlobalId_unique": {
           "name": "user_branch_permissions_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "userBranchPermissions_tenant_user_branch_unique": {
           "name": "userBranchPermissions_tenant_user_branch_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "userId",
-            "branchId"
-          ]
+          "columns": ["tenantId", "userId", "branchId"]
         }
       },
       "policies": {},
@@ -13341,9 +13021,7 @@
         "user_roles_GlobalId_unique": {
           "name": "user_roles_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -13549,16 +13227,12 @@
         "users_GlobalId_unique": {
           "name": "users_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "users_openId_unique": {
           "name": "users_openId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "openId"
-          ]
+          "columns": ["openId"]
         }
       },
       "policies": {},
@@ -13718,17 +13392,12 @@
         "warehouse_transfers_GlobalId_unique": {
           "name": "warehouse_transfers_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "warehouseTransfers_gc_tenant_unique": {
           "name": "warehouseTransfers_gc_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "tenantId",
-            "globalCode"
-          ]
+          "columns": ["tenantId", "globalCode"]
         }
       },
       "policies": {},
@@ -13860,17 +13529,12 @@
         "warehouses_GlobalId_unique": {
           "name": "warehouses_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "warehouses_code_tenant_unique": {
           "name": "warehouses_code_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code",
-            "tenantId"
-          ]
+          "columns": ["code", "tenantId"]
         }
       },
       "policies": {},
@@ -14021,9 +13685,7 @@
         "webhook_deliveries_GlobalId_unique": {
           "name": "webhook_deliveries_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -14161,9 +13823,7 @@
         "webhooks_GlobalId_unique": {
           "name": "webhooks_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         }
       },
       "policies": {},
@@ -14299,17 +13959,12 @@
         "work_sites_GlobalId_unique": {
           "name": "work_sites_GlobalId_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "GlobalId"
-          ]
+          "columns": ["GlobalId"]
         },
         "workSites_code_tenant_unique": {
           "name": "workSites_code_tenant_unique",
           "nullsNotDistinct": false,
-          "columns": [
-            "code",
-            "tenantId"
-          ]
+          "columns": ["code", "tenantId"]
         }
       },
       "policies": {},
@@ -14326,81 +13981,42 @@
     "public.account_type": {
       "name": "account_type",
       "schema": "public",
-      "values": [
-        "asset",
-        "liability",
-        "equity",
-        "revenue",
-        "expense"
-      ]
+      "values": ["asset", "liability", "equity", "revenue", "expense"]
     },
     "public.approval_decision": {
       "name": "approval_decision",
       "schema": "public",
-      "values": [
-        "pending",
-        "approved",
-        "rejected"
-      ]
+      "values": ["pending", "approved", "rejected"]
     },
     "public.attendance_status": {
       "name": "attendance_status",
       "schema": "public",
-      "values": [
-        "present",
-        "absent",
-        "late",
-        "leave"
-      ]
+      "values": ["present", "absent", "late", "leave"]
     },
     "public.employee_status": {
       "name": "employee_status",
       "schema": "public",
-      "values": [
-        "active",
-        "on_leave",
-        "terminated"
-      ]
+      "values": ["active", "on_leave", "terminated"]
     },
     "public.fiscal_period_status": {
       "name": "fiscal_period_status",
       "schema": "public",
-      "values": [
-        "open",
-        "closing",
-        "closed",
-        "reopened"
-      ]
+      "values": ["open", "closing", "closed", "reopened"]
     },
     "public.inspection_result": {
       "name": "inspection_result",
       "schema": "public",
-      "values": [
-        "pass",
-        "fail",
-        "conditional"
-      ]
+      "values": ["pass", "fail", "conditional"]
     },
     "public.inventory_movement_type": {
       "name": "inventory_movement_type",
       "schema": "public",
-      "values": [
-        "in",
-        "out",
-        "transfer",
-        "adjustment"
-      ]
+      "values": ["in", "out", "transfer", "adjustment"]
     },
     "public.lifecycle_status": {
       "name": "lifecycle_status",
       "schema": "public",
-      "values": [
-        "saved",
-        "approved",
-        "sent",
-        "posted",
-        "completed"
-      ]
+      "values": ["saved", "approved", "sent", "posted", "completed"]
     },
     "public.order_status": {
       "name": "order_status",
@@ -14434,49 +14050,27 @@
     "public.payment_source": {
       "name": "payment_source",
       "schema": "public",
-      "values": [
-        "sales",
-        "purchases"
-      ]
+      "values": ["sales", "purchases"]
     },
     "public.payroll_status": {
       "name": "payroll_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "processed",
-        "paid"
-      ]
+      "values": ["draft", "processed", "paid"]
     },
     "public.product_type": {
       "name": "product_type",
       "schema": "public",
-      "values": [
-        "goods",
-        "service"
-      ]
+      "values": ["goods", "service"]
     },
     "public.project_status": {
       "name": "project_status",
       "schema": "public",
-      "values": [
-        "planning",
-        "active",
-        "on_hold",
-        "completed",
-        "cancelled"
-      ]
+      "values": ["planning", "active", "on_hold", "completed", "cancelled"]
     },
     "public.purchase_invoice_status": {
       "name": "purchase_invoice_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "confirmed",
-        "paid",
-        "partial",
-        "cancelled"
-      ]
+      "values": ["draft", "confirmed", "paid", "partial", "cancelled"]
     },
     "public.requisition_status": {
       "name": "requisition_status",
@@ -14493,82 +14087,42 @@
     "public.sales_invoice_status": {
       "name": "sales_invoice_status",
       "schema": "public",
-      "values": [
-        "draft",
-        "confirmed",
-        "paid",
-        "partial",
-        "cancelled"
-      ]
+      "values": ["draft", "confirmed", "paid", "partial", "cancelled"]
     },
     "public.subscription_status": {
       "name": "subscription_status",
       "schema": "public",
-      "values": [
-        "trial",
-        "active",
-        "grace",
-        "suspended"
-      ]
+      "values": ["trial", "active", "grace", "suspended"]
     },
     "public.task_priority": {
       "name": "task_priority",
       "schema": "public",
-      "values": [
-        "low",
-        "medium",
-        "high",
-        "urgent"
-      ]
+      "values": ["low", "medium", "high", "urgent"]
     },
     "public.task_status": {
       "name": "task_status",
       "schema": "public",
-      "values": [
-        "todo",
-        "in_progress",
-        "review",
-        "done"
-      ]
+      "values": ["todo", "in_progress", "review", "done"]
     },
     "public.ticket_priority": {
       "name": "ticket_priority",
       "schema": "public",
-      "values": [
-        "low",
-        "medium",
-        "high",
-        "urgent"
-      ]
+      "values": ["low", "medium", "high", "urgent"]
     },
     "public.ticket_status": {
       "name": "ticket_status",
       "schema": "public",
-      "values": [
-        "open",
-        "in_progress",
-        "resolved",
-        "closed"
-      ]
+      "values": ["open", "in_progress", "resolved", "closed"]
     },
     "public.transaction_type": {
       "name": "transaction_type",
       "schema": "public",
-      "values": [
-        "debit",
-        "credit"
-      ]
+      "values": ["debit", "credit"]
     },
     "public.role": {
       "name": "role",
       "schema": "public",
-      "values": [
-        "admin",
-        "auditor",
-        "accountant",
-        "owner",
-        "user"
-      ]
+      "values": ["admin", "auditor", "accountant", "owner", "user"]
     }
   },
   "schemas": {},

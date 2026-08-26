@@ -38,10 +38,8 @@ function mapUrl(lat: number, lng: number) {
 
 export default function Security() {
   const [, setLocation] = useLocation();
-  const { data: attempts = [], isLoading } = trpc.auth.getLoginAttempts.useQuery(
-    undefined,
-    { staleTime: 15000 }
-  );
+  const { data: attempts = [], isLoading } =
+    trpc.auth.getLoginAttempts.useQuery(undefined, { staleTime: 15000 });
   const [active, setActive] = useState<number | null>(null);
 
   const list = attempts as Array<{
@@ -57,13 +55,9 @@ export default function Security() {
   }>;
 
   const current =
-    list[active ?? 0] ||
-    list.find(a => a.lat != null && a.lng != null) ||
-    null;
-  const curLat =
-    current && current.lat != null ? Number(current.lat) : null;
-  const curLng =
-    current && current.lng != null ? Number(current.lng) : null;
+    list[active ?? 0] || list.find(a => a.lat != null && a.lng != null) || null;
+  const curLat = current && current.lat != null ? Number(current.lat) : null;
+  const curLng = current && current.lng != null ? Number(current.lng) : null;
 
   return (
     <div
@@ -149,9 +143,7 @@ export default function Security() {
                     <div className="flex items-center justify-between">
                       <span
                         className={`inline-flex items-center gap-1 text-[11px] font-bold ${
-                          a.success
-                            ? "text-emerald-400"
-                            : "text-rose-400"
+                          a.success ? "text-emerald-400" : "text-rose-400"
                         }`}
                       >
                         {a.success ? (

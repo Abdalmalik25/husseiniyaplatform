@@ -92,7 +92,10 @@ export function ProductPicker({
           {isLoading ? (
             <div className="space-y-2 p-2">
               {[1, 2, 3, 4, 5].map(i => (
-                <div key={i} className="h-12 bg-gray-100 rounded animate-pulse" />
+                <div
+                  key={i}
+                  className="h-12 bg-gray-100 rounded animate-pulse"
+                />
               ))}
             </div>
           ) : products.length === 0 ? (
@@ -149,9 +152,7 @@ export function ProductPicker({
                           lowStock ? "text-red-500" : "text-gray-400"
                         }`}
                       >
-                        {lowStock && (
-                          <AlertTriangle className="w-3 h-3" />
-                        )}
+                        {lowStock && <AlertTriangle className="w-3 h-3" />}
                         المخزون: {p.currentStock ?? 0}
                       </p>
                     )}
@@ -160,11 +161,14 @@ export function ProductPicker({
               );
             })
           )}
-          {!isLoading && products.length > 0 && data && data.total > products.length && (
-            <p className="text-center text-[10px] text-gray-400 py-1">
-              يتم عرض أول {products.length} نتيجة — زد دقة البحث
-            </p>
-          )}
+          {!isLoading &&
+            products.length > 0 &&
+            data &&
+            data.total > products.length && (
+              <p className="text-center text-[10px] text-gray-400 py-1">
+                يتم عرض أول {products.length} نتيجة — زد دقة البحث
+              </p>
+            )}
         </div>
 
         <div className="p-3 border-t flex justify-end">

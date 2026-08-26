@@ -1,8 +1,24 @@
 import { useMemo, useState, useCallback } from "react";
-import { Plus, Minus, Trash2, Tag, Package, RotateCcw, AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import {
+  Plus,
+  Minus,
+  Trash2,
+  Tag,
+  Package,
+  RotateCcw,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { formatCurrency } from "@/modules/pos/utils/currency";
 import type { CartLine, AppliedOffer } from "@/modules/pos/types";
@@ -14,7 +30,13 @@ interface CartLineRowProps {
   onPriceChange: (id: string, price: number) => void;
   onRemove: (id: string) => void;
   onUnitChange: (id: string, unitId: number) => void;
-  units: Array<{ id: number; unitId: number; unitName: string; conversionFactor: number; isBase: boolean }>;
+  units: Array<{
+    id: number;
+    unitId: number;
+    unitName: string;
+    conversionFactor: number;
+    isBase: boolean;
+  }>;
   allowPriceOverride: boolean;
   allowQuantityOverride: boolean;
   maxDiscountPercent: number;
@@ -43,14 +65,15 @@ export function CartLineRow({
   const [showPrice, setShowPrice] = useState(false);
 
   const baseTotal = line.unitPrice * line.quantity;
-  const discountAmount = line.discount + (line.discountPercent / 100) * baseTotal;
+  const discountAmount =
+    line.discount + (line.discountPercent / 100) * baseTotal;
   const taxableAmount = baseTotal - discountAmount;
   const taxAmount = taxableAmount * (line.taxRate / 100);
   const lineNetTotal = taxableAmount + taxAmount;
 
   const offerDiscount = line.appliedOffers.reduce((sum, offer) => {
     if (offer.discountType === "percent") {
-      return sum + (baseTotal * offer.discountValue / 100);
+      return sum + (baseTotal * offer.discountValue) / 100;
     } else if (offer.discountType === "fixed") {
       return sum + offer.discountValue * offer.appliedQuantity;
     }
@@ -82,9 +105,13 @@ export function CartLineRow({
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <span className="font-medium text-foreground truncate">{line.name}</span>
+            <span className="font-medium text-foreground truncate">
+              {line.name}
+            </span>
             {line.nameAr && (
-              <span className="text-xs text-muted-foreground truncate max-w-[120px]">{line.nameAr}</span>
+              <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                {line.nameAr}
+              </span>
             )}
             {line.type === "service" && (
               <Badge variant="secondary" className="text-[10px] h-4 px-1.5">
@@ -98,7 +125,9 @@ export function CartLineRow({
             )}
           </div>
           {line.category && (
-            <span className="text-[10px] text-muted-foreground">{line.category}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {line.category}
+            </span>
           )}
           <div className="flex items-center gap-2 mt-1 text-[11px] text-muted-foreground">
             <span>كود: {line.productCode}</span>
@@ -132,7 +161,12 @@ export function CartLineRow({
             type="number"
             className="w-14 text-center border-0 bg-transparent focus-visible:ring-0 text-sm font-mono"
             value={line.quantity}
-            onChange={e => onQuantityChange(line.id, Math.max(1, parseInt(e.target.value) || 1))}
+            onChange={e =>
+              onQuantityChange(
+                line.id,
+                Math.max(1, parseInt(e.target.value) || 1)
+              )
+            }
             min={1}
             max={line.type === "goods" ? line.stock : 9999}
             readOnly={!allowQuantityOverride}
@@ -156,7 +190,10 @@ export function CartLineRow({
 
       {showUnits && units.length > 0 && (
         <div className="flex items-center gap-2">
-          <Select value={line.unitId?.toString() || ""} onValueChange={v => onUnitChange(line.id, parseInt(v))}>
+          <Select
+            value={line.unitId?.toString() || ""}
+            onValueChange={v => onUnitChange(line.id, parseInt(v))}
+          >
             <SelectTrigger className="w-full">
               <SelectValue placeholder="الوحدة الأساسية" />
             </SelectTrigger>
@@ -164,7 +201,8 @@ export function CartLineRow({
               <SelectItem value="">الوحدة الأساسية</SelectItem>
               {units.map(u => (
                 <SelectItem key={u.id} value={u.id.toString()}>
-                  {u.unitName} {u.isBase ? "(أساسية)" : `×${u.conversionFactor}`}
+                  {u.unitName}{" "}
+                  {u.isBase ? "(أساسية)" : `×${u.conversionFactor}`}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -232,15 +270,24 @@ export function CartLineRow({
             step={0.01}
             min={0}
           />
-          <span className="text-[10px] text-muted-foreground">أصلي: {formatCurrency(line.originalUnitPrice, currency, decimals)}</span>
+          <span className="text-[10px] text-muted-foreground">
+            أصلي: {formatCurrency(line.originalUnitPrice, currency, decimals)}
+          </span>
         </div>
       )}
 
       {showOffers && line.appliedOffers.length > 0 && (
         <div className="flex flex-wrap gap-1">
           {line.appliedOffers.map((offer, idx) => (
-            <Badge key={idx} variant="default" className="text-[10px] h-4 px-1.5 bg-emerald-100 text-emerald-800">
-              عرض: {offer.offerName} -{offer.discountType === "percent" ? offer.discountValue + "%" : formatCurrency(offer.discountValue, currency, decimals)}
+            <Badge
+              key={idx}
+              variant="default"
+              className="text-[10px] h-4 px-1.5 bg-emerald-100 text-emerald-800"
+            >
+              عرض: {offer.offerName} -
+              {offer.discountType === "percent"
+                ? offer.discountValue + "%"
+                : formatCurrency(offer.discountValue, currency, decimals)}
             </Badge>
           ))}
         </div>
@@ -269,7 +316,11 @@ export function CartLineRow({
             onClick={() => setShowUnits(!showUnits)}
             aria-label={showUnits ? "إخفاء الوحدات" : "إظهار الوحدات"}
           >
-            {showUnits ? <ChevronUp className="h-3.5 w-3.5" /> : <ChevronDown className="h-3.5 w-3.5" />}
+            {showUnits ? (
+              <ChevronUp className="h-3.5 w-3.5" />
+            ) : (
+              <ChevronDown className="h-3.5 w-3.5" />
+            )}
           </Button>
           <Button
             variant="ghost"
@@ -293,12 +344,19 @@ export function CartLineRow({
           )}
         </div>
         <div className="text-right text-[11px] text-muted-foreground">
-          <div>السعر: {formatCurrency(line.unitPrice, currency, decimals)} × {line.quantity}</div>
+          <div>
+            السعر: {formatCurrency(line.unitPrice, currency, decimals)} ×{" "}
+            {line.quantity}
+          </div>
           {discountAmount > 0 && (
-            <div className="text-destructive">خصم: -{formatCurrency(discountAmount, currency, decimals)}</div>
+            <div className="text-destructive">
+              خصم: -{formatCurrency(discountAmount, currency, decimals)}
+            </div>
           )}
           {offerDiscount > 0 && (
-            <div className="text-emerald-600">عرض: -{formatCurrency(offerDiscount, currency, decimals)}</div>
+            <div className="text-emerald-600">
+              عرض: -{formatCurrency(offerDiscount, currency, decimals)}
+            </div>
           )}
           {taxAmount > 0 && (
             <div>ضريبة: +{formatCurrency(taxAmount, currency, decimals)}</div>
@@ -316,7 +374,15 @@ interface CartProps {
   onPriceChange: (id: string, price: number) => void;
   onRemove: (id: string) => void;
   onUnitChange: (id: string, unitId: number) => void;
-  getProductUnits: (productId: number) => Promise<Array<{ id: number; unitId: number; unitName: string; conversionFactor: number; isBase: boolean }>>;
+  getProductUnits: (productId: number) => Promise<
+    Array<{
+      id: number;
+      unitId: number;
+      unitName: string;
+      conversionFactor: number;
+      isBase: boolean;
+    }>
+  >;
   allowPriceOverride: boolean;
   allowQuantityOverride: boolean;
   maxDiscountPercent: number;
@@ -395,18 +461,41 @@ export function Cart({
   onClear,
   isProcessing,
 }: CartProps) {
-  const [unitCache, setUnitCache] = useState<Map<number, Array<{ id: number; unitId: number; unitName: string; conversionFactor: number; isBase: boolean }>>>(new Map());
+  const [unitCache, setUnitCache] = useState<
+    Map<
+      number,
+      Array<{
+        id: number;
+        unitId: number;
+        unitName: string;
+        conversionFactor: number;
+        isBase: boolean;
+      }>
+    >
+  >(new Map());
   const [expandedLine, setExpandedLine] = useState<string | null>(null);
 
-  const loadUnits = useCallback(async (productId: number) => {
-    if (unitCache.has(productId)) return unitCache.get(productId)!;
-    const units = await getProductUnits(productId);
-    setUnitCache(prev => new Map(prev).set(productId, units));
-    return units;
-  }, [unitCache, getProductUnits]);
+  const loadUnits = useCallback(
+    async (productId: number) => {
+      if (unitCache.has(productId)) return unitCache.get(productId)!;
+      const units = await getProductUnits(productId);
+      setUnitCache(prev => new Map(prev).set(productId, units));
+      return units;
+    },
+    [unitCache, getProductUnits]
+  );
 
   const lineUnits = useMemo(() => {
-    const map = new Map<string, Array<{ id: number; unitId: number; unitName: string; conversionFactor: number; isBase: boolean }>>();
+    const map = new Map<
+      string,
+      Array<{
+        id: number;
+        unitId: number;
+        unitName: string;
+        conversionFactor: number;
+        isBase: boolean;
+      }>
+    >();
     lines.forEach(line => {
       if (unitCache.has(line.productId)) {
         map.set(line.id, unitCache.get(line.productId)!);
@@ -467,7 +556,8 @@ export function Cart({
                         <SelectItem value="">الوحدة الأساسية</SelectItem>
                         {units.map(u => (
                           <SelectItem key={u.id} value={u.id.toString()}>
-                            {u.unitName} {u.isBase ? "(أساسية)" : `×${u.conversionFactor}`}
+                            {u.unitName}{" "}
+                            {u.isBase ? "(أساسية)" : `×${u.conversionFactor}`}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -482,16 +572,22 @@ export function Cart({
         <div className="space-y-2 border-t border-border pt-3 text-sm">
           <div className="flex justify-between">
             <span className="text-muted-foreground">المجموع الفرعي</span>
-            <span className="font-medium">{formatCurrency(summary.subtotal, currency, decimals)}</span>
+            <span className="font-medium">
+              {formatCurrency(summary.subtotal, currency, decimals)}
+            </span>
           </div>
           <div className="flex justify-between text-destructive">
             <span>إجمالي الخصم</span>
-            <span className="font-medium">-{formatCurrency(summary.totalDiscount, currency, decimals)}</span>
+            <span className="font-medium">
+              -{formatCurrency(summary.totalDiscount, currency, decimals)}
+            </span>
           </div>
           {summary.totalTax > 0 && (
             <div className="flex justify-between text-amber-600">
               <span>إجمالي الضريبة</span>
-              <span className="font-medium">+{formatCurrency(summary.totalTax, currency, decimals)}</span>
+              <span className="font-medium">
+                +{formatCurrency(summary.totalTax, currency, decimals)}
+              </span>
             </div>
           )}
           <div className="flex items-center justify-between gap-2">
@@ -501,7 +597,9 @@ export function Cart({
                 type="number"
                 className="h-7 w-20 text-xs text-right"
                 value={globalDiscount}
-                onChange={e => onGlobalDiscountChange(parseFloat(e.target.value) || 0, false)}
+                onChange={e =>
+                  onGlobalDiscountChange(parseFloat(e.target.value) || 0, false)
+                }
                 step={0.01}
                 min={0}
                 max={summary.subtotal}
@@ -512,7 +610,12 @@ export function Cart({
                   type="number"
                   className="h-7 w-16 text-xs text-right"
                   value={globalDiscountPercent}
-                  onChange={e => onGlobalDiscountChange(parseFloat(e.target.value) || 0, true)}
+                  onChange={e =>
+                    onGlobalDiscountChange(
+                      parseFloat(e.target.value) || 0,
+                      true
+                    )
+                  }
                   step={0.1}
                   min={0}
                   max={maxDiscountPercent}
@@ -525,19 +628,30 @@ export function Cart({
           {selectedCustomer && loyaltyPointsRedeemed > 0 && (
             <div className="flex justify-between text-emerald-600">
               <span>نقاط ولاء مستخدمة ({loyaltyPointsRedeemed} نقطة)</span>
-              <span className="font-medium">-{formatCurrency(loyaltyPointsRedeemed * (currency === "YER" ? 10 : 0.1), currency, decimals)}</span>
+              <span className="font-medium">
+                -
+                {formatCurrency(
+                  loyaltyPointsRedeemed * (currency === "YER" ? 10 : 0.1),
+                  currency,
+                  decimals
+                )}
+              </span>
             </div>
           )}
 
           <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
             <span className="text-foreground">الإجمالي</span>
-            <span className="text-[#0e2a2b] text-lg">{formatCurrency(summary.total, currency, decimals)}</span>
+            <span className="text-[#0e2a2b] text-lg">
+              {formatCurrency(summary.total, currency, decimals)}
+            </span>
           </div>
         </div>
 
         <div className="space-y-3 border-t border-border pt-3">
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">العميل</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              العميل
+            </label>
             <div className="flex items-center gap-2">
               <div className="flex-1">
                 {selectedCustomer ? (
@@ -545,36 +659,69 @@ export function Cart({
                     <div>
                       <div className="font-medium">{selectedCustomer.name}</div>
                       <div className="text-[10px] text-muted-foreground">
-                        رصيد: {formatCurrency(selectedCustomer.loyaltyPoints || 0, "نقاط", 0)}
+                        رصيد:{" "}
+                        {formatCurrency(
+                          selectedCustomer.loyaltyPoints || 0,
+                          "نقاط",
+                          0
+                        )}
                       </div>
                     </div>
-                    <Button variant="ghost" size="icon" onClick={() => onHoldIdChange(null)} className="h-6 w-6">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onHoldIdChange(null)}
+                      className="h-6 w-6"
+                    >
                       <RotateCcw className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 ) : (
-                  <Button variant="outline" className="w-full justify-start" onClick={() => onHoldIdChange("new_customer")}>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start"
+                    onClick={() => onHoldIdChange("new_customer")}
+                  >
                     اختر عميل
                   </Button>
                 )}
               </div>
-              {selectedCustomer && loyaltyPointsRedeemed < (selectedCustomer.loyaltyPoints || 0) && (
-                <Button variant="outline" size="sm" onClick={() => onLoyaltyPointsChange(loyaltyPointsRedeemed + 100)}>
-                  +100 نقطة
-                </Button>
-              )}
+              {selectedCustomer &&
+                loyaltyPointsRedeemed <
+                  (selectedCustomer.loyaltyPoints || 0) && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      onLoyaltyPointsChange(loyaltyPointsRedeemed + 100)
+                    }
+                  >
+                    +100 نقطة
+                  </Button>
+                )}
             </div>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">طريقة الدفع</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              طريقة الدفع
+            </label>
             <div className="grid grid-cols-3 gap-1">
-              {["cash", "card", "transfer", "credit", "online", "mobile_money"].map(m => (
+              {[
+                "cash",
+                "card",
+                "transfer",
+                "credit",
+                "online",
+                "mobile_money",
+              ].map(m => (
                 <Button
                   key={m}
                   variant={paymentMethod === m ? "default" : "outline"}
                   size="sm"
-                  className={paymentMethod === m ? "bg-[#b87945] text-[#102a2b]" : ""}
+                  className={
+                    paymentMethod === m ? "bg-[#b87945] text-[#102a2b]" : ""
+                  }
                   onClick={() => onPaymentMethodChange(m)}
                 >
                   {m === "cash" && "نقدي"}
@@ -590,12 +737,25 @@ export function Cart({
 
           {payments.length > 0 && (
             <div>
-              <label className="mb-1 block text-xs font-medium text-muted-foreground">المدفوعات</label>
+              <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                المدفوعات
+              </label>
               <div className="space-y-1">
                 {payments.map((p, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-sm">
-                    <span>{p.method} - {formatCurrency(p.amount, currency, decimals)}</span>
-                    <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => onRemovePayment(idx)}>
+                  <div
+                    key={idx}
+                    className="flex items-center justify-between text-sm"
+                  >
+                    <span>
+                      {p.method} -{" "}
+                      {formatCurrency(p.amount, currency, decimals)}
+                    </span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-5 w-5"
+                      onClick={() => onRemovePayment(idx)}
+                    >
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
@@ -606,7 +766,12 @@ export function Cart({
 
           <div>
             <label className="mb-1 block text-xs font-medium text-muted-foreground">
-              المبلغ المدفوع {due > 0 ? `(المتبقي: ${formatCurrency(due, currency, decimals)})` : change > 0 ? `(الباقي: ${formatCurrency(change, currency, decimals)})` : ""}
+              المبلغ المدفوع{" "}
+              {due > 0
+                ? `(المتبقي: ${formatCurrency(due, currency, decimals)})`
+                : change > 0
+                  ? `(الباقي: ${formatCurrency(change, currency, decimals)})`
+                  : ""}
             </label>
             <div className="flex items-center gap-2">
               <Input
@@ -615,7 +780,9 @@ export function Cart({
                 placeholder="المبلغ"
                 step={0.01}
                 min={0}
-                onChange={e => onAddPayment(paymentMethod, parseFloat(e.target.value) || 0)}
+                onChange={e =>
+                  onAddPayment(paymentMethod, parseFloat(e.target.value) || 0)
+                }
               />
               {paymentMethod !== "cash" && (
                 <Input
@@ -628,13 +795,27 @@ export function Cart({
           </div>
 
           <div className="flex items-center justify-between text-sm">
-            <span className={due > 0 ? "text-destructive" : change > 0 ? "text-emerald-600" : "text-foreground"}>
-              {due > 0 ? `متبقي: ${formatCurrency(due, currency, decimals)}` : change > 0 ? `باقي: ${formatCurrency(change, currency, decimals)}` : "مكتمل"}
+            <span
+              className={
+                due > 0
+                  ? "text-destructive"
+                  : change > 0
+                    ? "text-emerald-600"
+                    : "text-foreground"
+              }
+            >
+              {due > 0
+                ? `متبقي: ${formatCurrency(due, currency, decimals)}`
+                : change > 0
+                  ? `باقي: ${formatCurrency(change, currency, decimals)}`
+                  : "مكتمل"}
             </span>
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-muted-foreground">ملاحظات</label>
+            <label className="mb-1 block text-xs font-medium text-muted-foreground">
+              ملاحظات
+            </label>
             <textarea
               className="h-16 w-full rounded-lg border border-border bg-background p-2 text-sm resize-none"
               value={notes}
@@ -665,7 +846,9 @@ export function Cart({
               onClick={onCompleteSale}
               disabled={!canCompleteSale || isProcessing || lines.length === 0}
             >
-              {isProcessing ? "جاري البيع..." : `تأكيد البيع (${formatCurrency(summary.total, currency, decimals)})`}
+              {isProcessing
+                ? "جاري البيع..."
+                : `تأكيد البيع (${formatCurrency(summary.total, currency, decimals)})`}
             </Button>
           </div>
         </div>

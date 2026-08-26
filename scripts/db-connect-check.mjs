@@ -22,27 +22,40 @@ async function t(label, tagFn, tries = 3) {
         console.error(`[DB-CHECK] ${label} ERROR after ${tries} tries: ${msg}`);
         return [];
       }
-      await new Promise((r) => setTimeout(r, 1000));
+      await new Promise(r => setTimeout(r, 1000));
     }
   }
   return [];
 }
 
 console.log("[DB-CHECK] Connecting…");
-await t("server", () =>
-  sql`SELECT now() AS now, current_database() AS db, version() AS ver`
+await t(
+  "server",
+  () => sql`SELECT now() AS now, current_database() AS db, version() AS ver`
 );
 
 const coreTables = [
-  "tenants", "users", "accounts", "transactions", "journal_entries",
-  "sales_invoices", "purchase_invoices", "inventory_movements", "products",
-  "customers", "suppliers", "warehouses", "settings", "fiscal_periods",
+  "tenants",
+  "users",
+  "accounts",
+  "transactions",
+  "journal_entries",
+  "sales_invoices",
+  "purchase_invoices",
+  "inventory_movements",
+  "products",
+  "customers",
+  "suppliers",
+  "warehouses",
+  "settings",
+  "fiscal_periods",
 ];
 
 console.log("\n[DB-CHECK] === Schema presence (core tables) ===");
 for (const tbl of coreTables) {
-  const rows = await t(`table:${tbl}`, () =>
-    sql`SELECT to_regclass(('public'||'.'||${tbl})::regclass) AS exists`
+  const rows = await t(
+    `table:${tbl}`,
+    () => sql`SELECT to_regclass(('public'||'.'||${tbl})::regclass) AS exists`
   );
   const exists = rows.length && rows[0]?.exists;
   console.log(`[DB-CHECK]   ${tbl}: ${exists ? "EXISTS" : "MISSING"}`);
@@ -66,20 +79,43 @@ await t(
     sql`SELECT id, "tenantId", "institutionName", "accountingPeriod", "financialYear", "currency", "subscriptionStatus", "trialEndsAt" FROM settings ORDER BY id`
 );
 await t("accounts count", () => sql`SELECT count(*)::int c FROM accounts`);
-await t("transactions count", () => sql`SELECT count(*)::int c FROM transactions`);
-await t("journal_entries count", () => sql`SELECT count(*)::int c FROM journal_entries`);
-await t("sales_invoices count", () => sql`SELECT count(*)::int c FROM sales_invoices`);
-await t("purchase_invoices count", () => sql`SELECT count(*)::int c FROM purchase_invoices`);
-await t("fiscal_periods count", () => sql`SELECT count(*)::int c FROM fiscal_periods`);
+await t(
+  "transactions count",
+  () => sql`SELECT count(*)::int c FROM transactions`
+);
+await t(
+  "journal_entries count",
+  () => sql`SELECT count(*)::int c FROM journal_entries`
+);
+await t(
+  "sales_invoices count",
+  () => sql`SELECT count(*)::int c FROM sales_invoices`
+);
+await t(
+  "purchase_invoices count",
+  () => sql`SELECT count(*)::int c FROM purchase_invoices`
+);
+await t(
+  "fiscal_periods count",
+  () => sql`SELECT count(*)::int c FROM fiscal_periods`
+);
 await t("customers count", () => sql`SELECT count(*)::int c FROM customers`);
 await t("suppliers count", () => sql`SELECT count(*)::int c FROM suppliers`);
 await t("products count", () => sql`SELECT count(*)::int c FROM products`);
-await t("inventory_movements count", () => sql`SELECT count(*)::int c FROM inventory_movements`);
+await t(
+  "inventory_movements count",
+  () => sql`SELECT count(*)::int c FROM inventory_movements`
+);
 
 console.log("\n[DB-CHECK] === Env var presence ===");
 for (const k of [
-  "NODE_ENV", "DATABASE_URL", "JWT_SECRET", "OWNER_OPEN_ID",
-  "OWNER_PASSWORD", "OAUTH_SERVER_URL", "VITE_APP_ID",
+  "NODE_ENV",
+  "DATABASE_URL",
+  "JWT_SECRET",
+  "OWNER_OPEN_ID",
+  "OWNER_PASSWORD",
+  "OAUTH_SERVER_URL",
+  "VITE_APP_ID",
 ]) {
   console.log(`[DB-CHECK]   ${k}: ${process.env[k] ? "***SET***" : "<empty>"}`);
 }

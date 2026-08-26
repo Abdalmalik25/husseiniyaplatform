@@ -7,22 +7,14 @@ import { buttonVariants } from "@/components/ui/button";
 function AlertDialog({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) {
-  return (
-    <AlertDialogPrimitive.Root
-      data-slot="alert-dialog"
-      {...props}
-    />
-  );
+  return <AlertDialogPrimitive.Root data-slot="alert-dialog" {...props} />;
 }
 
 function AlertDialogTrigger({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Trigger>) {
   return (
-    <AlertDialogPrimitive.Trigger
-      data-slot="alert-dialog-trigger"
-      {...props}
-    />
+    <AlertDialogPrimitive.Trigger data-slot="alert-dialog-trigger" {...props} />
   );
 }
 
@@ -30,10 +22,7 @@ function AlertDialogPortal({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
   return (
-    <AlertDialogPrimitive.Portal
-      data-slot="alert-dialog-portal"
-      {...props}
-    />
+    <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
   );
 }
 
@@ -60,7 +49,7 @@ function AlertDialogOverlay({
         // Accessibility / motion
         "motion-reduce:animate-none",
 
-        className,
+        className
       )}
       {...props}
     />
@@ -107,7 +96,7 @@ function AlertDialogContent({
           "motion-reduce:animate-none",
 
           // Consumer overrides
-          className,
+          className
         )}
         {...props}
       />
@@ -125,7 +114,7 @@ function AlertDialogHeader({
       className={cn(
         "flex flex-col gap-2",
         "text-center sm:text-start",
-        className,
+        className
       )}
       {...props}
     />
@@ -142,7 +131,7 @@ function AlertDialogFooter({
       className={cn(
         "flex flex-col-reverse gap-2",
         "sm:flex-row sm:justify-end",
-        className,
+        className
       )}
       {...props}
     />
@@ -156,10 +145,7 @@ function AlertDialogTitle({
   return (
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
-      className={cn(
-        "text-lg font-semibold leading-none",
-        className,
-      )}
+      className={cn("text-lg font-semibold leading-none", className)}
       {...props}
     />
   );
@@ -172,10 +158,7 @@ function AlertDialogDescription({
   return (
     <AlertDialogPrimitive.Description
       data-slot="alert-dialog-description"
-      className={cn(
-        "text-muted-foreground text-sm leading-relaxed",
-        className,
-      )}
+      className={cn("text-muted-foreground text-sm leading-relaxed", className)}
       {...props}
     />
   );
@@ -188,10 +171,7 @@ function AlertDialogAction({
   return (
     <AlertDialogPrimitive.Action
       data-slot="alert-dialog-action"
-      className={cn(
-        buttonVariants(),
-        className,
-      )}
+      className={cn(buttonVariants(), className)}
       {...props}
     />
   );
@@ -208,7 +188,7 @@ function AlertDialogCancel({
         buttonVariants({
           variant: "outline",
         }),
-        className,
+        className
       )}
       {...props}
     />

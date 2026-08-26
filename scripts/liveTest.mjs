@@ -4,8 +4,7 @@ const { createTRPCProxyClient, httpLink } = require("@trpc/client");
 const superjson = require("superjson");
 
 const BASE = "https://husseiniya-platform-coral.vercel.app";
-const OWNER_PASSWORD =
-  process.env.OWNER_PASSWORD || "pQnrmT8NL3o0cKDtsy9S";
+const OWNER_PASSWORD = process.env.OWNER_PASSWORD || "pQnrmT8NL3o0cKDtsy9S";
 
 let cookie = "";
 const fetchWithCookie = (url, init = {}) => {
@@ -21,12 +20,12 @@ const fetchWithCookie = (url, init = {}) => {
     credentials: "include",
     signal: AbortSignal.timeout(120000),
   })
-    .then(async (res) => {
+    .then(async res => {
       const sc = res.headers.get("set-cookie");
       if (sc) cookie = sc.split(";")[0];
       return res;
     })
-    .catch((err) => {
+    .catch(err => {
       console.error("FETCH FAILED:", url, err?.message, err?.cause);
       throw err;
     });
@@ -41,9 +40,7 @@ const makeClient = () =>
         transformer: superjson,
         fetch: fetchWithCookie,
         headers: () =>
-          activeTenant != null
-            ? { "x-tenant-id": String(activeTenant) }
-            : {},
+          activeTenant != null ? { "x-tenant-id": String(activeTenant) } : {},
       }),
     ],
   });
@@ -54,7 +51,9 @@ const log = (...a) => console.log(...a);
   const client = makeClient();
 
   // 1) Owner login
-  const login = await client.auth.ownerLogin.mutate({ password: OWNER_PASSWORD });
+  const login = await client.auth.ownerLogin.mutate({
+    password: OWNER_PASSWORD,
+  });
   log("1) ownerLogin:", JSON.stringify(login));
 
   // 2) List tenants before
@@ -92,13 +91,16 @@ const log = (...a) => console.log(...a);
   );
 
   // 6) Cross-tenant leak assertions
-  const t1AccountCodes = new Set(snap1.accounts.map((a) => a.code));
-  const libAccountCodes = new Set(snapLib.accounts.map((a) => a.code));
-  const libProductIds = new Set(snapLib.products.map((p) => p.id));
-  const leakAcct = [...t1AccountCodes].filter((c) => libAccountCodes.has(c));
-  const leakProdInT1 = snap1.products.filter((p) => libProductIds.has(p.id));
+  const t1AccountCodes = new Set(snap1.accounts.map(a => a.code));
+  const libAccountCodes = new Set(snapLib.accounts.map(a => a.code));
+  const libProductIds = new Set(snapLib.products.map(p => p.id));
+  const leakAcct = [...t1AccountCodes].filter(c => libAccountCodes.has(c));
+  const leakProdInT1 = snap1.products.filter(p => libProductIds.has(p.id));
   log("6) accounts code overlap tenant1∩library:", leakAcct.length);
-  log("   library product ids appearing in tenant1 snapshot:", leakProdInT1.length);
+  log(
+    "   library product ids appearing in tenant1 snapshot:",
+    leakProdInT1.length
+  );
 
   // 7) Closing preview per tenant (must reflect only that tenant's data)
   activeTenant = libId;
@@ -119,7 +121,12 @@ const log = (...a) => console.log(...a);
   // 8) Auditor review per tenant
   activeTenant = libId;
   const auditLib = await client.accounting.runAuditorReview.query();
-  log("8) runAuditorReview LIBRARY score:", auditLib.score, "status:", auditLib.status);
+  log(
+    "8) runAuditorReview LIBRARY score:",
+    auditLib.score,
+    "status:",
+    auditLib.status
+  );
 
   // 9) Activity logs scoped
   activeTenant = libId;
@@ -133,7 +140,12 @@ const log = (...a) => console.log(...a);
   const meLib = await client.auth.me.query();
   activeTenant = tenant1Id;
   const me1 = await client.auth.me.query();
-  log("9b) auth.me as LIBRARY tenantId:", meLib?.tenantId, "as TENANT1 tenantId:", me1?.tenantId);
+  log(
+    "9b) auth.me as LIBRARY tenantId:",
+    meLib?.tenantId,
+    "as TENANT1 tenantId:",
+    me1?.tenantId
+  );
 
   // 10) Idempotency: re-provision should not duplicate
   const prov2 = await client.system.provisionLibraryTenant.mutate();
@@ -224,16 +236,24 @@ const log = (...a) => console.log(...a);
       });
       log("12c) POS create sale OK → id:", sale?.id);
       const after = await client.sales.dailySummary.query({});
-      log("    dailySummary after sale → invoices:", after.invoiceCount, "| totalSales:", after.totalSales);
+      log(
+        "    dailySummary after sale → invoices:",
+        after.invoiceCount,
+        "| totalSales:",
+        after.totalSales
+      );
     } else {
       log("12c) no goods with stock found to test sale");
     }
   } catch (e) {
-    log("12c) sale create not verified (cold-start/timeout):", String(e?.message || e).slice(0, 200));
+    log(
+      "12c) sale create not verified (cold-start/timeout):",
+      String(e?.message || e).slice(0, 200)
+    );
   }
 
   log("\nDONE");
-})().catch((e) => {
+})().catch(e => {
   console.error("SCRIPT ERROR:", e?.message || e, "CAUSE:", e?.cause);
   process.exit(1);
 });

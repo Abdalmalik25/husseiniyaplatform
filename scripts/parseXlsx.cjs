@@ -15,9 +15,9 @@ function parseSharedStrings(p) {
   if (!fs.existsSync(p)) return [];
   const xml = fs.readFileSync(p, "utf8");
   const sis = xml.match(/<si>([\s\S]*?)<\/si>/g) || [];
-  return sis.map((si) => {
+  return sis.map(si => {
     const texts = si.match(/<t[^>]*>([\s\S]*?)<\/t>/g) || [];
-    return texts.map((t) => decodeEntities(t.replace(/<[^>]*>/g, ""))).join("");
+    return texts.map(t => decodeEntities(t.replace(/<[^>]*>/g, ""))).join("");
   });
 }
 
@@ -71,7 +71,7 @@ function dump(dir, name) {
   const wsDir = path.join(base, "worksheets");
   const sheets = fs
     .readdirSync(wsDir)
-    .filter((f) => f.endsWith(".xml") && f !== "_rels");
+    .filter(f => f.endsWith(".xml") && f !== "_rels");
   const result = {};
   for (const s of sheets) {
     const rows = parseSheet(path.join(wsDir, s), shared);

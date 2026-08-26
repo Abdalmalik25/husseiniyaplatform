@@ -11,12 +11,14 @@ type ErrorCallback = (error: string) => void;
 
 interface BarcodeDetectorAPI {
   new (): {
-    detect(image: VideoFrame | ImageBitmap | HTMLVideoElement): Promise<Array<{
-      rawValue: string;
-      format: string;
-      boundingBox: DOMRectReadOnly;
-      cornerPoints: Array<{ x: number; y: number }>;
-    }>>;
+    detect(image: VideoFrame | ImageBitmap | HTMLVideoElement): Promise<
+      Array<{
+        rawValue: string;
+        format: string;
+        boundingBox: DOMRectReadOnly;
+        cornerPoints: Array<{ x: number; y: number }>;
+      }>
+    >;
   };
 }
 
@@ -55,7 +57,10 @@ class BarcodeScannerService {
 
   constructor(options: ScannerOptions) {
     this.options = options;
-    this.keyboardWedgeConfig = { ...this.keyboardWedgeConfig, ...options.keyboardWedge };
+    this.keyboardWedgeConfig = {
+      ...this.keyboardWedgeConfig,
+      ...options.keyboardWedge,
+    };
     this.initHIDListener();
   }
 
@@ -70,7 +75,8 @@ class BarcodeScannerService {
     if (!this.keyboardWedgeConfig.enabled) return;
 
     const activeElement = document.activeElement;
-    const isInput = activeElement instanceof HTMLInputElement ||
+    const isInput =
+      activeElement instanceof HTMLInputElement ||
       activeElement instanceof HTMLTextAreaElement ||
       activeElement?.getAttribute("contenteditable") === "true";
 
@@ -87,7 +93,10 @@ class BarcodeScannerService {
       return;
     }
 
-    if (key.length === 1 && this.keyboardWedgeConfig.allowedChars.includes(key.toUpperCase())) {
+    if (
+      key.length === 1 &&
+      this.keyboardWedgeConfig.allowedChars.includes(key.toUpperCase())
+    ) {
       this.hidBuffer += key.toUpperCase();
       this.resetHIDTimeout();
     } else if (key === "Backspace") {
@@ -97,10 +106,15 @@ class BarcodeScannerService {
   }
 
   private handlePaste(event: ClipboardEvent) {
-    const text = event.clipboardData?.getData("text")?.trim().toUpperCase() || "";
-    if (text.length >= this.keyboardWedgeConfig.minLength &&
-        text.length <= this.keyboardWedgeConfig.maxLength) {
-      const isValid = [...text].every(c => this.keyboardWedgeConfig.allowedChars.includes(c));
+    const text =
+      event.clipboardData?.getData("text")?.trim().toUpperCase() || "";
+    if (
+      text.length >= this.keyboardWedgeConfig.minLength &&
+      text.length <= this.keyboardWedgeConfig.maxLength
+    ) {
+      const isValid = [...text].every(c =>
+        this.keyboardWedgeConfig.allowedChars.includes(c)
+      );
       if (isValid) {
         event.preventDefault();
         this.processHIDInput(text);
@@ -136,17 +150,28 @@ class BarcodeScannerService {
   async startCameraScanner(videoElement: HTMLVideoElement): Promise<boolean> {
     if (this.isScanning) return true;
 
-    const BarcodeDetector = (window as any).BarcodeDetector || (window as any).BarcodeDetectorAPI;
+    const BarcodeDetector =
+      (window as any).BarcodeDetector || (window as any).BarcodeDetectorAPI;
     if (!BarcodeDetector) {
-      this.options.onError?.("BarcodeDetector API not supported. Use HID scanner or manual input.");
+      this.options.onError?.(
+        "BarcodeDetector API not supported. Use HID scanner or manual input."
+      );
       return false;
     }
 
     try {
       this.videoRef = videoElement;
       const formats = this.options.formats || [
-        "ean_13", "ean_8", "upc_a", "upc_e", "code_128", "code_39",
-        "qr_code", "data_matrix", "pdf417", "aztec"
+        "ean_13",
+        "ean_8",
+        "upc_a",
+        "upc_e",
+        "code_128",
+        "code_39",
+        "qr_code",
+        "data_matrix",
+        "pdf417",
+        "aztec",
       ];
 
       this.detector = new BarcodeDetector({ formats });
@@ -218,16 +243,16 @@ class BarcodeScannerService {
 
   private mapFormat(format: string): BarcodeFormat {
     const formatMap: Record<string, BarcodeFormat> = {
-      "ean_13": "ean13",
-      "ean_8": "ean8",
-      "upc_a": "upc",
-      "upc_e": "upc",
-      "code_128": "code128",
-      "code_39": "code39",
-      "qr_code": "qr",
-      "data_matrix": "datamatrix",
-      "pdf417": "pdf417",
-      "aztec": "aztec",
+      ean_13: "ean13",
+      ean_8: "ean8",
+      upc_a: "upc",
+      upc_e: "upc",
+      code_128: "code128",
+      code_39: "code39",
+      qr_code: "qr",
+      data_matrix: "datamatrix",
+      pdf417: "pdf417",
+      aztec: "aztec",
     };
     return formatMap[format] || "code128";
   }
@@ -237,7 +262,9 @@ class BarcodeScannerService {
     try {
       const track = this.streamRef.getVideoTracks()[0];
       if (track && "applyConstraints" in track) {
-        await track.applyConstraints({ advanced: [{ torch: enabled } as MediaTrackConstraintSet] });
+        await track.applyConstraints({
+          advanced: [{ torch: enabled } as MediaTrackConstraintSet],
+        });
         return true;
       }
     } catch (error) {
@@ -258,7 +285,9 @@ class BarcodeScannerService {
     this.options.formats = formats;
     if (this.detector) {
       const apiFormats = formats.map(f => this.reverseMapFormat(f));
-      this.detector = new (window as any).BarcodeDetector({ formats: apiFormats });
+      this.detector = new (window as any).BarcodeDetector({
+        formats: apiFormats,
+      });
     }
   }
 
@@ -285,11 +314,24 @@ class BarcodeScannerService {
   }
 
   static isSupported(): boolean {
-    return !!(window as any).BarcodeDetector || !!(navigator.mediaDevices?.getUserMedia);
+    return (
+      !!(window as any).BarcodeDetector ||
+      !!navigator.mediaDevices?.getUserMedia
+    );
   }
 
   static getSupportedFormats(): BarcodeFormat[] {
-    return ["ean13", "ean8", "upc", "code128", "code39", "qr", "datamatrix", "pdf417", "aztec"];
+    return [
+      "ean13",
+      "ean8",
+      "upc",
+      "code128",
+      "code39",
+      "qr",
+      "datamatrix",
+      "pdf417",
+      "aztec",
+    ];
   }
 }
 
@@ -406,22 +448,34 @@ function calculateUPCCheckDigit(digits: string): number {
   return (10 - (sum % 10)) % 10;
 }
 
-export function validateBarcode(value: string, format?: BarcodeFormat): boolean {
+export function validateBarcode(
+  value: string,
+  format?: BarcodeFormat
+): boolean {
   const cleaned = value.replace(/[^0-9]/g, "");
 
   switch (format) {
     case "ean13":
-      return cleaned.length === 13 && parseInt(cleaned[12]) === calculateEAN13CheckDigit(cleaned.slice(0, 12));
+      return (
+        cleaned.length === 13 &&
+        parseInt(cleaned[12]) === calculateEAN13CheckDigit(cleaned.slice(0, 12))
+      );
     case "ean8":
       return cleaned.length === 8;
     case "upc":
-      return cleaned.length === 12 && parseInt(cleaned[11]) === calculateUPCCheckDigit(cleaned.slice(0, 11));
+      return (
+        cleaned.length === 12 &&
+        parseInt(cleaned[11]) === calculateUPCCheckDigit(cleaned.slice(0, 11))
+      );
     default:
       return cleaned.length >= 8 && cleaned.length <= 50;
   }
 }
 
-export function generateBarcode(value: string, format: BarcodeFormat = "code128"): string {
+export function generateBarcode(
+  value: string,
+  format: BarcodeFormat = "code128"
+): string {
   switch (format) {
     case "ean13":
       if (value.length === 12) return value + calculateEAN13CheckDigit(value);

@@ -1,4 +1,8 @@
-import { useInputIntent, type InputIntent, type InputEventDetail } from "./useInputIntent";
+import {
+  useInputIntent,
+  type InputIntent,
+  type InputEventDetail,
+} from "./useInputIntent";
 import { useCallback, useRef, useState, useEffect, useMemo } from "react";
 
 export type AutocompleteItem<T = any> = {
@@ -27,10 +31,15 @@ export type UseAutocompleteInputOptions<T = any> = {
   minChars?: number;
   debounceMs?: number;
   filter?: (item: AutocompleteItem<T>, query: string) => boolean;
-  renderItem?: (item: AutocompleteItem<T>, isSelected: boolean) => React.ReactNode;
+  renderItem?: (
+    item: AutocompleteItem<T>,
+    isSelected: boolean
+  ) => React.ReactNode;
 };
 
-export function useAutocompleteInput<T = any>(options: UseAutocompleteInputOptions<T>) {
+export function useAutocompleteInput<T = any>(
+  options: UseAutocompleteInputOptions<T>
+) {
   const {
     items,
     value,
@@ -56,7 +65,8 @@ export function useAutocompleteInput<T = any>(options: UseAutocompleteInputOptio
 
   const effectiveIsOpen = isOpen ?? internalIsOpen;
   const effectiveSelectedIndex = selectedIndex ?? internalSelectedIndex;
-  const effectiveSetSelectedIndex = setSelectedIndex ?? setInternalSelectedIndex;
+  const effectiveSetSelectedIndex =
+    setSelectedIndex ?? setInternalSelectedIndex;
   const effectiveSetIsOpen = setIsOpen ?? setInternalIsOpen;
   const effectiveSetSearchQuery = useMemo(
     () => setSearchQuery ?? ((q: string) => {}),
@@ -84,112 +94,131 @@ export function useAutocompleteInput<T = any>(options: UseAutocompleteInputOptio
     });
   }, [items, debouncedQuery, minChars, filter]);
 
-  const handleIntent = useCallback((detail: any) => {
-    if (!detail.rawEvent) return false;
+  const handleIntent = useCallback(
+    (detail: any) => {
+      if (!detail.rawEvent) return false;
 
-    const { intent, rawEvent, preventDefault, stopPropagation } = detail;
+      const { intent, rawEvent, preventDefault, stopPropagation } = detail;
 
-    if (detail.isComposing) return false;
+      if (detail.isComposing) return false;
 
-    const hasItems = filteredItems.length > 0;
+      const hasItems = filteredItems.length > 0;
 
-    switch (intent) {
-      case "escape":
-        effectiveSetIsOpen(false);
-        onClose?.();
-        return true;
-
-      case "enter":
-        if (effectiveIsOpen && effectiveSelectedIndex >= 0 && filteredItems[effectiveSelectedIndex]) {
-          const item = filteredItems[effectiveSelectedIndex];
-          onSelect?.(item);
-          onChange(item.value);
+      switch (intent) {
+        case "escape":
           effectiveSetIsOpen(false);
-        }
-        return true;
+          onClose?.();
+          return true;
 
-      case "arrow-down":
-        if (effectiveIsOpen && hasItems) {
-          preventDefault();
-          effectiveSetSelectedIndex(Math.min((effectiveSelectedIndex + 1) % filteredItems.length, filteredItems.length - 1));
+        case "enter":
+          if (
+            effectiveIsOpen &&
+            effectiveSelectedIndex >= 0 &&
+            filteredItems[effectiveSelectedIndex]
+          ) {
+            const item = filteredItems[effectiveSelectedIndex];
+            onSelect?.(item);
+            onChange(item.value);
+            effectiveSetIsOpen(false);
+          }
           return true;
-        } else if (!effectiveIsOpen && hasItems) {
-          preventDefault();
-          effectiveSetIsOpen(true);
-          effectiveSetSelectedIndex(0);
-          onOpen?.();
-          return true;
-        }
-        break;
 
-      case "arrow-up":
-        if (effectiveIsOpen && hasItems) {
-          preventDefault();
-          effectiveSetSelectedIndex(Math.max(effectiveSelectedIndex - 1, 0));
-          return true;
-        }
-        break;
+        case "arrow-down":
+          if (effectiveIsOpen && hasItems) {
+            preventDefault();
+            effectiveSetSelectedIndex(
+              Math.min(
+                (effectiveSelectedIndex + 1) % filteredItems.length,
+                filteredItems.length - 1
+              )
+            );
+            return true;
+          } else if (!effectiveIsOpen && hasItems) {
+            preventDefault();
+            effectiveSetIsOpen(true);
+            effectiveSetSelectedIndex(0);
+            onOpen?.();
+            return true;
+          }
+          break;
 
-      case "tab":
-        if (effectiveIsOpen && hasItems) {
-          preventDefault();
-          effectiveSetSelectedIndex((effectiveSelectedIndex + 1) % filteredItems.length);
-          return true;
-        }
-        break;
+        case "arrow-up":
+          if (effectiveIsOpen && hasItems) {
+            preventDefault();
+            effectiveSetSelectedIndex(Math.max(effectiveSelectedIndex - 1, 0));
+            return true;
+          }
+          break;
 
-      case "shift-tab":
-        if (effectiveIsOpen && hasItems) {
-          preventDefault();
-          effectiveSetSelectedIndex((effectiveSelectedIndex - 1 + filteredItems.length) % filteredItems.length);
-          return true;
-        }
-        break;
+        case "tab":
+          if (effectiveIsOpen && hasItems) {
+            preventDefault();
+            effectiveSetSelectedIndex(
+              (effectiveSelectedIndex + 1) % filteredItems.length
+            );
+            return true;
+          }
+          break;
 
-      case "page-down":
-        if (effectiveIsOpen && hasItems) {
-          preventDefault();
-          effectiveSetSelectedIndex(Math.min(effectiveSelectedIndex + 5, filteredItems.length - 1));
-          return true;
-        }
-        break;
+        case "shift-tab":
+          if (effectiveIsOpen && hasItems) {
+            preventDefault();
+            effectiveSetSelectedIndex(
+              (effectiveSelectedIndex - 1 + filteredItems.length) %
+                filteredItems.length
+            );
+            return true;
+          }
+          break;
 
-      case "page-up":
-        if (effectiveIsOpen && hasItems) {
-          preventDefault();
-          effectiveSetSelectedIndex(Math.max(effectiveSelectedIndex - 5, 0));
-          return true;
-        }
-        break;
+        case "page-down":
+          if (effectiveIsOpen && hasItems) {
+            preventDefault();
+            effectiveSetSelectedIndex(
+              Math.min(effectiveSelectedIndex + 5, filteredItems.length - 1)
+            );
+            return true;
+          }
+          break;
 
-      case "home":
-        if (effectiveIsOpen && hasItems) {
-          preventDefault();
-          effectiveSetSelectedIndex(0);
-          return true;
-        }
-        break;
+        case "page-up":
+          if (effectiveIsOpen && hasItems) {
+            preventDefault();
+            effectiveSetSelectedIndex(Math.max(effectiveSelectedIndex - 5, 0));
+            return true;
+          }
+          break;
 
-      case "end":
-        if (effectiveIsOpen && hasItems) {
-          preventDefault();
-          effectiveSetSelectedIndex(filteredItems.length - 1);
-          return true;
-        }
-        break;
-    }
-    return false;
-  }, [
-    effectiveIsOpen,
-    effectiveSelectedIndex,
-    effectiveSetIsOpen,
-    effectiveSetSelectedIndex,
-    filteredItems,
-    onClose,
-    onOpen,
-    onSelect,
-    onChange,
-  ]);
+        case "home":
+          if (effectiveIsOpen && hasItems) {
+            preventDefault();
+            effectiveSetSelectedIndex(0);
+            return true;
+          }
+          break;
+
+        case "end":
+          if (effectiveIsOpen && hasItems) {
+            preventDefault();
+            effectiveSetSelectedIndex(filteredItems.length - 1);
+            return true;
+          }
+          break;
+      }
+      return false;
+    },
+    [
+      effectiveIsOpen,
+      effectiveSelectedIndex,
+      effectiveSetIsOpen,
+      effectiveSetSelectedIndex,
+      filteredItems,
+      onClose,
+      onOpen,
+      onSelect,
+      onChange,
+    ]
+  );
 
   useEffect(() => {
     if (effectiveIsOpen && setInternalSelectedIndex) {
@@ -209,33 +238,41 @@ export function useAutocompleteInput<T = any>(options: UseAutocompleteInputOptio
     onClose?.();
   }, [effectiveSetIsOpen, onClose]);
 
-  const selectItem = useCallback((item: any) => {
-    onSelect?.(item);
-    onChange(item.value);
-    effectiveSetIsOpen(false);
-  }, [onSelect, onChange, effectiveSetIsOpen]);
+  const selectItem = useCallback(
+    (item: any) => {
+      onSelect?.(item);
+      onChange(item.value);
+      effectiveSetIsOpen(false);
+    },
+    [onSelect, onChange, effectiveSetIsOpen]
+  );
 
-  return useMemo(() => ({
-    items: filteredItems,
-    isOpen: effectiveIsOpen,
-    selectedIndex: effectiveSelectedIndex,
-    searchQuery: debouncedQuery,
-    open,
-    close,
-    selectItem,
-    setSearchQuery: (q: string) => { effectiveSetSearchQuery(q); },
-    setSelectedIndex: effectiveSetSelectedIndex,
-    setIsOpen: effectiveSetIsOpen,
-  }), [
-    filteredItems,
-    effectiveIsOpen,
-    effectiveSelectedIndex,
-    debouncedQuery,
-    open,
-    close,
-    selectItem,
-    effectiveSetSearchQuery,
-    effectiveSetSelectedIndex,
-    effectiveSetIsOpen,
-  ]);
+  return useMemo(
+    () => ({
+      items: filteredItems,
+      isOpen: effectiveIsOpen,
+      selectedIndex: effectiveSelectedIndex,
+      searchQuery: debouncedQuery,
+      open,
+      close,
+      selectItem,
+      setSearchQuery: (q: string) => {
+        effectiveSetSearchQuery(q);
+      },
+      setSelectedIndex: effectiveSetSelectedIndex,
+      setIsOpen: effectiveSetIsOpen,
+    }),
+    [
+      filteredItems,
+      effectiveIsOpen,
+      effectiveSelectedIndex,
+      debouncedQuery,
+      open,
+      close,
+      selectItem,
+      effectiveSetSearchQuery,
+      effectiveSetSelectedIndex,
+      effectiveSetIsOpen,
+    ]
+  );
 }

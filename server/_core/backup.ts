@@ -67,7 +67,11 @@ export const BACKUP_TABLES: ReadonlyArray<{
   { name: "accounts", table: schema.accounts, tenantScoped: true },
   { name: "transactions", table: schema.transactions, tenantScoped: true },
   { name: "journalEntries", table: schema.journalEntries, tenantScoped: true },
-  { name: "openingBalances", table: schema.openingBalances, tenantScoped: true },
+  {
+    name: "openingBalances",
+    table: schema.openingBalances,
+    tenantScoped: true,
+  },
   { name: "budgets", table: schema.budgets, tenantScoped: true },
   { name: "fiscalPeriods", table: schema.fiscalPeriods, tenantScoped: true },
   { name: "settings", table: schema.settings, tenantScoped: true },
@@ -78,15 +82,39 @@ export const BACKUP_TABLES: ReadonlyArray<{
   { name: "products", table: schema.products, tenantScoped: true },
   { name: "warehouses", table: schema.warehouses, tenantScoped: true },
   { name: "warehouseStock", table: schema.warehouseStock, tenantScoped: true },
-  { name: "inventoryMovements", table: schema.inventoryMovements, tenantScoped: true },
-  { name: "inventoryBatches", table: schema.inventoryBatches, tenantScoped: true },
-  { name: "stockAdjustments", table: schema.stockAdjustments, tenantScoped: true },
+  {
+    name: "inventoryMovements",
+    table: schema.inventoryMovements,
+    tenantScoped: true,
+  },
+  {
+    name: "inventoryBatches",
+    table: schema.inventoryBatches,
+    tenantScoped: true,
+  },
+  {
+    name: "stockAdjustments",
+    table: schema.stockAdjustments,
+    tenantScoped: true,
+  },
   { name: "customers", table: schema.customers, tenantScoped: true },
   { name: "suppliers", table: schema.suppliers, tenantScoped: true },
   { name: "salesInvoices", table: schema.salesInvoices, tenantScoped: true },
-  { name: "salesInvoiceItems", table: schema.salesInvoiceItems, tenantScoped: true },
-  { name: "purchaseInvoices", table: schema.purchaseInvoices, tenantScoped: true },
-  { name: "purchaseInvoiceItems", table: schema.purchaseInvoiceItems, tenantScoped: true },
+  {
+    name: "salesInvoiceItems",
+    table: schema.salesInvoiceItems,
+    tenantScoped: true,
+  },
+  {
+    name: "purchaseInvoices",
+    table: schema.purchaseInvoices,
+    tenantScoped: true,
+  },
+  {
+    name: "purchaseInvoiceItems",
+    table: schema.purchaseInvoiceItems,
+    tenantScoped: true,
+  },
   { name: "payments", table: schema.payments, tenantScoped: true },
   { name: "posSessions", table: schema.posSessions, tenantScoped: true },
   { name: "posOrders", table: schema.posOrders, tenantScoped: true },
@@ -94,7 +122,11 @@ export const BACKUP_TABLES: ReadonlyArray<{
   { name: "payrollRuns", table: schema.payrollRuns, tenantScoped: true },
   { name: "payrollItems", table: schema.payrollItems, tenantScoped: true },
   { name: "procurements", table: schema.procurements, tenantScoped: true },
-  { name: "procurementApprovals", table: schema.procurementApprovals, tenantScoped: true },
+  {
+    name: "procurementApprovals",
+    table: schema.procurementApprovals,
+    tenantScoped: true,
+  },
 ];
 
 // ─── Pure crypto primitives (unit-tested) ───────────────────────────────────
@@ -153,7 +185,6 @@ async function exportTables(tenantId: number | null): Promise<{
   const counts: Record<string, number> = {};
 
   for (const entry of BACKUP_TABLES) {
-     
     let query: any = db.select().from(entry.table);
     if (entry.tenantScoped && tenantId != null) {
       query = query.where(eq((entry.table as any).tenantId, tenantId));
@@ -171,9 +202,12 @@ async function exportTables(tenantId: number | null): Promise<{
 
 // ─── Public API: run / verify / restore / list / nightly ────────────────────
 
-export async function runBackup(tenantId: number | null): Promise<BackupManifest> {
+export async function runBackup(
+  tenantId: number | null
+): Promise<BackupManifest> {
   const secret = resolveBackupSecret();
-  if (!secret) throw new Error("BACKUP_ENCRYPTION_KEY is required in production");
+  if (!secret)
+    throw new Error("BACKUP_ENCRYPTION_KEY is required in production");
 
   const startedAt = new Date().toISOString();
   const { tables, counts } = await withRetry(() => exportTables(tenantId), {
@@ -278,7 +312,11 @@ export async function verifyBackup(id: string): Promise<VerifyResult> {
   }
 
   if (sha256Hex(blob) !== manifest.sha256) {
-    return { ok: false, id, reason: "checksum mismatch — file corrupted or tampered" };
+    return {
+      ok: false,
+      id,
+      reason: "checksum mismatch — file corrupted or tampered",
+    };
   }
   if (fingerprint(secret) !== manifest.keyFingerprint) {
     return {
@@ -290,7 +328,10 @@ export async function verifyBackup(id: string): Promise<VerifyResult> {
 
   try {
     const parsed = parsePayload(decryptPayload(blob, secret));
-    const totalRows = Object.values(parsed.counts).reduce<number>((a, b) => a + b, 0);
+    const totalRows = Object.values(parsed.counts).reduce<number>(
+      (a, b) => a + b,
+      0
+    );
     return { ok: true, id, totalRows };
   } catch (e) {
     return {
@@ -326,7 +367,9 @@ interface ParsedPayload {
 }
 
 function parsePayload(plain: Buffer): ParsedPayload {
-  const parsed = JSON.parse(gunzipSync(plain).toString("utf8")) as ParsedPayload;
+  const parsed = JSON.parse(
+    gunzipSync(plain).toString("utf8")
+  ) as ParsedPayload;
   if (!parsed || typeof parsed !== "object" || !parsed.tables) {
     throw new Error("payload structure invalid");
   }
@@ -373,18 +416,30 @@ export async function restoreBackup(
     return {
       id,
       dryRun,
-      verified: { ...verified, ok: false, reason: "encryption key unavailable" },
+      verified: {
+        ...verified,
+        ok: false,
+        reason: "encryption key unavailable",
+      },
     };
   }
 
   const manifest = (await readIndex()).find(m => m.id === id);
   if (!manifest) {
-    return { id, dryRun, verified: { ...verified, ok: false, reason: "manifest lost" } };
+    return {
+      id,
+      dryRun,
+      verified: { ...verified, ok: false, reason: "manifest lost" },
+    };
   }
 
   const db = await getDb();
   if (!db) {
-    return { id, dryRun, verified: { ...verified, ok: false, reason: "database unavailable" } };
+    return {
+      id,
+      dryRun,
+      verified: { ...verified, ok: false, reason: "database unavailable" },
+    };
   }
 
   const blob = await loadBlob(manifest);
@@ -394,7 +449,7 @@ export async function restoreBackup(
   for (const entry of BACKUP_TABLES) {
     const rows = parsed.tables[entry.name];
     if (!Array.isArray(rows) || rows.length === 0) continue;
-     
+
     const cols = getTableColumns(entry.table as any) as Record<
       string,
       { dataType?: string }
@@ -405,8 +460,11 @@ export async function restoreBackup(
         .slice(i, i + RESTORE_CHUNK)
         .map(row => reviveDates(row as Record<string, unknown>, cols));
       await withRetry(
-         
-        () => db.insert(entry.table as any).values(chunk).onConflictDoNothing(),
+        () =>
+          db
+            .insert(entry.table as any)
+            .values(chunk)
+            .onConflictDoNothing(),
         { label: `restore:${entry.name}`, retries: 2 }
       );
       count += chunk.length;
@@ -454,7 +512,10 @@ export interface NightlyBackupResult {
 export async function runNightlyBackupIfDue(): Promise<NightlyBackupResult> {
   try {
     if (!resolveBackupSecret()) {
-      return { attempted: false, skippedReason: "encryption key not configured" };
+      return {
+        attempted: false,
+        skippedReason: "encryption key not configured",
+      };
     }
     const today = new Date().toISOString().slice(0, 10);
     const markerPath = path.join(backupDir(), "lastNightlyRun.txt");

@@ -1,4 +1,8 @@
-import { useInputIntent, type InputIntent, type InputEventDetail } from "./useInputIntent";
+import {
+  useInputIntent,
+  type InputIntent,
+  type InputEventDetail,
+} from "./useInputIntent";
 import { useCallback, useRef, useState, useEffect } from "react";
 
 export type CommandPaletteAction =
@@ -55,10 +59,11 @@ export function useCommandPaletteInput(options: UseCommandPaletteInputOptions) {
     setIsOpen,
   } = options;
 
-  const filteredItems = items.filter(item =>
-    item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.category?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredItems = items.filter(
+    item =>
+      item.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.category?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const [internalSelectedIndex, setInternalSelectedIndex] = useState(0);
@@ -66,100 +71,125 @@ export function useCommandPaletteInput(options: UseCommandPaletteInputOptions) {
 
   const effectiveIsOpen = isOpen ?? internalIsOpen;
   const effectiveSelectedIndex = selectedIndex ?? internalSelectedIndex;
-  const effectiveSetSelectedIndex = setSelectedIndex ?? setInternalSelectedIndex;
+  const effectiveSetSelectedIndex =
+    setSelectedIndex ?? setInternalSelectedIndex;
   const effectiveSetIsOpen = setIsOpen ?? setInternalIsOpen;
 
-  const handleIntent = useCallback((detail: any) => {
-    if (!detail.rawEvent) return false;
+  const handleIntent = useCallback(
+    (detail: any) => {
+      if (!detail.rawEvent) return false;
 
-    const { intent, rawEvent, preventDefault, stopPropagation } = detail;
+      const { intent, rawEvent, preventDefault, stopPropagation } = detail;
 
-    if (!detail.isComposing) {
-      switch (intent) {
-        case "escape":
-          effectiveSetIsOpen(false);
-          onClose?.();
-          return true;
+      if (!detail.isComposing) {
+        switch (intent) {
+          case "escape":
+            effectiveSetIsOpen(false);
+            onClose?.();
+            return true;
 
-        case "enter":
-          if (effectiveIsOpen && filteredItems[effectiveSelectedIndex]) {
-            const item = filteredItems[effectiveSelectedIndex];
-            if (!item.disabled) {
-              item.action();
-              onExecute?.(item);
-              effectiveSetIsOpen(false);
+          case "enter":
+            if (effectiveIsOpen && filteredItems[effectiveSelectedIndex]) {
+              const item = filteredItems[effectiveSelectedIndex];
+              if (!item.disabled) {
+                item.action();
+                onExecute?.(item);
+                effectiveSetIsOpen(false);
+              }
+              return true;
             }
-            return true;
-          }
-          break;
+            break;
 
-        case "arrow-down":
-          if (effectiveIsOpen) {
-            preventDefault();
-            effectiveSetSelectedIndex(Math.min(effectiveSelectedIndex + 1, filteredItems.length - 1));
-            return true;
-          }
-          break;
+          case "arrow-down":
+            if (effectiveIsOpen) {
+              preventDefault();
+              effectiveSetSelectedIndex(
+                Math.min(effectiveSelectedIndex + 1, filteredItems.length - 1)
+              );
+              return true;
+            }
+            break;
 
-        case "arrow-up":
-          if (effectiveIsOpen) {
-            preventDefault();
-            effectiveSetSelectedIndex(Math.max(effectiveSelectedIndex - 1, 0));
-            return true;
-          }
-          break;
+          case "arrow-up":
+            if (effectiveIsOpen) {
+              preventDefault();
+              effectiveSetSelectedIndex(
+                Math.max(effectiveSelectedIndex - 1, 0)
+              );
+              return true;
+            }
+            break;
 
-        case "tab":
-          if (effectiveIsOpen) {
-            preventDefault();
-            effectiveSetSelectedIndex((effectiveSelectedIndex + 1) % filteredItems.length);
-            return true;
-          }
-          break;
+          case "tab":
+            if (effectiveIsOpen) {
+              preventDefault();
+              effectiveSetSelectedIndex(
+                (effectiveSelectedIndex + 1) % filteredItems.length
+              );
+              return true;
+            }
+            break;
 
-        case "shift-tab":
-          if (effectiveIsOpen) {
-            preventDefault();
-            effectiveSetSelectedIndex((effectiveSelectedIndex - 1 + filteredItems.length) % filteredItems.length);
-            return true;
-          }
-          break;
+          case "shift-tab":
+            if (effectiveIsOpen) {
+              preventDefault();
+              effectiveSetSelectedIndex(
+                (effectiveSelectedIndex - 1 + filteredItems.length) %
+                  filteredItems.length
+              );
+              return true;
+            }
+            break;
 
-        case "page-down":
-          if (effectiveIsOpen) {
-            preventDefault();
-            effectiveSetSelectedIndex(Math.min(effectiveSelectedIndex + 5, filteredItems.length - 1));
-            return true;
-          }
-          break;
+          case "page-down":
+            if (effectiveIsOpen) {
+              preventDefault();
+              effectiveSetSelectedIndex(
+                Math.min(effectiveSelectedIndex + 5, filteredItems.length - 1)
+              );
+              return true;
+            }
+            break;
 
-        case "page-up":
-          if (effectiveIsOpen) {
-            preventDefault();
-            effectiveSetSelectedIndex(Math.max(effectiveSelectedIndex - 5, 0));
-            return true;
-          }
-          break;
+          case "page-up":
+            if (effectiveIsOpen) {
+              preventDefault();
+              effectiveSetSelectedIndex(
+                Math.max(effectiveSelectedIndex - 5, 0)
+              );
+              return true;
+            }
+            break;
 
-        case "home":
-          if (effectiveIsOpen) {
-            preventDefault();
-            effectiveSetSelectedIndex(0);
-            return true;
-          }
-          break;
+          case "home":
+            if (effectiveIsOpen) {
+              preventDefault();
+              effectiveSetSelectedIndex(0);
+              return true;
+            }
+            break;
 
-        case "end":
-          if (effectiveIsOpen) {
-            preventDefault();
-            effectiveSetSelectedIndex(filteredItems.length - 1);
-            return true;
-          }
-          break;
+          case "end":
+            if (effectiveIsOpen) {
+              preventDefault();
+              effectiveSetSelectedIndex(filteredItems.length - 1);
+              return true;
+            }
+            break;
+        }
       }
-    }
-    return false;
-  }, [effectiveIsOpen, effectiveSelectedIndex, effectiveSetIsOpen, effectiveSetSelectedIndex, filteredItems, onClose, onExecute]);
+      return false;
+    },
+    [
+      effectiveIsOpen,
+      effectiveSelectedIndex,
+      effectiveSetIsOpen,
+      effectiveSetSelectedIndex,
+      filteredItems,
+      onClose,
+      onExecute,
+    ]
+  );
 
   useEffect(() => {
     if (effectiveIsOpen && setInternalSelectedIndex) {
@@ -171,8 +201,14 @@ export function useCommandPaletteInput(options: UseCommandPaletteInputOptions) {
     filteredItems,
     selectedIndex: effectiveSelectedIndex,
     isOpen: effectiveIsOpen,
-    open: () => { effectiveSetIsOpen(true); onOpen?.(); },
-    close: () => { effectiveSetIsOpen(false); onClose?.(); },
+    open: () => {
+      effectiveSetIsOpen(true);
+      onOpen?.();
+    },
+    close: () => {
+      effectiveSetIsOpen(false);
+      onClose?.();
+    },
     executeSelected: () => {
       if (filteredItems[effectiveSelectedIndex]) {
         filteredItems[effectiveSelectedIndex].action();
@@ -183,9 +219,11 @@ export function useCommandPaletteInput(options: UseCommandPaletteInputOptions) {
   };
 }
 
-export function useCommandPaletteKeyboard(options: UseCommandPaletteInputOptions) {
+export function useCommandPaletteKeyboard(
+  options: UseCommandPaletteInputOptions
+) {
   const api = useInputIntent({
-    onIntent: (detail) => {
+    onIntent: detail => {
       const { intent, rawEvent, preventDefault, stopPropagation } = detail;
 
       if (detail.isComposing) return false;

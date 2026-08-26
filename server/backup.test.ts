@@ -16,7 +16,10 @@ const KEY = "unit-test-master-key-0123456789abcdef";
 
 describe("backup encryption", () => {
   it("round-trips a payload through encrypt/decrypt", () => {
-    const plain = Buffer.from("مرحباً — ALHUSAINIA backup payload 12345", "utf8");
+    const plain = Buffer.from(
+      "مرحباً — ALHUSAINIA backup payload 12345",
+      "utf8"
+    );
     const blob = encryptPayload(plain, KEY);
     const decrypted = decryptPayload(blob, KEY);
     expect(decrypted.equals(plain)).toBe(true);

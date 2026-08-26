@@ -42,7 +42,10 @@ export async function runProactiveAlerts(
 ): Promise<ProactiveAlertResult> {
   const db = await getDb();
   if (!db) {
-    return { created: { reorder: 0, overdueSales: 0, overduePurchase: 0 }, total: 0 };
+    return {
+      created: { reorder: 0, overdueSales: 0, overduePurchase: 0 },
+      total: 0,
+    };
   }
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
@@ -183,7 +186,7 @@ export async function runScheduledJournalEntries(
     );
 
   const ready = due.filter(
-    (s) => s.nextRunAt != null && new Date(s.nextRunAt).getTime() <= now.getTime()
+    s => s.nextRunAt != null && new Date(s.nextRunAt).getTime() <= now.getTime()
   );
 
   let processed = 0;
@@ -300,14 +303,22 @@ export async function runScheduledJournalEntries(
  */
 function getMonthlyFactor(frequency: string): number {
   switch (frequency) {
-    case "daily": return 30;
-    case "weekly": return 4.33;
-    case "biweekly": return 2.17;
-    case "monthly": return 1;
-    case "quarterly": return 1 / 3;
-    case "semiannual": return 1 / 6;
-    case "annual": return 1 / 12;
-    default: return 1;
+    case "daily":
+      return 30;
+    case "weekly":
+      return 4.33;
+    case "biweekly":
+      return 2.17;
+    case "monthly":
+      return 1;
+    case "quarterly":
+      return 1 / 3;
+    case "semiannual":
+      return 1 / 6;
+    case "annual":
+      return 1 / 12;
+    default:
+      return 1;
   }
 }
 
@@ -322,7 +333,7 @@ function calculateNextRunDate(
   weekOfMonth?: number | null
 ): Date {
   const next = new Date(base);
-  
+
   switch (frequency) {
     case "daily":
       next.setDate(next.getDate() + 1);
@@ -336,7 +347,12 @@ function calculateNextRunDate(
     case "monthly":
       if (dayOfMonth) {
         next.setMonth(next.getMonth() + 1);
-        next.setDate(Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()));
+        next.setDate(
+          Math.min(
+            dayOfMonth,
+            new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()
+          )
+        );
       } else {
         next.setMonth(next.getMonth() + 1);
       }
@@ -357,7 +373,7 @@ function calculateNextRunDate(
     default:
       next.setMonth(next.getMonth() + 1);
   }
-  
+
   return next;
 }
 
@@ -372,11 +388,16 @@ export async function scheduleNextRun(
   const [rec] = await db
     .select()
     .from(recurringExpenses)
-    .where(and(eq(recurringExpenses.id, recurringExpenseId), eq(recurringExpenses.tenantId, tenantId)))
+    .where(
+      and(
+        eq(recurringExpenses.id, recurringExpenseId),
+        eq(recurringExpenses.tenantId, tenantId)
+      )
+    )
     .limit(1);
-  
+
   if (!rec) return;
-  
+
   if (rec.maxOccurrences && rec.occurrencesCount >= rec.maxOccurrences) {
     await db
       .update(recurringExpenses)
@@ -384,7 +405,7 @@ export async function scheduleNextRun(
       .where(eq(recurringExpenses.id, recurringExpenseId));
     return;
   }
-  
+
   if (rec.endDate && new Date(rec.endDate) < new Date()) {
     await db
       .update(recurringExpenses)
@@ -392,8 +413,10 @@ export async function scheduleNextRun(
       .where(eq(recurringExpenses.id, recurringExpenseId));
     return;
   }
-  
-  const base = rec.nextRunAt ? new Date(rec.nextRunAt) : new Date(rec.startDate);
+
+  const base = rec.nextRunAt
+    ? new Date(rec.nextRunAt)
+    : new Date(rec.startDate);
   const nextRunAt = calculateNextRunDate(
     base,
     rec.frequency,
@@ -401,7 +424,7 @@ export async function scheduleNextRun(
     rec.dayOfWeek,
     rec.weekOfMonth
   );
-  
+
   // Check if next run exceeds end date
   if (rec.endDate && nextRunAt > new Date(rec.endDate)) {
     await db
@@ -410,7 +433,7 @@ export async function scheduleNextRun(
       .where(eq(recurringExpenses.id, recurringExpenseId));
     return;
   }
-  
+
   await db
     .update(recurringExpenses)
     .set({ nextRunAt })
@@ -430,11 +453,15 @@ export async function processRecurringExpenseRun(
     .from(recurringExpenses)
     .where(eq(recurringExpenses.id, run.recurringExpenseId))
     .limit(1);
-  
+
   if (!rec) {
     await db
       .update(recurringExpenseRuns)
-      .set({ status: "failed", errorMessage: "Recurring expense not found", executedDate: new Date() })
+      .set({
+        status: "failed",
+        errorMessage: "Recurring expense not found",
+        executedDate: new Date(),
+      })
       .where(eq(recurringExpenseRuns.id, run.id));
     return;
   }
@@ -443,15 +470,15 @@ export async function processRecurringExpenseRun(
     // Calculate amounts
     const amount = parseFloat(rec.amount);
     const taxRate = parseFloat(rec.taxRate || "0");
-    const taxAmount = Math.round(amount * taxRate / 100 * 100) / 100;
+    const taxAmount = Math.round(((amount * taxRate) / 100) * 100) / 100;
     const totalAmount = amount + taxAmount;
     const exchangeRate = parseFloat(rec.exchangeRate || "1");
-    const baseAmount = Math.round(totalAmount / exchangeRate * 100) / 100;
+    const baseAmount = Math.round((totalAmount / exchangeRate) * 100) / 100;
 
     // Update run with calculated amounts
     await db
       .update(recurringExpenseRuns)
-      .set({ 
+      .set({
         amount: amount.toFixed(2),
         taxAmount: taxAmount.toFixed(2),
         totalAmount: totalAmount.toFixed(2),
@@ -479,13 +506,20 @@ export async function processRecurringExpenseRun(
       const expenseAcc = await db
         .select()
         .from(accounts)
-        .where(and(eq(accounts.id, rec.accountId), eq(accounts.tenantId, rec.tenantId)))
+        .where(
+          and(
+            eq(accounts.id, rec.accountId),
+            eq(accounts.tenantId, rec.tenantId)
+          )
+        )
         .limit(1);
-      
+
       const payableAcc = await db
         .select()
         .from(accounts)
-        .where(and(eq(accounts.code, "2010"), eq(accounts.tenantId, rec.tenantId)))
+        .where(
+          and(eq(accounts.code, "2010"), eq(accounts.tenantId, rec.tenantId))
+        )
         .limit(1);
 
       if (!expenseAcc[0] || !payableAcc[0]) {
@@ -528,7 +562,12 @@ export async function processRecurringExpenseRun(
         const taxAcc = await db
           .select()
           .from(accounts)
-          .where(and(eq(accounts.id, rec.taxAccountId), eq(accounts.tenantId, rec.tenantId)))
+          .where(
+            and(
+              eq(accounts.id, rec.taxAccountId),
+              eq(accounts.tenantId, rec.tenantId)
+            )
+          )
           .limit(1);
         if (taxAcc[0]) {
           lines.push({
@@ -548,8 +587,12 @@ export async function processRecurringExpenseRun(
         }
       }
 
-      const totalDebit = lines.filter(l => l.type === "debit").reduce((s, l) => s + parseFloat(l.amount), 0);
-      const totalCredit = lines.filter(l => l.type === "credit").reduce((s, l) => s + parseFloat(l.amount), 0);
+      const totalDebit = lines
+        .filter(l => l.type === "debit")
+        .reduce((s, l) => s + parseFloat(l.amount), 0);
+      const totalCredit = lines
+        .filter(l => l.type === "credit")
+        .reduce((s, l) => s + parseFloat(l.amount), 0);
 
       if (Math.abs(totalDebit - totalCredit) > 0.01) {
         throw new Error("القيد غير متوازن");
@@ -627,19 +670,27 @@ export async function processRecurringExpenseRun(
           .returning();
 
         for (const l of paymentLines) {
-          await db.insert(transactions).values({ ...l, journalEntryId: payJe.id });
+          await db
+            .insert(transactions)
+            .values({ ...l, journalEntryId: payJe.id });
         }
 
         paymentTransactionId = payJe.id;
       }
-
     } else {
       // Cash basis: Create purchase invoice directly
-      const vendor = rec.vendorId ? await db
-        .select()
-        .from(suppliers)
-        .where(and(eq(suppliers.id, rec.vendorId), eq(suppliers.tenantId, rec.tenantId)))
-        .limit(1) : null;
+      const vendor = rec.vendorId
+        ? await db
+            .select()
+            .from(suppliers)
+            .where(
+              and(
+                eq(suppliers.id, rec.vendorId),
+                eq(suppliers.tenantId, rec.tenantId)
+              )
+            )
+            .limit(1)
+        : null;
 
       const seqResult = await db
         .select({ c: sql`count(*)` })
@@ -689,13 +740,20 @@ export async function processRecurringExpenseRun(
         const expenseAcc = await db
           .select()
           .from(accounts)
-          .where(and(eq(accounts.id, rec.accountId), eq(accounts.tenantId, rec.tenantId)))
+          .where(
+            and(
+              eq(accounts.id, rec.accountId),
+              eq(accounts.tenantId, rec.tenantId)
+            )
+          )
           .limit(1);
-        
+
         const payableAcc = await db
           .select()
           .from(accounts)
-          .where(and(eq(accounts.code, "2010"), eq(accounts.tenantId, rec.tenantId)))
+          .where(
+            and(eq(accounts.code, "2010"), eq(accounts.tenantId, rec.tenantId))
+          )
           .limit(1);
 
         if (expenseAcc[0] && payableAcc[0]) {
@@ -734,7 +792,12 @@ export async function processRecurringExpenseRun(
             const taxAcc = await db
               .select()
               .from(accounts)
-              .where(and(eq(accounts.id, rec.taxAccountId), eq(accounts.tenantId, rec.tenantId)))
+              .where(
+                and(
+                  eq(accounts.id, rec.taxAccountId),
+                  eq(accounts.tenantId, rec.tenantId)
+                )
+              )
               .limit(1);
             if (taxAcc[0]) {
               lines.push({
@@ -754,8 +817,12 @@ export async function processRecurringExpenseRun(
             }
           }
 
-          const totalDebit = lines.filter(l => l.type === "debit").reduce((s, l) => s + parseFloat(l.amount), 0);
-          const totalCredit = lines.filter(l => l.type === "credit").reduce((s, l) => s + parseFloat(l.amount), 0);
+          const totalDebit = lines
+            .filter(l => l.type === "debit")
+            .reduce((s, l) => s + parseFloat(l.amount), 0);
+          const totalCredit = lines
+            .filter(l => l.type === "credit")
+            .reduce((s, l) => s + parseFloat(l.amount), 0);
 
           if (Math.abs(totalDebit - totalCredit) <= 0.01) {
             const [je] = await db
@@ -775,7 +842,9 @@ export async function processRecurringExpenseRun(
               .returning();
 
             for (const l of lines) {
-              await db.insert(transactions).values({ ...l, journalEntryId: je.id });
+              await db
+                .insert(transactions)
+                .values({ ...l, journalEntryId: je.id });
             }
           }
         }
@@ -830,7 +899,9 @@ export async function processRecurringExpenseRun(
             .returning();
 
           for (const l of paymentLines) {
-            await db.insert(transactions).values({ ...l, journalEntryId: payJe.id });
+            await db
+              .insert(transactions)
+              .values({ ...l, journalEntryId: payJe.id });
           }
 
           paymentTransactionId = payJe.id;
@@ -872,7 +943,7 @@ export async function processRecurringExpenseRun(
         .from(budgets)
         .where(eq(budgets.id, rec.budgetId))
         .limit(1);
-      
+
       if (budget) {
         const targetExpense = parseFloat(budget.targetExpense);
         // Get current period expenses
@@ -895,9 +966,10 @@ export async function processRecurringExpenseRun(
               eq(transactions.isReversed, false)
             )
           );
-        
+
         const currentExpense = parseFloat(periodExpenses[0]?.c || "0");
-        const percentUsed = targetExpense > 0 ? (currentExpense / targetExpense) * 100 : 0;
+        const percentUsed =
+          targetExpense > 0 ? (currentExpense / targetExpense) * 100 : 0;
 
         if (percentUsed >= 90) {
           await createNotification(db, {
@@ -911,7 +983,6 @@ export async function processRecurringExpenseRun(
         }
       }
     }
-
   } catch (error: any) {
     await db
       .update(recurringExpenseRuns)
@@ -960,7 +1031,7 @@ export async function runRecurringExpenses(
   if (!db) return { processed: 0, failed: 0, skipped: 0 };
 
   const now = new Date();
-  
+
   // Find recurring expenses that are due
   const due = await db
     .select()
@@ -1013,14 +1084,14 @@ export async function runRecurringExpenses(
 
     // Process the run
     await processRecurringExpenseRun(db, run, userId);
-    
+
     // Check final status
     const [finalRun] = await db
       .select()
       .from(recurringExpenseRuns)
       .where(eq(recurringExpenseRuns.id, run.id))
       .limit(1);
-    
+
     if (finalRun?.status === "completed") {
       processed++;
     } else {
@@ -1058,25 +1129,49 @@ export async function generateUpcomingRuns(
   const upcoming: any[] = [];
 
   for (const rec of active) {
-    let runDate = rec.nextRunAt ? new Date(rec.nextRunAt) : new Date(rec.startDate);
+    let runDate = rec.nextRunAt
+      ? new Date(rec.nextRunAt)
+      : new Date(rec.startDate);
     let runNumber = rec.occurrencesCount + 1;
 
-    while (runDate <= until && (!rec.maxOccurrences || runNumber <= rec.maxOccurrences) && (!rec.endDate || runDate <= new Date(rec.endDate))) {
+    while (
+      runDate <= until &&
+      (!rec.maxOccurrences || runNumber <= rec.maxOccurrences) &&
+      (!rec.endDate || runDate <= new Date(rec.endDate))
+    ) {
       upcoming.push({
         recurringExpenseId: rec.id,
         recurringExpenseName: rec.name,
         runNumber,
         scheduledDate: new Date(runDate),
         amount: parseFloat(rec.amount),
-        taxAmount: Math.round(parseFloat(rec.amount) * parseFloat(rec.taxRate || "0") / 100 * 100) / 100,
-        totalAmount: parseFloat(rec.amount) + Math.round(parseFloat(rec.amount) * parseFloat(rec.taxRate || "0") / 100 * 100) / 100,
+        taxAmount:
+          Math.round(
+            ((parseFloat(rec.amount) * parseFloat(rec.taxRate || "0")) / 100) *
+              100
+          ) / 100,
+        totalAmount:
+          parseFloat(rec.amount) +
+          Math.round(
+            ((parseFloat(rec.amount) * parseFloat(rec.taxRate || "0")) / 100) *
+              100
+          ) /
+            100,
         frequency: rec.frequency,
       });
 
-      runDate = calculateNextRunDate(runDate, rec.frequency, rec.dayOfMonth, rec.dayOfWeek, rec.weekOfMonth);
+      runDate = calculateNextRunDate(
+        runDate,
+        rec.frequency,
+        rec.dayOfMonth,
+        rec.dayOfWeek,
+        rec.weekOfMonth
+      );
       runNumber++;
     }
   }
 
-  return upcoming.sort((a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime());
+  return upcoming.sort(
+    (a, b) => a.scheduledDate.getTime() - b.scheduledDate.getTime()
+  );
 }

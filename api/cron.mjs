@@ -22,7 +22,7 @@ import {
   unique,
   jsonb,
   uuid,
-  check
+  check,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 var userRoleEnum = pgEnum("role", [
@@ -30,31 +30,28 @@ var userRoleEnum = pgEnum("role", [
   "auditor",
   "accountant",
   "owner",
-  "user"
+  "user",
 ]);
 var accountTypeEnum = pgEnum("account_type", [
   "asset",
   "liability",
   "equity",
   "revenue",
-  "expense"
+  "expense",
 ]);
-var transactionTypeEnum = pgEnum("transaction_type", [
-  "debit",
-  "credit"
-]);
+var transactionTypeEnum = pgEnum("transaction_type", ["debit", "credit"]);
 var lifecycleStatusEnum = pgEnum("lifecycle_status", [
   "saved",
   "approved",
   "sent",
   "posted",
-  "completed"
+  "completed",
 ]);
 var subscriptionStatusEnum = pgEnum("subscription_status", [
   "trial",
   "active",
   "grace",
-  "suspended"
+  "suspended",
 ]);
 var users = pgTable(
   "users",
@@ -69,9 +66,13 @@ var users = pgTable(
     username: varchar("username", { length: 120 }),
     passwordHash: text("passwordHash"),
     role: userRoleEnum("role").default("user").notNull(),
-    themePreference: varchar("themePreference", { length: 20 }).default("dark").notNull(),
+    themePreference: varchar("themePreference", { length: 20 })
+      .default("dark")
+      .notNull(),
     emailNotifications: boolean("emailNotifications").default(true).notNull(),
-    whatsappNotifications: boolean("whatsappNotifications").default(true).notNull(),
+    whatsappNotifications: boolean("whatsappNotifications")
+      .default(true)
+      .notNull(),
     compactMode: boolean("compactMode").default(false).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -82,12 +83,12 @@ var users = pgTable(
     lockedUntil: timestamp("lockedUntil"),
     passwordChangedAt: timestamp("passwordChangedAt").defaultNow().notNull(),
     mfaEnabled: boolean("mfaEnabled").default(false).notNull(),
-    mfaSecret: varchar("mfaSecret", { length: 255 })
+    mfaSecret: varchar("mfaSecret", { length: 255 }),
   },
-  (t) => [
+  t => [
     // PERFORMANCE: Index for tenant-scoped user lookups
     index("idx_users_tenant").on(t.tenantId),
-    index("idx_users_session").on(t.currentSessionId)
+    index("idx_users_session").on(t.currentSessionId),
   ]
 );
 var loginAttempts = pgTable(
@@ -109,76 +110,94 @@ var loginAttempts = pgTable(
     lng: decimal("lng", { precision: 10, scale: 7 }),
     riskScore: integer("riskScore").default(0).notNull(),
     riskFactors: jsonb("riskFactors"),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  (t) => [
+  t => [
     index("idx_login_attempts_username").on(t.username),
     index("idx_login_attempts_user").on(t.userId),
     index("idx_login_attempts_created").on(t.createdAt),
     index("idx_login_attempts_tenant_created").on(t.tenantId, t.createdAt),
     index("idx_login_attempts_ip").on(t.ip),
-    index("idx_login_attempts_device").on(t.deviceFingerprint)
+    index("idx_login_attempts_device").on(t.deviceFingerprint),
   ]
 );
-var tenants = pgTable("tenants", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  name: varchar("name", { length: 255 }).notNull(),
-  code: varchar("code", { length: 50 }).notNull().unique(),
-  ownerUserId: integer("ownerUserId"),
-  currency: varchar("currency", { length: 20 }).default("YER").notNull(),
-  country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646").notNull(),
-  subscriptionPlan: varchar("subscriptionPlan", { length: 50 }).default("standard").notNull(),
-  sector: varchar("sector", { length: 50 }).default("general").notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t) => [
-  check("chk_tenant_currency_valid", sql`${t.currency} ~ '^[A-Z]{3}$'`)
-]);
-var branches = pgTable("branches", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId").default(1).notNull(),
-  name: varchar("name", { length: 255 }).notNull(),
-  code: varchar("code", { length: 50 }).notNull(),
-  city: varchar("city", { length: 100 }),
-  isMain: boolean("isMain").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t) => [
-  unique("branches_code_tenant_unique").on(t.code, t.tenantId),
-  check("chk_branch_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
-]);
-var userBranchPermissions = pgTable("user_branch_permissions", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId").notNull(),
-  userId: integer("userId").notNull(),
-  branchId: integer("branchId").notNull(),
-  canView: boolean("canView").default(true).notNull(),
-  canInsert: boolean("canInsert").default(true).notNull(),
-  canApprove: boolean("canApprove").default(false).notNull(),
-  canPost: boolean("canPost").default(false).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t) => [
-  unique("userBranchPermissions_tenant_user_branch_unique").on(t.tenantId, t.userId, t.branchId)
-]);
+var tenants = pgTable(
+  "tenants",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    name: varchar("name", { length: 255 }).notNull(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    ownerUserId: integer("ownerUserId"),
+    currency: varchar("currency", { length: 20 }).default("YER").notNull(),
+    country: varchar("country", { length: 100 })
+      .default("\u0627\u0644\u064A\u0645\u0646")
+      .notNull(),
+    subscriptionPlan: varchar("subscriptionPlan", { length: 50 })
+      .default("standard")
+      .notNull(),
+    sector: varchar("sector", { length: 50 }).default("general").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [check("chk_tenant_currency_valid", sql`${t.currency} ~ '^[A-Z]{3}$'`)]
+);
+var branches = pgTable(
+  "branches",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").default(1).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    code: varchar("code", { length: 50 }).notNull(),
+    city: varchar("city", { length: 100 }),
+    isMain: boolean("isMain").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    unique("branches_code_tenant_unique").on(t.code, t.tenantId),
+    check("chk_branch_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+  ]
+);
+var userBranchPermissions = pgTable(
+  "user_branch_permissions",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    userId: integer("userId").notNull(),
+    branchId: integer("branchId").notNull(),
+    canView: boolean("canView").default(true).notNull(),
+    canInsert: boolean("canInsert").default(true).notNull(),
+    canApprove: boolean("canApprove").default(false).notNull(),
+    canPost: boolean("canPost").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    unique("userBranchPermissions_tenant_user_branch_unique").on(
+      t.tenantId,
+      t.userId,
+      t.branchId
+    ),
+  ]
+);
 var accounts = pgTable(
   "accounts",
   {
@@ -199,13 +218,13 @@ var accounts = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_accounts_tenant").on(t.tenantId),
     index("idx_accounts_tenant_type").on(t.tenantId, t.type),
     unique("accounts_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_account_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_account_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var transactions = pgTable(
@@ -221,7 +240,9 @@ var transactions = pgTable(
     transactionDate: timestamp("transactionDate").notNull(),
     narration: varchar("narration", { length: 500 }),
     notes: text("notes"),
-    lifecycleStatus: lifecycleStatusEnum("lifecycleStatus").default("saved").notNull(),
+    lifecycleStatus: lifecycleStatusEnum("lifecycleStatus")
+      .default("saved")
+      .notNull(),
     isReversed: boolean("isReversed").default(false).notNull(),
     reversalReason: varchar("reversalReason", { length: 255 }),
     referenceType: varchar("referenceType", { length: 50 }),
@@ -238,10 +259,14 @@ var transactions = pgTable(
     aggregateId: uuid("aggregateId"),
     // Financial constraints
     currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull()
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
   },
-  (t) => [
+  t => [
     index("idx_transactions_tenant").on(t.tenantId),
     index("idx_transactions_account").on(t.accountId),
     index("idx_transactions_date").on(t.transactionDate),
@@ -252,12 +277,19 @@ var transactions = pgTable(
     index("idx_transactions_tenant_status").on(t.tenantId, t.lifecycleStatus),
     index("idx_transactions_tenant_reversed").on(t.tenantId, t.isReversed),
     index("idx_transactions_tenant_date").on(t.tenantId, t.transactionDate),
-    index("idx_transactions_tenant_account_date").on(t.tenantId, t.accountId, t.transactionDate),
+    index("idx_transactions_tenant_account_date").on(
+      t.tenantId,
+      t.accountId,
+      t.transactionDate
+    ),
     check("chk_transaction_amount_not_negative", sql`${t.amount} >= 0`),
-    check("chk_transaction_base_amount_not_negative", sql`${t.baseAmount} >= 0`),
+    check(
+      "chk_transaction_base_amount_not_negative",
+      sql`${t.baseAmount} >= 0`
+    ),
     check("chk_transaction_exchange_rate_positive", sql`${t.exchangeRate} > 0`),
     check("chk_transaction_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-    check("chk_transaction_account_not_null", sql`${t.accountId} IS NOT NULL`)
+    check("chk_transaction_account_not_null", sql`${t.accountId} IS NOT NULL`),
   ]
 );
 var openingBalances = pgTable(
@@ -279,14 +311,25 @@ var openingBalances = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull()
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
   },
-  (t) => [
+  t => [
     index("idx_openingBalances_tenant").on(t.tenantId),
-    unique("openingBalances_account_period_tenant_unique").on(t.accountId, t.periodName, t.tenantId),
+    unique("openingBalances_account_period_tenant_unique").on(
+      t.accountId,
+      t.periodName,
+      t.tenantId
+    ),
     check("chk_opening_balance_amount_not_negative", sql`${t.amount} >= 0`),
-    check("chk_opening_balance_exchange_rate_positive", sql`${t.exchangeRate} > 0`)
+    check(
+      "chk_opening_balance_exchange_rate_positive",
+      sql`${t.exchangeRate} > 0`
+    ),
   ]
 );
 var budgets = pgTable(
@@ -298,11 +341,11 @@ var budgets = pgTable(
     periodName: varchar("periodName", { length: 50 }).notNull(),
     targetRevenue: decimal("targetRevenue", {
       precision: 15,
-      scale: 2
+      scale: 2,
     }).notNull(),
     targetExpense: decimal("targetExpense", {
       precision: 15,
-      scale: 2
+      scale: 2,
     }).notNull(),
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -312,20 +355,20 @@ var budgets = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_budgets_tenant").on(t.tenantId),
     unique("budgets_tenant_period_unique").on(t.tenantId, t.periodName),
     check("chk_budget_revenue_not_negative", sql`${t.targetRevenue} >= 0`),
-    check("chk_budget_expense_not_negative", sql`${t.targetExpense} >= 0`)
+    check("chk_budget_expense_not_negative", sql`${t.targetExpense} >= 0`),
   ]
 );
 var fiscalPeriodStatusEnum = pgEnum("fiscal_period_status", [
   "open",
   "closing",
   "closed",
-  "reopened"
+  "reopened",
 ]);
 var fiscalPeriods = pgTable(
   "fiscal_periods",
@@ -355,44 +398,62 @@ var fiscalPeriods = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_fiscal_periods_tenant").on(t.tenantId),
     index("idx_fiscal_periods_status").on(t.status),
     unique("fiscal_periods_tenant_name_unique").on(t.tenantId, t.name),
     check("chk_fiscal_period_dates", sql`${t.startDate} <= ${t.endDate}`),
-    check("chk_fiscal_period_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_fiscal_period_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
-var settings = pgTable("settings", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId").notNull().unique(),
-  institutionName: varchar("institutionName", { length: 255 }).default("\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644").notNull(),
-  currency: varchar("currency", { length: 50 }).default("\u0631\u064A\u0627\u0644 \u064A\u0645\u0646\u064A (YER)").notNull(),
-  country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646").notNull(),
-  accountingPeriod: varchar("accountingPeriod", { length: 50 }).default("2026").notNull(),
-  managerName: varchar("managerName", { length: 255 }).default("\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629").notNull(),
-  notes: text("notes"),
-  subscriptionStatus: subscriptionStatusEnum("subscriptionStatus").default("trial").notNull(),
-  trialEndsAt: timestamp("trialEndsAt"),
-  // ─── POS / Sales configuration (stored as JSON text) ─────────────
-  posConfig: text("posConfig"),
-  salesPolicy: text("salesPolicy"),
-  paymentMethods: text("paymentMethods"),
-  postingRules: text("postingRules"),
-  // ─── ZATCA (Saudi e-invoicing) configuration ────────────────────
-  zatcaConfig: text("zatcaConfig"),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t) => [
-  check("chk_settings_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
-]);
+var settings = pgTable(
+  "settings",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull().unique(),
+    institutionName: varchar("institutionName", { length: 255 })
+      .default(
+        "\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644"
+      )
+      .notNull(),
+    currency: varchar("currency", { length: 50 })
+      .default("\u0631\u064A\u0627\u0644 \u064A\u0645\u0646\u064A (YER)")
+      .notNull(),
+    country: varchar("country", { length: 100 })
+      .default("\u0627\u0644\u064A\u0645\u0646")
+      .notNull(),
+    accountingPeriod: varchar("accountingPeriod", { length: 50 })
+      .default("2026")
+      .notNull(),
+    managerName: varchar("managerName", { length: 255 })
+      .default(
+        "\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629"
+      )
+      .notNull(),
+    notes: text("notes"),
+    subscriptionStatus: subscriptionStatusEnum("subscriptionStatus")
+      .default("trial")
+      .notNull(),
+    trialEndsAt: timestamp("trialEndsAt"),
+    // ─── POS / Sales configuration (stored as JSON text) ─────────────
+    posConfig: text("posConfig"),
+    salesPolicy: text("salesPolicy"),
+    paymentMethods: text("paymentMethods"),
+    postingRules: text("postingRules"),
+    // ─── ZATCA (Saudi e-invoicing) configuration ────────────────────
+    zatcaConfig: text("zatcaConfig"),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [check("chk_settings_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)]
+);
 var activityLogs = pgTable(
   "activity_logs",
   {
@@ -419,15 +480,15 @@ var activityLogs = pgTable(
     previousHash: varchar("previousHash", { length: 64 }),
     currentHash: varchar("currentHash", { length: 64 }).default("").notNull(),
     chainSequence: integer("chainSequence").default(0).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  (t) => [
+  t => [
     index("idx_activityLogs_tenant").on(t.tenantId),
     index("idx_activityLogs_user").on(t.userId),
     index("idx_activityLogs_session").on(t.sessionId),
     index("idx_activityLogs_entity").on(t.entityType, t.entityId),
     index("idx_activityLogs_created").on(t.createdAt),
-    index("idx_activityLogs_chain").on(t.tenantId, t.chainSequence)
+    index("idx_activityLogs_chain").on(t.tenantId, t.chainSequence),
   ]
 );
 var productTypeEnum = pgEnum("product_type", ["goods", "service"]);
@@ -435,11 +496,13 @@ var inventoryMovementTypeEnum = pgEnum("inventory_movement_type", [
   "in",
   "out",
   "transfer",
-  "adjustment"
+  "adjustment",
 ]);
 function govColumns() {
   return {
-    country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646"),
+    country: varchar("country", { length: 100 }).default(
+      "\u0627\u0644\u064A\u0645\u0646"
+    ),
     workSiteId: integer("workSiteId"),
     deviceId: integer("deviceId"),
     lat: decimal("lat", { precision: 10, scale: 7 }),
@@ -449,7 +512,7 @@ function govColumns() {
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   };
 }
 var products = pgTable(
@@ -463,11 +526,21 @@ var products = pgTable(
     nameAr: varchar("nameAr", { length: 255 }),
     type: productTypeEnum("type").default("goods").notNull(),
     category: varchar("category", { length: 100 }),
-    country: varchar("country", { length: 100 }).default("\u0627\u0644\u064A\u0645\u0646"),
-    unit: varchar("unit", { length: 50 }).default("\u0642\u0637\u0639\u0629").notNull(),
-    purchasePrice: decimal("purchasePrice", { precision: 15, scale: 2 }).default("0").notNull(),
-    salePrice: decimal("salePrice", { precision: 15, scale: 2 }).default("0").notNull(),
-    wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 }).default("0").notNull(),
+    country: varchar("country", { length: 100 }).default(
+      "\u0627\u0644\u064A\u0645\u0646"
+    ),
+    unit: varchar("unit", { length: 50 })
+      .default("\u0642\u0637\u0639\u0629")
+      .notNull(),
+    purchasePrice: decimal("purchasePrice", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    salePrice: decimal("salePrice", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     minStock: integer("minStock").default(0).notNull(),
     currentStock: integer("currentStock").default(0).notNull(),
     barcode: varchar("barcode", { length: 100 }),
@@ -480,9 +553,13 @@ var products = pgTable(
     cogsAccountId: integer("cogsAccountId"),
     inventoryAccountId: integer("inventoryAccountId"),
     // ─── Inventory / unit flexibility ──────────────────────────────
-    unitOfMeasure: varchar("unitOfMeasure", { length: 50 }).default("\u0642\u0637\u0639\u0629").notNull(),
+    unitOfMeasure: varchar("unitOfMeasure", { length: 50 })
+      .default("\u0642\u0637\u0639\u0629")
+      .notNull(),
     secondaryUnit: varchar("secondaryUnit", { length: 50 }),
-    conversionFactor: decimal("conversionFactor", { precision: 15, scale: 4 }).default("1").notNull(),
+    conversionFactor: decimal("conversionFactor", { precision: 15, scale: 4 })
+      .default("1")
+      .notNull(),
     // ─── Composite / bundled items (Bill of Materials) ────────────
     isComposite: boolean("isComposite").default(false).notNull(),
     bom: text("bom"),
@@ -491,17 +568,29 @@ var products = pgTable(
     // JSON: number[]
     attachmentUrl: text("attachmentUrl"),
     // ─── Services costing & pricing ───────────────────────────────
-    costMethod: varchar("costMethod", { length: 30 }).default("average").notNull(),
-    directCost: decimal("directCost", { precision: 15, scale: 2 }).default("0").notNull(),
-    indirectCost: decimal("indirectCost", { precision: 15, scale: 2 }).default("0").notNull(),
+    costMethod: varchar("costMethod", { length: 30 })
+      .default("average")
+      .notNull(),
+    directCost: decimal("directCost", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    indirectCost: decimal("indirectCost", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     productionMinutes: integer("productionMinutes"),
     priceMode: varchar("priceMode", { length: 20 }).default("direct").notNull(),
     // direct | costPlus
-    marginPct: decimal("marginPct", { precision: 6, scale: 2 }).default("0").notNull(),
+    marginPct: decimal("marginPct", { precision: 6, scale: 2 })
+      .default("0")
+      .notNull(),
     isActive: boolean("isActive").default(true).notNull(),
     // ─── Reorder automation (Module C) ─────────────────────────────
-    reorderPoint: decimal("reorderPoint", { precision: 15, scale: 2 }).default("0").notNull(),
-    reorderQty: decimal("reorderQty", { precision: 15, scale: 2 }).default("0").notNull(),
+    reorderPoint: decimal("reorderPoint", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    reorderQty: decimal("reorderQty", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
     deletedAt: timestamp("deleted_at"),
@@ -510,20 +599,29 @@ var products = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_products_tenant").on(t.tenantId),
     index("idx_products_tenant_deleted").on(t.tenantId, t.deletedAt),
     index("idx_products_category").on(t.category),
     index("idx_products_supplier").on(t.supplierId),
     index("idx_products_currency").on(t.currencyId),
     unique("products_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_product_purchase_price_not_negative", sql`${t.purchasePrice} >= 0`),
+    check(
+      "chk_product_purchase_price_not_negative",
+      sql`${t.purchasePrice} >= 0`
+    ),
     check("chk_product_sale_price_not_negative", sql`${t.salePrice} >= 0`),
-    check("chk_product_wholesale_price_not_negative", sql`${t.wholesalePrice} >= 0`),
-    check("chk_product_conversion_factor_positive", sql`${t.conversionFactor} > 0`),
-    check("chk_product_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_product_wholesale_price_not_negative",
+      sql`${t.wholesalePrice} >= 0`
+    ),
+    check(
+      "chk_product_conversion_factor_positive",
+      sql`${t.conversionFactor} > 0`
+    ),
+    check("chk_product_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var warehouses = pgTable(
@@ -542,12 +640,12 @@ var warehouses = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_warehouses_tenant").on(t.tenantId),
     unique("warehouses_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_warehouse_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_warehouse_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var workSites = pgTable(
@@ -568,12 +666,12 @@ var workSites = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_workSites_tenant").on(t.tenantId),
     unique("workSites_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_workSite_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_workSite_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var devices = pgTable(
@@ -602,13 +700,13 @@ var devices = pgTable(
     os: varchar("os", { length: 100 }),
     osVersion: varchar("osVersion", { length: 50 }),
     appVersion: varchar("appVersion", { length: 50 }),
-    publicKey: text("publicKey")
+    publicKey: text("publicKey"),
     // For device attestation
   },
-  (t) => [
+  t => [
     index("idx_devices_tenant").on(t.tenantId),
     unique("devices_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_device_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_device_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var inventoryMovements = pgTable(
@@ -629,14 +727,17 @@ var inventoryMovements = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_inventoryMovements_tenant").on(t.tenantId),
     index("idx_inventoryMovements_product").on(t.productId),
     index("idx_inventoryMovements_warehouse").on(t.warehouseId),
     check("chk_inventory_movement_quantity_not_zero", sql`${t.quantity} != 0`),
-    check("chk_inventory_movement_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_inventory_movement_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var stockAdjustments = pgTable(
@@ -650,7 +751,9 @@ var stockAdjustments = pgTable(
     warehouseId: integer("warehouseId"),
     previousQty: integer("previousQty").notNull(),
     newQty: integer("newQty").notNull(),
-    reason: varchar("reason", { length: 100 }).default("\u062A\u0633\u0648\u064A\u0629"),
+    reason: varchar("reason", { length: 100 }).default(
+      "\u062A\u0633\u0648\u064A\u0629"
+    ),
     notes: text("notes"),
     userId: integer("userId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -658,12 +761,15 @@ var stockAdjustments = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_stockAdjustments_tenant").on(t.tenantId),
     unique("stockAdjustments_gc_tenant_unique").on(t.tenantId, t.globalCode),
-    check("chk_stock_adjustment_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_stock_adjustment_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var warehouseTransfers = pgTable(
@@ -684,14 +790,20 @@ var warehouseTransfers = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_warehouseTransfers_tenant").on(t.tenantId),
     unique("warehouseTransfers_gc_tenant_unique").on(t.tenantId, t.globalCode),
     check("chk_warehouse_transfer_quantity_positive", sql`${t.quantity} > 0`),
-    check("chk_warehouse_transfer_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-    check("chk_warehouse_transfer_from_to_different", sql`${t.fromWarehouseId} != ${t.toWarehouseId}`)
+    check(
+      "chk_warehouse_transfer_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
+    check(
+      "chk_warehouse_transfer_from_to_different",
+      sql`${t.fromWarehouseId} != ${t.toWarehouseId}`
+    ),
   ]
 );
 var warehouseStock = pgTable(
@@ -712,24 +824,37 @@ var warehouseStock = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_warehouseStock_tenant").on(t.tenantId),
     index("idx_warehouseStock_product").on(t.productId),
     index("idx_warehouseStock_warehouse").on(t.warehouseId),
-    unique("warehouseStock_product_warehouse_tenant_unique").on(t.productId, t.warehouseId, t.tenantId),
+    unique("warehouseStock_product_warehouse_tenant_unique").on(
+      t.productId,
+      t.warehouseId,
+      t.tenantId
+    ),
     check("chk_warehouse_stock_qty_not_negative", sql`${t.quantity} >= 0`),
-    check("chk_warehouse_stock_reserved_not_negative", sql`${t.reservedQty} >= 0`),
-    check("chk_warehouse_stock_available_not_negative", sql`${t.availableQty} >= 0`),
-    check("chk_warehouse_stock_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_warehouse_stock_reserved_not_negative",
+      sql`${t.reservedQty} >= 0`
+    ),
+    check(
+      "chk_warehouse_stock_available_not_negative",
+      sql`${t.availableQty} >= 0`
+    ),
+    check(
+      "chk_warehouse_stock_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var batchTrackingMethodEnum = pgEnum("batch_tracking_method", [
   "none",
   "batch",
   "lot",
-  "serial"
+  "serial",
 ]);
 var inventoryBatches = pgTable(
   "inventory_batches",
@@ -746,7 +871,9 @@ var inventoryBatches = pgTable(
     expiryDate: timestamp("expiryDate"),
     quantity: integer("quantity").default(0).notNull(),
     reservedQty: integer("reservedQty").default(0).notNull(),
-    unitCost: decimal("unitCost", { precision: 15, scale: 4 }).default("0").notNull(),
+    unitCost: decimal("unitCost", { precision: 15, scale: 4 })
+      .default("0")
+      .notNull(),
     purchaseInvoiceId: integer("purchaseInvoiceId"),
     purchaseInvoiceItemId: integer("purchaseInvoiceItemId"),
     notes: text("notes"),
@@ -757,32 +884,43 @@ var inventoryBatches = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_inventoryBatches_tenant").on(t.tenantId),
     index("idx_inventoryBatches_product").on(t.productId),
     index("idx_inventoryBatches_warehouse").on(t.warehouseId),
     index("idx_inventoryBatches_expiry").on(t.expiryDate),
     index("idx_inventoryBatches_batchNumber").on(t.batchNumber),
-    unique("inventoryBatches_product_warehouse_batch_tenant_unique").on(t.productId, t.warehouseId, t.batchNumber, t.tenantId),
+    unique("inventoryBatches_product_warehouse_batch_tenant_unique").on(
+      t.productId,
+      t.warehouseId,
+      t.batchNumber,
+      t.tenantId
+    ),
     check("chk_inventory_batch_qty_not_negative", sql`${t.quantity} >= 0`),
-    check("chk_inventory_batch_reserved_not_negative", sql`${t.reservedQty} >= 0`),
-    check("chk_inventory_batch_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_inventory_batch_reserved_not_negative",
+      sql`${t.reservedQty} >= 0`
+    ),
+    check(
+      "chk_inventory_batch_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var reservationStatusEnum = pgEnum("reservation_status", [
   "active",
   "fulfilled",
   "released",
-  "expired"
+  "expired",
 ]);
 var reservationSourceEnum = pgEnum("reservation_source", [
   "sales_order",
   "purchase_order",
   "production_order",
   "transfer_order",
-  "manual"
+  "manual",
 ]);
 var stockReservations = pgTable(
   "stock_reservations",
@@ -809,9 +947,9 @@ var stockReservations = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_stockReservations_tenant").on(t.tenantId),
     index("idx_stockReservations_product").on(t.productId),
     index("idx_stockReservations_warehouse").on(t.warehouseId),
@@ -820,7 +958,10 @@ var stockReservations = pgTable(
     index("idx_stockReservations_source").on(t.source, t.sourceId),
     index("idx_stockReservations_expires").on(t.expiresAt),
     check("chk_stock_reservation_qty_positive", sql`${t.quantity} > 0`),
-    check("chk_stock_reservation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_stock_reservation_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var cycleCountStatusEnum = pgEnum("cycle_count_status", [
@@ -828,7 +969,7 @@ var cycleCountStatusEnum = pgEnum("cycle_count_status", [
   "in_progress",
   "completed",
   "cancelled",
-  "approved"
+  "approved",
 ]);
 var cycleCounts = pgTable(
   "cycle_counts",
@@ -846,7 +987,9 @@ var cycleCounts = pgTable(
     approvedAt: timestamp("approvedAt"),
     approvedById: integer("approvedById"),
     assignedToId: integer("assignedToId"),
-    varianceThreshold: decimal("varianceThreshold", { precision: 5, scale: 2 }).default("5").notNull(),
+    varianceThreshold: decimal("varianceThreshold", { precision: 5, scale: 2 })
+      .default("5")
+      .notNull(),
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -854,15 +997,18 @@ var cycleCounts = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_cycleCounts_tenant").on(t.tenantId),
     index("idx_cycleCounts_warehouse").on(t.warehouseId),
     index("idx_cycleCounts_status").on(t.status),
     index("idx_cycleCounts_plannedDate").on(t.plannedDate),
-    unique("cycleCounts_countNumber_tenant_unique").on(t.countNumber, t.tenantId),
-    check("chk_cycle_count_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("cycleCounts_countNumber_tenant_unique").on(
+      t.countNumber,
+      t.tenantId
+    ),
+    check("chk_cycle_count_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var cycleCountLines = pgTable(
@@ -891,14 +1037,22 @@ var cycleCountLines = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_cycleCountLines_tenant").on(t.tenantId),
     index("idx_cycleCountLines_cycleCount").on(t.cycleCountId),
     index("idx_cycleCountLines_product").on(t.productId),
-    unique("cycleCountLines_cycleCount_product_warehouse_batch_unique").on(t.cycleCountId, t.productId, t.warehouseId, t.batchId),
-    check("chk_cycle_count_line_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("cycleCountLines_cycleCount_product_warehouse_batch_unique").on(
+      t.cycleCountId,
+      t.productId,
+      t.warehouseId,
+      t.batchId
+    ),
+    check(
+      "chk_cycle_count_line_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var inventoryValuationLayers = pgTable(
@@ -926,9 +1080,9 @@ var inventoryValuationLayers = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_valuationLayers_tenant").on(t.tenantId),
     index("idx_valuationLayers_product").on(t.productId),
     index("idx_valuationLayers_warehouse").on(t.warehouseId),
@@ -936,9 +1090,15 @@ var inventoryValuationLayers = pgTable(
     index("idx_valuationLayers_layerDate").on(t.layerDate),
     index("idx_valuationLayers_active").on(t.isActive),
     check("chk_valuation_layer_qty_positive", sql`${t.quantity} > 0`),
-    check("chk_valuation_layer_remaining_not_negative", sql`${t.remainingQty} >= 0`),
+    check(
+      "chk_valuation_layer_remaining_not_negative",
+      sql`${t.remainingQty} >= 0`
+    ),
     check("chk_valuation_layer_unit_cost_positive", sql`${t.unitCost} > 0`),
-    check("chk_valuation_layer_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_valuation_layer_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var customers = pgTable(
@@ -954,8 +1114,12 @@ var customers = pgTable(
     address: text("address"),
     city: varchar("city", { length: 100 }),
     taxNumber: varchar("taxNumber", { length: 100 }),
-    balance: decimal("balance", { precision: 15, scale: 2 }).default("0").notNull(),
-    creditLimit: decimal("creditLimit", { precision: 15, scale: 2 }).default("0").notNull(),
+    balance: decimal("balance", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    creditLimit: decimal("creditLimit", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     notes: text("notes"),
     isActive: boolean("isActive").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -966,15 +1130,15 @@ var customers = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_customers_tenant").on(t.tenantId),
     index("idx_customers_tenant_deleted").on(t.tenantId, t.deletedAt),
     index("idx_customers_currency").on(t.currencyId),
     unique("customers_code_tenant_unique").on(t.code, t.tenantId),
     check("chk_customer_credit_limit_not_negative", sql`${t.creditLimit} >= 0`),
-    check("chk_customer_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_customer_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var suppliers = pgTable(
@@ -990,7 +1154,9 @@ var suppliers = pgTable(
     address: text("address"),
     city: varchar("city", { length: 100 }),
     taxNumber: varchar("taxNumber", { length: 100 }),
-    balance: decimal("balance", { precision: 15, scale: 2 }).default("0").notNull(),
+    balance: decimal("balance", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     notes: text("notes"),
     isActive: boolean("isActive").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1001,14 +1167,14 @@ var suppliers = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_suppliers_tenant").on(t.tenantId),
     index("idx_suppliers_tenant_deleted").on(t.tenantId, t.deletedAt),
     index("idx_suppliers_currency").on(t.currencyId),
     unique("suppliers_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_supplier_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_supplier_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var salesInvoiceStatusEnum = pgEnum("sales_invoice_status", [
@@ -1016,14 +1182,14 @@ var salesInvoiceStatusEnum = pgEnum("sales_invoice_status", [
   "confirmed",
   "paid",
   "partial",
-  "cancelled"
+  "cancelled",
 ]);
 var purchaseInvoiceStatusEnum = pgEnum("purchase_invoice_status", [
   "draft",
   "confirmed",
   "paid",
   "partial",
-  "cancelled"
+  "cancelled",
 ]);
 var orderStatusEnum = pgEnum("order_status", [
   "pending",
@@ -1031,7 +1197,7 @@ var orderStatusEnum = pgEnum("order_status", [
   "processing",
   "shipped",
   "delivered",
-  "cancelled"
+  "cancelled",
 ]);
 var paymentMethodEnum = pgEnum("payment_method", [
   "cash",
@@ -1050,7 +1216,7 @@ var paymentMethodEnum = pgEnum("payment_method", [
   // شباب (أي شبكة محلية)
   "mobile_money",
   // محفظة إلكترونية (فليكسي / أمين)
-  "bank_transfer"
+  "bank_transfer",
   // حوالة بنكية محلية
 ]);
 var salesInvoices = pgTable(
@@ -1064,12 +1230,22 @@ var salesInvoices = pgTable(
     customerId: integer("customerId"),
     branchId: integer("branchId"),
     status: salesInvoiceStatusEnum("status").default("draft").notNull(),
-    subtotal: decimal("subtotal", { precision: 15, scale: 2 }).default("0").notNull(),
-    taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
-    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+    subtotal: decimal("subtotal", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    taxRate: decimal("taxRate", { precision: 5, scale: 2 })
+      .default("0")
+      .notNull(),
+    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    discount: decimal("discount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     total: decimal("total", { precision: 15, scale: 2 }).default("0").notNull(),
-    paidAmount: decimal("paidAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+    paidAmount: decimal("paidAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     paymentMethod: paymentMethodEnum("paymentMethod").default("cash"),
     notes: text("notes"),
     // ZATCA (Saudi e-invoicing) payload: { uuid, qrBase64, hash, stampedAt }
@@ -1081,7 +1257,9 @@ var salesInvoices = pgTable(
     salesRepId: text("salesRepId"),
     // ─── Multi-currency (Module B) ─────────────────────────────────
     currency: varchar("currency", { length: 10 }).default("YER").notNull(),
-    currencyRate: decimal("currencyRate", { precision: 18, scale: 8 }).default("1").notNull(),
+    currencyRate: decimal("currencyRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
     // Sync columns
@@ -1095,31 +1273,48 @@ var salesInvoices = pgTable(
     postedById: integer("postedById"),
     reversedAt: timestamp("reversedAt"),
     reversedById: integer("reversedById"),
-    reversalReason: varchar("reversalReason", { length: 255 })
+    reversalReason: varchar("reversalReason", { length: 255 }),
   },
-  (t) => [
+  t => [
     index("idx_salesInvoices_tenant").on(t.tenantId),
     index("idx_salesInvoices_customer").on(t.customerId),
     index("idx_salesInvoices_status").on(t.status),
     index("idx_salesInvoices_currency").on(t.currencyId),
     index("idx_salesInvoices_salesRep").on(t.salesRepId),
     index("idx_salesInvoices_tenant_salesrep").on(t.tenantId, t.salesRepId),
-    index("idx_salesInvoices_tenant_status_date").on(t.tenantId, t.status, t.invoiceDate),
-    index("idx_salesInvoices_tenant_customer_date").on(t.tenantId, t.customerId, t.invoiceDate),
+    index("idx_salesInvoices_tenant_status_date").on(
+      t.tenantId,
+      t.status,
+      t.invoiceDate
+    ),
+    index("idx_salesInvoices_tenant_customer_date").on(
+      t.tenantId,
+      t.customerId,
+      t.invoiceDate
+    ),
     unique("salesInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
     check("chk_sales_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
     check("chk_sales_invoice_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
-    check("chk_sales_invoice_tax_amount_not_negative", sql`${t.taxAmount} >= 0`),
+    check(
+      "chk_sales_invoice_tax_amount_not_negative",
+      sql`${t.taxAmount} >= 0`
+    ),
     check("chk_sales_invoice_discount_not_negative", sql`${t.discount} >= 0`),
     check("chk_sales_invoice_total_not_negative", sql`${t.total} >= 0`),
     check("chk_sales_invoice_paid_not_negative", sql`${t.paidAmount} >= 0`),
-    check("chk_sales_invoice_currency_rate_positive", sql`${t.currencyRate} > 0`),
+    check(
+      "chk_sales_invoice_currency_rate_positive",
+      sql`${t.currencyRate} > 0`
+    ),
     check("chk_sales_invoice_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-    check("chk_sales_invoice_status_posted_immutable", sql`
+    check(
+      "chk_sales_invoice_status_posted_immutable",
+      sql`
       CASE WHEN ${t.status} IN ('paid', 'cancelled') THEN
         ${t.postedAt} IS NOT NULL
       ELSE TRUE END
-    `)
+    `
+    ),
   ]
 );
 var salesInvoiceItems = pgTable(
@@ -1131,11 +1326,13 @@ var salesInvoiceItems = pgTable(
     productName: varchar("productName", { length: 255 }).notNull(),
     quantity: integer("quantity").notNull(),
     unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
-    discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+    discount: decimal("discount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     total: decimal("total", { precision: 15, scale: 2 }).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  (t) => [index("idx_sales_items_invoice").on(t.invoiceId)]
+  t => [index("idx_sales_items_invoice").on(t.invoiceId)]
 );
 var purchaseInvoices = pgTable(
   "purchase_invoices",
@@ -1148,12 +1345,22 @@ var purchaseInvoices = pgTable(
     supplierId: integer("supplierId"),
     branchId: integer("branchId"),
     status: purchaseInvoiceStatusEnum("status").default("draft").notNull(),
-    subtotal: decimal("subtotal", { precision: 15, scale: 2 }).default("0").notNull(),
-    taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
-    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+    subtotal: decimal("subtotal", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    taxRate: decimal("taxRate", { precision: 5, scale: 2 })
+      .default("0")
+      .notNull(),
+    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    discount: decimal("discount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     total: decimal("total", { precision: 15, scale: 2 }).default("0").notNull(),
-    paidAmount: decimal("paidAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+    paidAmount: decimal("paidAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     paymentMethod: paymentMethodEnum("paymentMethod").default("cash"),
     notes: text("notes"),
     zatca: text("zatca"),
@@ -1168,30 +1375,52 @@ var purchaseInvoices = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     // Posted/Reversed immutable tracking
     postedAt: timestamp("postedAt"),
     postedById: integer("postedById"),
     reversedAt: timestamp("reversedAt"),
     reversedById: integer("reversedById"),
-    reversalReason: varchar("reversalReason", { length: 255 })
+    reversalReason: varchar("reversalReason", { length: 255 }),
   },
-  (t) => [
+  t => [
     index("idx_purchaseInvoices_tenant").on(t.tenantId),
     index("idx_purchaseInvoices_supplier").on(t.supplierId),
     index("idx_purchaseInvoices_status").on(t.status),
     index("idx_purchaseInvoices_currency").on(t.currencyId),
     unique("purchaseInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
-    check("chk_purchase_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
+    check(
+      "chk_purchase_invoice_subtotal_not_negative",
+      sql`${t.subtotal} >= 0`
+    ),
     check("chk_purchase_invoice_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
-    check("chk_purchase_invoice_tax_amount_not_negative", sql`${t.taxAmount} >= 0`),
-    check("chk_purchase_invoice_discount_not_negative", sql`${t.discount} >= 0`),
+    check(
+      "chk_purchase_invoice_tax_amount_not_negative",
+      sql`${t.taxAmount} >= 0`
+    ),
+    check(
+      "chk_purchase_invoice_discount_not_negative",
+      sql`${t.discount} >= 0`
+    ),
     check("chk_purchase_invoice_total_not_negative", sql`${t.total} >= 0`),
     check("chk_purchase_invoice_paid_not_negative", sql`${t.paidAmount} >= 0`),
-    check("chk_purchase_invoice_exchange_rate_positive", sql`${t.exchangeRate} > 0`),
-    check("chk_purchase_invoice_base_amount_not_negative", sql`${t.baseAmount} >= 0`),
-    check("chk_purchase_invoice_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_purchase_invoice_exchange_rate_positive",
+      sql`${t.exchangeRate} > 0`
+    ),
+    check(
+      "chk_purchase_invoice_base_amount_not_negative",
+      sql`${t.baseAmount} >= 0`
+    ),
+    check(
+      "chk_purchase_invoice_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var purchaseInvoiceItems = pgTable(
@@ -1203,11 +1432,13 @@ var purchaseInvoiceItems = pgTable(
     productName: varchar("productName", { length: 255 }).notNull(),
     quantity: integer("quantity").notNull(),
     unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
-    discount: decimal("discount", { precision: 15, scale: 2 }).default("0").notNull(),
+    discount: decimal("discount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     total: decimal("total", { precision: 15, scale: 2 }).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  (t) => [index("idx_purchase_items_invoice").on(t.invoiceId)]
+  t => [index("idx_purchase_items_invoice").on(t.invoiceId)]
 );
 var orders = pgTable(
   "orders",
@@ -1232,16 +1463,16 @@ var orders = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_orders_tenant").on(t.tenantId),
     index("idx_orders_customer").on(t.customerId),
     index("idx_orders_status").on(t.status),
     index("idx_orders_currency").on(t.currencyId),
     unique("orders_gc_tenant_unique").on(t.tenantId, t.globalCode),
     check("chk_order_total_not_negative", sql`${t.total} >= 0`),
-    check("chk_order_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_order_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var orderItems = pgTable(
@@ -1254,14 +1485,11 @@ var orderItems = pgTable(
     quantity: integer("quantity").notNull(),
     unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
     total: decimal("total", { precision: 15, scale: 2 }).notNull(),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  (t) => [index("idx_order_items_order").on(t.orderId)]
+  t => [index("idx_order_items_order").on(t.orderId)]
 );
-var paymentSourceEnum = pgEnum("payment_source", [
-  "sales",
-  "purchases"
-]);
+var paymentSourceEnum = pgEnum("payment_source", ["sales", "purchases"]);
 var payments = pgTable(
   "payments",
   {
@@ -1282,46 +1510,66 @@ var payments = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull()
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
   },
-  (t) => [
+  t => [
     index("idx_payments_tenant").on(t.tenantId),
     index("idx_payments_invoice").on(t.source, t.invoiceId),
     index("idx_payments_currency").on(t.currencyId),
     check("chk_payment_amount_positive", sql`${t.amount} > 0`),
     check("chk_payment_base_amount_positive", sql`${t.baseAmount} >= 0`),
     check("chk_payment_exchange_rate_positive", sql`${t.exchangeRate} > 0`),
-    check("chk_payment_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_payment_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
-var subscriptionPlans = pgTable("subscription_plans", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  name: varchar("name", { length: 100 }).notNull(),
-  code: varchar("code", { length: 50 }).notNull().unique(),
-  description: text("description"),
-  priceMonthly: decimal("priceMonthly", { precision: 10, scale: 2 }).notNull(),
-  priceYearly: decimal("priceYearly", { precision: 10, scale: 2 }).notNull(),
-  currency: varchar("currency", { length: 10 }).default("USD").notNull(),
-  maxUsers: integer("maxUsers").default(5).notNull(),
-  maxBranches: integer("maxBranches").default(1).notNull(),
-  maxTransactions: integer("maxTransactions").default(1e3).notNull(),
-  features: jsonb("features"),
-  isActive: boolean("isActive").default(true).notNull(),
-  sortOrder: integer("sortOrder").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t) => [
-  check("chk_subscription_plan_price_monthly_positive", sql`${t.priceMonthly} > 0`),
-  check("chk_subscription_plan_price_yearly_positive", sql`${t.priceYearly} > 0`),
-  check("chk_subscription_plan_currency_format", sql`${t.currency} ~ '^[A-Z]{3}$'`)
-]);
+var subscriptionPlans = pgTable(
+  "subscription_plans",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    name: varchar("name", { length: 100 }).notNull(),
+    code: varchar("code", { length: 50 }).notNull().unique(),
+    description: text("description"),
+    priceMonthly: decimal("priceMonthly", {
+      precision: 10,
+      scale: 2,
+    }).notNull(),
+    priceYearly: decimal("priceYearly", { precision: 10, scale: 2 }).notNull(),
+    currency: varchar("currency", { length: 10 }).default("USD").notNull(),
+    maxUsers: integer("maxUsers").default(5).notNull(),
+    maxBranches: integer("maxBranches").default(1).notNull(),
+    maxTransactions: integer("maxTransactions").default(1e3).notNull(),
+    features: jsonb("features"),
+    isActive: boolean("isActive").default(true).notNull(),
+    sortOrder: integer("sortOrder").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    check(
+      "chk_subscription_plan_price_monthly_positive",
+      sql`${t.priceMonthly} > 0`
+    ),
+    check(
+      "chk_subscription_plan_price_yearly_positive",
+      sql`${t.priceYearly} > 0`
+    ),
+    check(
+      "chk_subscription_plan_currency_format",
+      sql`${t.currency} ~ '^[A-Z]{3}$'`
+    ),
+  ]
+);
 var tenantSubscriptions = pgTable(
   "tenant_subscriptions",
   {
@@ -1330,7 +1578,9 @@ var tenantSubscriptions = pgTable(
     tenantId: integer("tenantId").notNull(),
     planId: integer("planId").notNull(),
     status: varchar("status", { length: 20 }).notNull(),
-    billingCycle: varchar("billingCycle", { length: 10 }).default("monthly").notNull(),
+    billingCycle: varchar("billingCycle", { length: 10 })
+      .default("monthly")
+      .notNull(),
     trialStartsAt: timestamp("trialStartsAt"),
     trialEndsAt: timestamp("trialEndsAt"),
     currentPeriodStart: timestamp("currentPeriodStart"),
@@ -1346,13 +1596,13 @@ var tenantSubscriptions = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_tenant_sub_tenant").on(t.tenantId),
     index("idx_tenant_sub_status").on(t.status),
     index("idx_tenant_sub_currency").on(t.currencyId),
-    check("chk_tenant_sub_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_tenant_sub_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var billingInvoices = pgTable(
@@ -1365,7 +1615,9 @@ var billingInvoices = pgTable(
     invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
     status: varchar("status", { length: 20 }).notNull(),
     subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
-    taxAmount: decimal("taxAmount", { precision: 10, scale: 2 }).default("0").notNull(),
+    taxAmount: decimal("taxAmount", { precision: 10, scale: 2 })
+      .default("0")
+      .notNull(),
     total: decimal("total", { precision: 10, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 10 }).default("USD").notNull(),
     dueDate: timestamp("dueDate").notNull(),
@@ -1380,16 +1632,19 @@ var billingInvoices = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_billing_invoice_tenant").on(t.tenantId),
     index("idx_billing_invoice_status").on(t.status),
     index("idx_billing_invoice_currency").on(t.currencyId),
     check("chk_billing_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
     check("chk_billing_invoice_tax_not_negative", sql`${t.taxAmount} >= 0`),
     check("chk_billing_invoice_total_not_negative", sql`${t.total} >= 0`),
-    check("chk_billing_invoice_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_billing_invoice_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var paymentHistory = pgTable(
@@ -1406,7 +1661,7 @@ var paymentHistory = pgTable(
     transactionId: varchar("transactionId", { length: 255 }),
     refundedAmount: decimal("refundedAmount", {
       precision: 10,
-      scale: 2
+      scale: 2,
     }).default("0"),
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1416,15 +1671,21 @@ var paymentHistory = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_payment_history_tenant").on(t.tenantId),
     index("idx_payment_history_invoice").on(t.invoiceId),
     index("idx_payment_history_currency").on(t.currencyId),
     check("chk_payment_history_amount_positive", sql`${t.amount} > 0`),
-    check("chk_payment_history_refund_not_negative", sql`${t.refundedAmount} >= 0`),
-    check("chk_payment_history_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_payment_history_refund_not_negative",
+      sql`${t.refundedAmount} >= 0`
+    ),
+    check(
+      "chk_payment_history_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var auditLogs = pgTable(
@@ -1459,9 +1720,9 @@ var auditLogs = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    createdAt: timestamp("createdAt").defaultNow().notNull()
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  (t) => [
+  t => [
     index("idx_audit_logs_tenant").on(t.tenantId),
     index("idx_audit_logs_user").on(t.userId),
     index("idx_audit_logs_session").on(t.sessionId),
@@ -1469,7 +1730,7 @@ var auditLogs = pgTable(
     index("idx_audit_logs_entity_global").on(t.entityGlobalId),
     index("idx_audit_logs_created").on(t.createdAt),
     index("idx_audit_logs_chain").on(t.tenantId, t.chainSequence),
-    check("chk_audit_log_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_audit_log_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var notifications = pgTable(
@@ -1494,12 +1755,12 @@ var notifications = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_notifications_tenant").on(t.tenantId),
     index("idx_notifications_user").on(t.userId),
-    index("idx_notifications_status").on(t.status)
+    index("idx_notifications_status").on(t.status),
   ]
 );
 var teamInvitations = pgTable(
@@ -1521,37 +1782,44 @@ var teamInvitations = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_team_inv_tenant").on(t.tenantId),
     index("idx_team_inv_email").on(t.email),
-    check("chk_team_invitation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_team_invitation_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
-var currencies = pgTable("currencies", {
-  id: serial("id").primaryKey(),
-  GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-  tenantId: integer("tenantId"),
-  code: varchar("code", { length: 10 }).notNull().unique(),
-  name: varchar("name", { length: 100 }).notNull(),
-  symbol: varchar("symbol", { length: 10 }).notNull(),
-  rate: decimal("rate", { precision: 18, scale: 8 }).default("1").notNull(),
-  isDefault: boolean("isDefault").default(false).notNull(),
-  decimalPlaces: integer("decimalPlaces").default(2).notNull(),
-  isActive: boolean("isActive").default(true).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-  updatedAt: timestamp("updatedAt").defaultNow().notNull(),
-  // Sync columns
-  serverVersion: integer("serverVersion").default(1).notNull(),
-  lastSyncAt: timestamp("lastSyncAt"),
-  conflictState: varchar("conflictState", { length: 20 }).default("none"),
-  aggregateId: uuid("aggregateId")
-}, (t) => [
-  index("idx_currencies_tenant").on(t.tenantId),
-  check("chk_currency_rate_positive", sql`${t.rate} > 0`),
-  check("chk_currency_code_format", sql`${t.code} ~ '^[A-Z]{3}$'`)
-]);
+var currencies = pgTable(
+  "currencies",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId"),
+    code: varchar("code", { length: 10 }).notNull().unique(),
+    name: varchar("name", { length: 100 }).notNull(),
+    symbol: varchar("symbol", { length: 10 }).notNull(),
+    rate: decimal("rate", { precision: 18, scale: 8 }).default("1").notNull(),
+    isDefault: boolean("isDefault").default(false).notNull(),
+    decimalPlaces: integer("decimalPlaces").default(2).notNull(),
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_currencies_tenant").on(t.tenantId),
+    check("chk_currency_rate_positive", sql`${t.rate} > 0`),
+    check("chk_currency_code_format", sql`${t.code} ~ '^[A-Z]{3}$'`),
+  ]
+);
 var exchangeRates = pgTable(
   "exchange_rates",
   {
@@ -1569,13 +1837,17 @@ var exchangeRates = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_exchange_rates_pair").on(t.baseCurrency, t.quoteCurrency),
     index("idx_exchange_rates_effective").on(t.effectiveFrom),
-    unique("exchange_rates_pair_effective_unique").on(t.baseCurrency, t.quoteCurrency, t.effectiveFrom),
-    check("chk_exchange_rate_positive", sql`${t.rate} > 0`)
+    unique("exchange_rates_pair_effective_unique").on(
+      t.baseCurrency,
+      t.quoteCurrency,
+      t.effectiveFrom
+    ),
+    check("chk_exchange_rate_positive", sql`${t.rate} > 0`),
   ]
 );
 var fileUploads = pgTable(
@@ -1590,7 +1862,9 @@ var fileUploads = pgTable(
     mimeType: varchar("mimeType", { length: 100 }).notNull(),
     fileSize: integer("fileSize").notNull(),
     storageKey: varchar("storageKey", { length: 500 }).notNull(),
-    storageProvider: varchar("storageProvider", { length: 50 }).default("s3").notNull(),
+    storageProvider: varchar("storageProvider", { length: 50 })
+      .default("s3")
+      .notNull(),
     url: varchar("url", { length: 500 }).notNull(),
     entityType: varchar("entityType", { length: 50 }),
     entityId: integer("entityId"),
@@ -1614,21 +1888,23 @@ var fileUploads = pgTable(
     lat: decimal("lat", { precision: 10, scale: 7 }),
     lng: decimal("lng", { precision: 10, scale: 7 }),
     // Retention
-    retentionPolicy: varchar("retentionPolicy", { length: 50 }).default("standard"),
+    retentionPolicy: varchar("retentionPolicy", { length: 50 }).default(
+      "standard"
+    ),
     retentionExpiresAt: timestamp("retentionExpiresAt"),
     legalHold: boolean("legalHold").default(false).notNull(),
     // Sync columns
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_file_uploads_tenant").on(t.tenantId),
     index("idx_file_uploads_entity").on(t.entityType, t.entityId),
     index("idx_file_uploads_hash").on(t.sha256Hash),
     index("idx_file_uploads_retention").on(t.retentionExpiresAt),
-    check("chk_file_upload_size_positive", sql`${t.fileSize} > 0`)
+    check("chk_file_upload_size_positive", sql`${t.fileSize} > 0`),
   ]
 );
 var apiKeys = pgTable(
@@ -1652,11 +1928,11 @@ var apiKeys = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_api_keys_tenant").on(t.tenantId),
-    check("chk_api_key_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_api_key_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var webhooks = pgTable(
@@ -1678,11 +1954,11 @@ var webhooks = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_webhooks_tenant").on(t.tenantId),
-    check("chk_webhook_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_webhook_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var webhookDeliveries = pgTable(
@@ -1703,11 +1979,11 @@ var webhookDeliveries = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_webhook_deliveries_webhook").on(t.webhookId),
-    index("idx_webhook_deliveries_created").on(t.createdAt)
+    index("idx_webhook_deliveries_created").on(t.createdAt),
   ]
 );
 var featureFlags = pgTable(
@@ -1725,36 +2001,36 @@ var featureFlags = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_feature_flags_tenant_key").on(t.tenantId, t.key),
-    unique("feature_flags_tenant_key_unique").on(t.tenantId, t.key)
+    unique("feature_flags_tenant_key_unique").on(t.tenantId, t.key),
   ]
 );
 var employeeStatusEnum = pgEnum("employee_status", [
   "active",
   "on_leave",
-  "terminated"
+  "terminated",
 ]);
 var projectStatusEnum = pgEnum("project_status", [
   "planning",
   "active",
   "on_hold",
   "completed",
-  "cancelled"
+  "cancelled",
 ]);
 var taskStatusEnum = pgEnum("task_status", [
   "todo",
   "in_progress",
   "review",
-  "done"
+  "done",
 ]);
 var taskPriorityEnum = pgEnum("task_priority", [
   "low",
   "medium",
   "high",
-  "urgent"
+  "urgent",
 ]);
 var requisitionStatusEnum = pgEnum("requisition_status", [
   "draft",
@@ -1762,40 +2038,40 @@ var requisitionStatusEnum = pgEnum("requisition_status", [
   "approved",
   "rejected",
   "ordered",
-  "received"
+  "received",
 ]);
 var approvalDecisionEnum = pgEnum("approval_decision", [
   "pending",
   "approved",
-  "rejected"
+  "rejected",
 ]);
 var ticketStatusEnum = pgEnum("ticket_status", [
   "open",
   "in_progress",
   "resolved",
-  "closed"
+  "closed",
 ]);
 var ticketPriorityEnum = pgEnum("ticket_priority", [
   "low",
   "medium",
   "high",
-  "urgent"
+  "urgent",
 ]);
 var inspectionResultEnum = pgEnum("inspection_result", [
   "pass",
   "fail",
-  "conditional"
+  "conditional",
 ]);
 var attendanceStatusEnum = pgEnum("attendance_status", [
   "present",
   "absent",
   "late",
-  "leave"
+  "leave",
 ]);
 var payrollStatusEnum = pgEnum("payroll_status", [
   "draft",
   "processed",
-  "paid"
+  "paid",
 ]);
 var departments = pgTable(
   "departments",
@@ -1816,12 +2092,12 @@ var departments = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_departments_tenant").on(t.tenantId),
     uniqueIndex("uq_departments_tenant_code").on(t.tenantId, t.code),
-    check("chk_department_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_department_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var employees = pgTable(
@@ -1839,7 +2115,9 @@ var employees = pgTable(
     phone: varchar("phone", { length: 30 }),
     email: varchar("email", { length: 150 }),
     hireDate: timestamp("hireDate"),
-    salary: decimal("salary", { precision: 15, scale: 2 }).default("0").notNull(),
+    salary: decimal("salary", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     currency: varchar("currency", { length: 10 }).default("YER"),
     status: employeeStatusEnum("status").default("active").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1850,14 +2128,14 @@ var employees = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_employees_tenant").on(t.tenantId),
     index("idx_employees_currency").on(t.currencyId),
     uniqueIndex("uq_employees_tenant_code").on(t.tenantId, t.code),
     check("chk_employee_salary_not_negative", sql`${t.salary} >= 0`),
-    check("chk_employee_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_employee_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var attendance = pgTable(
@@ -1882,14 +2160,14 @@ var attendance = pgTable(
     deviceId: integer("deviceId"),
     ipAddress: varchar("ipAddress", { length: 45 }),
     lat: decimal("lat", { precision: 10, scale: 7 }),
-    lng: decimal("lng", { precision: 10, scale: 7 })
+    lng: decimal("lng", { precision: 10, scale: 7 }),
   },
-  (t) => [
+  t => [
     index("idx_attendance_tenant").on(t.tenantId),
     index("idx_attendance_employee").on(t.employeeId),
     index("idx_attendance_date").on(t.date),
     unique("attendance_employee_date_unique").on(t.employeeId, t.date),
-    check("chk_attendance_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_attendance_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var payrollRuns = pgTable(
@@ -1901,7 +2179,9 @@ var payrollRuns = pgTable(
     periodName: varchar("periodName", { length: 40 }).notNull(),
     fromDate: timestamp("fromDate").notNull(),
     toDate: timestamp("toDate").notNull(),
-    totalNet: decimal("totalNet", { precision: 15, scale: 2 }).default("0").notNull(),
+    totalNet: decimal("totalNet", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     status: payrollStatusEnum("status").default("draft").notNull(),
     createdById: integer("createdById"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1911,13 +2191,13 @@ var payrollRuns = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_payroll_runs_tenant").on(t.tenantId),
     unique("payroll_runs_tenant_period_unique").on(t.tenantId, t.periodName),
     check("chk_payroll_run_total_not_negative", sql`${t.totalNet} >= 0`),
-    check("chk_payroll_run_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_payroll_run_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var payrollItems = pgTable(
@@ -1928,8 +2208,12 @@ var payrollItems = pgTable(
     tenantId: integer("tenantId").notNull(),
     payrollRunId: integer("payrollRunId").notNull(),
     employeeId: integer("employeeId").notNull(),
-    basicSalary: decimal("basicSalary", { precision: 15, scale: 2 }).default("0").notNull(),
-    deductions: decimal("deductions", { precision: 15, scale: 2 }).default("0").notNull(),
+    basicSalary: decimal("basicSalary", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    deductions: decimal("deductions", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     net: decimal("net", { precision: 15, scale: 2 }).default("0").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -1937,17 +2221,23 @@ var payrollItems = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_payroll_items_tenant").on(t.tenantId),
     index("idx_payroll_items_run").on(t.payrollRunId),
     index("idx_payroll_items_employee").on(t.employeeId),
-    unique("payroll_items_run_employee_unique").on(t.payrollRunId, t.employeeId),
+    unique("payroll_items_run_employee_unique").on(
+      t.payrollRunId,
+      t.employeeId
+    ),
     check("chk_payroll_item_basic_not_negative", sql`${t.basicSalary} >= 0`),
-    check("chk_payroll_item_deductions_not_negative", sql`${t.deductions} >= 0`),
+    check(
+      "chk_payroll_item_deductions_not_negative",
+      sql`${t.deductions} >= 0`
+    ),
     check("chk_payroll_item_net_not_negative", sql`${t.net} >= 0`),
-    check("chk_payroll_item_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_payroll_item_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var projects = pgTable(
@@ -1962,7 +2252,9 @@ var projects = pgTable(
     status: projectStatusEnum("status").default("planning").notNull(),
     startDate: timestamp("startDate"),
     endDate: timestamp("endDate"),
-    budget: decimal("budget", { precision: 15, scale: 2 }).default("0").notNull(),
+    budget: decimal("budget", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     managerId: integer("managerId"),
     customerId: integer("customerId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1972,14 +2264,14 @@ var projects = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_projects_tenant").on(t.tenantId),
     index("idx_projects_currency").on(t.currencyId),
     uniqueIndex("uq_projects_tenant_code").on(t.tenantId, t.code),
     check("chk_project_budget_not_negative", sql`${t.budget} >= 0`),
-    check("chk_project_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_project_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var projectTasks = pgTable(
@@ -2003,13 +2295,13 @@ var projectTasks = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_project_tasks_tenant").on(t.tenantId),
     index("idx_project_tasks_project").on(t.projectId),
     index("idx_project_tasks_assignee").on(t.assigneeId),
-    check("chk_project_task_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_project_task_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var projectMembers = pgTable(
@@ -2027,14 +2319,17 @@ var projectMembers = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_project_members_tenant").on(t.tenantId),
     index("idx_project_members_project").on(t.projectId),
     index("idx_project_members_employee").on(t.employeeId),
-    unique("project_members_project_employee_unique").on(t.projectId, t.employeeId),
-    check("chk_project_member_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("project_members_project_employee_unique").on(
+      t.projectId,
+      t.employeeId
+    ),
+    check("chk_project_member_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var procurements = pgTable(
@@ -2048,9 +2343,13 @@ var procurements = pgTable(
     departmentId: integer("departmentId"),
     itemName: varchar("itemName", { length: 200 }).notNull(),
     description: text("description"),
-    quantity: decimal("quantity", { precision: 12, scale: 2 }).default("1").notNull(),
+    quantity: decimal("quantity", { precision: 12, scale: 2 })
+      .default("1")
+      .notNull(),
     unit: varchar("unit", { length: 20 }).default("\u0642\u0637\u0639\u0629"),
-    estimatedCost: decimal("estimatedCost", { precision: 15, scale: 2 }).default("0").notNull(),
+    estimatedCost: decimal("estimatedCost", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     currency: varchar("currency", { length: 10 }).default("YER"),
     supplierId: integer("supplierId"),
     status: requisitionStatusEnum("status").default("draft").notNull(),
@@ -2069,9 +2368,9 @@ var procurements = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_procurements_tenant").on(t.tenantId),
     index("idx_procurements_currency").on(t.currencyId),
     uniqueIndex("uq_procurements_tenant_req").on(
@@ -2079,8 +2378,11 @@ var procurements = pgTable(
       t.requisitionNumber
     ),
     check("chk_procurement_quantity_positive", sql`${t.quantity} > 0`),
-    check("chk_procurement_estimated_cost_not_negative", sql`${t.estimatedCost} >= 0`),
-    check("chk_procurement_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_procurement_estimated_cost_not_negative",
+      sql`${t.estimatedCost} >= 0`
+    ),
+    check("chk_procurement_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var procurementApprovals = pgTable(
@@ -2100,13 +2402,19 @@ var procurementApprovals = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_procurement_approvals_tenant").on(t.tenantId),
     index("idx_procurement_approvals_proc").on(t.procurementId),
-    unique("procurement_approvals_proc_level_unique").on(t.procurementId, t.level),
-    check("chk_procurement_approval_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("procurement_approvals_proc_level_unique").on(
+      t.procurementId,
+      t.level
+    ),
+    check(
+      "chk_procurement_approval_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var tickets = pgTable(
@@ -2129,13 +2437,13 @@ var tickets = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_tickets_tenant").on(t.tenantId),
     index("idx_tickets_assigned").on(t.assignedToId),
     uniqueIndex("uq_tickets_tenant_num").on(t.tenantId, t.ticketNumber),
-    check("chk_ticket_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_ticket_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var qualityInspections = pgTable(
@@ -2158,13 +2466,16 @@ var qualityInspections = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_quality_inspections_tenant").on(t.tenantId),
     uniqueIndex("uq_quality_tenant_code").on(t.tenantId, t.code),
-    check("chk_quality_score_range", sql`${t.score} IS NULL OR (${t.score} >= 0 AND ${t.score} <= 100)`),
-    check("chk_quality_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_quality_score_range",
+      sql`${t.score} IS NULL OR (${t.score} >= 0 AND ${t.score} <= 100)`
+    ),
+    check("chk_quality_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var journalEntries = pgTable(
@@ -2179,7 +2490,9 @@ var journalEntries = pgTable(
     sourceRefId: integer("sourceRefId"),
     referenceNo: varchar("referenceNo", { length: 80 }),
     status: varchar("status", { length: 20 }).default("posted").notNull(),
-    totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).default("0"),
+    totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).default(
+      "0"
+    ),
     memo: text("memo"),
     createdById: integer("createdById"),
     postedAt: timestamp("postedAt"),
@@ -2192,17 +2505,20 @@ var journalEntries = pgTable(
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
     // Immutable once posted
-    isImmutable: boolean("isImmutable").default(false).notNull()
+    isImmutable: boolean("isImmutable").default(false).notNull(),
   },
-  (t) => [
+  t => [
     index("idx_journal_tenant").on(t.tenantId),
     index("idx_journal_source").on(t.sourceModule, t.sourceRefId),
     index("idx_journal_currency").on(t.currencyId),
     check("chk_journal_total_not_negative", sql`${t.totalAmount} >= 0`),
     check("chk_journal_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-    check("chk_journal_immutable_posted", sql`
+    check(
+      "chk_journal_immutable_posted",
+      sql`
       CASE WHEN ${t.status} = 'posted' THEN ${t.isImmutable} = true ELSE true END
-    `)
+    `
+    ),
   ]
 );
 var scheduledJournalEntries = pgTable(
@@ -2214,7 +2530,9 @@ var scheduledJournalEntries = pgTable(
     name: varchar("name", { length: 200 }).notNull(),
     description: text("description"),
     branchId: integer("branchId"),
-    frequency: varchar("frequency", { length: 20 }).default("monthly").notNull(),
+    frequency: varchar("frequency", { length: 20 })
+      .default("monthly")
+      .notNull(),
     nextRunAt: timestamp("nextRunAt"),
     isActive: boolean("isActive").default(true).notNull(),
     legs: jsonb("legs"),
@@ -2225,12 +2543,15 @@ var scheduledJournalEntries = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_scheduledJournal_tenant").on(t.tenantId),
     index("idx_scheduledJournal_nextRun").on(t.nextRunAt),
-    check("chk_scheduled_journal_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_scheduled_journal_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var recurringExpenseStatusEnum = pgEnum("recurring_expense_status", [
@@ -2238,7 +2559,7 @@ var recurringExpenseStatusEnum = pgEnum("recurring_expense_status", [
   "active",
   "paused",
   "completed",
-  "cancelled"
+  "cancelled",
 ]);
 var recurringExpenseFrequencyEnum = pgEnum("recurring_expense_frequency", [
   "daily",
@@ -2248,17 +2569,14 @@ var recurringExpenseFrequencyEnum = pgEnum("recurring_expense_frequency", [
   "quarterly",
   "semiannual",
   "annual",
-  "custom"
+  "custom",
 ]);
-var expenseBasisEnum = pgEnum("expense_basis", [
-  "accrual",
-  "cash"
-]);
+var expenseBasisEnum = pgEnum("expense_basis", ["accrual", "cash"]);
 var expenseApprovalStatusEnum = pgEnum("expense_approval_status", [
   "pending",
   "approved",
   "rejected",
-  "auto_approved"
+  "auto_approved",
 ]);
 var recurringExpenses = pgTable(
   "recurring_expenses",
@@ -2270,14 +2588,22 @@ var recurringExpenses = pgTable(
     description: text("description"),
     categoryId: integer("categoryId").references(() => categories.id),
     vendorId: integer("vendorId").references(() => suppliers.id),
-    accountId: integer("accountId").references(() => accounts.id).notNull(),
+    accountId: integer("accountId")
+      .references(() => accounts.id)
+      .notNull(),
     branchId: integer("branchId").references(() => branches.id),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 10 }).default("YER").notNull(),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    taxRate: decimal("taxRate", { precision: 5, scale: 2 }).default("0").notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    taxRate: decimal("taxRate", { precision: 5, scale: 2 })
+      .default("0")
+      .notNull(),
     taxAccountId: integer("taxAccountId").references(() => accounts.id),
-    frequency: recurringExpenseFrequencyEnum("frequency").default("monthly").notNull(),
+    frequency: recurringExpenseFrequencyEnum("frequency")
+      .default("monthly")
+      .notNull(),
     customCron: varchar("customCron", { length: 100 }),
     dayOfMonth: integer("dayOfMonth"),
     dayOfWeek: integer("dayOfWeek"),
@@ -2288,7 +2614,9 @@ var recurringExpenses = pgTable(
     occurrencesCount: integer("occurrencesCount").default(0).notNull(),
     basis: expenseBasisEnum("basis").default("accrual").notNull(),
     status: recurringExpenseStatusEnum("status").default("draft").notNull(),
-    approvalStatus: expenseApprovalStatusEnum("approvalStatus").default("pending").notNull(),
+    approvalStatus: expenseApprovalStatusEnum("approvalStatus")
+      .default("pending")
+      .notNull(),
     approverId: integer("approverId").references(() => users.id),
     approvedAt: timestamp("approvedAt"),
     approvedById: integer("approvedById").references(() => users.id),
@@ -2312,9 +2640,9 @@ var recurringExpenses = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_recurring_expenses_tenant").on(t.tenantId),
     index("idx_recurring_expenses_status").on(t.status),
     index("idx_recurring_expenses_next_run").on(t.nextRunAt),
@@ -2323,11 +2651,26 @@ var recurringExpenses = pgTable(
     index("idx_recurring_expenses_account").on(t.accountId),
     index("idx_recurring_expenses_budget").on(t.budgetId),
     check("chk_recurring_expense_amount_positive", sql`${t.amount} > 0`),
-    check("chk_recurring_expense_exchange_rate_positive", sql`${t.exchangeRate} > 0`),
-    check("chk_recurring_expense_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
-    check("chk_recurring_expense_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
-    check("chk_recurring_expense_account_not_null", sql`${t.accountId} IS NOT NULL`),
-    check("chk_recurring_expense_dates", sql`${t.startDate} <= ${t.endDate} OR ${t.endDate} IS NULL`)
+    check(
+      "chk_recurring_expense_exchange_rate_positive",
+      sql`${t.exchangeRate} > 0`
+    ),
+    check(
+      "chk_recurring_expense_tax_rate_not_negative",
+      sql`${t.taxRate} >= 0`
+    ),
+    check(
+      "chk_recurring_expense_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
+    check(
+      "chk_recurring_expense_account_not_null",
+      sql`${t.accountId} IS NOT NULL`
+    ),
+    check(
+      "chk_recurring_expense_dates",
+      sql`${t.startDate} <= ${t.endDate} OR ${t.endDate} IS NULL`
+    ),
   ]
 );
 var recurringExpenseRuns = pgTable(
@@ -2336,19 +2679,33 @@ var recurringExpenseRuns = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId").notNull(),
-    recurringExpenseId: integer("recurringExpenseId").notNull().references(() => recurringExpenses.id),
+    recurringExpenseId: integer("recurringExpenseId")
+      .notNull()
+      .references(() => recurringExpenses.id),
     runNumber: integer("runNumber").notNull(),
     scheduledDate: timestamp("scheduledDate").notNull(),
     executedDate: timestamp("executedDate"),
     status: varchar("status", { length: 20 }).default("pending").notNull(),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
-    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 }).default("0").notNull(),
+    taxAmount: decimal("taxAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     totalAmount: decimal("totalAmount", { precision: 15, scale: 2 }).notNull(),
-    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
-    journalEntryId: integer("journalEntryId").references(() => journalEntries.id),
-    purchaseInvoiceId: integer("purchaseInvoiceId").references(() => purchaseInvoices.id),
-    paymentTransactionId: integer("paymentTransactionId").references(() => transactions.id),
+    baseAmount: decimal("baseAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    journalEntryId: integer("journalEntryId").references(
+      () => journalEntries.id
+    ),
+    purchaseInvoiceId: integer("purchaseInvoiceId").references(
+      () => purchaseInvoices.id
+    ),
+    paymentTransactionId: integer("paymentTransactionId").references(
+      () => transactions.id
+    ),
     errorMessage: text("errorMessage"),
     processedById: integer("processedById").references(() => users.id),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -2357,16 +2714,22 @@ var recurringExpenseRuns = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_recurring_expense_runs_tenant").on(t.tenantId),
     index("idx_recurring_expense_runs_recurring").on(t.recurringExpenseId),
     index("idx_recurring_expense_runs_scheduled").on(t.scheduledDate),
     index("idx_recurring_expense_runs_status").on(t.status),
-    unique("recurring_expense_runs_unique").on(t.recurringExpenseId, t.runNumber),
+    unique("recurring_expense_runs_unique").on(
+      t.recurringExpenseId,
+      t.runNumber
+    ),
     check("chk_recurring_expense_run_amount_positive", sql`${t.amount} > 0`),
-    check("chk_recurring_expense_run_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_recurring_expense_run_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var units = pgTable(
@@ -2380,7 +2743,10 @@ var units = pgTable(
     nameAr: varchar("nameAr", { length: 80 }),
     symbol: varchar("symbol", { length: 20 }),
     baseUnitId: integer("baseUnitId"),
-    conversionFactor: decimal("conversionFactor", { precision: 15, scale: 6 }).default("1"),
+    conversionFactor: decimal("conversionFactor", {
+      precision: 15,
+      scale: 6,
+    }).default("1"),
     isActive: boolean("isActive").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -2388,13 +2754,13 @@ var units = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_units_tenant").on(t.tenantId),
     uniqueIndex("uq_units_tenant_code").on(t.tenantId, t.code),
     check("chk_unit_conversion_positive", sql`${t.conversionFactor} > 0`),
-    check("chk_unit_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_unit_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var productUnits = pgTable(
@@ -2405,7 +2771,9 @@ var productUnits = pgTable(
     tenantId: integer("tenantId").notNull(),
     productId: integer("productId").notNull(),
     unitId: integer("unitId").notNull(),
-    conversionFactor: decimal("conversionFactor", { precision: 15, scale: 6 }).default("1").notNull(),
+    conversionFactor: decimal("conversionFactor", { precision: 15, scale: 6 })
+      .default("1")
+      .notNull(),
     isBase: boolean("isBase").default(false).notNull(),
     barcode: varchar("barcode", { length: 100 }),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -2414,14 +2782,17 @@ var productUnits = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_productUnits_tenant").on(t.tenantId),
     index("idx_productUnits_product").on(t.productId),
     unique("product_units_product_unit_unique").on(t.productId, t.unitId),
-    check("chk_product_unit_conversion_positive", sql`${t.conversionFactor} > 0`),
-    check("chk_product_unit_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_product_unit_conversion_positive",
+      sql`${t.conversionFactor} > 0`
+    ),
+    check("chk_product_unit_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var categories = pgTable(
@@ -2442,12 +2813,12 @@ var categories = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_categories_tenant").on(t.tenantId),
     uniqueIndex("uq_categories_tenant_code").on(t.tenantId, t.code),
-    check("chk_category_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_category_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var roles = pgTable(
@@ -2468,12 +2839,12 @@ var roles = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_roles_tenant").on(t.tenantId),
     uniqueIndex("uq_roles_tenant_code").on(t.tenantId, t.code),
-    check("chk_role_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_role_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var userRoles = pgTable(
@@ -2490,12 +2861,12 @@ var userRoles = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_userroles_tenant").on(t.tenantId),
     uniqueIndex("uq_userroles_user_role").on(t.userId, t.roleId),
-    check("chk_user_role_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_user_role_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var permissions = pgTable(
@@ -2512,11 +2883,9 @@ var permissions = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
-    uniqueIndex("uq_permissions_key").on(t.key)
-  ]
+  t => [uniqueIndex("uq_permissions_key").on(t.key)]
 );
 var documents = pgTable(
   "documents",
@@ -2539,12 +2908,12 @@ var documents = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_documents_tenant").on(t.tenantId),
     index("idx_documents_entity").on(t.entityType, t.entityId),
-    check("chk_document_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_document_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var messages = pgTable(
@@ -2564,13 +2933,13 @@ var messages = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_messages_tenant").on(t.tenantId),
     index("idx_messages_to").on(t.tenantId, t.toUserId),
     index("idx_messages_from").on(t.tenantId, t.fromUserId),
-    check("chk_message_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_message_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var posSessions = pgTable(
@@ -2583,7 +2952,9 @@ var posSessions = pgTable(
     openedById: integer("openedById").notNull(),
     openedAt: timestamp("openedAt").defaultNow().notNull(),
     closedAt: timestamp("closedAt"),
-    openingFloat: decimal("openingFloat", { precision: 15, scale: 2 }).default("0"),
+    openingFloat: decimal("openingFloat", { precision: 15, scale: 2 }).default(
+      "0"
+    ),
     closingFloat: decimal("closingFloat", { precision: 15, scale: 2 }),
     expectedCash: decimal("expectedCash", { precision: 15, scale: 2 }),
     countedCash: decimal("countedCash", { precision: 15, scale: 2 }),
@@ -2599,12 +2970,12 @@ var posSessions = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_pos_sessions_tenant").on(t.tenantId),
     index("idx_pos_sessions_currency").on(t.currencyId),
-    check("chk_pos_session_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_pos_session_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var posOrders = pgTable(
@@ -2626,13 +2997,13 @@ var posOrders = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_pos_orders_tenant").on(t.tenantId),
     index("idx_pos_orders_currency").on(t.currencyId),
     check("chk_pos_order_total_not_negative", sql`${t.total} >= 0`),
-    check("chk_pos_order_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_pos_order_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var customFieldDefs = pgTable(
@@ -2657,15 +3028,18 @@ var customFieldDefs = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
     // JSON Schema validation
-    jsonSchema: jsonb("jsonSchema")
+    jsonSchema: jsonb("jsonSchema"),
   },
-  (t) => [
+  t => [
     uniqueIndex("custom_field_defs_tenant_entity_key").on(
       t.tenantId,
       t.entityType,
       t.key
     ),
-    check("chk_custom_field_def_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_custom_field_def_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var customFieldValues = pgTable(
@@ -2684,16 +3058,23 @@ var customFieldValues = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("custom_field_values_tenant_entity").on(
       t.tenantId,
       t.entityType,
       t.entityId
     ),
-    unique("custom_field_values_entity_field_unique").on(t.entityType, t.entityId, t.fieldKey),
-    check("chk_custom_field_value_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("custom_field_values_entity_field_unique").on(
+      t.entityType,
+      t.entityId,
+      t.fieldKey
+    ),
+    check(
+      "chk_custom_field_value_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var salesReps = pgTable(
@@ -2704,8 +3085,12 @@ var salesReps = pgTable(
     tenantId: integer("tenantId").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }),
-    commissionType: varchar("commissionType", { length: 20 }).default("percent").notNull(),
-    commissionValue: decimal("commissionValue", { precision: 15, scale: 2 }).default("0").notNull(),
+    commissionType: varchar("commissionType", { length: 20 })
+      .default("percent")
+      .notNull(),
+    commissionValue: decimal("commissionValue", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     bonusThreshold: decimal("bonusThreshold", { precision: 15, scale: 2 }),
     bonusAmount: decimal("bonusAmount", { precision: 15, scale: 2 }),
     isActive: boolean("isActive").default(true).notNull(),
@@ -2716,13 +3101,16 @@ var salesReps = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    currencyId: integer("currencyId").references(() => currencies.id)
+    currencyId: integer("currencyId").references(() => currencies.id),
   },
-  (t) => [
+  t => [
     index("idx_sales_reps_tenant").on(t.tenantId),
     index("idx_sales_reps_currency").on(t.currencyId),
-    check("chk_sales_rep_commission_not_negative", sql`${t.commissionValue} >= 0`),
-    check("chk_sales_rep_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_sales_rep_commission_not_negative",
+      sql`${t.commissionValue} >= 0`
+    ),
+    check("chk_sales_rep_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var offers = pgTable(
@@ -2733,7 +3121,9 @@ var offers = pgTable(
     tenantId: integer("tenantId").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     kind: varchar("kind", { length: 20 }).default("financial").notNull(),
-    discountPercent: decimal("discountPercent", { precision: 6, scale: 2 }).default("0").notNull(),
+    discountPercent: decimal("discountPercent", { precision: 6, scale: 2 })
+      .default("0")
+      .notNull(),
     minQty: decimal("minQty", { precision: 15, scale: 2 }),
     productId: integer("productId"),
     categoryId: integer("categoryId"),
@@ -2746,15 +3136,15 @@ var offers = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_offers_tenant").on(t.tenantId),
     index("idx_offers_product").on(t.productId),
     index("idx_offers_category").on(t.categoryId),
     check("chk_offer_discount_not_negative", sql`${t.discountPercent} >= 0`),
     check("chk_offer_discount_not_over_100", sql`${t.discountPercent} <= 100`),
-    check("chk_offer_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_offer_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var translations = pgTable(
@@ -2776,13 +3166,17 @@ var translations = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_translations_tenant").on(t.tenantId),
     index("idx_translations_culture").on(t.culture),
-    unique("translations_key_culture_tenant_unique").on(t.key, t.culture, t.tenantId),
-    check("chk_translation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("translations_key_culture_tenant_unique").on(
+      t.key,
+      t.culture,
+      t.tenantId
+    ),
+    check("chk_translation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var biometricTemplates = pgTable(
@@ -2822,16 +3216,19 @@ var biometricTemplates = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_biometric_tenant").on(t.tenantId),
     index("idx_biometric_user").on(t.userId),
     index("idx_biometric_type").on(t.type),
     index("idx_biometric_status").on(t.status),
     unique("biometric_template_user_type_unique").on(t.userId, t.type),
-    check("chk_biometric_quality_score_range", sql`${t.qualityScore} IS NULL OR (${t.qualityScore} >= 0 AND ${t.qualityScore} <= 100)`),
-    check("chk_biometric_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_biometric_quality_score_range",
+      sql`${t.qualityScore} IS NULL OR (${t.qualityScore} >= 0 AND ${t.qualityScore} <= 100)`
+    ),
+    check("chk_biometric_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var syncMetadata = pgTable(
@@ -2846,7 +3243,9 @@ var syncMetadata = pgTable(
     entityGlobalId: uuid("entityGlobalId").notNull(),
     serverVersion: integer("serverVersion").default(1).notNull(),
     clientVersion: integer("clientVersion").default(0).notNull(),
-    conflictState: varchar("conflictState", { length: 20 }).default("none").notNull(),
+    conflictState: varchar("conflictState", { length: 20 })
+      .default("none")
+      .notNull(),
     // none, client_wins, server_wins, manual
     conflictData: jsonb("conflictData"),
     // { clientValue, serverValue, resolvedValue }
@@ -2855,14 +3254,18 @@ var syncMetadata = pgTable(
     resolvedAt: timestamp("resolvedAt"),
     resolvedById: integer("resolvedById"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
-    updatedAt: timestamp("updatedAt").defaultNow().notNull()
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
   },
-  (t) => [
+  t => [
     index("idx_sync_metadata_tenant").on(t.tenantId),
     index("idx_sync_metadata_aggregate").on(t.aggregateId),
     index("idx_sync_metadata_entity").on(t.entityType, t.entityId),
-    unique("sync_metadata_aggregate_entity_unique").on(t.aggregateId, t.entityType, t.entityId),
-    check("chk_sync_metadata_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("sync_metadata_aggregate_entity_unique").on(
+      t.aggregateId,
+      t.entityType,
+      t.entityId
+    ),
+    check("chk_sync_metadata_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var costCenterTypeEnum = pgEnum("cost_center_type", [
@@ -2872,7 +3275,7 @@ var costCenterTypeEnum = pgEnum("cost_center_type", [
   // مركز ربح
   "investment",
   // مركز استثمار
-  "revenue"
+  "revenue",
   // مركز إيراد
 ]);
 var costCenters = pgTable(
@@ -2896,7 +3299,10 @@ var costCenters = pgTable(
     // Allocation configuration
     allocationBase: varchar("allocationBase", { length: 50 }),
     // headcount, area, revenue, direct_hours, machine_hours, custom
-    allocationWeight: decimal("allocationWeight", { precision: 10, scale: 4 }).default("1"),
+    allocationWeight: decimal("allocationWeight", {
+      precision: 10,
+      scale: 4,
+    }).default("1"),
     // Hierarchy path for fast queries
     path: varchar("path", { length: 500 }),
     // e.g., /1/5/12/
@@ -2908,15 +3314,15 @@ var costCenters = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_cost_centers_tenant").on(t.tenantId),
     index("idx_cost_centers_parent").on(t.parentId),
     index("idx_cost_centers_type").on(t.type),
     index("idx_cost_centers_path").on(t.path),
     unique("cost_centers_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_cost_center_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_cost_center_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var allocationMethodEnum = pgEnum("allocation_method", [
@@ -2928,7 +3334,7 @@ var allocationMethodEnum = pgEnum("allocation_method", [
   // خطوة بخطوة (sequential)
   "reciprocal",
   // تبادلي (simultaneous equations)
-  "activity_based"
+  "activity_based",
   // القائم على الأنشطة (ABC)
 ]);
 var allocationRules = pgTable(
@@ -2945,7 +3351,10 @@ var allocationRules = pgTable(
     // cost_center, account, fixed_amount
     sourceCostCenterId: integer("sourceCostCenterId"),
     sourceAccountId: integer("sourceAccountId"),
-    sourceFixedAmount: decimal("sourceFixedAmount", { precision: 15, scale: 2 }),
+    sourceFixedAmount: decimal("sourceFixedAmount", {
+      precision: 15,
+      scale: 2,
+    }),
     // Target: куда يتم التوزيع
     targetCostCenterIds: jsonb("targetCostCenterIds").notNull(),
     // array of cost center IDs
@@ -2977,13 +3386,16 @@ var allocationRules = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_allocation_rules_tenant").on(t.tenantId),
     index("idx_allocation_rules_source_cc").on(t.sourceCostCenterId),
     index("idx_allocation_rules_next_run").on(t.nextRunAt),
-    check("chk_allocation_rule_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_allocation_rule_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var allocationRuns = pgTable(
@@ -2996,7 +3408,10 @@ var allocationRuns = pgTable(
     periodName: varchar("periodName", { length: 50 }).notNull(),
     status: varchar("status", { length: 20 }).default("draft").notNull(),
     // draft, posted, reversed
-    totalAllocated: decimal("totalAllocated", { precision: 15, scale: 2 }).default("0"),
+    totalAllocated: decimal("totalAllocated", {
+      precision: 15,
+      scale: 2,
+    }).default("0"),
     details: jsonb("details"),
     // [{ targetCostCenterId, basisValue, allocatedAmount }]
     postedAt: timestamp("postedAt"),
@@ -3010,21 +3425,21 @@ var allocationRuns = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_allocation_runs_tenant").on(t.tenantId),
     index("idx_allocation_runs_rule").on(t.ruleId),
     index("idx_allocation_runs_period").on(t.periodName),
     unique("allocation_runs_rule_period_unique").on(t.ruleId, t.periodName),
-    check("chk_allocation_run_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_allocation_run_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var budgetVersionEnum = pgEnum("budget_version", [
   "draft",
   "approved",
   "revised",
-  "final"
+  "final",
 ]);
 var budgetScenarios = pgTable(
   "budget_scenarios",
@@ -3050,13 +3465,20 @@ var budgetScenarios = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_budget_scenarios_tenant").on(t.tenantId),
     index("idx_budget_scenarios_period").on(t.periodName),
-    unique("budget_scenarios_tenant_name_period_unique").on(t.tenantId, t.name, t.periodName),
-    check("chk_budget_scenario_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("budget_scenarios_tenant_name_period_unique").on(
+      t.tenantId,
+      t.name,
+      t.periodName
+    ),
+    check(
+      "chk_budget_scenario_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var budgetLines = pgTable(
@@ -3070,7 +3492,9 @@ var budgetLines = pgTable(
     costCenterId: integer("costCenterId"),
     periodName: varchar("periodName", { length: 50 }).notNull(),
     // monthly breakdown
-    amount: decimal("amount", { precision: 15, scale: 2 }).default("0").notNull(),
+    amount: decimal("amount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     quantity: decimal("quantity", { precision: 15, scale: 4 }),
     // for driver-based budgets
     unitPrice: decimal("unitPrice", { precision: 15, scale: 4 }),
@@ -3081,15 +3505,20 @@ var budgetLines = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_budget_lines_tenant").on(t.tenantId),
     index("idx_budget_lines_scenario").on(t.scenarioId),
     index("idx_budget_lines_account").on(t.accountId),
     index("idx_budget_lines_cc_period").on(t.costCenterId, t.periodName),
-    unique("budget_lines_scenario_account_cc_period_unique").on(t.scenarioId, t.accountId, t.costCenterId, t.periodName),
-    check("chk_budget_line_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("budget_lines_scenario_account_cc_period_unique").on(
+      t.scenarioId,
+      t.accountId,
+      t.costCenterId,
+      t.periodName
+    ),
+    check("chk_budget_line_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var varianceAnalyses = pgTable(
@@ -3102,17 +3531,36 @@ var varianceAnalyses = pgTable(
     periodName: varchar("periodName", { length: 50 }).notNull(),
     accountId: integer("accountId").notNull(),
     costCenterId: integer("costCenterId"),
-    budgetAmount: decimal("budgetAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    actualAmount: decimal("actualAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    varianceAmount: decimal("varianceAmount", { precision: 15, scale: 2 }).default("0").notNull(),
-    variancePercent: decimal("variancePercent", { precision: 10, scale: 2 }).default("0").notNull(),
+    budgetAmount: decimal("budgetAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    actualAmount: decimal("actualAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    varianceAmount: decimal("varianceAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    variancePercent: decimal("variancePercent", { precision: 10, scale: 2 })
+      .default("0")
+      .notNull(),
     varianceType: varchar("varianceType", { length: 20 }),
     // favorable, unfavorable
     // Variance breakdown
-    priceVariance: decimal("priceVariance", { precision: 15, scale: 2 }).default("0"),
-    quantityVariance: decimal("quantityVariance", { precision: 15, scale: 2 }).default("0"),
-    mixVariance: decimal("mixVariance", { precision: 15, scale: 2 }).default("0"),
-    volumeVariance: decimal("volumeVariance", { precision: 15, scale: 2 }).default("0"),
+    priceVariance: decimal("priceVariance", {
+      precision: 15,
+      scale: 2,
+    }).default("0"),
+    quantityVariance: decimal("quantityVariance", {
+      precision: 15,
+      scale: 2,
+    }).default("0"),
+    mixVariance: decimal("mixVariance", { precision: 15, scale: 2 }).default(
+      "0"
+    ),
+    volumeVariance: decimal("volumeVariance", {
+      precision: 15,
+      scale: 2,
+    }).default("0"),
     // Commentary
     commentary: text("commentary"),
     reviewedById: integer("reviewedById"),
@@ -3123,15 +3571,20 @@ var varianceAnalyses = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_variance_tenant").on(t.tenantId),
     index("idx_variance_scenario").on(t.scenarioId),
     index("idx_variance_account_cc").on(t.accountId, t.costCenterId),
     index("idx_variance_period").on(t.periodName),
-    unique("variance_scenario_account_cc_period_unique").on(t.scenarioId, t.accountId, t.costCenterId, t.periodName),
-    check("chk_variance_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("variance_scenario_account_cc_period_unique").on(
+      t.scenarioId,
+      t.accountId,
+      t.costCenterId,
+      t.periodName
+    ),
+    check("chk_variance_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var kpiDataTypeEnum = pgEnum("kpi_data_type", [
@@ -3140,7 +3593,7 @@ var kpiDataTypeEnum = pgEnum("kpi_data_type", [
   "ratio",
   "count",
   "days",
-  "custom"
+  "custom",
 ]);
 var kpiFrequencyEnum = pgEnum("kpi_frequency", [
   "daily",
@@ -3148,7 +3601,7 @@ var kpiFrequencyEnum = pgEnum("kpi_frequency", [
   "monthly",
   "quarterly",
   "yearly",
-  "realtime"
+  "realtime",
 ]);
 var kpis = pgTable(
   "kpis",
@@ -3177,7 +3630,10 @@ var kpis = pgTable(
     targetMax: decimal("targetMax", { precision: 15, scale: 4 }),
     // Thresholds for alerts
     warningThreshold: decimal("warningThreshold", { precision: 15, scale: 4 }),
-    criticalThreshold: decimal("criticalThreshold", { precision: 15, scale: 4 }),
+    criticalThreshold: decimal("criticalThreshold", {
+      precision: 15,
+      scale: 4,
+    }),
     // Direction
     higherIsBetter: boolean("higherIsBetter").default(true).notNull(),
     // Display
@@ -3195,13 +3651,13 @@ var kpis = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_kpis_tenant").on(t.tenantId),
     index("idx_kpis_category").on(t.category),
     unique("kpis_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_kpi_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_kpi_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var kpiMeasurements = pgTable(
@@ -3226,15 +3682,22 @@ var kpiMeasurements = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_kpi_measurements_tenant").on(t.tenantId),
     index("idx_kpi_measurements_kpi").on(t.kpiId),
     index("idx_kpi_measurements_period").on(t.periodName),
     index("idx_kpi_measurements_status").on(t.status),
-    unique("kpi_measurements_kpi_period_cc_unique").on(t.kpiId, t.periodName, t.costCenterId),
-    check("chk_kpi_measurement_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("kpi_measurements_kpi_period_cc_unique").on(
+      t.kpiId,
+      t.periodName,
+      t.costCenterId
+    ),
+    check(
+      "chk_kpi_measurement_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var reportTypeEnum = pgEnum("report_type", [
@@ -3243,7 +3706,7 @@ var reportTypeEnum = pgEnum("report_type", [
   "chart",
   "dashboard",
   "financial_statement",
-  "custom"
+  "custom",
 ]);
 var reportDefinitions = pgTable(
   "report_definitions",
@@ -3298,13 +3761,13 @@ var reportDefinitions = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_report_defs_tenant").on(t.tenantId),
     index("idx_report_defs_category").on(t.category),
     unique("report_defs_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_report_def_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check("chk_report_def_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var reportExecutions = pgTable(
@@ -3331,13 +3794,16 @@ var reportExecutions = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_report_executions_tenant").on(t.tenantId),
     index("idx_report_executions_report").on(t.reportId),
     index("idx_report_executions_status").on(t.status),
-    check("chk_report_execution_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_report_execution_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 var consolidationMethodEnum = pgEnum("consolidation_method", [
@@ -3345,7 +3811,7 @@ var consolidationMethodEnum = pgEnum("consolidation_method", [
   // دمج كامل
   "proportional",
   // تناسبي (equity method)
-  "cost"
+  "cost",
   // تكلفة
 ]);
 var consolidationEntities = pgTable(
@@ -3359,10 +3825,16 @@ var consolidationEntities = pgTable(
     name: varchar("name", { length: 150 }).notNull(),
     entityTenantId: integer("entityTenantId").notNull(),
     // child/subsidiary tenant
-    ownershipPercent: decimal("ownershipPercent", { precision: 5, scale: 2 }).default("100").notNull(),
+    ownershipPercent: decimal("ownershipPercent", { precision: 5, scale: 2 })
+      .default("100")
+      .notNull(),
     method: consolidationMethodEnum("method").default("full").notNull(),
-    functionalCurrency: varchar("functionalCurrency", { length: 10 }).default("YER").notNull(),
-    reportingCurrency: varchar("reportingCurrency", { length: 10 }).default("YER").notNull(),
+    functionalCurrency: varchar("functionalCurrency", { length: 10 })
+      .default("YER")
+      .notNull(),
+    reportingCurrency: varchar("reportingCurrency", { length: 10 })
+      .default("YER")
+      .notNull(),
     // Elimination rules
     eliminationRules: jsonb("eliminationRules"),
     // [{ fromEntity, toEntity, accountId, rule }]
@@ -3374,14 +3846,17 @@ var consolidationEntities = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_consolidation_entities_tenant").on(t.tenantId),
     index("idx_consolidation_entities_entity").on(t.entityTenantId),
     unique("consolidation_entities_tenant_code_unique").on(t.tenantId, t.code),
-    check("chk_consolidation_ownership", sql`${t.ownershipPercent} > 0 AND ${t.ownershipPercent} <= 100`),
-    check("chk_consolidation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_consolidation_ownership",
+      sql`${t.ownershipPercent} > 0 AND ${t.ownershipPercent} <= 100`
+    ),
+    check("chk_consolidation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
 var consolidationAdjustments = pgTable(
@@ -3397,7 +3872,9 @@ var consolidationAdjustments = pgTable(
     accountId: integer("accountId").notNull(),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 10 }).notNull(),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1"),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default(
+      "1"
+    ),
     description: text("description"),
     postedAt: timestamp("postedAt"),
     postedById: integer("postedById"),
@@ -3407,13 +3884,16 @@ var consolidationAdjustments = pgTable(
     serverVersion: integer("serverVersion").default(1).notNull(),
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
-    aggregateId: uuid("aggregateId")
+    aggregateId: uuid("aggregateId"),
   },
-  (t) => [
+  t => [
     index("idx_consolidation_adj_tenant").on(t.tenantId),
     index("idx_consolidation_adj_period").on(t.periodName),
     index("idx_consolidation_adj_entity").on(t.consolidationEntityId),
-    check("chk_consolidation_adj_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_consolidation_adj_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -3431,7 +3911,7 @@ var ENV = {
   /** Master secret for encrypted backups (AES-256-GCM). Required in production. */
   backupEncryptionKey: process.env.BACKUP_ENCRYPTION_KEY ?? "",
   /** Local directory for backup blobs when S3 is not configured. */
-  backupDir: process.env.BACKUP_DIR ?? ""
+  backupDir: process.env.BACKUP_DIR ?? "",
 };
 
 // server/db.ts
@@ -3461,120 +3941,152 @@ async function createNotification(db, input) {
     body: input.body,
     status: "unread",
     metadata: input.link ? { link: input.link } : null,
-    createdAt: /* @__PURE__ */ new Date()
+    createdAt: /* @__PURE__ */ new Date(),
   });
 }
 
 // server/automation.ts
-import { eq as eq2, and, sql as sql2, ne, isNull, gte, desc, lte } from "drizzle-orm";
+import {
+  eq as eq2,
+  and,
+  sql as sql2,
+  ne,
+  isNull,
+  gte,
+  desc,
+  lte,
+} from "drizzle-orm";
 async function runProactiveAlerts(tenantId) {
   const db = await getDb();
   if (!db) {
-    return { created: { reorder: 0, overdueSales: 0, overduePurchase: 0 }, total: 0 };
+    return {
+      created: { reorder: 0, overdueSales: 0, overduePurchase: 0 },
+      total: 0,
+    };
   }
   const since = new Date(Date.now() - 24 * 60 * 60 * 1e3);
-  const existing = await db.select({
-    type: notifications.type,
-    link: notifications.metadata,
-    createdAt: notifications.createdAt
-  }).from(notifications).where(
-    and(
-      eq2(notifications.tenantId, tenantId),
-      isNull(notifications.readAt),
-      gte(notifications.createdAt, since)
-    )
-  );
+  const existing = await db
+    .select({
+      type: notifications.type,
+      link: notifications.metadata,
+      createdAt: notifications.createdAt,
+    })
+    .from(notifications)
+    .where(
+      and(
+        eq2(notifications.tenantId, tenantId),
+        isNull(notifications.readAt),
+        gte(notifications.createdAt, since)
+      )
+    );
   const alreadyNotified = /* @__PURE__ */ new Set();
   for (const n of existing) {
-    const link = n.link && n.link?.link || null;
+    const link = (n.link && n.link?.link) || null;
     if (link) alreadyNotified.add(`${n.type}::${link}`);
   }
   const key = (type, link) => `${type}::${link}`;
   const created = { reorder: 0, overdueSales: 0, overduePurchase: 0 };
-  const lowStock = await db.select().from(products).where(
-    and(
-      eq2(products.tenantId, tenantId),
-      isNull(products.deletedAt),
-      sql2`${products.currentStock} <= ${products.reorderPoint}`,
-      sql2`${products.reorderPoint} > 0`
-    )
-  );
+  const lowStock = await db
+    .select()
+    .from(products)
+    .where(
+      and(
+        eq2(products.tenantId, tenantId),
+        isNull(products.deletedAt),
+        sql2`${products.currentStock} <= ${products.reorderPoint}`,
+        sql2`${products.reorderPoint} > 0`
+      )
+    );
   for (const p of lowStock) {
     const link = "/inventory";
     if (alreadyNotified.has(key("reorder", link))) continue;
     await createNotification(db, {
       tenantId,
       userId: null,
-      title: "\u0645\u0646\u062A\u062C \u062A\u062D\u062A \u0646\u0642\u0637\u0629 \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0637\u0644\u0628",
+      title:
+        "\u0645\u0646\u062A\u062C \u062A\u062D\u062A \u0646\u0642\u0637\u0629 \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0637\u0644\u0628",
       body: `\u0627\u0644\u0645\u0646\u062A\u062C \xAB${p.name}\xBB \u0648\u0635\u0644 \u0645\u062E\u0632\u0648\u0646\u0647 (${Number(p.currentStock) || 0}) \u0625\u0644\u0649 \u0646\u0642\u0637\u0629 \u0625\u0639\u0627\u062F\u0629 \u0627\u0644\u0637\u0644\u0628 (${Number(p.reorderPoint) || 0})`,
       link,
-      type: "reorder"
+      type: "reorder",
     });
     created.reorder++;
   }
-  const overdueSales = await db.select().from(salesInvoices).where(
-    and(
-      eq2(salesInvoices.tenantId, tenantId),
-      ne(salesInvoices.status, "cancelled"),
-      ne(salesInvoices.status, "paid"),
-      sql2`${salesInvoices.dueDate} < now()`,
-      sql2`${salesInvoices.paidAmount} < ${salesInvoices.total}`
-    )
-  );
+  const overdueSales = await db
+    .select()
+    .from(salesInvoices)
+    .where(
+      and(
+        eq2(salesInvoices.tenantId, tenantId),
+        ne(salesInvoices.status, "cancelled"),
+        ne(salesInvoices.status, "paid"),
+        sql2`${salesInvoices.dueDate} < now()`,
+        sql2`${salesInvoices.paidAmount} < ${salesInvoices.total}`
+      )
+    );
   for (const inv of overdueSales) {
     const link = "/commercial";
     if (alreadyNotified.has(key("overdue", link))) continue;
-    const outstanding = (Number(inv.total || 0) - Number(inv.paidAmount || 0)).toFixed(2);
+    const outstanding = (
+      Number(inv.total || 0) - Number(inv.paidAmount || 0)
+    ).toFixed(2);
     await createNotification(db, {
       tenantId,
       userId: null,
       title: "\u0645\u0633\u062A\u062D\u0642 \u0645\u062A\u0623\u062E\u0631",
       body: `\u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A ${inv.invoiceNumber} \u0645\u0633\u062A\u062D\u0642\u0629 \u0648\u0644\u0645 \u062A\u0633\u062F\u062F \u0628\u0627\u0644\u0643\u0627\u0645\u0644 \u2014 \u0627\u0644\u0645\u062A\u0628\u0642\u064A ${outstanding}`,
       link,
-      type: "overdue"
+      type: "overdue",
     });
     created.overdueSales++;
   }
-  const overduePurchases = await db.select().from(purchaseInvoices).where(
-    and(
-      eq2(purchaseInvoices.tenantId, tenantId),
-      ne(purchaseInvoices.status, "cancelled"),
-      ne(purchaseInvoices.status, "paid"),
-      sql2`${purchaseInvoices.dueDate} < now()`,
-      sql2`${purchaseInvoices.paidAmount} < ${purchaseInvoices.total}`
-    )
-  );
+  const overduePurchases = await db
+    .select()
+    .from(purchaseInvoices)
+    .where(
+      and(
+        eq2(purchaseInvoices.tenantId, tenantId),
+        ne(purchaseInvoices.status, "cancelled"),
+        ne(purchaseInvoices.status, "paid"),
+        sql2`${purchaseInvoices.dueDate} < now()`,
+        sql2`${purchaseInvoices.paidAmount} < ${purchaseInvoices.total}`
+      )
+    );
   for (const inv of overduePurchases) {
     const link = "/commercial";
     if (alreadyNotified.has(key("overdue", link))) continue;
-    const outstanding = (Number(inv.total || 0) - Number(inv.paidAmount || 0)).toFixed(2);
+    const outstanding = (
+      Number(inv.total || 0) - Number(inv.paidAmount || 0)
+    ).toFixed(2);
     await createNotification(db, {
       tenantId,
       userId: null,
       title: "\u0645\u0633\u062A\u062D\u0642 \u0645\u062A\u0623\u062E\u0631",
       body: `\u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0634\u062A\u0631\u064A\u0627\u062A ${inv.invoiceNumber} \u0645\u0633\u062A\u062D\u0642\u0629 \u0648\u0644\u0645 \u062A\u0633\u062F\u062F \u0628\u0627\u0644\u0643\u0627\u0645\u0644 \u2014 \u0627\u0644\u0645\u062A\u0628\u0642\u064A ${outstanding}`,
       link,
-      type: "overdue"
+      type: "overdue",
     });
     created.overduePurchase++;
   }
   return {
     created,
-    total: created.reorder + created.overdueSales + created.overduePurchase
+    total: created.reorder + created.overdueSales + created.overduePurchase,
   };
 }
 async function runScheduledJournalEntries(tenantId, userId = null) {
   const db = await getDb();
   if (!db) return { processed: 0 };
   const now = /* @__PURE__ */ new Date();
-  const due = await db.select().from(scheduledJournalEntries).where(
-    and(
-      eq2(scheduledJournalEntries.tenantId, tenantId),
-      eq2(scheduledJournalEntries.isActive, true)
-    )
-  );
+  const due = await db
+    .select()
+    .from(scheduledJournalEntries)
+    .where(
+      and(
+        eq2(scheduledJournalEntries.tenantId, tenantId),
+        eq2(scheduledJournalEntries.isActive, true)
+      )
+    );
   const ready = due.filter(
-    (s) => s.nextRunAt != null && new Date(s.nextRunAt).getTime() <= now.getTime()
+    s => s.nextRunAt != null && new Date(s.nextRunAt).getTime() <= now.getTime()
   );
   let processed = 0;
   for (const s of ready) {
@@ -3590,7 +4102,7 @@ async function runScheduledJournalEntries(tenantId, userId = null) {
           accountId: leg.accountId,
           type: "debit",
           amount: d.toFixed(2),
-          narration: leg.description || s.name
+          narration: leg.description || s.name,
         });
         totalDebit += d;
       }
@@ -3599,27 +4111,35 @@ async function runScheduledJournalEntries(tenantId, userId = null) {
           accountId: leg.accountId,
           type: "credit",
           amount: c.toFixed(2),
-          narration: leg.description || s.name
+          narration: leg.description || s.name,
         });
         totalCredit += c;
       }
     }
     if (lines.length === 0) continue;
     if (Math.abs(totalDebit - totalCredit) > 0.01) continue;
-    const bRows = await db.select().from(branches).where(eq2(branches.tenantId, tenantId)).orderBy(desc(branches.isMain)).limit(1);
+    const bRows = await db
+      .select()
+      .from(branches)
+      .where(eq2(branches.tenantId, tenantId))
+      .orderBy(desc(branches.isMain))
+      .limit(1);
     const effectiveBranchId = s.branchId ?? bRows[0]?.id ?? null;
-    const [je] = await db.insert(journalEntries).values({
-      tenantId,
-      branchId: effectiveBranchId,
-      sourceModule: "scheduled",
-      sourceRefType: "scheduled",
-      sourceRefId: s.id,
-      referenceNo: `SCH-${s.id}-${Date.now().toString().slice(-6)}`,
-      status: "posted",
-      totalAmount: totalDebit.toFixed(2),
-      createdById: userId,
-      postedAt: now
-    }).returning();
+    const [je] = await db
+      .insert(journalEntries)
+      .values({
+        tenantId,
+        branchId: effectiveBranchId,
+        sourceModule: "scheduled",
+        sourceRefType: "scheduled",
+        sourceRefId: s.id,
+        referenceNo: `SCH-${s.id}-${Date.now().toString().slice(-6)}`,
+        status: "posted",
+        totalAmount: totalDebit.toFixed(2),
+        createdById: userId,
+        postedAt: now,
+      })
+      .returning();
     for (const l of lines) {
       await db.insert(transactions).values({
         tenantId,
@@ -3634,13 +4154,16 @@ async function runScheduledJournalEntries(tenantId, userId = null) {
         referenceId: s.id,
         sourceModule: "scheduled",
         userId,
-        journalEntryId: je.id
+        journalEntryId: je.id,
       });
     }
     let nextRunAt;
     const base = s.nextRunAt ? new Date(s.nextRunAt) : now;
     if (s.frequency === "once") {
-      await db.update(scheduledJournalEntries).set({ isActive: false }).where(eq2(scheduledJournalEntries.id, s.id));
+      await db
+        .update(scheduledJournalEntries)
+        .set({ isActive: false })
+        .where(eq2(scheduledJournalEntries.id, s.id));
       continue;
     } else if (s.frequency === "daily") {
       nextRunAt = new Date(base.getTime() + 24 * 3600 * 1e3);
@@ -3656,12 +4179,21 @@ async function runScheduledJournalEntries(tenantId, userId = null) {
         base.getSeconds()
       );
     }
-    await db.update(scheduledJournalEntries).set({ nextRunAt }).where(eq2(scheduledJournalEntries.id, s.id));
+    await db
+      .update(scheduledJournalEntries)
+      .set({ nextRunAt })
+      .where(eq2(scheduledJournalEntries.id, s.id));
     processed++;
   }
   return { processed };
 }
-function calculateNextRunDate(base, frequency, dayOfMonth, dayOfWeek, weekOfMonth) {
+function calculateNextRunDate(
+  base,
+  frequency,
+  dayOfMonth,
+  dayOfWeek,
+  weekOfMonth
+) {
   const next = new Date(base);
   switch (frequency) {
     case "daily":
@@ -3676,7 +4208,12 @@ function calculateNextRunDate(base, frequency, dayOfMonth, dayOfWeek, weekOfMont
     case "monthly":
       if (dayOfMonth) {
         next.setMonth(next.getMonth() + 1);
-        next.setDate(Math.min(dayOfMonth, new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()));
+        next.setDate(
+          Math.min(
+            dayOfMonth,
+            new Date(next.getFullYear(), next.getMonth() + 1, 0).getDate()
+          )
+        );
       } else {
         next.setMonth(next.getMonth() + 1);
       }
@@ -3699,17 +4236,34 @@ function calculateNextRunDate(base, frequency, dayOfMonth, dayOfWeek, weekOfMont
   return next;
 }
 async function scheduleNextRun(db, recurringExpenseId, tenantId) {
-  const [rec] = await db.select().from(recurringExpenses).where(and(eq2(recurringExpenses.id, recurringExpenseId), eq2(recurringExpenses.tenantId, tenantId))).limit(1);
+  const [rec] = await db
+    .select()
+    .from(recurringExpenses)
+    .where(
+      and(
+        eq2(recurringExpenses.id, recurringExpenseId),
+        eq2(recurringExpenses.tenantId, tenantId)
+      )
+    )
+    .limit(1);
   if (!rec) return;
   if (rec.maxOccurrences && rec.occurrencesCount >= rec.maxOccurrences) {
-    await db.update(recurringExpenses).set({ status: "completed", nextRunAt: null }).where(eq2(recurringExpenses.id, recurringExpenseId));
+    await db
+      .update(recurringExpenses)
+      .set({ status: "completed", nextRunAt: null })
+      .where(eq2(recurringExpenses.id, recurringExpenseId));
     return;
   }
   if (rec.endDate && new Date(rec.endDate) < /* @__PURE__ */ new Date()) {
-    await db.update(recurringExpenses).set({ status: "completed", nextRunAt: null }).where(eq2(recurringExpenses.id, recurringExpenseId));
+    await db
+      .update(recurringExpenses)
+      .set({ status: "completed", nextRunAt: null })
+      .where(eq2(recurringExpenses.id, recurringExpenseId));
     return;
   }
-  const base = rec.nextRunAt ? new Date(rec.nextRunAt) : new Date(rec.startDate);
+  const base = rec.nextRunAt
+    ? new Date(rec.nextRunAt)
+    : new Date(rec.startDate);
   const nextRunAt = calculateNextRunDate(
     base,
     rec.frequency,
@@ -3718,42 +4272,84 @@ async function scheduleNextRun(db, recurringExpenseId, tenantId) {
     rec.weekOfMonth
   );
   if (rec.endDate && nextRunAt > new Date(rec.endDate)) {
-    await db.update(recurringExpenses).set({ status: "completed", nextRunAt: null }).where(eq2(recurringExpenses.id, recurringExpenseId));
+    await db
+      .update(recurringExpenses)
+      .set({ status: "completed", nextRunAt: null })
+      .where(eq2(recurringExpenses.id, recurringExpenseId));
     return;
   }
-  await db.update(recurringExpenses).set({ nextRunAt }).where(eq2(recurringExpenses.id, recurringExpenseId));
+  await db
+    .update(recurringExpenses)
+    .set({ nextRunAt })
+    .where(eq2(recurringExpenses.id, recurringExpenseId));
 }
 async function processRecurringExpenseRun(db, run, userId) {
-  const [rec] = await db.select().from(recurringExpenses).where(eq2(recurringExpenses.id, run.recurringExpenseId)).limit(1);
+  const [rec] = await db
+    .select()
+    .from(recurringExpenses)
+    .where(eq2(recurringExpenses.id, run.recurringExpenseId))
+    .limit(1);
   if (!rec) {
-    await db.update(recurringExpenseRuns).set({ status: "failed", errorMessage: "Recurring expense not found", executedDate: /* @__PURE__ */ new Date() }).where(eq2(recurringExpenseRuns.id, run.id));
+    await db
+      .update(recurringExpenseRuns)
+      .set({
+        status: "failed",
+        errorMessage: "Recurring expense not found",
+        executedDate: /* @__PURE__ */ new Date(),
+      })
+      .where(eq2(recurringExpenseRuns.id, run.id));
     return;
   }
   try {
     const amount = parseFloat(rec.amount);
     const taxRate = parseFloat(rec.taxRate || "0");
-    const taxAmount = Math.round(amount * taxRate / 100 * 100) / 100;
+    const taxAmount = Math.round(((amount * taxRate) / 100) * 100) / 100;
     const totalAmount = amount + taxAmount;
     const exchangeRate = parseFloat(rec.exchangeRate || "1");
-    const baseAmount = Math.round(totalAmount / exchangeRate * 100) / 100;
-    await db.update(recurringExpenseRuns).set({
-      amount: amount.toFixed(2),
-      taxAmount: taxAmount.toFixed(2),
-      totalAmount: totalAmount.toFixed(2),
-      baseAmount: baseAmount.toFixed(2),
-      exchangeRate: exchangeRate.toFixed(8),
-      status: "processing"
-    }).where(eq2(recurringExpenseRuns.id, run.id));
-    const bRows = await db.select().from(branches).where(eq2(branches.tenantId, rec.tenantId)).orderBy(desc(branches.isMain)).limit(1);
+    const baseAmount = Math.round((totalAmount / exchangeRate) * 100) / 100;
+    await db
+      .update(recurringExpenseRuns)
+      .set({
+        amount: amount.toFixed(2),
+        taxAmount: taxAmount.toFixed(2),
+        totalAmount: totalAmount.toFixed(2),
+        baseAmount: baseAmount.toFixed(2),
+        exchangeRate: exchangeRate.toFixed(8),
+        status: "processing",
+      })
+      .where(eq2(recurringExpenseRuns.id, run.id));
+    const bRows = await db
+      .select()
+      .from(branches)
+      .where(eq2(branches.tenantId, rec.tenantId))
+      .orderBy(desc(branches.isMain))
+      .limit(1);
     const effectiveBranchId = rec.branchId ?? bRows[0]?.id ?? null;
     let journalEntryId = null;
     let purchaseInvoiceId = null;
     let paymentTransactionId = null;
     if (rec.basis === "accrual") {
-      const expenseAcc = await db.select().from(accounts).where(and(eq2(accounts.id, rec.accountId), eq2(accounts.tenantId, rec.tenantId))).limit(1);
-      const payableAcc = await db.select().from(accounts).where(and(eq2(accounts.code, "2010"), eq2(accounts.tenantId, rec.tenantId))).limit(1);
+      const expenseAcc = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(
+            eq2(accounts.id, rec.accountId),
+            eq2(accounts.tenantId, rec.tenantId)
+          )
+        )
+        .limit(1);
+      const payableAcc = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(eq2(accounts.code, "2010"), eq2(accounts.tenantId, rec.tenantId))
+        )
+        .limit(1);
       if (!expenseAcc[0] || !payableAcc[0]) {
-        throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629 (\u0645\u0635\u0631\u0648\u0641 / \u0630\u0645\u0645 \u062F\u0627\u0626\u0646\u0629)");
+        throw new Error(
+          "\u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A \u0627\u0644\u0645\u0637\u0644\u0648\u0628\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629 (\u0645\u0635\u0631\u0648\u0641 / \u0630\u0645\u0645 \u062F\u0627\u0626\u0646\u0629)"
+        );
       }
       const lines = [
         {
@@ -3768,7 +4364,7 @@ async function processRecurringExpenseRun(db, run, userId) {
           referenceType: "recurring_expense",
           referenceId: rec.id,
           sourceModule: "recurring_expenses",
-          userId
+          userId,
         },
         {
           tenantId: rec.tenantId,
@@ -3782,11 +4378,20 @@ async function processRecurringExpenseRun(db, run, userId) {
           referenceType: "recurring_expense",
           referenceId: rec.id,
           sourceModule: "recurring_expenses",
-          userId
-        }
+          userId,
+        },
       ];
       if (taxAmount > 0 && rec.taxAccountId) {
-        const taxAcc = await db.select().from(accounts).where(and(eq2(accounts.id, rec.taxAccountId), eq2(accounts.tenantId, rec.tenantId))).limit(1);
+        const taxAcc = await db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq2(accounts.id, rec.taxAccountId),
+              eq2(accounts.tenantId, rec.tenantId)
+            )
+          )
+          .limit(1);
         if (taxAcc[0]) {
           lines.push({
             tenantId: rec.tenantId,
@@ -3800,27 +4405,36 @@ async function processRecurringExpenseRun(db, run, userId) {
             referenceType: "recurring_expense",
             referenceId: rec.id,
             sourceModule: "recurring_expenses",
-            userId
+            userId,
           });
         }
       }
-      const totalDebit = lines.filter((l) => l.type === "debit").reduce((s, l) => s + parseFloat(l.amount), 0);
-      const totalCredit = lines.filter((l) => l.type === "credit").reduce((s, l) => s + parseFloat(l.amount), 0);
+      const totalDebit = lines
+        .filter(l => l.type === "debit")
+        .reduce((s, l) => s + parseFloat(l.amount), 0);
+      const totalCredit = lines
+        .filter(l => l.type === "credit")
+        .reduce((s, l) => s + parseFloat(l.amount), 0);
       if (Math.abs(totalDebit - totalCredit) > 0.01) {
-        throw new Error("\u0627\u0644\u0642\u064A\u062F \u063A\u064A\u0631 \u0645\u062A\u0648\u0627\u0632\u0646");
+        throw new Error(
+          "\u0627\u0644\u0642\u064A\u062F \u063A\u064A\u0631 \u0645\u062A\u0648\u0627\u0632\u0646"
+        );
       }
-      const [je] = await db.insert(journalEntries).values({
-        tenantId: rec.tenantId,
-        branchId: effectiveBranchId,
-        sourceModule: "recurring_expenses",
-        sourceRefType: "recurring_expense",
-        sourceRefId: rec.id,
-        referenceNo: `REC-${rec.id}-${run.runNumber}`,
-        status: "posted",
-        totalAmount: totalDebit.toFixed(2),
-        createdById: userId,
-        postedAt: /* @__PURE__ */ new Date()
-      }).returning();
+      const [je] = await db
+        .insert(journalEntries)
+        .values({
+          tenantId: rec.tenantId,
+          branchId: effectiveBranchId,
+          sourceModule: "recurring_expenses",
+          sourceRefType: "recurring_expense",
+          sourceRefId: rec.id,
+          referenceNo: `REC-${rec.id}-${run.runNumber}`,
+          status: "posted",
+          totalAmount: totalDebit.toFixed(2),
+          createdById: userId,
+          postedAt: /* @__PURE__ */ new Date(),
+        })
+        .returning();
       journalEntryId = je.id;
       for (const l of lines) {
         await db.insert(transactions).values({ ...l, journalEntryId: je.id });
@@ -3839,7 +4453,7 @@ async function processRecurringExpenseRun(db, run, userId) {
             referenceType: "recurring_expense_payment",
             referenceId: rec.id,
             sourceModule: "recurring_expenses",
-            userId
+            userId,
           },
           {
             tenantId: rec.tenantId,
@@ -3853,50 +4467,72 @@ async function processRecurringExpenseRun(db, run, userId) {
             referenceType: "recurring_expense_payment",
             referenceId: rec.id,
             sourceModule: "recurring_expenses",
-            userId
-          }
+            userId,
+          },
         ];
-        const [payJe] = await db.insert(journalEntries).values({
-          tenantId: rec.tenantId,
-          branchId: effectiveBranchId,
-          sourceModule: "recurring_expenses",
-          sourceRefType: "recurring_expense_payment",
-          sourceRefId: rec.id,
-          referenceNo: `REC-PAY-${rec.id}-${run.runNumber}`,
-          status: "posted",
-          totalAmount: totalAmount.toFixed(2),
-          createdById: userId,
-          postedAt: /* @__PURE__ */ new Date()
-        }).returning();
+        const [payJe] = await db
+          .insert(journalEntries)
+          .values({
+            tenantId: rec.tenantId,
+            branchId: effectiveBranchId,
+            sourceModule: "recurring_expenses",
+            sourceRefType: "recurring_expense_payment",
+            sourceRefId: rec.id,
+            referenceNo: `REC-PAY-${rec.id}-${run.runNumber}`,
+            status: "posted",
+            totalAmount: totalAmount.toFixed(2),
+            createdById: userId,
+            postedAt: /* @__PURE__ */ new Date(),
+          })
+          .returning();
         for (const l of paymentLines) {
-          await db.insert(transactions).values({ ...l, journalEntryId: payJe.id });
+          await db
+            .insert(transactions)
+            .values({ ...l, journalEntryId: payJe.id });
         }
         paymentTransactionId = payJe.id;
       }
     } else {
-      const vendor = rec.vendorId ? await db.select().from(suppliers).where(and(eq2(suppliers.id, rec.vendorId), eq2(suppliers.tenantId, rec.tenantId))).limit(1) : null;
-      const seqResult = await db.select({ c: sql2`count(*)` }).from(purchaseInvoices).where(eq2(purchaseInvoices.tenantId, rec.tenantId));
+      const vendor = rec.vendorId
+        ? await db
+            .select()
+            .from(suppliers)
+            .where(
+              and(
+                eq2(suppliers.id, rec.vendorId),
+                eq2(suppliers.tenantId, rec.tenantId)
+              )
+            )
+            .limit(1)
+        : null;
+      const seqResult = await db
+        .select({ c: sql2`count(*)` })
+        .from(purchaseInvoices)
+        .where(eq2(purchaseInvoices.tenantId, rec.tenantId));
       const seq = Number(seqResult[0]?.c ?? 0) + 1;
-      const [pi] = await db.insert(purchaseInvoices).values({
-        tenantId: rec.tenantId,
-        invoiceNumber: `PI-REC-${rec.tenantId}-${seq}`,
-        supplierId: rec.vendorId ?? null,
-        branchId: effectiveBranchId,
-        status: "confirmed",
-        subtotal: amount.toFixed(2),
-        taxRate: taxRate.toFixed(2),
-        taxAmount: taxAmount.toFixed(2),
-        discount: "0",
-        total: totalAmount.toFixed(2),
-        paidAmount: rec.autoPay ? totalAmount.toFixed(2) : "0",
-        paymentMethod: rec.paymentMethod || "cash",
-        notes: `\u0645\u0635\u0631\u0648\u0641 \u062F\u0648\u0631\u064A: ${rec.name}`,
-        invoiceDate: run.scheduledDate,
-        dueDate: run.scheduledDate,
-        userId,
-        currency: rec.currency,
-        currencyRate: exchangeRate.toFixed(8)
-      }).returning();
+      const [pi] = await db
+        .insert(purchaseInvoices)
+        .values({
+          tenantId: rec.tenantId,
+          invoiceNumber: `PI-REC-${rec.tenantId}-${seq}`,
+          supplierId: rec.vendorId ?? null,
+          branchId: effectiveBranchId,
+          status: "confirmed",
+          subtotal: amount.toFixed(2),
+          taxRate: taxRate.toFixed(2),
+          taxAmount: taxAmount.toFixed(2),
+          discount: "0",
+          total: totalAmount.toFixed(2),
+          paidAmount: rec.autoPay ? totalAmount.toFixed(2) : "0",
+          paymentMethod: rec.paymentMethod || "cash",
+          notes: `\u0645\u0635\u0631\u0648\u0641 \u062F\u0648\u0631\u064A: ${rec.name}`,
+          invoiceDate: run.scheduledDate,
+          dueDate: run.scheduledDate,
+          userId,
+          currency: rec.currency,
+          currencyRate: exchangeRate.toFixed(8),
+        })
+        .returning();
       purchaseInvoiceId = pi.id;
       await db.insert(purchaseInvoiceItems).values({
         invoiceId: pi.id,
@@ -3906,11 +4542,29 @@ async function processRecurringExpenseRun(db, run, userId) {
         quantity: 1,
         unitPrice: amount.toFixed(2),
         discount: "0",
-        total: totalAmount.toFixed(2)
+        total: totalAmount.toFixed(2),
       });
       if (rec.autoPay) {
-        const expenseAcc = await db.select().from(accounts).where(and(eq2(accounts.id, rec.accountId), eq2(accounts.tenantId, rec.tenantId))).limit(1);
-        const payableAcc = await db.select().from(accounts).where(and(eq2(accounts.code, "2010"), eq2(accounts.tenantId, rec.tenantId))).limit(1);
+        const expenseAcc = await db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq2(accounts.id, rec.accountId),
+              eq2(accounts.tenantId, rec.tenantId)
+            )
+          )
+          .limit(1);
+        const payableAcc = await db
+          .select()
+          .from(accounts)
+          .where(
+            and(
+              eq2(accounts.code, "2010"),
+              eq2(accounts.tenantId, rec.tenantId)
+            )
+          )
+          .limit(1);
         if (expenseAcc[0] && payableAcc[0]) {
           const lines = [
             {
@@ -3925,7 +4579,7 @@ async function processRecurringExpenseRun(db, run, userId) {
               referenceType: "purchase_invoice",
               referenceId: pi.id,
               sourceModule: "purchases",
-              userId
+              userId,
             },
             {
               tenantId: rec.tenantId,
@@ -3939,11 +4593,20 @@ async function processRecurringExpenseRun(db, run, userId) {
               referenceType: "purchase_invoice",
               referenceId: pi.id,
               sourceModule: "purchases",
-              userId
-            }
+              userId,
+            },
           ];
           if (taxAmount > 0 && rec.taxAccountId) {
-            const taxAcc = await db.select().from(accounts).where(and(eq2(accounts.id, rec.taxAccountId), eq2(accounts.tenantId, rec.tenantId))).limit(1);
+            const taxAcc = await db
+              .select()
+              .from(accounts)
+              .where(
+                and(
+                  eq2(accounts.id, rec.taxAccountId),
+                  eq2(accounts.tenantId, rec.tenantId)
+                )
+              )
+              .limit(1);
             if (taxAcc[0]) {
               lines.push({
                 tenantId: rec.tenantId,
@@ -3957,27 +4620,36 @@ async function processRecurringExpenseRun(db, run, userId) {
                 referenceType: "purchase_invoice",
                 referenceId: pi.id,
                 sourceModule: "purchases",
-                userId
+                userId,
               });
             }
           }
-          const totalDebit = lines.filter((l) => l.type === "debit").reduce((s, l) => s + parseFloat(l.amount), 0);
-          const totalCredit = lines.filter((l) => l.type === "credit").reduce((s, l) => s + parseFloat(l.amount), 0);
+          const totalDebit = lines
+            .filter(l => l.type === "debit")
+            .reduce((s, l) => s + parseFloat(l.amount), 0);
+          const totalCredit = lines
+            .filter(l => l.type === "credit")
+            .reduce((s, l) => s + parseFloat(l.amount), 0);
           if (Math.abs(totalDebit - totalCredit) <= 0.01) {
-            const [je] = await db.insert(journalEntries).values({
-              tenantId: rec.tenantId,
-              branchId: effectiveBranchId,
-              sourceModule: "purchases",
-              sourceRefType: "purchase_invoice",
-              sourceRefId: pi.id,
-              referenceNo: `PI-${pi.id}`,
-              status: "posted",
-              totalAmount: totalDebit.toFixed(2),
-              createdById: userId,
-              postedAt: /* @__PURE__ */ new Date()
-            }).returning();
+            const [je] = await db
+              .insert(journalEntries)
+              .values({
+                tenantId: rec.tenantId,
+                branchId: effectiveBranchId,
+                sourceModule: "purchases",
+                sourceRefType: "purchase_invoice",
+                sourceRefId: pi.id,
+                referenceNo: `PI-${pi.id}`,
+                status: "posted",
+                totalAmount: totalDebit.toFixed(2),
+                createdById: userId,
+                postedAt: /* @__PURE__ */ new Date(),
+              })
+              .returning();
             for (const l of lines) {
-              await db.insert(transactions).values({ ...l, journalEntryId: je.id });
+              await db
+                .insert(transactions)
+                .values({ ...l, journalEntryId: je.id });
             }
           }
         }
@@ -3995,7 +4667,7 @@ async function processRecurringExpenseRun(db, run, userId) {
               referenceType: "recurring_expense_payment",
               referenceId: rec.id,
               sourceModule: "recurring_expenses",
-              userId
+              userId,
             },
             {
               tenantId: rec.tenantId,
@@ -4009,45 +4681,60 @@ async function processRecurringExpenseRun(db, run, userId) {
               referenceType: "recurring_expense_payment",
               referenceId: rec.id,
               sourceModule: "recurring_expenses",
-              userId
-            }
+              userId,
+            },
           ];
-          const [payJe] = await db.insert(journalEntries).values({
-            tenantId: rec.tenantId,
-            branchId: effectiveBranchId,
-            sourceModule: "recurring_expenses",
-            sourceRefType: "recurring_expense_payment",
-            sourceRefId: rec.id,
-            referenceNo: `REC-PAY-${rec.id}-${run.runNumber}`,
-            status: "posted",
-            totalAmount: totalAmount.toFixed(2),
-            createdById: userId,
-            postedAt: /* @__PURE__ */ new Date()
-          }).returning();
+          const [payJe] = await db
+            .insert(journalEntries)
+            .values({
+              tenantId: rec.tenantId,
+              branchId: effectiveBranchId,
+              sourceModule: "recurring_expenses",
+              sourceRefType: "recurring_expense_payment",
+              sourceRefId: rec.id,
+              referenceNo: `REC-PAY-${rec.id}-${run.runNumber}`,
+              status: "posted",
+              totalAmount: totalAmount.toFixed(2),
+              createdById: userId,
+              postedAt: /* @__PURE__ */ new Date(),
+            })
+            .returning();
           for (const l of paymentLines) {
-            await db.insert(transactions).values({ ...l, journalEntryId: payJe.id });
+            await db
+              .insert(transactions)
+              .values({ ...l, journalEntryId: payJe.id });
           }
           paymentTransactionId = payJe.id;
         }
       }
     }
-    await db.update(recurringExpenses).set({
-      occurrencesCount: rec.occurrencesCount + 1,
-      lastRunAt: /* @__PURE__ */ new Date(),
-      lastRunStatus: "success",
-      lastRunError: null
-    }).where(eq2(recurringExpenses.id, rec.id));
-    await db.update(recurringExpenseRuns).set({
-      status: "completed",
-      executedDate: /* @__PURE__ */ new Date(),
-      journalEntryId,
-      purchaseInvoiceId,
-      paymentTransactionId,
-      processedById: userId
-    }).where(eq2(recurringExpenseRuns.id, run.id));
+    await db
+      .update(recurringExpenses)
+      .set({
+        occurrencesCount: rec.occurrencesCount + 1,
+        lastRunAt: /* @__PURE__ */ new Date(),
+        lastRunStatus: "success",
+        lastRunError: null,
+      })
+      .where(eq2(recurringExpenses.id, rec.id));
+    await db
+      .update(recurringExpenseRuns)
+      .set({
+        status: "completed",
+        executedDate: /* @__PURE__ */ new Date(),
+        journalEntryId,
+        purchaseInvoiceId,
+        paymentTransactionId,
+        processedById: userId,
+      })
+      .where(eq2(recurringExpenseRuns.id, run.id));
     await scheduleNextRun(db, rec.id, rec.tenantId);
     if (rec.budgetId) {
-      const [budget] = await db.select().from(budgets).where(eq2(budgets.id, rec.budgetId)).limit(1);
+      const [budget] = await db
+        .select()
+        .from(budgets)
+        .where(eq2(budgets.id, rec.budgetId))
+        .limit(1);
       if (budget) {
         const targetExpense = parseFloat(budget.targetExpense);
         const periodStart = /* @__PURE__ */ new Date();
@@ -4055,47 +4742,60 @@ async function processRecurringExpenseRun(db, run, userId) {
         periodStart.setHours(0, 0, 0, 0);
         const periodEnd = new Date(periodStart);
         periodEnd.setMonth(periodEnd.getMonth() + 1);
-        const periodExpenses = await db.select({ c: sql2`sum(${transactions.amount})` }).from(transactions).innerJoin(accounts, eq2(transactions.accountId, accounts.id)).where(
-          and(
-            eq2(transactions.tenantId, rec.tenantId),
-            eq2(accounts.type, "expense"),
-            gte(transactions.transactionDate, periodStart),
-            lte(transactions.transactionDate, periodEnd),
-            eq2(transactions.isReversed, false)
-          )
-        );
+        const periodExpenses = await db
+          .select({ c: sql2`sum(${transactions.amount})` })
+          .from(transactions)
+          .innerJoin(accounts, eq2(transactions.accountId, accounts.id))
+          .where(
+            and(
+              eq2(transactions.tenantId, rec.tenantId),
+              eq2(accounts.type, "expense"),
+              gte(transactions.transactionDate, periodStart),
+              lte(transactions.transactionDate, periodEnd),
+              eq2(transactions.isReversed, false)
+            )
+          );
         const currentExpense = parseFloat(periodExpenses[0]?.c || "0");
-        const percentUsed = targetExpense > 0 ? currentExpense / targetExpense * 100 : 0;
+        const percentUsed =
+          targetExpense > 0 ? (currentExpense / targetExpense) * 100 : 0;
         if (percentUsed >= 90) {
           await createNotification(db, {
             tenantId: rec.tenantId,
             userId: null,
-            title: "\u062A\u0646\u0628\u064A\u0647 \u0645\u064A\u0632\u0627\u0646\u064A\u0629",
+            title:
+              "\u062A\u0646\u0628\u064A\u0647 \u0645\u064A\u0632\u0627\u0646\u064A\u0629",
             body: `\u062A\u0645 \u062A\u062C\u0627\u0648\u0632 ${percentUsed.toFixed(0)}% \u0645\u0646 \u0645\u064A\u0632\u0627\u0646\u064A\u0629 \u0627\u0644\u0645\u0635\u0631\u0648\u0641\u0627\u062A \u0644\u0644\u0641\u062A\u0631\u0629 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 (${budget.periodName})`,
             link: "/reports",
-            type: "budget_alert"
+            type: "budget_alert",
           });
         }
       }
     }
   } catch (error) {
-    await db.update(recurringExpenseRuns).set({
-      status: "failed",
-      errorMessage: error.message,
-      executedDate: /* @__PURE__ */ new Date()
-    }).where(eq2(recurringExpenseRuns.id, run.id));
-    await db.update(recurringExpenses).set({
-      lastRunAt: /* @__PURE__ */ new Date(),
-      lastRunStatus: "failed",
-      lastRunError: error.message
-    }).where(eq2(recurringExpenses.id, rec.id));
+    await db
+      .update(recurringExpenseRuns)
+      .set({
+        status: "failed",
+        errorMessage: error.message,
+        executedDate: /* @__PURE__ */ new Date(),
+      })
+      .where(eq2(recurringExpenseRuns.id, run.id));
+    await db
+      .update(recurringExpenses)
+      .set({
+        lastRunAt: /* @__PURE__ */ new Date(),
+        lastRunStatus: "failed",
+        lastRunError: error.message,
+      })
+      .where(eq2(recurringExpenses.id, rec.id));
     await createNotification(db, {
       tenantId: rec.tenantId,
       userId: null,
-      title: "\u0641\u0634\u0644 \u062A\u0646\u0641\u064A\u0630 \u0645\u0635\u0631\u0648\u0641 \u062F\u0648\u0631\u064A",
+      title:
+        "\u0641\u0634\u0644 \u062A\u0646\u0641\u064A\u0630 \u0645\u0635\u0631\u0648\u0641 \u062F\u0648\u0631\u064A",
       body: `\u0641\u0634\u0644 \u062A\u0646\u0641\u064A\u0630 "${rec.name}": ${error.message}`,
       link: "/recurring-expenses",
-      type: "recurring_expense_failed"
+      type: "recurring_expense_failed",
     });
   }
 }
@@ -4103,39 +4803,53 @@ async function runRecurringExpenses(tenantId, userId = null) {
   const db = await getDb();
   if (!db) return { processed: 0, failed: 0, skipped: 0 };
   const now = /* @__PURE__ */ new Date();
-  const due = await db.select().from(recurringExpenses).where(
-    and(
-      eq2(recurringExpenses.tenantId, tenantId),
-      eq2(recurringExpenses.status, "active"),
-      eq2(recurringExpenses.approvalStatus, "approved"),
-      lte(recurringExpenses.nextRunAt, now)
-    )
-  );
+  const due = await db
+    .select()
+    .from(recurringExpenses)
+    .where(
+      and(
+        eq2(recurringExpenses.tenantId, tenantId),
+        eq2(recurringExpenses.status, "active"),
+        eq2(recurringExpenses.approvalStatus, "approved"),
+        lte(recurringExpenses.nextRunAt, now)
+      )
+    );
   let processed = 0;
   let failed = 0;
   let skipped = 0;
   for (const rec of due) {
-    const existingRun = await db.select().from(recurringExpenseRuns).where(
-      and(
-        eq2(recurringExpenseRuns.recurringExpenseId, rec.id),
-        eq2(recurringExpenseRuns.scheduledDate, rec.nextRunAt)
+    const existingRun = await db
+      .select()
+      .from(recurringExpenseRuns)
+      .where(
+        and(
+          eq2(recurringExpenseRuns.recurringExpenseId, rec.id),
+          eq2(recurringExpenseRuns.scheduledDate, rec.nextRunAt)
+        )
       )
-    ).limit(1);
+      .limit(1);
     if (existingRun[0]) {
       skipped++;
       continue;
     }
-    const [run] = await db.insert(recurringExpenseRuns).values({
-      tenantId,
-      recurringExpenseId: rec.id,
-      runNumber: rec.occurrencesCount + 1,
-      scheduledDate: rec.nextRunAt,
-      status: "pending",
-      amount: "0",
-      totalAmount: "0"
-    }).returning();
+    const [run] = await db
+      .insert(recurringExpenseRuns)
+      .values({
+        tenantId,
+        recurringExpenseId: rec.id,
+        runNumber: rec.occurrencesCount + 1,
+        scheduledDate: rec.nextRunAt,
+        status: "pending",
+        amount: "0",
+        totalAmount: "0",
+      })
+      .returning();
     await processRecurringExpenseRun(db, run, userId);
-    const [finalRun] = await db.select().from(recurringExpenseRuns).where(eq2(recurringExpenseRuns.id, run.id)).limit(1);
+    const [finalRun] = await db
+      .select()
+      .from(recurringExpenseRuns)
+      .where(eq2(recurringExpenseRuns.id, run.id))
+      .limit(1);
     if (finalRun?.status === "completed") {
       processed++;
     } else {
@@ -4154,7 +4868,7 @@ import {
   createDecipheriv,
   createHash,
   randomBytes,
-  scryptSync
+  scryptSync,
 } from "crypto";
 import { gzipSync, gunzipSync } from "zlib";
 import { promises as fs } from "fs";
@@ -4181,13 +4895,17 @@ function appendHashSuffix(relKey) {
   if (lastDot === -1) return `${relKey}_${hash}`;
   return `${relKey.slice(0, lastDot)}_${hash}${relKey.slice(lastDot)}`;
 }
-async function storagePut(relKey, data, contentType = "application/octet-stream") {
+async function storagePut(
+  relKey,
+  data,
+  contentType = "application/octet-stream"
+) {
   const { forgeUrl, forgeKey } = getForgeConfig();
   const key = appendHashSuffix(normalizeKey(relKey));
   const presignUrl = new URL("v1/storage/presign/put", forgeUrl + "/");
   presignUrl.searchParams.set("path", key);
   const presignResp = await fetch(presignUrl, {
-    headers: { Authorization: `Bearer ${forgeKey}` }
+    headers: { Authorization: `Bearer ${forgeKey}` },
   });
   if (!presignResp.ok) {
     const msg = await presignResp.text().catch(() => presignResp.statusText);
@@ -4195,11 +4913,14 @@ async function storagePut(relKey, data, contentType = "application/octet-stream"
   }
   const { url: s3Url } = await presignResp.json();
   if (!s3Url) throw new Error("Forge returned empty presign URL");
-  const blob = typeof data === "string" ? new Blob([data], { type: contentType }) : new Blob([data], { type: contentType });
+  const blob =
+    typeof data === "string"
+      ? new Blob([data], { type: contentType })
+      : new Blob([data], { type: contentType });
   const uploadResp = await fetch(s3Url, {
     method: "PUT",
     headers: { "Content-Type": contentType },
-    body: blob
+    body: blob,
   });
   if (!uploadResp.ok) {
     throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
@@ -4208,12 +4929,16 @@ async function storagePut(relKey, data, contentType = "application/octet-stream"
 }
 
 // server/_core/resilience.ts
-var sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+var sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 function isRetryable(error) {
   if (error instanceof Error) {
     const msg = error.message || "";
-    return error.name === "AbortError" || error.name === "TimeoutError" || /timeout|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|fetch failed|socket|5\d\d/i.test(
-      msg
+    return (
+      error.name === "AbortError" ||
+      error.name === "TimeoutError" ||
+      /timeout|ECONNRESET|ECONNREFUSED|ETIMEDOUT|ENOTFOUND|fetch failed|socket|5\d\d/i.test(
+        msg
+      )
     );
   }
   return false;
@@ -4229,7 +4954,8 @@ async function withRetry(fn, options = {}) {
     } catch (error) {
       lastError = error;
       if (attempt > retries || !isRetryable(error)) throw error;
-      const jittered = baseDelayMs * Math.pow(2, attempt - 1) * (0.5 + Math.random());
+      const jittered =
+        baseDelayMs * Math.pow(2, attempt - 1) * (0.5 + Math.random());
       const delayMs = Math.min(maxDelayMs, Math.round(jittered));
       options.onRetry?.(error, attempt, delayMs);
       if (options.label) {
@@ -4292,7 +5018,11 @@ var BACKUP_TABLES = [
   { name: "salesInvoices", table: salesInvoices, tenantScoped: true },
   { name: "salesInvoiceItems", table: salesInvoiceItems, tenantScoped: true },
   { name: "purchaseInvoices", table: purchaseInvoices, tenantScoped: true },
-  { name: "purchaseInvoiceItems", table: purchaseInvoiceItems, tenantScoped: true },
+  {
+    name: "purchaseInvoiceItems",
+    table: purchaseInvoiceItems,
+    tenantScoped: true,
+  },
   { name: "payments", table: payments, tenantScoped: true },
   { name: "posSessions", table: posSessions, tenantScoped: true },
   { name: "posOrders", table: posOrders, tenantScoped: true },
@@ -4300,7 +5030,11 @@ var BACKUP_TABLES = [
   { name: "payrollRuns", table: payrollRuns, tenantScoped: true },
   { name: "payrollItems", table: payrollItems, tenantScoped: true },
   { name: "procurements", table: procurements, tenantScoped: true },
-  { name: "procurementApprovals", table: procurementApprovals, tenantScoped: true }
+  {
+    name: "procurementApprovals",
+    table: procurementApprovals,
+    tenantScoped: true,
+  },
 ];
 function deriveKey(secret, salt) {
   return scryptSync(secret, salt, KEY_LEN, { N: SCRYPT_COST });
@@ -4339,17 +5073,18 @@ async function exportTables(tenantId) {
 }
 async function runBackup(tenantId) {
   const secret = resolveBackupSecret();
-  if (!secret) throw new Error("BACKUP_ENCRYPTION_KEY is required in production");
-  const startedAt = (/* @__PURE__ */ new Date()).toISOString();
+  if (!secret)
+    throw new Error("BACKUP_ENCRYPTION_KEY is required in production");
+  const startedAt = /* @__PURE__ */ new Date().toISOString();
   const { tables, counts } = await withRetry(() => exportTables(tenantId), {
     label: "backup-export",
-    retries: 2
+    retries: 2,
   });
   const payload = JSON.stringify({
     version: PAYLOAD_VERSION,
     createdAt: startedAt,
     scope: tenantId == null ? "all" : `tenant:${tenantId}`,
-    tables
+    tables,
   });
   const plain = Buffer.from(payload, "utf8");
   const compressed = gzipSync(plain);
@@ -4369,7 +5104,7 @@ async function runBackup(tenantId) {
     keyFingerprint: fingerprint(secret),
     tableCounts: counts,
     totalRows: Object.values(counts).reduce((a, b) => a + b, 0),
-    storage: {}
+    storage: {},
   };
   try {
     await ensureDir(backupDir());
@@ -4384,7 +5119,7 @@ async function runBackup(tenantId) {
       const put = await withTimeout(
         withRetry(() => storagePut(`backups/${id}.alsbk`, blob), {
           label: "backup-upload",
-          retries: 3
+          retries: 3,
         }),
         12e4,
         "backup-upload"
@@ -4404,15 +5139,17 @@ async function runBackup(tenantId) {
 async function runNightlyBackupIfDue() {
   try {
     if (!resolveBackupSecret()) {
-      return { attempted: false, skippedReason: "encryption key not configured" };
+      return {
+        attempted: false,
+        skippedReason: "encryption key not configured",
+      };
     }
-    const today = (/* @__PURE__ */ new Date()).toISOString().slice(0, 10);
+    const today = /* @__PURE__ */ new Date().toISOString().slice(0, 10);
     const markerPath = path.join(backupDir(), "lastNightlyRun.txt");
     let lastRun = "";
     try {
       lastRun = (await fs.readFile(markerPath, "utf8")).trim();
-    } catch {
-    }
+    } catch {}
     if (lastRun === today) {
       return { attempted: false, skippedReason: "already ran today" };
     }
@@ -4425,10 +5162,10 @@ async function runNightlyBackupIfDue() {
       await writeIndex(index2);
       for (const m of removed) {
         if (m.storage.localFile) {
-          await fs.rm(m.storage.localFile, { force: true }).catch(() => {
-          });
-          await fs.rm(`${m.storage.localFile}.manifest.json`, { force: true }).catch(() => {
-          });
+          await fs.rm(m.storage.localFile, { force: true }).catch(() => {});
+          await fs
+            .rm(`${m.storage.localFile}.manifest.json`, { force: true })
+            .catch(() => {});
         }
       }
     }
@@ -4438,7 +5175,7 @@ async function runNightlyBackupIfDue() {
     return {
       attempted: true,
       ok: false,
-      error: e instanceof Error ? e.message : String(e)
+      error: e instanceof Error ? e.message : String(e),
     };
   }
 }
@@ -4523,22 +5260,31 @@ async function handler(req, res) {
       res.end(JSON.stringify({ ok: false, error: "database unavailable" }));
       return;
     }
-    const rows = await db.select({ id: tenants.id }).from(tenants).orderBy(tenants.id);
+    const rows = await db
+      .select({ id: tenants.id })
+      .from(tenants)
+      .orderBy(tenants.id);
     let ran = 0;
     const perTenant = [];
     for (const t of rows) {
       const alerts = await runProactiveAlerts(t.id);
       const scheduled = await runScheduledJournalEntries(t.id, null);
       const recurring = await runRecurringExpenses(t.id, null);
-      await db.select().from(featureFlags).where(sql3`${featureFlags.tenantId} = ${t.id}`).limit(100);
-      await db.delete(loginAttempts).where(
-        sql3`${loginAttempts.createdAt} < now() - interval '90 days'`
-      );
-      const stats = await db.select({
-        totalUsers: count(users.id),
-        totalTenants: count(tenants.id),
-        activeSessions: sql3`(SELECT count(*) FROM users WHERE lastSignedIn > now() - interval '24 hours')`
-      }).from(users);
+      await db
+        .select()
+        .from(featureFlags)
+        .where(sql3`${featureFlags.tenantId} = ${t.id}`)
+        .limit(100);
+      await db
+        .delete(loginAttempts)
+        .where(sql3`${loginAttempts.createdAt} < now() - interval '90 days'`);
+      const stats = await db
+        .select({
+          totalUsers: count(users.id),
+          totalTenants: count(tenants.id),
+          activeSessions: sql3`(SELECT count(*) FROM users WHERE lastSignedIn > now() - interval '24 hours')`,
+        })
+        .from(users);
       perTenant.push({
         tenantId: t.id,
         alerts: alerts.total,
@@ -4547,8 +5293,8 @@ async function handler(req, res) {
         recurringFailed: recurring.failed,
         stats: {
           totalUsers: stats[0]?.totalUsers ?? 0,
-          activeSessions: stats[0]?.activeSessions ?? 0
-        }
+          activeSessions: stats[0]?.activeSessions ?? 0,
+        },
       });
       ran++;
     }
@@ -4560,7 +5306,7 @@ async function handler(req, res) {
         ok: true,
         ran,
         perTenant,
-        backup
+        backup,
       })
     );
   } catch (e) {
@@ -4569,11 +5315,9 @@ async function handler(req, res) {
     res.end(
       JSON.stringify({
         ok: false,
-        error: e instanceof Error ? e.message : String(e)
+        error: e instanceof Error ? e.message : String(e),
       })
     );
   }
 }
-export {
-  handler as default
-};
+export { handler as default };

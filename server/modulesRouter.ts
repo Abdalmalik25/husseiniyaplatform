@@ -64,7 +64,10 @@ export const modulesRouter = router({
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(accounts).where(eq(accounts.tenantId, ctx.tenantId));
+      return db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.tenantId, ctx.tenantId));
     }),
   }),
 
@@ -244,7 +247,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const [row] = await db
           .insert(roles)
           .values({
@@ -266,12 +270,15 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const roleValue = input.role || "user";
         await db
           .update(users)
           .set({ role: roleValue as any })
-          .where(and(eq(users.id, input.userId), eq(users.tenantId, ctx.tenantId)));
+          .where(
+            and(eq(users.id, input.userId), eq(users.tenantId, ctx.tenantId))
+          );
         return { success: true };
       }),
   }),
@@ -288,7 +295,10 @@ export const modulesRouter = router({
         if (input?.entityType) {
           conditions.push(eq(customFieldDefs.entityType, input.entityType));
         }
-        return db.select().from(customFieldDefs).where(and(...conditions));
+        return db
+          .select()
+          .from(customFieldDefs)
+          .where(and(...conditions));
       }),
     getValues: tenantProcedure
       .input(
@@ -330,7 +340,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const [row] = await db
           .insert(customFieldDefs)
           .values({
@@ -349,7 +360,8 @@ export const modulesRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         await db
           .delete(customFieldDefs)
           .where(
@@ -370,7 +382,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         for (const [key, val] of Object.entries(input.values)) {
           const strVal = val === null || val === undefined ? null : String(val);
           const existing = await db
@@ -450,10 +463,12 @@ export const modulesRouter = router({
         const t = item.entityType || "غير محدد";
         typeMap.set(t, (typeMap.get(t) || 0) + 1);
       }
-      const byType = Array.from(typeMap.entries()).map(([entityType, count]) => ({
-        entityType,
-        count,
-      }));
+      const byType = Array.from(typeMap.entries()).map(
+        ([entityType, count]) => ({
+          entityType,
+          count,
+        })
+      );
 
       return { byType, items };
     }),
@@ -474,7 +489,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const title = input.title || input.name || "مستند";
         const [row] = await db
           .insert(documents)
@@ -494,11 +510,15 @@ export const modulesRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         await db
           .delete(documents)
           .where(
-            and(eq(documents.id, input.id), eq(documents.tenantId, ctx.tenantId))
+            and(
+              eq(documents.id, input.id),
+              eq(documents.tenantId, ctx.tenantId)
+            )
           );
         return { success: true };
       }),
@@ -559,7 +579,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const [row] = await db
           .insert(currencies)
           .values({
@@ -586,7 +607,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const { id, ...data } = input;
         await db
           .update(currencies)
@@ -600,7 +622,8 @@ export const modulesRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         await db
           .update(currencies)
           .set({ isDefault: false })
@@ -609,7 +632,10 @@ export const modulesRouter = router({
           .update(currencies)
           .set({ isDefault: true })
           .where(
-            and(eq(currencies.id, input.id), eq(currencies.tenantId, ctx.tenantId))
+            and(
+              eq(currencies.id, input.id),
+              eq(currencies.tenantId, ctx.tenantId)
+            )
           );
         return { success: true };
       }),
@@ -656,7 +682,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const [row] = await db
           .insert(salesReps)
           .values({
@@ -686,22 +713,31 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const { id, ...data } = input;
         await db
           .update(salesReps)
           .set({ ...data, updatedAt: new Date() })
-          .where(and(eq(salesReps.id, id), eq(salesReps.tenantId, ctx.tenantId)));
+          .where(
+            and(eq(salesReps.id, id), eq(salesReps.tenantId, ctx.tenantId))
+          );
         return { success: true };
       }),
     delete: tenantProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         await db
           .delete(salesReps)
-          .where(and(eq(salesReps.id, input.id), eq(salesReps.tenantId, ctx.tenantId)));
+          .where(
+            and(
+              eq(salesReps.id, input.id),
+              eq(salesReps.tenantId, ctx.tenantId)
+            )
+          );
         return { success: true };
       }),
   }),
@@ -736,10 +772,22 @@ export const modulesRouter = router({
         .where(eq(categories.tenantId, ctx.tenantId));
       if (rows.length === 0) {
         return [
-          { id: 1, name: "قرطاسية ومستلزمات مكتبية", description: "أدوات ومواد مكتبية" },
-          { id: 2, name: "خدمات هندسية ومعمارية", description: "استشارات وتصاميم" },
+          {
+            id: 1,
+            name: "قرطاسية ومستلزمات مكتبية",
+            description: "أدوات ومواد مكتبية",
+          },
+          {
+            id: 2,
+            name: "خدمات هندسية ومعمارية",
+            description: "استشارات وتصاميم",
+          },
           { id: 3, name: "حلول تقنية وبرمجية", description: "تطوير وأنظمة" },
-          { id: 4, name: "أجهزة ومعدات إلكترونية", description: "حواسيب وملحقاتها" },
+          {
+            id: 4,
+            name: "أجهزة ومعدات إلكترونية",
+            description: "حواسيب وملحقاتها",
+          },
         ];
       }
       return rows;
@@ -754,7 +802,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const code = input.code || `U-${Date.now().toString(36).toUpperCase()}`;
         const [row] = await db
           .insert(units)
@@ -776,7 +825,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const code = `CAT-${Date.now().toString(36).toUpperCase()}`;
         const [row] = await db
           .insert(categories)
@@ -837,8 +887,10 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
-        const code = input.code || `BR-${Date.now().toString(36).toUpperCase()}`;
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
+        const code =
+          input.code || `BR-${Date.now().toString(36).toUpperCase()}`;
         const [row] = await db
           .insert(branches)
           .values({
@@ -864,7 +916,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const { id, address, phone, ...data } = input;
         const setObj: any = { ...data, updatedAt: new Date() };
         if (address) setObj.city = address;
@@ -884,16 +937,15 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
-        await db
-          .insert(userBranchPermissions)
-          .values({
-            tenantId: ctx.tenantId,
-            userId: input.userId,
-            branchId: input.branchId,
-            canView: input.canAccess,
-            canInsert: input.canAccess,
-          });
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
+        await db.insert(userBranchPermissions).values({
+          tenantId: ctx.tenantId,
+          userId: input.userId,
+          branchId: input.branchId,
+          canView: input.canAccess,
+          canInsert: input.canAccess,
+        });
         return { success: true };
       }),
   }),
@@ -904,10 +956,7 @@ export const modulesRouter = router({
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      return db
-        .select()
-        .from(offers)
-        .where(eq(offers.tenantId, ctx.tenantId));
+      return db.select().from(offers).where(eq(offers.tenantId, ctx.tenantId));
     }),
     applicable: tenantProcedure
       .input(
@@ -948,7 +997,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const [row] = await db
           .insert(offers)
           .values({
@@ -980,7 +1030,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const { id, ...data } = input;
         await db
           .update(offers)
@@ -992,10 +1043,13 @@ export const modulesRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         await db
           .delete(offers)
-          .where(and(eq(offers.id, input.id), eq(offers.tenantId, ctx.tenantId)));
+          .where(
+            and(eq(offers.id, input.id), eq(offers.tenantId, ctx.tenantId))
+          );
         return { success: true };
       }),
   }),
@@ -1029,7 +1083,8 @@ export const modulesRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         const [row] = await db
           .insert(productUnits)
           .values({
@@ -1046,7 +1101,8 @@ export const modulesRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         await db
           .delete(productUnits)
           .where(
@@ -1082,7 +1138,10 @@ export const modulesRouter = router({
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db || !ctx.tenantId || !ctx.user) {
-          throw new TRPCError({ code: "BAD_REQUEST", message: "تعذر فتح الوردية" });
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "تعذر فتح الوردية",
+          });
         }
         const code = `POS-${Date.now().toString(36).toUpperCase()}`;
         const [row] = await db
@@ -1102,12 +1161,20 @@ export const modulesRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         await db
           .update(posSessions)
-          .set({ status: "closed", closedAt: new Date(), updatedAt: new Date() })
+          .set({
+            status: "closed",
+            closedAt: new Date(),
+            updatedAt: new Date(),
+          })
           .where(
-            and(eq(posSessions.id, input.id), eq(posSessions.tenantId, ctx.tenantId))
+            and(
+              eq(posSessions.id, input.id),
+              eq(posSessions.tenantId, ctx.tenantId)
+            )
           );
         return { success: true };
       }),
@@ -1150,7 +1217,8 @@ export const modulesRouter = router({
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db || !ctx.tenantId) throw new Error("تعذر الاتصال بقاعدة البيانات");
+        if (!db || !ctx.tenantId)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
         await db
           .delete(posSessions)
           .where(
@@ -1197,7 +1265,11 @@ export const modulesRouter = router({
         dueScheduled: 0,
         overdue: 0,
         activeOffers: 0,
-        topRep: null as { name: string; commission: number; salesTotal: number } | null,
+        topRep: null as {
+          name: string;
+          commission: number;
+          salesTotal: number;
+        } | null,
       };
       if (!ctx.tenantId) return defaultResult;
       const db = await getDb();
@@ -1216,7 +1288,11 @@ export const modulesRouter = router({
         salesGrowth: 0,
         invoicesCount: 0,
         customersCount: 0,
-        months: [] as Array<{ month: string; revenue: number; expense: number }>,
+        months: [] as Array<{
+          month: string;
+          revenue: number;
+          expense: number;
+        }>,
         totals: { revenue: 0, expense: 0, profit: 0 },
         note: null as string | null,
         topProducts: [] as Array<{ id: number; name: string; total: number }>,
@@ -1230,13 +1306,19 @@ export const modulesRouter = router({
         .select({ total: salesInvoices.total })
         .from(salesInvoices)
         .where(eq(salesInvoices.tenantId, ctx.tenantId));
-      const totalSales = sales.reduce((s, i) => s + parseFloat(i.total || "0"), 0);
+      const totalSales = sales.reduce(
+        (s, i) => s + parseFloat(i.total || "0"),
+        0
+      );
 
       const purchases = await db
         .select({ total: purchaseInvoices.total })
         .from(purchaseInvoices)
         .where(eq(purchaseInvoices.tenantId, ctx.tenantId));
-      const totalPurchases = purchases.reduce((s, i) => s + parseFloat(i.total || "0"), 0);
+      const totalPurchases = purchases.reduce(
+        (s, i) => s + parseFloat(i.total || "0"),
+        0
+      );
 
       return {
         totalSales,
@@ -1245,8 +1327,16 @@ export const modulesRouter = router({
         salesGrowth: 0,
         invoicesCount: sales.length,
         customersCount: 0,
-        months: [] as Array<{ month: string; revenue: number; expense: number }>,
-        totals: { revenue: totalSales, expense: totalPurchases, profit: totalSales - totalPurchases },
+        months: [] as Array<{
+          month: string;
+          revenue: number;
+          expense: number;
+        }>,
+        totals: {
+          revenue: totalSales,
+          expense: totalPurchases,
+          profit: totalSales - totalPurchases,
+        },
         note: null as string | null,
         topProducts: [] as Array<{ id: number; name: string; total: number }>,
         salesByBranch: [] as Array<{ branch: string; total: number }>,

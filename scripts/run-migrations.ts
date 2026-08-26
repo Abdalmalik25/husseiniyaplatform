@@ -68,7 +68,7 @@ async function main() {
         console.warn(
           `[migrations] ⚠ ${label} — transient network error (${code || message}); retry ${attempt}/3 in ${delayMs}ms…`
         );
-        await new Promise((r) => setTimeout(r, delayMs));
+        await new Promise(r => setTimeout(r, delayMs));
       }
     }
     throw lastError;
@@ -97,7 +97,7 @@ async function main() {
   const migrationsDir = path.join(process.cwd(), "drizzle");
   const files = fs
     .readdirSync(migrationsDir)
-    .filter((f) => f.endsWith(".sql") && !f.endsWith(".sql.bak"))
+    .filter(f => f.endsWith(".sql") && !f.endsWith(".sql.bak"))
     .sort();
 
   if (files.length === 0) {
@@ -169,7 +169,7 @@ async function main() {
   process.exit(0);
 }
 
-main().catch((error) => {
+main().catch(error => {
   console.error("[migrations] Fatal:", error);
   process.exit(1);
 });

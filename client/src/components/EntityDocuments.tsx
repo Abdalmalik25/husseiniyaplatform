@@ -113,20 +113,20 @@ export function EntityDocuments({
               className="h-8 text-[12px]"
               placeholder="عنوان المستند *"
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={e => setTitle(e.target.value)}
             />
             <div className="grid grid-cols-2 gap-2">
               <Input
                 className="h-8 text-[12px]"
                 placeholder="النوع (فاتورة، عقد...)"
                 value={docType}
-                onChange={(e) => setDocType(e.target.value)}
+                onChange={e => setDocType(e.target.value)}
               />
               <Input
                 className="h-8 text-[12px]"
                 placeholder="رابط مرجعي (اختياري)"
                 value={referenceUrl}
-                onChange={(e) => setReferenceUrl(e.target.value)}
+                onChange={e => setReferenceUrl(e.target.value)}
               />
             </div>
             <Textarea
@@ -134,7 +134,7 @@ export function EntityDocuments({
               rows={2}
               placeholder="ملاحظات"
               value={notes}
-              onChange={(e) => setNotes(e.target.value)}
+              onChange={e => setNotes(e.target.value)}
             />
             <Button
               size="sm"

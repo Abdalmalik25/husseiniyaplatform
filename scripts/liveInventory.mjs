@@ -16,12 +16,12 @@ const fetchWithCookie = (url, init = {}) => {
     credentials: "include",
     signal: AbortSignal.timeout(120000),
   })
-    .then(async (res) => {
+    .then(async res => {
       const sc = res.headers.get("set-cookie");
       if (sc) cookie = sc.split(";")[0];
       return res;
     })
-    .catch((err) => {
+    .catch(err => {
       console.error("FETCH FAILED:", url, err?.message, err?.cause);
       throw err;
     });
@@ -46,7 +46,9 @@ const log = (...a) => console.log(...a);
 (async () => {
   const client = makeClient();
 
-  const login = await client.auth.ownerLogin.mutate({ password: OWNER_PASSWORD });
+  const login = await client.auth.ownerLogin.mutate({
+    password: OWNER_PASSWORD,
+  });
   log("1) ownerLogin ok:", !!login);
 
   // Apply schema migration (adds columns + tables + seeds accounts) for ALL tenants
@@ -54,14 +56,21 @@ const log = (...a) => console.log(...a);
   log("2) migratePos:", JSON.stringify(mig));
 
   const tenants = await client.system.listTenants.query();
-  const lib = tenants.find((t) => t.code === "HUSSEINIYA_LIBRARY") || tenants[1];
+  const lib = tenants.find(t => t.code === "HUSSEINIYA_LIBRARY") || tenants[1];
   log("3) library tenant:", lib?.id, lib?.code);
 
   activeTenant = lib.id;
 
   // Settings now expose POS config
   const settings = await client.accounting.getSettings.query();
-  log("4) settings has posConfig:", !!settings.posConfig, "| paymentMethods:", Array.isArray(settings.paymentMethods) ? settings.paymentMethods.length : "n/a");
+  log(
+    "4) settings has posConfig:",
+    !!settings.posConfig,
+    "| paymentMethods:",
+    Array.isArray(settings.paymentMethods)
+      ? settings.paymentMethods.length
+      : "n/a"
+  );
 
   // Inventory summary (should now have new fields)
   const summary = await client.products.inventorySummary.query();
@@ -69,7 +78,14 @@ const log = (...a) => console.log(...a);
 
   // Valuation
   const val = await client.products.valuation.query();
-  log("6) valuation items:", val.items?.length, "| totalValue:", val.totalValue, "| totalRetail:", val.totalRetail);
+  log(
+    "6) valuation items:",
+    val.items?.length,
+    "| totalValue:",
+    val.totalValue,
+    "| totalRetail:",
+    val.totalRetail
+  );
 
   // Low stock
   const low = await client.products.lowStock.query();
@@ -77,14 +93,22 @@ const log = (...a) => console.log(...a);
 
   // Warehouses (idempotent: reuse if exist)
   let whList = await client.warehouses.list.query();
-  let wh = whList.find((w) => w.code === "WH1");
-  let wh2 = whList.find((w) => w.code === "WH2");
+  let wh = whList.find(w => w.code === "WH1");
+  let wh2 = whList.find(w => w.code === "WH2");
   if (!wh) {
-    const r = await client.warehouses.create.mutate({ code: "WH1", name: "المخزن الرئيسي", location: "صنعاء" });
+    const r = await client.warehouses.create.mutate({
+      code: "WH1",
+      name: "المخزن الرئيسي",
+      location: "صنعاء",
+    });
     wh = r.warehouse;
   }
   if (!wh2) {
-    const r = await client.warehouses.create.mutate({ code: "WH2", name: "مخزن فرعي", location: "عدن" });
+    const r = await client.warehouses.create.mutate({
+      code: "WH2",
+      name: "مخزن فرعي",
+      location: "عدن",
+    });
     wh2 = r.warehouse;
   }
   log("8) warehouses:", wh?.id, wh2?.id);
@@ -93,10 +117,19 @@ const log = (...a) => console.log(...a);
   const prods = await client.products.list.query({ limit: 10 });
   const p = (prods.items || [])[0];
   if (p) {
-    const adj = await client.products.setOpeningStock.mutate({ productId: p.id, quantity: 50, notes: "جرد افتتاحي" });
+    const adj = await client.products.setOpeningStock.mutate({
+      productId: p.id,
+      quantity: 50,
+      notes: "جرد افتتاحي",
+    });
     log("9) setOpeningStock:", JSON.stringify(adj));
     const card = await client.products.stockCard.query({ productId: p.id });
-    log("10) stockCard movements:", card.movements?.length, "| balance:", card.product?.currentStock);
+    log(
+      "10) stockCard movements:",
+      card.movements?.length,
+      "| balance:",
+      card.product?.currentStock
+    );
   } else {
     log("9) no products to test opening stock");
   }
@@ -116,10 +149,10 @@ const log = (...a) => console.log(...a);
   }
 
   whList = await client.warehouses.list.query();
-  log("12) warehouses:", whList.map((w) => w.code).join(","));
+  log("12) warehouses:", whList.map(w => w.code).join(","));
 
   log("\nINVENTORY DONE");
-})().catch((e) => {
+})().catch(e => {
   console.error("SCRIPT ERROR:", e?.message || e, "CAUSE:", e?.cause);
   process.exit(1);
 });

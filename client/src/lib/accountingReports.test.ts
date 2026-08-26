@@ -42,7 +42,7 @@ const balances = buildAccountBalances(accounts, txs);
 
 describe("accounting report accuracy", () => {
   it("computes raw balances with the correct natural-side signs", () => {
-    const byId = Object.fromEntries(balances.map((a) => [a.id, a.balance]));
+    const byId = Object.fromEntries(balances.map(a => [a.id, a.balance]));
     // Cash: 5000 + 2000 - 400 = +6600 (debit-normal asset)
     expect(byId[1]).toBeCloseTo(6600, 2);
     // AR: +1000
@@ -80,14 +80,20 @@ describe("accounting report accuracy", () => {
     expect(sheet.totalAssets).toBeCloseTo(7600, 2);
     expect(sheet.totalLiabilities).toBeCloseTo(2000, 2);
     expect(sheet.totalEquity).toBeCloseTo(5600, 2); // 5000 capital + 600 net income
-    expect(sheet.totalAssets - (sheet.totalLiabilities + sheet.totalEquity)).toBeCloseTo(0, 2);
+    expect(
+      sheet.totalAssets - (sheet.totalLiabilities + sheet.totalEquity)
+    ).toBeCloseTo(0, 2);
     // Equity rows are shown positive (credit magnitude)
     expect(sheet.equity[0].balance).toBeCloseTo(5000, 2);
-    expect(sheet.equity.find((e) => e.id === -1)?.balance).toBeCloseTo(600, 2);
+    expect(sheet.equity.find(e => e.id === -1)?.balance).toBeCloseTo(600, 2);
   });
 
   it("nets contra entries against revenue/expense totals", () => {
-    const withRefund = [...txs, tx(3, "debit", "100.00"), tx(1, "credit", "100.00")];
+    const withRefund = [
+      ...txs,
+      tx(3, "debit", "100.00"),
+      tx(1, "credit", "100.00"),
+    ];
     const b = buildAccountBalances(accounts, withRefund);
     const stmt = computeIncomeStatement(b);
     expect(stmt.totalRevenue).toBeCloseTo(900, 2); // 1000 - 100 refund
@@ -95,7 +101,10 @@ describe("accounting report accuracy", () => {
   });
 
   it("ignores reversed transactions", () => {
-    const withReversed = [...txs, { ...tx(3, "credit", "5000.00"), isReversed: true }];
+    const withReversed = [
+      ...txs,
+      { ...tx(3, "credit", "5000.00"), isReversed: true },
+    ];
     const b = buildAccountBalances(accounts, withReversed);
     const stmt = computeIncomeStatement(b);
     expect(stmt.totalRevenue).toBeCloseTo(1000, 2);

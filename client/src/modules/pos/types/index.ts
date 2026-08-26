@@ -259,7 +259,15 @@ export interface SalePayment {
 
 export interface Notification {
   id: string;
-  type: "success" | "error" | "warning" | "info" | "sale" | "payment" | "stock" | "session";
+  type:
+    | "success"
+    | "error"
+    | "warning"
+    | "info"
+    | "sale"
+    | "payment"
+    | "stock"
+    | "session";
   title: string;
   titleAr: string;
   message: string;
@@ -276,7 +284,13 @@ export interface ScheduledTask {
   id: string;
   name: string;
   nameAr: string;
-  type: "daily_report" | "session_reminder" | "stock_alert" | "backup" | "sync" | "custom";
+  type:
+    | "daily_report"
+    | "session_reminder"
+    | "stock_alert"
+    | "backup"
+    | "sync"
+    | "custom";
   schedule: {
     frequency: "once" | "daily" | "weekly" | "monthly" | "cron";
     time?: string;
@@ -320,7 +334,14 @@ export interface POSDevice {
   id: number;
   code: string;
   name: string;
-  type: "pos" | "scanner" | "scale" | "printer" | "cash_drawer" | "customer_display" | "pin_pad";
+  type:
+    | "pos"
+    | "scanner"
+    | "scale"
+    | "printer"
+    | "cash_drawer"
+    | "customer_display"
+    | "pin_pad";
   workSiteId?: number;
   workSiteName?: string;
   location?: string;
@@ -436,11 +457,27 @@ export interface POSAnalytics {
     netSales: number;
   };
   byPaymentMethod: Record<PaymentMethodKey, { count: number; amount: number }>;
-  byCategory: Array<{ category: string; sales: number; quantity: number; margin: number }>;
-  byProduct: Array<{ productId: number; name: string; quantity: number; revenue: number; margin: number }>;
+  byCategory: Array<{
+    category: string;
+    sales: number;
+    quantity: number;
+    margin: number;
+  }>;
+  byProduct: Array<{
+    productId: number;
+    name: string;
+    quantity: number;
+    revenue: number;
+    margin: number;
+  }>;
   byHour: Array<{ hour: number; sales: number; transactions: number }>;
   byDay: Array<{ date: string; sales: number; transactions: number }>;
-  topCustomers: Array<{ customerId: number; name: string; purchases: number; spent: number }>;
+  topCustomers: Array<{
+    customerId: number;
+    name: string;
+    purchases: number;
+    spent: number;
+  }>;
   stockAlerts: StockAlert[];
 }
 

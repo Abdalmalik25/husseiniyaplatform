@@ -36,7 +36,7 @@ export default [
       },
     },
   },
-    {
+  {
     // Operational scripts (*.mjs, *.cjs at root and in scripts/)
     // These are standalone Node.js scripts that use console/process globals.
     files: ["*.mjs", "*.cjs", "scripts/**/*.mjs", "scripts/**/*.cjs"],

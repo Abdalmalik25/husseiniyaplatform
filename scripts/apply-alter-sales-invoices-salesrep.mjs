@@ -10,7 +10,10 @@ try {
     }
   }
 } catch (e) {
-  console.warn("[alter-sales-invoices-salesrep] could not read .env:", e.message);
+  console.warn(
+    "[alter-sales-invoices-salesrep] could not read .env:",
+    e.message
+  );
 }
 
 if (!process.env.DATABASE_URL) {
@@ -18,12 +21,17 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-const sql = readFileSync(new URL("./alter-sales-invoices-salesrep.sql", import.meta.url), "utf8");
+const sql = readFileSync(
+  new URL("./alter-sales-invoices-salesrep.sql", import.meta.url),
+  "utf8"
+);
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
 try {
   await pool.query(sql);
-  console.log("[alter-sales-invoices-salesrep] migration applied successfully.");
+  console.log(
+    "[alter-sales-invoices-salesrep] migration applied successfully."
+  );
 } catch (e) {
   console.error("[alter-sales-invoices-salesrep] migration failed:", e.message);
   process.exit(1);

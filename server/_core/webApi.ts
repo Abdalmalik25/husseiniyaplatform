@@ -65,11 +65,7 @@ export function registerWebApi(app: Express) {
       });
       const tid =
         Number.parseInt((req.headers["x-tenant-id"] as string) || "", 10) || 1;
-      const data = await getCatalog(
-        db,
-        tid,
-        parsed.success ? parsed.data : {}
-      );
+      const data = await getCatalog(db, tid, parsed.success ? parsed.data : {});
       res.status(200).json({ ok: true, ...data });
     } catch (e: any) {
       res.status(500).json({ ok: false, error: String(e?.message || e) });

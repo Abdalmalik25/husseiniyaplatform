@@ -121,10 +121,10 @@ createRoot(document.getElementById("root")!).render(
 );
 
 // Register service worker for installable PWA + offline shell, then keep the
- // running build fresh: browsers only check for a new SW on navigation and at
- // most once per day — long-lived sessions (our PWA's main use case) would sit
- // on stale builds. We poll explicitly every 30 minutes and whenever the tab
- // becomes visible again. The update-detection toast (SWUpdateToast) handles UX.
+// running build fresh: browsers only check for a new SW on navigation and at
+// most once per day — long-lived sessions (our PWA's main use case) would sit
+// on stale builds. We poll explicitly every 30 minutes and whenever the tab
+// becomes visible again. The update-detection toast (SWUpdateToast) handles UX.
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker

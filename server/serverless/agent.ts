@@ -22,23 +22,31 @@
  */
 
 import { getDb } from "../db";
-import { tenants, users, activityLogs, loginAttempts } from "../../drizzle/schema";
+import {
+  tenants,
+  users,
+  activityLogs,
+  loginAttempts,
+} from "../../drizzle/schema";
 import { desc, count, lt } from "drizzle-orm";
 import { runProactiveAlerts, runScheduledJournalEntries } from "../automation";
 
 const AGENT_SECRET = process.env.AGENT_SECRET;
 if (!AGENT_SECRET) {
-  console.error("[agent] AGENT_SECRET is not defined in .env — endpoint disabled");
+  console.error(
+    "[agent] AGENT_SECRET is not defined in .env — endpoint disabled"
+  );
 }
 
- 
 export default async function handler(req: any, res: any) {
   try {
     // --- Authentication ---
     if (!AGENT_SECRET) {
       res.statusCode = 500;
       res.setHeader("content-type", "application/json");
-      res.end(JSON.stringify({ ok: false, error: "agent secret not configured" }));
+      res.end(
+        JSON.stringify({ ok: false, error: "agent secret not configured" })
+      );
       return;
     }
     const auth = req.headers["authorization"] || "";
@@ -96,7 +104,7 @@ export default async function handler(req: any, res: any) {
       return;
     }
 
-    // --- /force-run?tenantId=X --- 
+    // --- /force-run?tenantId=X ---
     if (action === "force-run") {
       const tenantId = Number(req.query.tenantId);
       if (!tenantId) {

@@ -16,11 +16,13 @@ const sql = neon(url);
 
 try {
   // Discover columns first
-  const cols = await sql`SELECT column_name FROM information_schema.columns WHERE table_name = 'users' ORDER BY ordinal_position`;
+  const cols =
+    await sql`SELECT column_name FROM information_schema.columns WHERE table_name = 'users' ORDER BY ordinal_position`;
   console.log("\n=== USERS TABLE COLUMNS ===");
   console.log(cols.map(c => c.column_name).join(", "));
 
-  const tcols = await sql`SELECT column_name FROM information_schema.columns WHERE table_name = 'tenants' ORDER BY ordinal_position`;
+  const tcols =
+    await sql`SELECT column_name FROM information_schema.columns WHERE table_name = 'tenants' ORDER BY ordinal_position`;
   console.log("\n=== TENANTS TABLE COLUMNS ===");
   console.log(tcols.map(c => c.column_name).join(", "));
 
@@ -30,7 +32,7 @@ try {
   console.log(JSON.stringify(usersRaw, null, 2));
 
   // Local subscribers — access via dynamic keys
-  const localUsers = usersRaw.filter((u) => {
+  const localUsers = usersRaw.filter(u => {
     const lm = u["loginMethod"] || u["loginmethod"] || u["login_method"];
     const un = u["username"];
     return lm === "local" && un;
@@ -38,7 +40,7 @@ try {
   console.log("\n=== LOCAL SUBSCRIBERS (username + password hash) ===");
   console.log(
     JSON.stringify(
-      localUsers.map((u) => ({
+      localUsers.map(u => ({
         id: u["id"],
         username: u["username"],
         name: u["name"],

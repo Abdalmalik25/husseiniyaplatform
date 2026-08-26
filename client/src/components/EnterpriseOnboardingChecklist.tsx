@@ -25,20 +25,22 @@ interface ChecklistItem {
 export function EnterpriseOnboardingChecklist() {
   const [, setLocation] = useLocation();
   const [isCollapsed, setIsCollapsed] = useState<boolean>(false);
-  const [completedItems, setCompletedItems] = useState<Record<string, boolean>>({
-    org_created: true,
-    coa_seeded: true,
-    invoice_setup: false,
-    first_item: false,
-    first_invoice: false,
-  });
+  const [completedItems, setCompletedItems] = useState<Record<string, boolean>>(
+    {
+      org_created: true,
+      coa_seeded: true,
+      invoice_setup: false,
+      first_item: false,
+      first_invoice: false,
+    }
+  );
 
   // Load persistence from localStorage
   useEffect(() => {
     try {
       const saved = localStorage.getItem("uamex_onboarding_checklist");
       if (saved) {
-        setCompletedItems((prev) => ({ ...prev, ...JSON.parse(saved) }));
+        setCompletedItems(prev => ({ ...prev, ...JSON.parse(saved) }));
       }
     } catch {
       /* ignore localStorage errors */
@@ -47,10 +49,13 @@ export function EnterpriseOnboardingChecklist() {
 
   const toggleItem = (id: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    setCompletedItems((prev) => {
+    setCompletedItems(prev => {
       const next = { ...prev, [id]: !prev[id] };
       try {
-        localStorage.setItem("uamex_onboarding_checklist", JSON.stringify(next));
+        localStorage.setItem(
+          "uamex_onboarding_checklist",
+          JSON.stringify(next)
+        );
       } catch {
         /* ignore localStorage errors */
       }
@@ -102,7 +107,7 @@ export function EnterpriseOnboardingChecklist() {
   ];
 
   const total = checklist.length;
-  const doneCount = checklist.filter((c) => c.done).length;
+  const doneCount = checklist.filter(c => c.done).length;
   const progressPercent = Math.round((doneCount / total) * 100);
 
   if (progressPercent === 100 && isCollapsed) {
@@ -139,7 +144,11 @@ export function EnterpriseOnboardingChecklist() {
             className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-muted/50 transition-colors"
             title={isCollapsed ? "توسيع" : "طي"}
           >
-            {isCollapsed ? <ChevronDown className="w-5 h-5" /> : <ChevronUp className="w-5 h-5" />}
+            {isCollapsed ? (
+              <ChevronDown className="w-5 h-5" />
+            ) : (
+              <ChevronUp className="w-5 h-5" />
+            )}
           </button>
         </div>
       </div>
@@ -155,7 +164,7 @@ export function EnterpriseOnboardingChecklist() {
       {/* Checklist items */}
       {!isCollapsed && (
         <div className="space-y-2.5 pt-4">
-          {checklist.map((item) => (
+          {checklist.map(item => (
             <div
               key={item.id}
               onClick={() => toggleItem(item.id)}
@@ -169,7 +178,7 @@ export function EnterpriseOnboardingChecklist() {
               <div className="flex items-start gap-3">
                 <button
                   type="button"
-                  onClick={(e) => toggleItem(item.id, e)}
+                  onClick={e => toggleItem(item.id, e)}
                   className="mt-0.5 shrink-0 text-brand"
                 >
                   {item.done ? (
@@ -182,7 +191,9 @@ export function EnterpriseOnboardingChecklist() {
                   <div
                     className={
                       "text-xs font-bold " +
-                      (item.done ? "line-through text-muted-foreground" : "text-foreground")
+                      (item.done
+                        ? "line-through text-muted-foreground"
+                        : "text-foreground")
                     }
                   >
                     {item.title}
@@ -196,7 +207,7 @@ export function EnterpriseOnboardingChecklist() {
               <Button
                 size="sm"
                 variant={item.done ? "outline" : "default"}
-                onClick={(e) => {
+                onClick={e => {
                   e.stopPropagation();
                   setLocation(item.actionPath);
                 }}

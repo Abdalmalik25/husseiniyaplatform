@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 import { TRPCClientError } from "@trpc/client";
-import { getTrpcErrorCode, isTransientAuthError, isUnauthorizedError } from "./index";
+import {
+  getTrpcErrorCode,
+  isTransientAuthError,
+  isUnauthorizedError,
+} from "./index";
 
 // ---------------------------------------------------------------------------
 // tRPC error construction helpers
@@ -21,7 +25,9 @@ function makeTrpcError(code: string | undefined, message = "error"): Error {
 
 describe("auth.errors", () => {
   it("extracts the tRPC error code from a TRPCClientError", () => {
-    expect(getTrpcErrorCode(makeTrpcError("UNAUTHORIZED"))).toBe("UNAUTHORIZED");
+    expect(getTrpcErrorCode(makeTrpcError("UNAUTHORIZED"))).toBe(
+      "UNAUTHORIZED"
+    );
     expect(getTrpcErrorCode(makeTrpcError("FORBIDDEN"))).toBe("FORBIDDEN");
   });
 
@@ -45,7 +51,9 @@ describe("auth.errors", () => {
   });
 
   it("marks retryable server conditions as transient", () => {
-    expect(isTransientAuthError(makeTrpcError("INTERNAL_SERVER_ERROR"))).toBe(true);
+    expect(isTransientAuthError(makeTrpcError("INTERNAL_SERVER_ERROR"))).toBe(
+      true
+    );
     expect(isTransientAuthError(makeTrpcError("TOO_MANY_REQUESTS"))).toBe(true);
     expect(isTransientAuthError(makeTrpcError("TIMEOUT"))).toBe(true);
   });

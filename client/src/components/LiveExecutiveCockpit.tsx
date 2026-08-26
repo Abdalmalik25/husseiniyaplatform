@@ -71,9 +71,13 @@ export function LiveExecutiveCockpit({
 }: LiveExecutiveCockpitProps) {
   const [, setLocation] = useLocation();
   const [periodFilter, setPeriodFilter] = useState<"6m" | "1y" | "ytd">("6m");
-  const [activeChartTab, setActiveChartTab] = useState<"revenue_vs_expense" | "cash_flow">("revenue_vs_expense");
+  const [activeChartTab, setActiveChartTab] = useState<
+    "revenue_vs_expense" | "cash_flow"
+  >("revenue_vs_expense");
 
-  const totalRevenue = summaryData?.netIncome ? summaryData.netIncome * 1.8 : 84000;
+  const totalRevenue = summaryData?.netIncome
+    ? summaryData.netIncome * 1.8
+    : 84000;
   const netProfit = summaryData?.netIncome ?? 38000;
   const todaySales = dailyData?.totalSales ?? 3450;
   const inventoryValuation = valuationData?.totalValue ?? 125000;
@@ -85,7 +89,9 @@ export function LiveExecutiveCockpit({
         {/* KPI 1: Net Profit */}
         <Card className="rounded-3xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-bold">صافي الأرباح التشغيلية</span>
+            <span className="text-xs text-muted-foreground font-bold">
+              صافي الأرباح التشغيلية
+            </span>
             <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
               <TrendingUp className="w-4 h-4" />
             </div>
@@ -95,8 +101,12 @@ export function LiveExecutiveCockpit({
               {formatMoney(netProfit)}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-emerald-600 dark:text-emerald-400 font-bold mt-1">
-              <span className="bg-emerald-500/10 px-1.5 py-0.5 rounded-md">+14.2%</span>
-              <span className="text-muted-foreground font-normal">مقارنة بالفترة السابقة</span>
+              <span className="bg-emerald-500/10 px-1.5 py-0.5 rounded-md">
+                +14.2%
+              </span>
+              <span className="text-muted-foreground font-normal">
+                مقارنة بالفترة السابقة
+              </span>
             </div>
           </div>
         </Card>
@@ -104,7 +114,9 @@ export function LiveExecutiveCockpit({
         {/* KPI 2: Today Sales */}
         <Card className="rounded-3xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-bold">مبيعات اليوم والتدفقات</span>
+            <span className="text-xs text-muted-foreground font-bold">
+              مبيعات اليوم والتدفقات
+            </span>
             <div className="w-8 h-8 rounded-xl bg-brand/15 text-brand flex items-center justify-center">
               <ShoppingCart className="w-4 h-4" />
             </div>
@@ -114,8 +126,12 @@ export function LiveExecutiveCockpit({
               {formatMoney(todaySales)}
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-brand font-bold mt-1">
-              <span className="bg-brand/10 px-1.5 py-0.5 rounded-md">{dailyData?.invoiceCount ?? 12} فواتير</span>
-              <span className="text-muted-foreground font-normal">محدث لحظياً</span>
+              <span className="bg-brand/10 px-1.5 py-0.5 rounded-md">
+                {dailyData?.invoiceCount ?? 12} فواتير
+              </span>
+              <span className="text-muted-foreground font-normal">
+                محدث لحظياً
+              </span>
             </div>
           </div>
         </Card>
@@ -123,7 +139,9 @@ export function LiveExecutiveCockpit({
         {/* KPI 3: Inventory Health */}
         <Card className="rounded-3xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-bold">تقييم وحركة المخزون</span>
+            <span className="text-xs text-muted-foreground font-bold">
+              تقييم وحركة المخزون
+            </span>
             <div className="w-8 h-8 rounded-xl bg-amber-500/15 text-amber-500 flex items-center justify-center">
               <Layers className="w-4 h-4" />
             </div>
@@ -134,7 +152,9 @@ export function LiveExecutiveCockpit({
             </div>
             <div className="flex items-center gap-1.5 text-[11px] text-amber-500 font-bold mt-1">
               <span className="bg-amber-500/10 px-1.5 py-0.5 rounded-md">
-                {lowStockCount > 0 ? `${lowStockCount} بحاجة لإعادة طلب` : "المخزون متزن"}
+                {lowStockCount > 0
+                  ? `${lowStockCount} بحاجة لإعادة طلب`
+                  : "المخزون متزن"}
               </span>
             </div>
           </div>
@@ -143,7 +163,9 @@ export function LiveExecutiveCockpit({
         {/* KPI 4: Compliance & Health */}
         <Card className="rounded-3xl border border-border bg-card p-5 shadow-sm hover:shadow-md transition-all relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <span className="text-xs text-muted-foreground font-bold">حالة النظام والامتثال</span>
+            <span className="text-xs text-muted-foreground font-bold">
+              حالة النظام والامتثال
+            </span>
             <div className="w-8 h-8 rounded-xl bg-sky-500/15 text-sky-400 flex items-center justify-center">
               <ShieldCheck className="w-4 h-4" />
             </div>
@@ -207,19 +229,45 @@ export function LiveExecutiveCockpit({
           <div className="h-72 w-full pt-4" dir="ltr">
             <ResponsiveContainer width="100%" height="100%">
               {activeChartTab === "revenue_vs_expense" ? (
-                <AreaChart data={MONTHLY_TREND_DATA} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <AreaChart
+                  data={MONTHLY_TREND_DATA}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
                   <defs>
-                    <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="revenueGrad"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="5%" stopColor="#b87945" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="#b87945" stopOpacity={0.0} />
+                      <stop
+                        offset="95%"
+                        stopColor="#b87945"
+                        stopOpacity={0.0}
+                      />
                     </linearGradient>
-                    <linearGradient id="expenseGrad" x1="0" y1="0" x2="0" y2="1">
+                    <linearGradient
+                      id="expenseGrad"
+                      x1="0"
+                      y1="0"
+                      x2="0"
+                      y2="1"
+                    >
                       <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.0} />
+                      <stop
+                        offset="95%"
+                        stopColor="#f43f5e"
+                        stopOpacity={0.0}
+                      />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "currentColor" }} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: "currentColor" }}
+                  />
                   <YAxis tick={{ fontSize: 10, fill: "currentColor" }} />
                   <Tooltip
                     contentStyle={{
@@ -251,9 +299,15 @@ export function LiveExecutiveCockpit({
                   />
                 </AreaChart>
               ) : (
-                <BarChart data={MONTHLY_TREND_DATA} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                <BarChart
+                  data={MONTHLY_TREND_DATA}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "currentColor" }} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 11, fill: "currentColor" }}
+                  />
                   <YAxis tick={{ fontSize: 10, fill: "currentColor" }} />
                   <Tooltip
                     contentStyle={{
@@ -265,7 +319,12 @@ export function LiveExecutiveCockpit({
                       textAlign: "right",
                     }}
                   />
-                  <Bar dataKey="profit" name="صافي الربح" fill="#10b981" radius={[8, 8, 0, 0]} />
+                  <Bar
+                    dataKey="profit"
+                    name="صافي الربح"
+                    fill="#10b981"
+                    radius={[8, 8, 0, 0]}
+                  />
                 </BarChart>
               )}
             </ResponsiveContainer>
@@ -276,8 +335,12 @@ export function LiveExecutiveCockpit({
         <Card className="lg:col-span-4 rounded-3xl border border-border bg-card p-6 shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-border">
-              <h3 className="text-sm font-black text-foreground">توزيع الإيرادات بالقطاعات</h3>
-              <Badge variant="outline" className="text-[10px]">موزون</Badge>
+              <h3 className="text-sm font-black text-foreground">
+                توزيع الإيرادات بالقطاعات
+              </h3>
+              <Badge variant="outline" className="text-[10px]">
+                موزون
+              </Badge>
             </div>
 
             <div className="h-48 w-full pt-2" dir="ltr">
@@ -312,10 +375,15 @@ export function LiveExecutiveCockpit({
               {SECTOR_DISTRIBUTION.map((s, idx) => (
                 <div key={idx} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                    <span
+                      className="w-2.5 h-2.5 rounded-full"
+                      style={{ backgroundColor: s.color }}
+                    />
                     <span className="text-muted-foreground">{s.name}</span>
                   </div>
-                  <span className="font-mono font-bold text-foreground">{s.value}%</span>
+                  <span className="font-mono font-bold text-foreground">
+                    {s.value}%
+                  </span>
                 </div>
               ))}
             </div>
@@ -327,7 +395,9 @@ export function LiveExecutiveCockpit({
       <div className="p-4 rounded-3xl surface border border-border flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Sparkles className="w-4 h-4 text-brand" />
-          <span className="text-xs font-bold text-foreground">منصة الإجراءات السريعة (Quick Action Dock):</span>
+          <span className="text-xs font-bold text-foreground">
+            منصة الإجراءات السريعة (Quick Action Dock):
+          </span>
         </div>
 
         <div className="flex flex-wrap gap-2">

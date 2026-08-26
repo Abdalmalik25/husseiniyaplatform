@@ -47,9 +47,11 @@ export function useWebVitals(options?: WebVitalsOptions) {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
     const navType =
-      (performance
-        .getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined)
-        ?.type ?? "navigate";
+      (
+        performance.getEntriesByType("navigation")[0] as
+          | PerformanceNavigationTiming
+          | undefined
+      )?.type ?? "navigate";
 
     const endpoint =
       options?.url ??
@@ -155,10 +157,9 @@ export function useWebVitals(options?: WebVitalsOptions) {
     }
 
     // TTFB: response start - request start from navigation entry
-    const nav = performance.getEntriesByType("navigation")[0] as (
-      | PerformanceEntry
-      & { responseStart?: number; requestStart?: number }
-    ) | undefined;
+    const nav = performance.getEntriesByType("navigation")[0] as
+      | (PerformanceEntry & { responseStart?: number; requestStart?: number })
+      | undefined;
     if (nav?.responseStart && nav?.requestStart) {
       report("TTFB", nav.responseStart - nav.requestStart);
     }

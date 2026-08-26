@@ -76,9 +76,7 @@ export function CustomFields({ entityType, entityId, compact }: Props) {
             <select
               className="h-9 w-full rounded-lg border border-border bg-background px-2 text-[12px]"
               value={local[d.key] ?? ""}
-              onChange={(e) =>
-                setLocal((s) => ({ ...s, [d.key]: e.target.value }))
-              }
+              onChange={e => setLocal(s => ({ ...s, [d.key]: e.target.value }))}
             >
               <option value="">—</option>
               {(d.options ? JSON.parse(d.options) : []).map(
@@ -93,8 +91,8 @@ export function CustomFields({ entityType, entityId, compact }: Props) {
             <input
               type="checkbox"
               checked={local[d.key] === "true"}
-              onChange={(e) =>
-                setLocal((s) => ({
+              onChange={e =>
+                setLocal(s => ({
                   ...s,
                   [d.key]: e.target.checked ? "true" : "false",
                 }))
@@ -104,12 +102,14 @@ export function CustomFields({ entityType, entityId, compact }: Props) {
             <Input
               className="h-9 text-[12px]"
               type={
-                d.type === "number" ? "number" : d.type === "date" ? "date" : "text"
+                d.type === "number"
+                  ? "number"
+                  : d.type === "date"
+                    ? "date"
+                    : "text"
               }
               value={local[d.key] ?? ""}
-              onChange={(e) =>
-                setLocal((s) => ({ ...s, [d.key]: e.target.value }))
-              }
+              onChange={e => setLocal(s => ({ ...s, [d.key]: e.target.value }))}
             />
           )}
         </div>

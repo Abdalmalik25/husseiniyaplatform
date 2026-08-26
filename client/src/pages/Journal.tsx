@@ -19,12 +19,7 @@ import {
 import { CustomFields } from "@/components/CustomFields";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Dialog,
   DialogTrigger,
@@ -47,7 +42,10 @@ const SOURCE_LABELS: Record<string, { label: string; tone: string }> = {
 };
 
 function sourceBadge(m: string) {
-  const s = SOURCE_LABELS[m] ?? { label: m ?? "عام", tone: "bg-slate-100 text-slate-600" };
+  const s = SOURCE_LABELS[m] ?? {
+    label: m ?? "عام",
+    tone: "bg-slate-100 text-slate-600",
+  };
   return <Badge className={`${s.tone} font-medium`}>{s.label}</Badge>;
 }
 
@@ -57,15 +55,16 @@ function JournalPage() {
 
   const { data, isPending } = trpc.modules.journal.list.useQuery(
     { sourceModule: source, limit: 60, offset: 0 },
-    { placeholderData: (p) => p }
+    { placeholderData: p => p }
   );
   const { data: accounts } = trpc.modules.accounts.list.useQuery(undefined, {
     placeholderData: (p: any) => p,
   });
-  const { data: legs, isPending: legsPending } = trpc.modules.journal.entries.useQuery(
-    { journalEntryId: selected ?? 0 },
-    { enabled: selected !== null, placeholderData: (p) => p }
-  );
+  const { data: legs, isPending: legsPending } =
+    trpc.modules.journal.entries.useQuery(
+      { journalEntryId: selected ?? 0 },
+      { enabled: selected !== null, placeholderData: p => p }
+    );
 
   const accMap = useMemo(() => {
     const m = new Map<number, any>();
@@ -75,8 +74,12 @@ function JournalPage() {
 
   const items = data?.items ?? [];
   const totals = useMemo(() => {
-    const debits = (legs ?? []).filter((l: any) => l.type === "debit").reduce((s: number, l: any) => s + (parseFloat(l.amount) || 0), 0);
-    const credits = (legs ?? []).filter((l: any) => l.type === "credit").reduce((s: number, l: any) => s + (parseFloat(l.amount) || 0), 0);
+    const debits = (legs ?? [])
+      .filter((l: any) => l.type === "debit")
+      .reduce((s: number, l: any) => s + (parseFloat(l.amount) || 0), 0);
+    const credits = (legs ?? [])
+      .filter((l: any) => l.type === "credit")
+      .reduce((s: number, l: any) => s + (parseFloat(l.amount) || 0), 0);
     return { debits, credits };
   }, [legs]);
 
@@ -90,21 +93,29 @@ function JournalPage() {
               <div className="flex items-center gap-3">
                 <BookOpen className="h-6 w-6 text-indigo-600" />
                 <div>
-                  <h1 className="text-xl font-bold text-slate-800">القيود المحاسبية المجمعة</h1>
+                  <h1 className="text-xl font-bold text-slate-800">
+                    القيود المحاسبية المجمعة
+                  </h1>
                   <p className="text-sm text-slate-500">
-                    دفتر اليومية التكاملي — كل حركة مالية مرتبطة بوثيقتها المصدر (مبيعات / مشتريات / رواتب)
+                    دفتر اليومية التكاملي — كل حركة مالية مرتبطة بوثيقتها المصدر
+                    (مبيعات / مشتريات / رواتب)
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <TabsList className="h-9">
-                  <TabsTrigger value="journal" className="text-xs">القيود</TabsTrigger>
+                  <TabsTrigger value="journal" className="text-xs">
+                    القيود
+                  </TabsTrigger>
                   <TabsTrigger value="scheduled" className="text-xs">
                     القيود المجدولة
                   </TabsTrigger>
                 </TabsList>
                 <Link to="/manual-journal">
-                  <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-700">
+                  <Button
+                    size="sm"
+                    className="bg-indigo-600 text-white hover:bg-indigo-700"
+                  >
                     <Plus className="h-4 w-4" /> قيد جديد
                   </Button>
                 </Link>
@@ -138,14 +149,15 @@ function JournalPage() {
                 <h2 className="text-sm font-semibold text-slate-600">القيود</h2>
                 {isPending ? (
                   <div className="space-y-3">
-                    {[0, 1, 2, 3].map((i) => (
+                    {[0, 1, 2, 3].map(i => (
                       <Skeleton key={i} className="h-20 w-full rounded-xl" />
                     ))}
                   </div>
                 ) : items.length === 0 ? (
                   <Card>
                     <CardContent className="p-8 text-center text-slate-400">
-                      لا توجد قيود بعد. تُنشأ تلقائياً عند ترحيل الفواتير أو الرواتب.
+                      لا توجد قيود بعد. تُنشأ تلقائياً عند ترحيل الفواتير أو
+                      الرواتب.
                     </CardContent>
                   </Card>
                 ) : (
@@ -154,17 +166,23 @@ function JournalPage() {
                       key={je.id}
                       onClick={() => setSelected(je.id)}
                       className={`w-full text-right rounded-xl border p-4 transition hover:shadow-md ${
-                        selected === je.id ? "border-indigo-400 bg-indigo-50" : "bg-white"
+                        selected === je.id
+                          ? "border-indigo-400 bg-indigo-50"
+                          : "bg-white"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         {sourceBadge(je.sourceModule)}
                         <span className="text-xs text-slate-400">
-                          {je.postedAt ? new Date(je.postedAt).toLocaleString("ar") : ""}
+                          {je.postedAt
+                            ? new Date(je.postedAt).toLocaleString("ar")
+                            : ""}
                         </span>
                       </div>
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="font-mono text-sm text-slate-500">{je.referenceNo}</span>
+                        <span className="font-mono text-sm text-slate-500">
+                          {je.referenceNo}
+                        </span>
                         <span className="text-sm font-bold text-slate-700">
                           {fmtCur(parseFloat(je.totalAmount || "0"))}
                         </span>
@@ -176,7 +194,9 @@ function JournalPage() {
 
               {/* detail */}
               <div className="space-y-3">
-                <h2 className="text-sm font-semibold text-slate-600">تفاصيل القيد</h2>
+                <h2 className="text-sm font-semibold text-slate-600">
+                  تفاصيل القيد
+                </h2>
                 {selected === null ? (
                   <Card>
                     <CardContent className="p-8 text-center text-slate-400">
@@ -187,47 +207,55 @@ function JournalPage() {
                   <Skeleton className="h-48 w-full rounded-xl" />
                 ) : (
                   <div className="space-y-3">
-                  <Card>
-                    <CardContent className="p-4 space-y-2">
-                      <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700 text-sm font-medium">
-                        مدين: {fmtCur(totals.debits)}
-                      </div>
-                      <div className="rounded-lg bg-rose-50 p-2 text-rose-700 text-sm font-medium">
-                        دائن: {fmtCur(totals.credits)}
-                      </div>
-                      {(legs ?? []).map((l: any) => {
-                        const acc = accMap.get(l.accountId);
-                        return (
-                          <div
-                            key={l.id}
-                            className="flex items-center justify-between border-b last:border-0 py-2"
-                          >
-                            <div className="flex items-center gap-2">
-                              {l.type === "debit" ? (
-                                <ArrowUpRight className="h-4 w-4 text-emerald-600" />
-                              ) : (
-                                <ArrowDownLeft className="h-4 w-4 text-rose-600" />
-                              )}
-                              <div>
-                                <div className="text-sm font-medium text-slate-700">
-                                  {acc?.name || `حساب #${l.accountId}`}
-                                </div>
-                                <div className="text-xs text-slate-400">{l.narration}</div>
-                              </div>
-                            </div>
-                            <span
-                              className={`text-sm font-semibold ${
-                                l.type === "debit" ? "text-emerald-700" : "text-rose-700"
-                              }`}
+                    <Card>
+                      <CardContent className="p-4 space-y-2">
+                        <div className="rounded-lg bg-emerald-50 p-2 text-emerald-700 text-sm font-medium">
+                          مدين: {fmtCur(totals.debits)}
+                        </div>
+                        <div className="rounded-lg bg-rose-50 p-2 text-rose-700 text-sm font-medium">
+                          دائن: {fmtCur(totals.credits)}
+                        </div>
+                        {(legs ?? []).map((l: any) => {
+                          const acc = accMap.get(l.accountId);
+                          return (
+                            <div
+                              key={l.id}
+                              className="flex items-center justify-between border-b last:border-0 py-2"
                             >
-                              {fmtCur(parseFloat(l.amount || "0"))}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </CardContent>
-                  </Card>
-                  <CustomFields entityType="journal" entityId={selected} compact />
+                              <div className="flex items-center gap-2">
+                                {l.type === "debit" ? (
+                                  <ArrowUpRight className="h-4 w-4 text-emerald-600" />
+                                ) : (
+                                  <ArrowDownLeft className="h-4 w-4 text-rose-600" />
+                                )}
+                                <div>
+                                  <div className="text-sm font-medium text-slate-700">
+                                    {acc?.name || `حساب #${l.accountId}`}
+                                  </div>
+                                  <div className="text-xs text-slate-400">
+                                    {l.narration}
+                                  </div>
+                                </div>
+                              </div>
+                              <span
+                                className={`text-sm font-semibold ${
+                                  l.type === "debit"
+                                    ? "text-emerald-700"
+                                    : "text-rose-700"
+                                }`}
+                              >
+                                {fmtCur(parseFloat(l.amount || "0"))}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </CardContent>
+                    </Card>
+                    <CustomFields
+                      entityType="journal"
+                      entityId={selected}
+                      compact
+                    />
                   </div>
                 )}
               </div>
@@ -257,10 +285,17 @@ function ScheduledJournal() {
   const [name, setName] = useState("");
   const [desc, setDesc] = useState("");
   const [branchId, setBranchId] = useState<number | null>(null);
-  const [frequency, setFrequency] = useState<"once" | "daily" | "weekly" | "monthly">("monthly");
+  const [frequency, setFrequency] = useState<
+    "once" | "daily" | "weekly" | "monthly"
+  >("monthly");
   const [nextRunAt, setNextRunAt] = useState("");
   const [legs, setLegs] = useState<
-    { accountId: number | null; debit: string; credit: string; description: string }[]
+    {
+      accountId: number | null;
+      debit: string;
+      credit: string;
+      description: string;
+    }[]
   >([{ accountId: null, debit: "0", credit: "0", description: "" }]);
 
   const create = trpc.accounting.scheduled.create.useMutation({
@@ -289,7 +324,7 @@ function ScheduledJournal() {
   });
 
   const updateLeg = (i: number, patch: any) =>
-    setLegs((ls) => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
+    setLegs(ls => ls.map((l, idx) => (idx === i ? { ...l, ...patch } : l)));
 
   const accName = (id?: number | null) =>
     (accounts ?? []).find((a: any) => a.id === id)?.name || `#${id}`;
@@ -299,7 +334,9 @@ function ScheduledJournal() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CalendarClock className="h-5 w-5 text-indigo-600" />
-          <h2 className="text-lg font-bold text-slate-800">القيود المحاسبية المجدولة</h2>
+          <h2 className="text-lg font-bold text-slate-800">
+            القيود المحاسبية المجدولة
+          </h2>
         </div>
         <div className="flex gap-2">
           <Button
@@ -313,7 +350,10 @@ function ScheduledJournal() {
           </Button>
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
-              <Button size="sm" className="bg-indigo-600 text-white hover:bg-indigo-700">
+              <Button
+                size="sm"
+                className="bg-indigo-600 text-white hover:bg-indigo-700"
+              >
                 <Plus className="h-4 w-4" /> جدولة قيد
               </Button>
             </DialogTrigger>
@@ -325,14 +365,18 @@ function ScheduledJournal() {
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <Label className="text-[11px]">الاسم</Label>
-                    <Input className="h-9 text-xs" value={name} onChange={(e) => setName(e.target.value)} />
+                    <Input
+                      className="h-9 text-xs"
+                      value={name}
+                      onChange={e => setName(e.target.value)}
+                    />
                   </div>
                   <div>
                     <Label className="text-[11px]">التكرار</Label>
                     <select
                       className="h-9 w-full rounded-lg border border-gray-300 px-2 text-xs bg-white"
                       value={frequency}
-                      onChange={(e) => setFrequency(e.target.value as any)}
+                      onChange={e => setFrequency(e.target.value as any)}
                     >
                       <option value="once">مرة واحدة</option>
                       <option value="daily">يومي</option>
@@ -348,7 +392,7 @@ function ScheduledJournal() {
                       type="datetime-local"
                       className="h-9 text-xs"
                       value={nextRunAt}
-                      onChange={(e) => setNextRunAt(e.target.value)}
+                      onChange={e => setNextRunAt(e.target.value)}
                     />
                   </div>
                   <div>
@@ -356,50 +400,77 @@ function ScheduledJournal() {
                     <select
                       className="h-9 w-full rounded-lg border border-gray-300 px-2 text-xs bg-white"
                       value={branchId ?? ""}
-                      onChange={(e) => setBranchId(e.target.value ? Number(e.target.value) : null)}
+                      onChange={e =>
+                        setBranchId(
+                          e.target.value ? Number(e.target.value) : null
+                        )
+                      }
                     >
                       <option value="">الفرع الرئيسي</option>
                       {(branches ?? []).map((b: any) => (
-                        <option key={b.id} value={b.id}>{b.name}</option>
+                        <option key={b.id} value={b.id}>
+                          {b.name}
+                        </option>
                       ))}
                     </select>
                   </div>
                 </div>
                 <div>
                   <Label className="text-[11px]">الوصف</Label>
-                  <Input className="h-9 text-xs" value={desc} onChange={(e) => setDesc(e.target.value)} />
+                  <Input
+                    className="h-9 text-xs"
+                    value={desc}
+                    onChange={e => setDesc(e.target.value)}
+                  />
                 </div>
 
                 <div>
                   <Label className="text-[11px]">حركات القيد</Label>
                   <div className="space-y-2">
                     {legs.map((l, i) => (
-                      <div key={i} className="grid grid-cols-12 gap-1 items-center">
+                      <div
+                        key={i}
+                        className="grid grid-cols-12 gap-1 items-center"
+                      >
                         <select
                           className="col-span-5 h-9 rounded-lg border border-gray-300 px-2 text-xs bg-white"
                           value={l.accountId ?? ""}
-                          onChange={(e) => updateLeg(i, { accountId: e.target.value ? Number(e.target.value) : null })}
+                          onChange={e =>
+                            updateLeg(i, {
+                              accountId: e.target.value
+                                ? Number(e.target.value)
+                                : null,
+                            })
+                          }
                         >
                           <option value="">الحساب</option>
                           {(accounts ?? []).map((a: any) => (
-                            <option key={a.id} value={a.id}>{a.name}</option>
+                            <option key={a.id} value={a.id}>
+                              {a.name}
+                            </option>
                           ))}
                         </select>
                         <Input
                           className="col-span-3 h-9 text-xs"
                           placeholder="مدين"
                           value={l.debit}
-                          onChange={(e) => updateLeg(i, { debit: e.target.value })}
+                          onChange={e =>
+                            updateLeg(i, { debit: e.target.value })
+                          }
                         />
                         <Input
                           className="col-span-3 h-9 text-xs"
                           placeholder="دائن"
                           value={l.credit}
-                          onChange={(e) => updateLeg(i, { credit: e.target.value })}
+                          onChange={e =>
+                            updateLeg(i, { credit: e.target.value })
+                          }
                         />
                         <button
                           className="col-span-1 text-rose-500"
-                          onClick={() => setLegs((ls) => ls.filter((_, idx) => idx !== i))}
+                          onClick={() =>
+                            setLegs(ls => ls.filter((_, idx) => idx !== i))
+                          }
                           aria-label="حذف"
                         >
                           <Trash2 className="h-4 w-4" />
@@ -408,7 +479,9 @@ function ScheduledJournal() {
                           className="col-span-12 h-9 text-xs"
                           placeholder="البيان"
                           value={l.description}
-                          onChange={(e) => updateLeg(i, { description: e.target.value })}
+                          onChange={e =>
+                            updateLeg(i, { description: e.target.value })
+                          }
                         />
                       </div>
                     ))}
@@ -417,7 +490,17 @@ function ScheduledJournal() {
                     size="sm"
                     variant="ghost"
                     className="mt-1 text-[11px] text-indigo-600"
-                    onClick={() => setLegs((ls) => [...ls, { accountId: null, debit: "0", credit: "0", description: "" }])}
+                    onClick={() =>
+                      setLegs(ls => [
+                        ...ls,
+                        {
+                          accountId: null,
+                          debit: "0",
+                          credit: "0",
+                          description: "",
+                        },
+                      ])
+                    }
                   >
                     + حركة
                   </Button>
@@ -434,8 +517,8 @@ function ScheduledJournal() {
                       frequency,
                       nextRunAt: new Date(nextRunAt).toISOString(),
                       legs: legs
-                        .filter((l) => l.accountId != null)
-                        .map((l) => ({
+                        .filter(l => l.accountId != null)
+                        .map(l => ({
                           accountId: l.accountId as number,
                           debit: l.debit || "0",
                           credit: l.credit || "0",
@@ -467,16 +550,29 @@ function ScheduledJournal() {
               <CardContent className="p-3 flex items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-700">{s.name}</span>
-                    <Badge className={s.isActive ? "bg-emerald-100 text-emerald-700 text-[10px]" : "bg-slate-100 text-slate-500 text-[10px]"}>
+                    <span className="text-sm font-bold text-slate-700">
+                      {s.name}
+                    </span>
+                    <Badge
+                      className={
+                        s.isActive
+                          ? "bg-emerald-100 text-emerald-700 text-[10px]"
+                          : "bg-slate-100 text-slate-500 text-[10px]"
+                      }
+                    >
                       {s.isActive ? "نشط" : "متوقف"}
                     </Badge>
-                    <span className="text-[10px] text-slate-400">{s.frequency}</span>
+                    <span className="text-[10px] text-slate-400">
+                      {s.frequency}
+                    </span>
                   </div>
                   <div className="text-[11px] text-slate-500">
-                    التشغيل القادم: {s.nextRunAt ? new Date(s.nextRunAt).toLocaleString("ar") : "-"}
+                    التشغيل القادم:{" "}
+                    {s.nextRunAt
+                      ? new Date(s.nextRunAt).toLocaleString("ar")
+                      : "-"}
                     {" • "}
-                    {(s.legs?.length ?? 0)} حركة
+                    {s.legs?.length ?? 0} حركة
                   </div>
                 </div>
                 <Button

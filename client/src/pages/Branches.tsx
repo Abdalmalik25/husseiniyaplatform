@@ -25,15 +25,19 @@ export default function Branches() {
   const [city, setCity] = useState("");
   const [editing, setEditing] = useState<any>(null);
 
-  const { data: branches, isPending } = trpc.modules.branches.list.useQuery(undefined, {
-    placeholderData: (p: any) => p,
-  });
+  const { data: branches, isPending } = trpc.modules.branches.list.useQuery(
+    undefined,
+    {
+      placeholderData: (p: any) => p,
+    }
+  );
   const { data: users } = trpc.modules.rbac.listUsers.useQuery(undefined, {
     placeholderData: (p: any) => p,
   });
-  const { data: userPerms } = trpc.modules.branches.listUserPermissions.useQuery(undefined, {
-    placeholderData: (p: any) => p,
-  });
+  const { data: userPerms } =
+    trpc.modules.branches.listUserPermissions.useQuery(undefined, {
+      placeholderData: (p: any) => p,
+    });
 
   const createBranch = trpc.modules.branches.create.useMutation({
     onSuccess: () => {
@@ -58,15 +62,17 @@ export default function Branches() {
   });
 
   const [selUser, setSelUser] = useState<number | "">("");
-  const [permState, setPermState] = useState<Record<number, Record<string, boolean>>>({});
+  const [permState, setPermState] = useState<
+    Record<number, Record<string, boolean>>
+  >({});
 
   // Seed permState from existing userPerms when user/branches change
   useEffect(() => {
     if (selUser === "" || !userPerms) return;
     const map: Record<number, Record<string, boolean>> = {};
     (userPerms as any[])
-      .filter((p) => p.userId === selUser)
-      .forEach((p) => {
+      .filter(p => p.userId === selUser)
+      .forEach(p => {
         map[p.branchId] = {
           canView: !!p.canView,
           canInsert: !!p.canInsert,
@@ -126,9 +132,12 @@ export default function Branches() {
               <Building2 className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">الفروع والصلاحيات</h1>
+              <h1 className="text-xl font-bold text-slate-800">
+                الفروع والصلاحيات
+              </h1>
               <p className="text-sm text-slate-500">
-                إدارة الفروع وتوزيع الصلاحيات لكل مستخدم حسب الفرع — عزل تشغيلي بمعيار عالمي
+                إدارة الفروع وتوزيع الصلاحيات لكل مستخدم حسب الفرع — عزل تشغيلي
+                بمعيار عالمي
               </p>
             </div>
           </div>
@@ -146,19 +155,19 @@ export default function Branches() {
                   className="h-9 text-[12px]"
                   placeholder="الاسم"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={e => setName(e.target.value)}
                 />
                 <Input
                   className="h-9 text-[12px]"
                   placeholder="الرمز"
                   value={code}
-                  onChange={(e) => setCode(e.target.value)}
+                  onChange={e => setCode(e.target.value)}
                 />
                 <Input
                   className="h-9 text-[12px]"
                   placeholder="المدينة"
                   value={city}
-                  onChange={(e) => setCity(e.target.value)}
+                  onChange={e => setCity(e.target.value)}
                 />
               </div>
               <div className="flex gap-2">
@@ -172,7 +181,16 @@ export default function Branches() {
                   {editing ? "تحديث" : "إضافة فرع"}
                 </Button>
                 {editing && (
-                  <Button size="sm" variant="outline" onClick={() => { setEditing(null); setName(""); setCode(""); setCity(""); }}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setEditing(null);
+                      setName("");
+                      setCode("");
+                      setCity("");
+                    }}
+                  >
                     إلغاء
                   </Button>
                 )}
@@ -182,7 +200,9 @@ export default function Branches() {
                 {isPending ? (
                   <p className="text-[12px] text-slate-400">جاري التحميل...</p>
                 ) : (branches ?? []).length === 0 ? (
-                  <p className="text-[12px] text-slate-400">لا توجد فروع بعد.</p>
+                  <p className="text-[12px] text-slate-400">
+                    لا توجد فروع بعد.
+                  </p>
                 ) : (
                   (branches ?? []).map((b: any) => (
                     <div
@@ -198,7 +218,9 @@ export default function Branches() {
                         </div>
                       </div>
                       <button onClick={() => startEdit(b)}>
-                        <span className="text-[11px] text-emerald-600">تعديل</span>
+                        <span className="text-[11px] text-emerald-600">
+                          تعديل
+                        </span>
                       </button>
                     </div>
                   ))
@@ -216,7 +238,9 @@ export default function Branches() {
               <select
                 className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px]"
                 value={selUser}
-                onChange={(e) => setSelUser(e.target.value ? Number(e.target.value) : "")}
+                onChange={e =>
+                  setSelUser(e.target.value ? Number(e.target.value) : "")
+                }
               >
                 <option value="">اختر مستخدماً...</option>
                 {(users ?? []).map((u: any) => (
@@ -238,7 +262,7 @@ export default function Branches() {
                         {b.name}
                       </div>
                       <div className="flex flex-wrap gap-3">
-                        {PERM_LABELS.map((pl) => (
+                        {PERM_LABELS.map(pl => (
                           <label
                             key={pl.key}
                             className="flex items-center gap-1 text-[11px] text-slate-600"
@@ -246,10 +270,13 @@ export default function Branches() {
                             <input
                               type="checkbox"
                               checked={!!p[pl.key]}
-                              onChange={(e) =>
-                                setPermState((s) => ({
+                              onChange={e =>
+                                setPermState(s => ({
                                   ...s,
-                                  [b.id]: { ...(s[b.id] || {}), [pl.key]: e.target.checked },
+                                  [b.id]: {
+                                    ...(s[b.id] || {}),
+                                    [pl.key]: e.target.checked,
+                                  },
                                 }))
                               }
                             />

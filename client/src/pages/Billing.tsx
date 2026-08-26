@@ -74,7 +74,10 @@ export default function Billing() {
 
   const trialDaysLeft =
     status === "trial" && trialEndsAt
-      ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000))
+      ? Math.max(
+          0,
+          Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000)
+        )
       : null;
 
   const institutionName = settings?.institutionName || "مؤسستك";
@@ -105,9 +108,12 @@ export default function Billing() {
               <Wallet className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-black font-display">مركز الاشتراك والفوترة</h1>
+              <h1 className="text-2xl font-black font-display">
+                مركز الاشتراك والفوترة
+              </h1>
               <p className="text-xs text-white/70 mt-0.5">
-                باقة {institutionName} الحالية، التجديد، وسياسة المرونة المعتمدة — بوضوح دون مفاجآت.
+                باقة {institutionName} الحالية، التجديد، وسياسة المرونة المعتمدة
+                — بوضوح دون مفاجآت.
               </p>
             </div>
           </div>
@@ -125,7 +131,9 @@ export default function Billing() {
               <div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <h2 className="text-sm font-black">حالة الاشتراك الحالية</h2>
-                  <Badge className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.tone}`}>
+                  <Badge
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${meta.tone}`}
+                  >
                     {meta.label}
                   </Badge>
                 </div>
@@ -144,7 +152,11 @@ export default function Billing() {
                 className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-ink text-xs font-bold h-9 px-4 rounded-xl transition-all hover:scale-105"
               >
                 <Sparkles className="w-4 h-4" />
-                {isTrial ? "فعّل اشتراكك الآن" : isGrace ? "جدّد الاشتراك" : "الترقية أو التجديد"}
+                {isTrial
+                  ? "فعّل اشتراكك الآن"
+                  : isGrace
+                    ? "جدّد الاشتراك"
+                    : "الترقية أو التجديد"}
               </a>
               <Button
                 variant="outline"
@@ -154,14 +166,15 @@ export default function Billing() {
               >
                 مقارنة الباقات
               </Button>
-    </div>
+            </div>
           </div>
           {isGrace && (
             <div className="mt-4 rounded-xl border border-amber-300/40 bg-amber-50 dark:bg-amber-500/10 px-4 py-3 flex items-start gap-3">
               <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-800 dark:text-amber-200 leading-relaxed">
-                سياستنا واضحة: انتهاء التجربة <b>لا يوقف أعمالك أبداً</b>. أنت الآن في مهلة مرنة،
-                وكل بياناتك ووحداتك محفوظة كما هي. عند التيسّر عاود التواصل للتجديد.
+                سياستنا واضحة: انتهاء التجربة <b>لا يوقف أعمالك أبداً</b>. أنت
+                الآن في مهلة مرنة، وكل بياناتك ووحداتك محفوظة كما هي. عند
+                التيسّر عاود التواصل للتجديد.
               </p>
             </div>
           )}
@@ -174,10 +187,12 @@ export default function Billing() {
               <Crown className="w-4 h-4 text-brand" />
               <span>باقات Uamex_erp</span>
             </h3>
-            <span className="text-[10px] text-muted-foreground">{brand.pricing.note}</span>
+            <span className="text-[10px] text-muted-foreground">
+              {brand.pricing.note}
+            </span>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {brand.pricing.plans.map((plan) => (
+            {brand.pricing.plans.map(plan => (
               <Card
                 key={plan.key}
                 className={`surface rounded-2xl transition-all hover:-translate-y-0.5 ${
@@ -191,20 +206,27 @@ export default function Billing() {
                     </span>
                   )}
                   <h4 className="text-sm font-black">{plan.name}</h4>
-                  <p className="text-[11px] text-muted-foreground mt-1 min-h-8">{plan.desc}</p>
+                  <p className="text-[11px] text-muted-foreground mt-1 min-h-8">
+                    {plan.desc}
+                  </p>
                   <div className="mt-3 flex items-baseline gap-1">
                     <span className="text-2xl font-black">{plan.price}</span>
-                    <span className="text-[10px] text-muted-foreground">{plan.period}</span>
+                    <span className="text-[10px] text-muted-foreground">
+                      {plan.period}
+                    </span>
                   </div>
                   <ul className="mt-4 space-y-2">
-                    {plan.features.map((f) => (
-                      <li key={f} className="flex items-start gap-2 text-[11px] text-foreground/85">
+                    {plan.features.map(f => (
+                      <li
+                        key={f}
+                        className="flex items-start gap-2 text-[11px] text-foreground/85"
+                      >
                         <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
                         {f}
                       </li>
                     ))}
                   </ul>
-<a
+                  <a
                     href={
                       plan.key === "starter"
                         ? uamexDemoLink()
@@ -235,9 +257,14 @@ export default function Billing() {
               <Sparkles className="w-4 h-4 text-brand" /> التزام بالمرونة
             </h4>
             <ul className="space-y-2 text-[11px] text-muted-foreground leading-relaxed">
-              <li>• المرونة المعتمدة: تجربة ← نشط ← مهلة مرنة، وموقوف فقط بطلبك الصريح.</li>
+              <li>
+                • المرونة المعتمدة: تجربة ← نشط ← مهلة مرنة، وموقوف فقط بطلبك
+                الصريح.
+              </li>
               <li>• لا يُوقف نظامك تلقائياً أبداً — أعمالك مستمرة.</li>
-              <li>• بياناتك معزولة ومشفّرة مع نسخ احتياطية يومية على السحابة.</li>
+              <li>
+                • بياناتك معزولة ومشفّرة مع نسخ احتياطية يومية على السحابة.
+              </li>
             </ul>
           </div>
           <div className="surface rounded-2xl p-5">
@@ -245,10 +272,13 @@ export default function Billing() {
               <MessageSquare className="w-4 h-4 text-brand" /> وسائل دفع محلية
             </h4>
             <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
-              نستقبل الدفع عبر التحويل البنكي والمحافظ والتمويل المحلية — يحدد فريقنا التفاصيل معك مباشرة.
+              نستقبل الدفع عبر التحويل البنكي والمحافظ والتمويل المحلية — يحدد
+              فريقنا التفاصيل معك مباشرة.
             </p>
             <a
-              href={whatsappLink("السلام عليكم، أودّ الاستفسار عن وسائل الدفع المتاحة للاشتراك Uamex_erp.")}
+              href={whatsappLink(
+                "السلام عليكم، أودّ الاستفسار عن وسائل الدفع المتاحة للاشتراك Uamex_erp."
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand hover:text-brand-deep"
@@ -262,7 +292,8 @@ export default function Billing() {
               <Download className="w-4 h-4 text-brand" /> المنصة على جهازك
             </h4>
             <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
-              ثبّت النظام كتطبيق سطح مكتب أو موبايل، واعمل أوفلاين مع مزامنة تلقائية عند عودة الاتصال.
+              ثبّت النظام كتطبيق سطح مكتب أو موبايل، واعمل أوفلاين مع مزامنة
+              تلقائية عند عودة الاتصال.
             </p>
             <Button
               variant="outline"

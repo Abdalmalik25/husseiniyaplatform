@@ -116,7 +116,9 @@ export default function Projects() {
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
 
-  const projectsQ = trpc.erp.listProjects.useQuery(undefined, { staleTime: 30_000 });
+  const projectsQ = trpc.erp.listProjects.useQuery(undefined, {
+    staleTime: 30_000,
+  });
   const tasksQ = trpc.erp.listTasks.useQuery(undefined, { staleTime: 30_000 });
   const performanceQ = trpc.erp.projectPerformance.useQuery(undefined, {
     staleTime: 30_000,
@@ -126,17 +128,24 @@ export default function Projects() {
   const isPending = projectsQ.isPending || tasksQ.isPending;
 
   const total = projects.length;
-  const active = projects.filter((p) => p.status === "active").length;
-  const completed = projects.filter((p) => p.status === "completed").length;
-  const totalBudget = projects.reduce((s, p) => s + parseFloat(p.budget || "0"), 0);
-  const tasksDone = tasks.filter((t) => t.status === "done").length;
-  const progressPct = tasks.length ? Math.round((tasksDone / tasks.length) * 100) : 0;
+  const active = projects.filter(p => p.status === "active").length;
+  const completed = projects.filter(p => p.status === "completed").length;
+  const totalBudget = projects.reduce(
+    (s, p) => s + parseFloat(p.budget || "0"),
+    0
+  );
+  const tasksDone = tasks.filter(t => t.status === "done").length;
+  const progressPct = tasks.length
+    ? Math.round((tasksDone / tasks.length) * 100)
+    : 0;
 
   /** Progress for a single project, derived from its tasks (0–100). */
   const projectProgress = (projectId: number) => {
-    const own = tasks.filter((t) => t.projectId === projectId);
+    const own = tasks.filter(t => t.projectId === projectId);
     if (!own.length) return 0;
-    return Math.round((own.filter((t) => t.status === "done").length / own.length) * 100);
+    return Math.round(
+      (own.filter(t => t.status === "done").length / own.length) * 100
+    );
   };
 
   return (
@@ -156,9 +165,12 @@ export default function Projects() {
               <FolderKanban className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-black font-display">مساحة المشاريع</h1>
+              <h1 className="text-2xl font-black font-display">
+                مساحة المشاريع
+              </h1>
               <p className="text-xs text-white/70 mt-0.5">
-                تخطيط وإدارة المشاريع ومهامها — مع تتبع الحالة والأولوية والإنجاز.
+                تخطيط وإدارة المشاريع ومهامها — مع تتبع الحالة والأولوية
+                والإنجاز.
               </p>
             </div>
           </div>
@@ -185,8 +197,11 @@ export default function Projects() {
           {/* ───────── Overview ───────── */}
           <TabsContent value="overview" className="space-y-5 mt-4">
             {isPending ? (
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4" aria-hidden>
-                {[0, 1, 2, 3].map((i) => (
+              <div
+                className="grid grid-cols-2 lg:grid-cols-4 gap-4"
+                aria-hidden
+              >
+                {[0, 1, 2, 3].map(i => (
                   <div key={i} className="surface rounded-2xl p-4 space-y-2.5">
                     <Skeleton className="h-3 w-24 rounded-full" />
                     <Skeleton className="h-8 w-16 rounded-lg" />
@@ -196,41 +211,43 @@ export default function Projects() {
               </div>
             ) : (
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                label="إجمالي المشاريع"
-                value={total}
-                tone="info"
-                icon={FolderKanban}
-                hint={`${active} نشط الآن`}
-              />
-              <StatCard
-                label="مشاريع مكتملة"
-                value={completed}
-                tone="positive"
-                icon={CheckCircle2}
-                hint="سُلّمت بنجاح"
-              />
-              <StatCard
-                label="إجمالي الميزانيات"
-                value={`${fmt(totalBudget)} ر.ي`}
-                tone="warning"
-                icon={Wallet}
-                hint="موزّعة على المشاريع"
-              />
-              <StatCard
-                label="إنجاز المهام"
-                value={`${progressPct}%`}
-                tone="neutral"
-                icon={Clock}
-                hint={`${tasksDone} من ${tasks.length} مهمة`}
-              />
+                <StatCard
+                  label="إجمالي المشاريع"
+                  value={total}
+                  tone="info"
+                  icon={FolderKanban}
+                  hint={`${active} نشط الآن`}
+                />
+                <StatCard
+                  label="مشاريع مكتملة"
+                  value={completed}
+                  tone="positive"
+                  icon={CheckCircle2}
+                  hint="سُلّمت بنجاح"
+                />
+                <StatCard
+                  label="إجمالي الميزانيات"
+                  value={`${fmt(totalBudget)} ر.ي`}
+                  tone="warning"
+                  icon={Wallet}
+                  hint="موزّعة على المشاريع"
+                />
+                <StatCard
+                  label="إنجاز المهام"
+                  value={`${progressPct}%`}
+                  tone="neutral"
+                  icon={Clock}
+                  hint={`${tasksDone} من ${tasks.length} مهمة`}
+                />
               </div>
             )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <Card className="surface rounded-2xl">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold">أحدث المشاريع</CardTitle>
+                  <CardTitle className="text-sm font-bold">
+                    أحدث المشاريع
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-0 overflow-x-auto">
                   <Table>
@@ -243,12 +260,14 @@ export default function Projects() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {projects.slice(0, 6).map((p) => (
+                      {projects.slice(0, 6).map(p => (
                         <TableRow key={p.id}>
                           <TableCell className="text-[11px] font-mono text-muted-foreground">
                             {p.code}
                           </TableCell>
-                          <TableCell className="text-[11px] font-medium">{p.name}</TableCell>
+                          <TableCell className="text-[11px] font-medium">
+                            {p.name}
+                          </TableCell>
                           <TableCell>
                             <span
                               className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
@@ -265,7 +284,10 @@ export default function Projects() {
                       ))}
                       {projects.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={4} className="text-center text-xs text-muted-foreground py-6">
+                          <TableCell
+                            colSpan={4}
+                            className="text-center text-xs text-muted-foreground py-6"
+                          >
                             لا توجد مشاريع بعد.
                           </TableCell>
                         </TableRow>
@@ -277,27 +299,37 @@ export default function Projects() {
 
               <Card className="surface rounded-2xl">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-bold">توزيع مهام المشاريع</CardTitle>
+                  <CardTitle className="text-sm font-bold">
+                    توزيع مهام المشاريع
+                  </CardTitle>
                 </CardHeader>
                 <CardContent className="p-4 space-y-3">
-                  {(["todo", "in_progress", "review", "done"] as const).map((st) => {
-                    const count = tasks.filter((t) => t.status === st).length;
-                    const pct = tasks.length ? Math.round((count / tasks.length) * 100) : 0;
-                    return (
-                      <div key={st}>
-                        <div className="flex justify-between text-[11px] mb-1">
-                          <span className="font-medium">{TASK_STATUS_LABEL[st]}</span>
-                          <span className="text-muted-foreground dir-ltr">{count}</span>
+                  {(["todo", "in_progress", "review", "done"] as const).map(
+                    st => {
+                      const count = tasks.filter(t => t.status === st).length;
+                      const pct = tasks.length
+                        ? Math.round((count / tasks.length) * 100)
+                        : 0;
+                      return (
+                        <div key={st}>
+                          <div className="flex justify-between text-[11px] mb-1">
+                            <span className="font-medium">
+                              {TASK_STATUS_LABEL[st]}
+                            </span>
+                            <span className="text-muted-foreground dir-ltr">
+                              {count}
+                            </span>
+                          </div>
+                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                            <div
+                              className="h-full bg-brand rounded-full"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
                         </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
-                          <div
-                            className="h-full bg-brand rounded-full"
-                            style={{ width: `${pct}%` }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    }
+                  )}
                   {tasks.length === 0 && (
                     <p className="text-center text-xs text-muted-foreground py-4">
                       لا توجد مهام بعد.
@@ -315,11 +347,7 @@ export default function Projects() {
 
           {/* ───────── Tasks ───────── */}
           <TabsContent value="tasks" className="space-y-4 mt-4">
-            <TasksPanel
-              projects={projects}
-              tasks={tasks}
-              utils={utils}
-            />
+            <TasksPanel projects={projects} tasks={tasks} utils={utils} />
           </TabsContent>
 
           {/* ───────── Performance Report ───────── */}
@@ -333,41 +361,78 @@ export default function Projects() {
                     <th className="px-3 py-2 text-left">الموازنة</th>
                     <th className="px-3 py-2 text-left">الصرف</th>
                     <th className="px-3 py-2 text-center">استهلاك الموازنة</th>
-                    <th className="px-3 py-2 text-center">ساعات (مخططة/فعلية)</th>
+                    <th className="px-3 py-2 text-center">
+                      ساعات (مخططة/فعلية)
+                    </th>
                     <th className="px-3 py-2 text-center">متأخرة</th>
                   </tr>
                 </thead>
                 <tbody>
                   {performanceQ.isPending ? (
-                    <tr><td colSpan={7} className="px-3 py-10 text-center text-muted"><Loader2 className="mx-auto h-5 w-5 animate-spin" /></td></tr>
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-3 py-10 text-center text-muted"
+                      >
+                        <Loader2 className="mx-auto h-5 w-5 animate-spin" />
+                      </td>
+                    </tr>
                   ) : (performanceQ.data?.projects ?? []).length === 0 ? (
-                    <tr><td colSpan={7} className="px-3 py-10 text-center text-muted">لا مشاريع بعد.</td></tr>
+                    <tr>
+                      <td
+                        colSpan={7}
+                        className="px-3 py-10 text-center text-muted"
+                      >
+                        لا مشاريع بعد.
+                      </td>
+                    </tr>
                   ) : (
                     (performanceQ.data?.projects ?? []).map(p => (
-                      <tr key={p.id} className="border-t border-line/60 hover:bg-panel/30">
-                        <td className="px-3 py-2 font-bold">{p.name} · {p.code}</td>
+                      <tr
+                        key={p.id}
+                        className="border-t border-line/60 hover:bg-panel/30"
+                      >
+                        <td className="px-3 py-2 font-bold">
+                          {p.name} · {p.code}
+                        </td>
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-16 overflow-hidden rounded-full bg-panel">
-                              <div className={`h-full rounded-full ${p.progressPct >= 75 ? "bg-emerald-500" : p.progressPct >= 40 ? "bg-sky-500" : "bg-amber-500"}`} style={{ width: `${p.progressPct}%` }} />
+                              <div
+                                className={`h-full rounded-full ${p.progressPct >= 75 ? "bg-emerald-500" : p.progressPct >= 40 ? "bg-sky-500" : "bg-amber-500"}`}
+                                style={{ width: `${p.progressPct}%` }}
+                              />
                             </div>
-                            <span className="text-xs font-bold">{p.progressPct}%</span>
+                            <span className="text-xs font-bold">
+                              {p.progressPct}%
+                            </span>
                           </div>
-                          <div className="mt-0.5 text-[10px] text-muted">{p.tasksDone}/{p.tasksTotal} مهمة منجزة</div>
+                          <div className="mt-0.5 text-[10px] text-muted">
+                            {p.tasksDone}/{p.tasksTotal} مهمة منجزة
+                          </div>
                         </td>
-                        <td className="px-3 py-2 text-left font-mono">{p.budget.toLocaleString()}</td>
-                        <td className="px-3 py-2 text-left font-mono">{p.spent.toLocaleString()}</td>
+                        <td className="px-3 py-2 text-left font-mono">
+                          {p.budget.toLocaleString()}
+                        </td>
+                        <td className="px-3 py-2 text-left font-mono">
+                          {p.spent.toLocaleString()}
+                        </td>
                         <td className="px-3 py-2 text-center">
-                          <span className={`rounded-full px-2 py-0.5 text-xs font-bold ${p.budgetUsedPct > 100 ? "bg-rose-100 text-rose-700" : p.budgetUsedPct > 80 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}>
+                          <span
+                            className={`rounded-full px-2 py-0.5 text-xs font-bold ${p.budgetUsedPct > 100 ? "bg-rose-100 text-rose-700" : p.budgetUsedPct > 80 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}
+                          >
                             {p.budgetUsedPct}%
                           </span>
                         </td>
                         <td className="px-3 py-2 text-center text-xs font-mono">
-                          {p.hoursEstimated.toFixed(0)} / {p.hoursActual.toFixed(0)}
+                          {p.hoursEstimated.toFixed(0)} /{" "}
+                          {p.hoursActual.toFixed(0)}
                         </td>
                         <td className="px-3 py-2 text-center">
                           {p.overdueTasks > 0 ? (
-                            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">{p.overdueTasks}</span>
+                            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
+                              {p.overdueTasks}
+                            </span>
                           ) : (
                             <span className="text-xs text-muted">—</span>
                           )}
@@ -379,7 +444,8 @@ export default function Projects() {
               </table>
             </div>
             <p className="text-[11px] text-muted">
-              الصرف الفعلي يُحسب من المصروفات المرتبطة بالمشروع المنفذة؛ ربط القيود المحاسبية مباشرة بالمشاريع متاح كتوسعة لاحقة.
+              الصرف الفعلي يُحسب من المصروفات المرتبطة بالمشروع المنفذة؛ ربط
+              القيود المحاسبية مباشرة بالمشاريع متاح كتوسعة لاحقة.
             </p>
           </TabsContent>
         </Tabs>
@@ -412,7 +478,7 @@ function ProjectsPanel({
     budget: "0",
   });
 
-  const filtered = projects.filter((p) => {
+  const filtered = projects.filter(p => {
     if (statusFilter !== "all" && p.status !== statusFilter) return false;
     if (search && !`${p.name} ${p.code}`.includes(search)) return false;
     return true;
@@ -421,10 +487,10 @@ function ProjectsPanel({
   /** Progress per project (0–100) computed from its tasks. */
   const progressOf = (projectId: number) => {
     if (!tasks) return 0;
-    const own = tasks.filter((t) => t.projectId === Number(projectId));
+    const own = tasks.filter(t => t.projectId === Number(projectId));
     if (!own.length) return 0;
     return Math.round(
-      (own.filter((t) => t.status === "done").length / own.length) * 100
+      (own.filter(t => t.status === "done").length / own.length) * 100
     );
   };
 
@@ -456,7 +522,15 @@ function ProjectsPanel({
   });
 
   const reset = () =>
-    setForm({ code: "", name: "", description: "", status: "planning", startDate: "", endDate: "", budget: "0" });
+    setForm({
+      code: "",
+      name: "",
+      description: "",
+      status: "planning",
+      startDate: "",
+      endDate: "",
+      budget: "0",
+    });
   const openEdit = (p: any) => {
     setEditId(p.id);
     setForm({
@@ -480,7 +554,7 @@ function ProjectsPanel({
               <Search className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground" />
               <Input
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
                 placeholder="بحث بالاسم أو الكود..."
                 className="h-9 text-xs pr-8"
               />
@@ -526,20 +600,30 @@ function ProjectsPanel({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((p) => (
+              {filtered.map(p => (
                 <TableRow key={p.id}>
                   <TableCell className="text-[11px] font-mono text-muted-foreground">
                     {p.code}
                   </TableCell>
-                  <TableCell className="text-[11px] font-medium">{p.name}</TableCell>
+                  <TableCell className="text-[11px] font-medium">
+                    {p.name}
+                  </TableCell>
                   <TableCell>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${PROJ_STATUS_TONE[p.status] ?? ""}`}>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${PROJ_STATUS_TONE[p.status] ?? ""}`}
+                    >
                       {PROJ_STATUS_LABEL[p.status] ?? p.status}
                     </span>
                   </TableCell>
-                  <TableCell className="text-[11px]">{fmtDate(p.startDate)}</TableCell>
-                  <TableCell className="text-[11px]">{fmtDate(p.endDate)}</TableCell>
-                  <TableCell className="text-[11px] dir-ltr">{fmt(p.budget)}</TableCell>
+                  <TableCell className="text-[11px]">
+                    {fmtDate(p.startDate)}
+                  </TableCell>
+                  <TableCell className="text-[11px]">
+                    {fmtDate(p.endDate)}
+                  </TableCell>
+                  <TableCell className="text-[11px] dir-ltr">
+                    {fmt(p.budget)}
+                  </TableCell>
                   <TableCell className="text-[11px]">
                     <div className="flex items-center gap-2" dir="ltr">
                       <div className="h-2 w-16 overflow-hidden rounded-full bg-muted">
@@ -561,31 +645,46 @@ function ProjectsPanel({
                   </TableCell>
                   <TableCell className="text-left">
                     <div className="flex gap-1">
-                      <Button size="sm" variant="outline" className="h-7 text-[10px]" onClick={() => openEdit(p)}>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-[10px]"
+                        onClick={() => openEdit(p)}
+                      >
                         <Pencil className="w-3 h-3" />
                       </Button>
                       <AlertDialog>
                         <AlertDialogTrigger asChild>
-                          <Button size="sm" variant="outline" className="h-7 text-[10px] text-rose-600">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-[10px] text-rose-600"
+                          >
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </AlertDialogTrigger>
                         <AlertDialogContent className="bg-white max-w-md">
                           <AlertDialogHeader>
-                            <AlertDialogTitle className="text-sm text-ink">حذف المشروع نهائياً؟</AlertDialogTitle>
+                            <AlertDialogTitle className="text-sm text-ink">
+                              حذف المشروع نهائياً؟
+                            </AlertDialogTitle>
                             <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
-                              سيتم حذف المشروع <b>«{p.name}»</b> مع جميع مهامه وأعضائه المرتبطة.
-                              هذا الإجراء لا يمكن التراجع عنه.
+                              سيتم حذف المشروع <b>«{p.name}»</b> مع جميع مهامه
+                              وأعضائه المرتبطة. هذا الإجراء لا يمكن التراجع عنه.
                             </AlertDialogDescription>
                           </AlertDialogHeader>
                           <AlertDialogFooter>
-                            <AlertDialogCancel className="text-xs h-9">إلغاء</AlertDialogCancel>
+                            <AlertDialogCancel className="text-xs h-9">
+                              إلغاء
+                            </AlertDialogCancel>
                             <AlertDialogAction
                               disabled={deleteM.isPending}
                               onClick={() => deleteM.mutate({ id: p.id })}
                               className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 font-bold"
                             >
-                              {deleteM.isPending ? "جاري الحذف..." : "حذف نهائي"}
+                              {deleteM.isPending
+                                ? "جاري الحذف..."
+                                : "حذف نهائي"}
                             </AlertDialogAction>
                           </AlertDialogFooter>
                         </AlertDialogContent>
@@ -596,7 +695,10 @@ function ProjectsPanel({
               ))}
               {filtered.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-xs text-muted-foreground py-6">
+                  <TableCell
+                    colSpan={8}
+                    className="text-center text-xs text-muted-foreground py-6"
+                  >
                     لا توجد مشاريع مطابقة.
                   </TableCell>
                 </TableRow>
@@ -606,7 +708,15 @@ function ProjectsPanel({
         </div>
       </CardContent>
 
-      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) { setDialogOpen(false); setEditId(null); } }}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={o => {
+          if (!o) {
+            setDialogOpen(false);
+            setEditId(null);
+          }
+        }}
+      >
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
@@ -623,7 +733,7 @@ function ProjectsPanel({
                 <Input
                   value={form.code}
                   disabled={editId !== null}
-                  onChange={(e) => setForm({ ...form, code: e.target.value })}
+                  onChange={e => setForm({ ...form, code: e.target.value })}
                   className="h-9 text-xs dir-ltr"
                   placeholder="PRJ-01"
                 />
@@ -632,7 +742,7 @@ function ProjectsPanel({
                 <Label className="text-[10px]">الاسم</Label>
                 <Input
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
                   className="h-9 text-xs"
                   placeholder="اسم المشروع"
                 />
@@ -641,7 +751,10 @@ function ProjectsPanel({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-[10px]">الحالة</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                <Select
+                  value={form.status}
+                  onValueChange={v => setForm({ ...form, status: v })}
+                >
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -658,7 +771,7 @@ function ProjectsPanel({
                 <Label className="text-[10px]">الميزانية</Label>
                 <Input
                   value={form.budget}
-                  onChange={(e) => {
+                  onChange={e => {
                     const v = e.target.value.replace(/[^\d.]/g, "");
                     setForm({ ...form, budget: v });
                   }}
@@ -673,7 +786,9 @@ function ProjectsPanel({
                 <Input
                   type="date"
                   value={form.startDate}
-                  onChange={(e) => setForm({ ...form, startDate: e.target.value })}
+                  onChange={e =>
+                    setForm({ ...form, startDate: e.target.value })
+                  }
                   className="h-9 text-xs dir-ltr"
                 />
               </div>
@@ -682,7 +797,7 @@ function ProjectsPanel({
                 <Input
                   type="date"
                   value={form.endDate}
-                  onChange={(e) => setForm({ ...form, endDate: e.target.value })}
+                  onChange={e => setForm({ ...form, endDate: e.target.value })}
                   className="h-9 text-xs dir-ltr"
                 />
               </div>
@@ -691,14 +806,23 @@ function ProjectsPanel({
               <Label className="text-[10px]">الوصف</Label>
               <Textarea
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={e =>
+                  setForm({ ...form, description: e.target.value })
+                }
                 className="text-xs min-h-[60px]"
                 placeholder="تفاصيل المشروع ونطاق العمل"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" className="text-xs h-9" onClick={() => { setDialogOpen(false); setEditId(null); }}>
+            <Button
+              variant="outline"
+              className="text-xs h-9"
+              onClick={() => {
+                setDialogOpen(false);
+                setEditId(null);
+              }}
+            >
               إلغاء
             </Button>
             <Button
@@ -764,17 +888,25 @@ function TasksPanel({
 
   const effectiveProject = projectId ? Number(projectId) : projects[0]?.id;
   const baseTasks = effectiveProject
-    ? tasks.filter((t) => t.projectId === effectiveProject)
+    ? tasks.filter(t => t.projectId === effectiveProject)
     : [];
-  const projectTasks = baseTasks.filter((t) => {
+  const projectTasks = baseTasks.filter(t => {
     if (statusFilter !== "all" && t.status !== statusFilter) return false;
     if (priorityFilter !== "all" && t.priority !== priorityFilter) return false;
-    if (search && !`${t.title} ${t.description ?? ""}`.includes(search)) return false;
+    if (search && !`${t.title} ${t.description ?? ""}`.includes(search))
+      return false;
     return true;
   });
 
   const resetTaskForm = () =>
-    setForm({ title: "", description: "", status: "todo", priority: "medium", dueDate: "", estimatedHours: "" });
+    setForm({
+      title: "",
+      description: "",
+      status: "todo",
+      priority: "medium",
+      dueDate: "",
+      estimatedHours: "",
+    });
 
   const openCreateTask = () => {
     setEditingId(null);
@@ -800,7 +932,14 @@ function TasksPanel({
       utils.erp.listTasks.invalidate();
       toast.success("تمت إضافة المهمة");
       setDialogOpen(false);
-      setForm({ title: "", description: "", status: "todo", priority: "medium", dueDate: "", estimatedHours: "" });
+      setForm({
+        title: "",
+        description: "",
+        status: "todo",
+        priority: "medium",
+        dueDate: "",
+        estimatedHours: "",
+      });
     },
     onError: (e: any) => toast.error(e.message || "تعذّر الإضافة"),
   });
@@ -828,13 +967,18 @@ function TasksPanel({
       <div className="flex flex-col sm:flex-row gap-2 items-center justify-between">
         <Select
           value={String(effectiveProject)}
-          onValueChange={(v) => { setProjectId(v); setSearch(""); setStatusFilter("all"); setPriorityFilter("all"); }}
+          onValueChange={v => {
+            setProjectId(v);
+            setSearch("");
+            setStatusFilter("all");
+            setPriorityFilter("all");
+          }}
         >
           <SelectTrigger className="h-9 text-xs w-full sm:w-72">
             <SelectValue placeholder="اختر مشروعاً" />
           </SelectTrigger>
           <SelectContent>
-            {projects.map((p) => (
+            {projects.map(p => (
               <SelectItem key={p.id} value={String(p.id)}>
                 {p.name}
               </SelectItem>
@@ -856,7 +1000,7 @@ function TasksPanel({
             <Search className="absolute right-2 top-2.5 w-4 h-4 text-muted-foreground" />
             <Input
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={e => setSearch(e.target.value)}
               placeholder="بحث في المهام..."
               className="h-8 text-xs pr-8"
             />
@@ -868,7 +1012,9 @@ function TasksPanel({
             <SelectContent>
               <SelectItem value="all">كل الحالات</SelectItem>
               {Object.entries(TASK_STATUS_LABEL).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
+                <SelectItem key={k} value={k}>
+                  {v}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -879,7 +1025,9 @@ function TasksPanel({
             <SelectContent>
               <SelectItem value="all">كل الأولويات</SelectItem>
               {Object.entries(PRIORITY_LABEL).map(([k, v]) => (
-                <SelectItem key={k} value={k}>{v}</SelectItem>
+                <SelectItem key={k} value={k}>
+                  {v}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
@@ -901,7 +1049,7 @@ function TasksPanel({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {projectTasks.map((t) => (
+            {projectTasks.map(t => (
               <TableRow key={t.id}>
                 <TableCell className="text-[11px]">
                   <p className="font-medium">{t.title}</p>
@@ -914,10 +1062,12 @@ function TasksPanel({
                 <TableCell>
                   <Select
                     value={t.status}
-                    onValueChange={(v) => updateM.mutate({ id: t.id, status: v })}
+                    onValueChange={v => updateM.mutate({ id: t.id, status: v })}
                   >
                     <SelectTrigger className="h-7 text-[10px] border-0 bg-transparent p-0 w-auto">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TASK_STATUS_TONE[t.status] ?? ""}`}>
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TASK_STATUS_TONE[t.status] ?? ""}`}
+                      >
                         {TASK_STATUS_LABEL[t.status] ?? t.status}
                       </span>
                     </SelectTrigger>
@@ -931,11 +1081,15 @@ function TasksPanel({
                   </Select>
                 </TableCell>
                 <TableCell>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${PRIORITY_TONE[t.priority] ?? ""}`}>
+                  <span
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${PRIORITY_TONE[t.priority] ?? ""}`}
+                  >
                     {PRIORITY_LABEL[t.priority] ?? t.priority}
                   </span>
                 </TableCell>
-                <TableCell className="text-[11px]">{fmtDate(t.dueDate)}</TableCell>
+                <TableCell className="text-[11px]">
+                  {fmtDate(t.dueDate)}
+                </TableCell>
                 <TableCell className="text-left">
                   <div className="flex gap-1">
                     <Button
@@ -949,19 +1103,29 @@ function TasksPanel({
                     </Button>
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button size="sm" variant="outline" className="h-7 text-[10px] text-rose-600" aria-label="حذف المهمة">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-[10px] text-rose-600"
+                          aria-label="حذف المهمة"
+                        >
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent className="bg-white max-w-md">
                         <AlertDialogHeader>
-                          <AlertDialogTitle className="text-sm text-ink">حذف المهمة؟</AlertDialogTitle>
+                          <AlertDialogTitle className="text-sm text-ink">
+                            حذف المهمة؟
+                          </AlertDialogTitle>
                           <AlertDialogDescription className="text-xs text-muted-foreground leading-relaxed">
-                            سيتم حذف مهمة <b>«{t.title}»</b> نهائياً. لا يمكن التراجع عن هذا الإجراء.
+                            سيتم حذف مهمة <b>«{t.title}»</b> نهائياً. لا يمكن
+                            التراجع عن هذا الإجراء.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel className="text-xs h-9">إلغاء</AlertDialogCancel>
+                          <AlertDialogCancel className="text-xs h-9">
+                            إلغاء
+                          </AlertDialogCancel>
                           <AlertDialogAction
                             disabled={deleteM.isPending}
                             onClick={() => deleteM.mutate({ id: t.id })}
@@ -978,7 +1142,10 @@ function TasksPanel({
             ))}
             {projectTasks.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-xs text-muted-foreground py-8">
+                <TableCell
+                  colSpan={5}
+                  className="text-center text-xs text-muted-foreground py-8"
+                >
                   لا توجد مهام لهذا المشروع.
                 </TableCell>
               </TableRow>
@@ -987,14 +1154,20 @@ function TasksPanel({
         </Table>
       </div>
 
-      <Dialog open={dialogOpen} onOpenChange={(o) => { setDialogOpen(o); if (!o) setEditingId(null); }}>
+      <Dialog
+        open={dialogOpen}
+        onOpenChange={o => {
+          setDialogOpen(o);
+          if (!o) setEditingId(null);
+        }}
+      >
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               {editingId !== null ? "تعديل المهمة" : "مهمة جديدة"}
             </DialogTitle>
             <DialogDescription className="text-xs text-muted-foreground">
-              للمشروع: {projects.find((p) => p.id === effectiveProject)?.name}
+              للمشروع: {projects.find(p => p.id === effectiveProject)?.name}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 px-1">
@@ -1002,7 +1175,7 @@ function TasksPanel({
               <Label className="text-[10px]">العنوان</Label>
               <Input
                 value={form.title}
-                onChange={(e) => setForm({ ...form, title: e.target.value })}
+                onChange={e => setForm({ ...form, title: e.target.value })}
                 className="h-9 text-xs"
                 placeholder="عنوان المهمة"
               />
@@ -1010,7 +1183,10 @@ function TasksPanel({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="text-[10px]">الحالة</Label>
-                <Select value={form.status} onValueChange={(v) => setForm({ ...form, status: v })}>
+                <Select
+                  value={form.status}
+                  onValueChange={v => setForm({ ...form, status: v })}
+                >
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -1025,7 +1201,10 @@ function TasksPanel({
               </div>
               <div>
                 <Label className="text-[10px]">الأولوية</Label>
-                <Select value={form.priority} onValueChange={(v) => setForm({ ...form, priority: v })}>
+                <Select
+                  value={form.priority}
+                  onValueChange={v => setForm({ ...form, priority: v })}
+                >
                   <SelectTrigger className="h-9 text-xs">
                     <SelectValue />
                   </SelectTrigger>
@@ -1045,7 +1224,7 @@ function TasksPanel({
                 <Input
                   type="date"
                   value={form.dueDate}
-                  onChange={(e) => setForm({ ...form, dueDate: e.target.value })}
+                  onChange={e => setForm({ ...form, dueDate: e.target.value })}
                   className="h-9 text-xs dir-ltr"
                 />
               </div>
@@ -1053,7 +1232,7 @@ function TasksPanel({
                 <Label className="text-[10px]">الساعات المقدّرة</Label>
                 <Input
                   value={form.estimatedHours}
-                  onChange={(e) => {
+                  onChange={e => {
                     const v = e.target.value.replace(/[^\d.]/g, "");
                     setForm({ ...form, estimatedHours: v });
                   }}
@@ -1066,17 +1245,31 @@ function TasksPanel({
               <Label className="text-[10px]">الوصف</Label>
               <Textarea
                 value={form.description}
-                onChange={(e) => setForm({ ...form, description: e.target.value })}
+                onChange={e =>
+                  setForm({ ...form, description: e.target.value })
+                }
                 className="text-xs min-h-[50px]"
               />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" className="text-xs h-9" onClick={() => { setDialogOpen(false); setEditingId(null); }}>
+            <Button
+              variant="outline"
+              className="text-xs h-9"
+              onClick={() => {
+                setDialogOpen(false);
+                setEditingId(null);
+              }}
+            >
               إلغاء
             </Button>
             <Button
-              disabled={!form.title || !effectiveProject || createM.isPending || updateM.isPending}
+              disabled={
+                !form.title ||
+                !effectiveProject ||
+                createM.isPending ||
+                updateM.isPending
+              }
               className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
               onClick={() => {
                 if (editingId !== null) {

@@ -108,11 +108,15 @@ export default function ProjectGovernance() {
           </div>
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight text-balance">
             إدارة ومتابعة المشاريع
-            <span className="block gradient-text-white"> للمستثمرين وأصحاب الأعمال</span>
+            <span className="block gradient-text-white">
+              {" "}
+              للمستثمرين وأصحاب الأعمال
+            </span>
           </h1>
           <p className="max-w-2xl mx-auto text-base text-white/65 leading-relaxed font-light">
             سواء كنت داخل الوطن أو خارجه، يتولى فريقنا الهندسي الإشراف الميداني
-            على مشروعك، تدقيق الفواتير، وضمان البناء بالمواصفات المعتمدة دون زيادة في التكاليف.
+            على مشروعك، تدقيق الفواتير، وضمان البناء بالمواصفات المعتمدة دون
+            زيادة في التكاليف.
           </p>
           <div className="flex flex-wrap justify-center gap-3 pt-2">
             <a
@@ -196,15 +200,23 @@ export default function ProjectGovernance() {
               <ul className="space-y-2 text-xs text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <span className="text-rose-500 mt-0.5">•</span>
-                  <span>زيادة غير محسوبة في كميات الحديد والخرسانة ترفع التكلفة 20-30%.</span>
+                  <span>
+                    زيادة غير محسوبة في كميات الحديد والخرسانة ترفع التكلفة
+                    20-30%.
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-rose-500 mt-0.5">•</span>
-                  <span>أخطاء في أبعاد الغرف والأعمدة يصعب تداركها بعد الصب.</span>
+                  <span>
+                    أخطاء في أبعاد الغرف والأعمدة يصعب تداركها بعد الصب.
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-rose-500 mt-0.5">•</span>
-                  <span>غياب التقارير الدقيقة واضطرار المالك للاعتماد على كلام غير موثق.</span>
+                  <span>
+                    غياب التقارير الدقيقة واضطرار المالك للاعتماد على كلام غير
+                    موثق.
+                  </span>
                 </li>
               </ul>
             </div>
@@ -216,15 +228,21 @@ export default function ProjectGovernance() {
               <ul className="space-y-2 text-xs text-muted-foreground">
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>ضبط كميات المواد وفق الكود الهندسي ومنع أي هدر في الشراء.</span>
+                  <span>
+                    ضبط كميات المواد وفق الكود الهندسي ومنع أي هدر في الشراء.
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>فحص دقيق لتسليح الخرسانة وعينات الصب قبل وأثناء العمل.</span>
+                  <span>
+                    فحص دقيق لتسليح الخرسانة وعينات الصب قبل وأثناء العمل.
+                  </span>
                 </li>
                 <li className="flex items-start gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
-                  <span>تقارير منتظمة بالصور ومستخلصات مالية مدققة أولاً بأول.</span>
+                  <span>
+                    تقارير منتظمة بالصور ومستخلصات مالية مدققة أولاً بأول.
+                  </span>
                 </li>
               </ul>
             </div>
@@ -236,14 +254,18 @@ export default function ProjectGovernance() {
       <section className="max-w-4xl mx-auto px-4 pb-20">
         <Card className="rounded-3xl border-border bg-card p-8 sm:p-10 shadow-sm">
           <div className="text-center max-w-xl mx-auto mb-8">
-            <Badge variant="outline" className="mb-2 bg-brand/10 text-brand border-brand/20">
+            <Badge
+              variant="outline"
+              className="mb-2 bg-brand/10 text-brand border-brand/20"
+            >
               طلب استشارة ومتابعة
             </Badge>
             <h3 className="text-2xl font-black text-foreground mb-1">
               أخبرنا عن مشروعك لنبدأ التنسيق معك
             </h3>
             <p className="text-xs text-muted-foreground">
-              سيتواصل معك المهندس المختص لدراسة المخططات وتقديم خطة العمل والتسعيرة المناسبة.
+              سيتواصل معك المهندس المختص لدراسة المخططات وتقديم خطة العمل
+              والتسعيرة المناسبة.
             </p>
           </div>
 
@@ -254,17 +276,19 @@ export default function ProjectGovernance() {
                 <Input
                   required
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  onChange={e => setForm({ ...form, name: e.target.value })}
                   placeholder="الاسم الكريم..."
                   className="h-11 text-sm"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">رقم الهاتف / الواتساب *</Label>
+                <Label className="text-xs font-bold">
+                  رقم الهاتف / الواتساب *
+                </Label>
                 <Input
                   required
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={e => setForm({ ...form, phone: e.target.value })}
                   placeholder="+967 أو +966..."
                   dir="ltr"
                   className="h-11 text-sm font-mono"
@@ -274,10 +298,12 @@ export default function ProjectGovernance() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-1.5">
-                <Label className="text-xs font-bold">موقع المشروع (المدينة / المنطقة)</Label>
+                <Label className="text-xs font-bold">
+                  موقع المشروع (المدينة / المنطقة)
+                </Label>
                 <Input
                   value={form.location}
-                  onChange={(e) => setForm({ ...form, location: e.target.value })}
+                  onChange={e => setForm({ ...form, location: e.target.value })}
                   placeholder="مثال: ذمار - شارع... أو صنعاء..."
                   className="h-11 text-sm"
                 />
@@ -286,7 +312,9 @@ export default function ProjectGovernance() {
                 <Label className="text-xs font-bold">نوع المشروع</Label>
                 <select
                   value={form.projectType}
-                  onChange={(e) => setForm({ ...form, projectType: e.target.value })}
+                  onChange={e =>
+                    setForm({ ...form, projectType: e.target.value })
+                  }
                   className="w-full h-11 text-sm border border-input rounded-lg px-3 bg-background text-foreground"
                 >
                   <option value="عمارة سكنية">عمارة سكنية</option>
@@ -299,10 +327,12 @@ export default function ProjectGovernance() {
             </div>
 
             <div className="space-y-1.5">
-              <Label className="text-xs font-bold">تفاصيل إضافية عن حالة المشروع الحالية</Label>
+              <Label className="text-xs font-bold">
+                تفاصيل إضافية عن حالة المشروع الحالية
+              </Label>
               <Textarea
                 value={form.details}
-                onChange={(e) => setForm({ ...form, details: e.target.value })}
+                onChange={e => setForm({ ...form, details: e.target.value })}
                 placeholder="مثال: الأرض جاهزة للبناء، أو المخططات مكتملة ونحتاج إشراف وتدقيق كميات..."
                 className="min-h-24 text-sm resize-none"
               />

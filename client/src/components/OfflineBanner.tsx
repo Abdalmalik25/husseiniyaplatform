@@ -50,7 +50,8 @@ export function OfflineBanner() {
       <div className="max-w-7xl mx-auto px-4 py-2 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center">
         <WifiOff className="w-3.5 h-3.5 shrink-0" />
         <span className="leading-relaxed">
-          لا يوجد اتصال — بياناتك محفوظة على جهازك وستتزامن تلقائياً عند عودة الشبكة
+          لا يوجد اتصال — بياناتك محفوظة على جهازك وستتزامن تلقائياً عند عودة
+          الشبكة
         </span>
         {isSyncing && (
           <span className="inline-flex items-center gap-1 text-[10px] font-black opacity-80">

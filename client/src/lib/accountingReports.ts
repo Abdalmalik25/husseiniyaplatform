@@ -42,7 +42,7 @@ export function buildAccountBalances(
   openingBalances: Record<number | string, OpeningBalance> = {}
 ): ReportAccount[] {
   return accounts
-    .map((acc) => {
+    .map(acc => {
       let debit = 0;
       let credit = 0;
       const ob = openingBalances[acc.id];
@@ -63,7 +63,7 @@ export function buildAccountBalances(
       const balance = debit - credit;
       return { ...acc, debit, credit, balance };
     })
-    .filter((a) => a.debit !== 0 || a.credit !== 0);
+    .filter(a => a.debit !== 0 || a.credit !== 0);
 }
 
 /**
@@ -73,10 +73,10 @@ export function buildAccountBalances(
  */
 export function computeTrialBalance(accounts: ReportAccount[]) {
   const totalDebits = accounts
-    .filter((a) => (a.balance ?? 0) > 0)
+    .filter(a => (a.balance ?? 0) > 0)
     .reduce((s, a) => s + (a.balance ?? 0), 0);
   const totalCredits = accounts
-    .filter((a) => (a.balance ?? 0) < 0)
+    .filter(a => (a.balance ?? 0) < 0)
     .reduce((s, a) => s + Math.abs(a.balance ?? 0), 0);
   return {
     accounts,
@@ -95,11 +95,11 @@ export function computeTrialBalance(accounts: ReportAccount[]) {
  */
 export function computeIncomeStatement(accounts: ReportAccount[]) {
   const revenues = accounts
-    .filter((a) => a.type === "revenue")
-    .map((a) => ({ ...a, balance: -(a.balance ?? 0) }));
+    .filter(a => a.type === "revenue")
+    .map(a => ({ ...a, balance: -(a.balance ?? 0) }));
   const expenses = accounts
-    .filter((a) => a.type === "expense")
-    .map((a) => ({ ...a, balance: a.balance ?? 0 }));
+    .filter(a => a.type === "expense")
+    .map(a => ({ ...a, balance: a.balance ?? 0 }));
   const totalRevenue = revenues.reduce((s, a) => s + a.balance, 0);
   const totalExpenses = expenses.reduce((s, a) => s + a.balance, 0);
   return {
@@ -122,14 +122,14 @@ export function computeBalanceSheet(
   netIncome: number
 ) {
   const assets = accounts
-    .filter((a) => a.type === "asset")
-    .map((a) => ({ ...a, balance: a.balance ?? 0 }));
+    .filter(a => a.type === "asset")
+    .map(a => ({ ...a, balance: a.balance ?? 0 }));
   const liabilities = accounts
-    .filter((a) => a.type === "liability")
-    .map((a) => ({ ...a, balance: -(a.balance ?? 0) }));
+    .filter(a => a.type === "liability")
+    .map(a => ({ ...a, balance: -(a.balance ?? 0) }));
   const equity = accounts
-    .filter((a) => a.type === "equity")
-    .map((a) => ({ ...a, balance: -(a.balance ?? 0) }));
+    .filter(a => a.type === "equity")
+    .map(a => ({ ...a, balance: -(a.balance ?? 0) }));
   const totalAssets = assets.reduce((s, a) => s + a.balance, 0);
   const totalLiabilities = liabilities.reduce((s, a) => s + a.balance, 0);
   const totalEquity = equity.reduce((s, a) => s + a.balance, 0) + netIncome;

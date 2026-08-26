@@ -68,8 +68,8 @@ class ErrorBoundary extends Component<Props, State> {
           <div className="space-y-1">
             <h1 className="text-xl font-black">حدث خطأ غير متوقع</h1>
             <p className="text-sm text-white/60 leading-relaxed">
-              نعتذر عن هذا الخلل المؤقت. بياناتك آمنة ومحفوظة على الخادم —
-              جرّب إعادة التحميل للمتابعة من حيث توقفت.
+              نعتذر عن هذا الخلل المؤقت. بياناتك آمنة ومحفوظة على الخادم — جرّب
+              إعادة التحميل للمتابعة من حيث توقفت.
             </p>
           </div>
 

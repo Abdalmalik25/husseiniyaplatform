@@ -29,7 +29,19 @@ import {
   users,
   recurringExpenses,
 } from "../drizzle/schema";
-import { eq, desc, asc, and, sql, ilike, gte, lte, isNull, ne, isNotNull } from "drizzle-orm";
+import {
+  eq,
+  desc,
+  asc,
+  and,
+  sql,
+  ilike,
+  gte,
+  lte,
+  isNull,
+  ne,
+  isNotNull,
+} from "drizzle-orm";
 import { createNotification } from "./notifications";
 
 async function dbOrThrow() {
@@ -157,9 +169,7 @@ async function postProcurementGlEntries(
     const rows = await db
       .select()
       .from(accounts)
-      .where(
-        and(eq(accounts.code, code), eq(accounts.tenantId, opts.tenantId))
-      )
+      .where(and(eq(accounts.code, code), eq(accounts.tenantId, opts.tenantId)))
       .limit(1);
     return rows[0];
   };
@@ -232,16 +242,16 @@ export const erpRouter = router({
   listDepartments: tenantProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
-      return db
-        .select()
-        .from(departments)
-        .where(
-          and(
-            eq(departments.tenantId, ctx.tenantId),
-            isNull(departments.deletedAt)
-          )
+    return db
+      .select()
+      .from(departments)
+      .where(
+        and(
+          eq(departments.tenantId, ctx.tenantId),
+          isNull(departments.deletedAt)
         )
-        .orderBy(asc(departments.name));
+      )
+      .orderBy(asc(departments.name));
   }),
 
   createDepartment: tenantProcedure
@@ -640,7 +650,9 @@ export const erpRouter = router({
       const owned = await db
         .select({ id: projects.id })
         .from(projects)
-        .where(and(eq(projects.id, input.id), eq(projects.tenantId, ctx.tenantId!)))
+        .where(
+          and(eq(projects.id, input.id), eq(projects.tenantId, ctx.tenantId!))
+        )
         .limit(1);
       if (!owned[0]) return { success: false };
       await db
@@ -910,9 +922,10 @@ export const erpRouter = router({
       if (!Number.isFinite(estimatedCost) || estimatedCost < 0) {
         throw new Error("التكلفة التقديرية يجب ألا تكون سالبة");
       }
-      const approverIds = input.approvers && input.approvers.length
-        ? [...new Set(input.approvers)]
-        : [];
+      const approverIds =
+        input.approvers && input.approvers.length
+          ? [...new Set(input.approvers)]
+          : [];
       const approvers = approverIds.length ? approverIds : null;
       const seq = await nextSequence(db, procurements, tenantId);
       const [row] = await db
@@ -1118,16 +1131,20 @@ export const erpRouter = router({
         .select()
         .from(procurements)
         .where(
-          and(eq(procurements.id, input.id), eq(procurements.tenantId, tenantId))
+          and(
+            eq(procurements.id, input.id),
+            eq(procurements.tenantId, tenantId)
+          )
         )
         .limit(1);
       if (!rec) throw new Error("الطلب غير موجود");
       if (rec.status !== "approved") {
         throw new Error("لا يمكن استلام الطلب قبل اعتماده بالكامل");
       }
-      const parsedAmount = input.actualCost == null || input.actualCost.trim() === ""
-        ? Number(rec.estimatedCost)
-        : Number(input.actualCost);
+      const parsedAmount =
+        input.actualCost == null || input.actualCost.trim() === ""
+          ? Number(rec.estimatedCost)
+          : Number(input.actualCost);
       if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
         throw new Error("التكلفة الفعلية يجب أن تكون رقماً غير سالب");
       }
@@ -1135,7 +1152,11 @@ export const erpRouter = router({
       const result = await db.transaction(async (tx: any) => {
         const updated = await tx
           .update(procurements)
-          .set({ status: "received", receivedCost: amount, updatedAt: new Date() })
+          .set({
+            status: "received",
+            receivedCost: amount,
+            updatedAt: new Date(),
+          })
           .where(
             and(
               eq(procurements.id, input.id),
@@ -1144,18 +1165,19 @@ export const erpRouter = router({
             )
           )
           .returning({ id: procurements.id });
-        if (!updated.length) throw new Error("تم استلام الطلب مسبقاً أو تغيرت حالته");
+        if (!updated.length)
+          throw new Error("تم استلام الطلب مسبقاً أو تغيرت حالته");
         await postProcurementGlEntries(tx, {
-        tenantId,
-        userId: ctx.user?.id ?? null,
-        requisitionNumber: rec.requisitionNumber,
-        itemName: rec.itemName,
+          tenantId,
+          userId: ctx.user?.id ?? null,
+          requisitionNumber: rec.requisitionNumber,
+          itemName: rec.itemName,
           amount,
         });
         await tx.insert(activityLogs).values({
-        tenantId,
-        userId: ctx.user?.id ?? 0,
-        action: `استلام توريد #${rec.requisitionNumber}`,
+          tenantId,
+          userId: ctx.user?.id ?? 0,
+          action: `استلام توريد #${rec.requisitionNumber}`,
           details: `البند: ${rec.itemName} — المبلغ: ${amount}${input.note ? ` — ${input.note}` : ""}`,
         });
         return { success: true };
@@ -1477,7 +1499,8 @@ export const erpRouter = router({
 
       const targetPeriod =
         input?.periodName ??
-        (runs[0] as unknown as { periodName?: string } | undefined)?.periodName ??
+        (runs[0] as unknown as { periodName?: string } | undefined)
+          ?.periodName ??
         null;
       let items: Array<{
         employeeId: number;
@@ -1536,7 +1559,13 @@ export const erpRouter = router({
       if (!ctx.tenantId)
         return {
           perEmployee: [],
-          totals: { present: 0, absent: 0, late: 0, leave: 0, attendanceRate: 0 },
+          totals: {
+            present: 0,
+            absent: 0,
+            late: 0,
+            leave: 0,
+            attendanceRate: 0,
+          },
         };
       const db = await dbOrThrow();
       const tid = ctx.tenantId;
@@ -1589,15 +1618,28 @@ export const erpRouter = router({
             employeeId: r.employeeId,
             name: r.employeeName,
             code: r.code,
-            present: 0, absent: 0, late: 0, leave: 0,
-            totalDays: 0, attendanceRate: 0,
+            present: 0,
+            absent: 0,
+            late: 0,
+            leave: 0,
+            totalDays: 0,
+            attendanceRate: 0,
           };
           map.set(r.employeeId, e);
         }
-        if (r.status === "present") { e.present += n; totals.present += n; }
-        else if (r.status === "absent") { e.absent += n; totals.absent += n; }
-        else if (r.status === "late") { e.late += n; totals.late += n; }
-        else if (r.status === "leave") { e.leave += n; totals.leave += n; }
+        if (r.status === "present") {
+          e.present += n;
+          totals.present += n;
+        } else if (r.status === "absent") {
+          e.absent += n;
+          totals.absent += n;
+        } else if (r.status === "late") {
+          e.late += n;
+          totals.late += n;
+        } else if (r.status === "leave") {
+          e.leave += n;
+          totals.leave += n;
+        }
         e.totalDays += n;
       }
       const perEmployee = [...map.values()].map(e => ({
@@ -1610,7 +1652,9 @@ export const erpRouter = router({
       const grandTotal =
         totals.present + totals.absent + totals.late + totals.leave;
       return {
-        perEmployee: perEmployee.sort((a, b) => b.attendanceRate - a.attendanceRate),
+        perEmployee: perEmployee.sort(
+          (a, b) => b.attendanceRate - a.attendanceRate
+        ),
         totals: {
           ...totals,
           attendanceRate:
@@ -1645,7 +1689,10 @@ export const erpRouter = router({
       .groupBy(employees.departmentId, departments.name);
     const withDept = rows.filter(r => r.departmentId != null);
     const without = rows.filter(r => r.departmentId == null);
-    const totalPayroll = rows.reduce((s, r) => s + parseFloat(r.payroll || "0"), 0);
+    const totalPayroll = rows.reduce(
+      (s, r) => s + parseFloat(r.payroll || "0"),
+      0
+    );
     return {
       byDepartment: withDept
         .map(r => ({
@@ -1659,8 +1706,14 @@ export const erpRouter = router({
               : 0,
         }))
         .sort((a, b) => b.payroll - a.payroll),
-      unassignedCost: without.reduce((s, r) => s + parseFloat(r.payroll || "0"), 0),
-      unassignedCount: without.reduce((s, r) => s + Number(r.headcount ?? 0), 0),
+      unassignedCost: without.reduce(
+        (s, r) => s + parseFloat(r.payroll || "0"),
+        0
+      ),
+      unassignedCount: without.reduce(
+        (s, r) => s + Number(r.headcount ?? 0),
+        0
+      ),
     };
   }),
 
@@ -1673,7 +1726,10 @@ export const erpRouter = router({
       const tid = ctx.tenantId;
       const conds = [eq(projects.tenantId, tid)];
       if (input?.projectId) conds.push(eq(projects.id, input.projectId));
-      const projs = await db.select().from(projects).where(and(...conds));
+      const projs = await db
+        .select()
+        .from(projects)
+        .where(and(...conds));
       if (projs.length === 0) return { projects: [] };
 
       const taskAgg = await db
@@ -1707,14 +1763,27 @@ export const erpRouter = router({
         .groupBy(recurringExpenses.projectId);
 
       type TaskAgg = {
-        todo: number; in_progress: number; review: number; done: number;
-        estHours: number; actHours: number; overdue: number;
+        todo: number;
+        in_progress: number;
+        review: number;
+        done: number;
+        estHours: number;
+        actHours: number;
+        overdue: number;
       };
       const taskMap = new Map<number, TaskAgg>();
       for (const t of taskAgg) {
         let acc = taskMap.get(t.projectId);
         if (!acc) {
-          acc = { todo: 0, in_progress: 0, review: 0, done: 0, estHours: 0, actHours: 0, overdue: 0 };
+          acc = {
+            todo: 0,
+            in_progress: 0,
+            review: 0,
+            done: 0,
+            estHours: 0,
+            actHours: 0,
+            overdue: 0,
+          };
           taskMap.set(t.projectId, acc);
         }
         (acc as any)[t.status as string] = Number(t.c ?? 0);
@@ -1729,7 +1798,13 @@ export const erpRouter = router({
       return {
         projects: projs.map(p => {
           const t: TaskAgg = taskMap.get(p.id) ?? {
-            todo: 0, in_progress: 0, review: 0, done: 0, estHours: 0, actHours: 0, overdue: 0,
+            todo: 0,
+            in_progress: 0,
+            review: 0,
+            done: 0,
+            estHours: 0,
+            actHours: 0,
+            overdue: 0,
           };
           const totalTasks = t.todo + t.in_progress + t.review + t.done;
           const budget = parseFloat(p.budget || "0");
@@ -1747,11 +1822,14 @@ export const erpRouter = router({
             budgetVariance: budget - spent,
             tasksTotal: totalTasks,
             tasksDone: t.done,
-            progressPct: totalTasks > 0 ? Math.round((t.done / totalTasks) * 100) : 0,
+            progressPct:
+              totalTasks > 0 ? Math.round((t.done / totalTasks) * 100) : 0,
             hoursEstimated: t.estHours,
             hoursActual: t.actHours,
             hoursEfficiencyPct:
-              t.estHours > 0 ? Math.round((t.estHours / Math.max(t.actHours, 0.01)) * 100) : 0,
+              t.estHours > 0
+                ? Math.round((t.estHours / Math.max(t.actHours, 0.01)) * 100)
+                : 0,
             overdueTasks: t.overdue,
           };
         }),
@@ -1762,8 +1840,10 @@ export const erpRouter = router({
   supportStats: tenantProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId)
       return {
-        byStatus: {}, byPriority: {},
-        mttrHours: null, resolutionRate: 0,
+        byStatus: {},
+        byPriority: {},
+        mttrHours: null,
+        resolutionRate: 0,
         openAging: { fresh: 0, week: 0, month: 0, older: 0 },
         byAgent: [],
       };
@@ -1797,7 +1877,9 @@ export const erpRouter = router({
     );
     const mttrHours =
       durationsH.length > 0
-        ? Math.round((durationsH.reduce((a, b) => a + b, 0) / durationsH.length) * 10) / 10
+        ? Math.round(
+            (durationsH.reduce((a, b) => a + b, 0) / durationsH.length) * 10
+          ) / 10
         : null;
 
     const total = statusRows.reduce((s, r) => s + Number(r.c ?? 0), 0);
@@ -1807,7 +1889,12 @@ export const erpRouter = router({
     const openRows = await db
       .select({ createdAt: tickets.createdAt })
       .from(tickets)
-      .where(and(eq(tickets.tenantId, tid), sql`${tickets.status} in ('open','in_progress')`));
+      .where(
+        and(
+          eq(tickets.tenantId, tid),
+          sql`${tickets.status} in ('open','in_progress')`
+        )
+      );
     const now = Date.now();
     const openAging = { fresh: 0, week: 0, month: 0, older: 0 };
     for (const r of openRows) {
@@ -1858,8 +1945,12 @@ export const erpRouter = router({
   deliveryReport: tenantProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId)
       return {
-        byStatus: {}, upcoming: [], overdue: [],
-        deliveredCount: 0, cancelledCount: 0, fulfillmentRate: 0,
+        byStatus: {},
+        upcoming: [],
+        overdue: [],
+        deliveredCount: 0,
+        cancelledCount: 0,
+        fulfillmentRate: 0,
         monthlyTrend: [],
       };
     const db = await dbOrThrow();
@@ -1958,7 +2049,9 @@ export const erpRouter = router({
       deliveredCount,
       cancelledCount,
       fulfillmentRate:
-        fulfilledBase > 0 ? Math.round((deliveredCount / fulfilledBase) * 100) : 0,
+        fulfilledBase > 0
+          ? Math.round((deliveredCount / fulfilledBase) * 100)
+          : 0,
       monthlyTrend: trendRows.map(r => ({
         month: r.month,
         count: Number(r.c ?? 0),

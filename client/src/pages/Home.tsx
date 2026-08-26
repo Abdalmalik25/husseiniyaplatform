@@ -1907,7 +1907,7 @@ export default function Home() {
                   )}
 
                 {closingPreview.data && closingPreview.data.rows.length > 0 && (
-                    <div className="max-h-56 overflow-auto rounded-lg border border-slate-200">
+                  <div className="max-h-56 overflow-auto rounded-lg border border-slate-200">
                     <table className="w-full text-right text-[11px] border-collapse">
                       <thead className="bg-slate-100 text-slate-600 font-bold sticky top-0">
                         <tr>

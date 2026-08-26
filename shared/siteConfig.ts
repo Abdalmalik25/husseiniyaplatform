@@ -9,7 +9,7 @@ export const siteConfig = {
     downloadUrl: "#download",
     shareText: "جرّب ALHUSAINIA — منظومة الأعمال الموحّدة للمؤسسات والفروع.",
   },
-    features: brand.stats.map(stat => {
+  features: brand.stats.map(stat => {
     // Map stats values to feature-like descriptions
     return stat.label;
   }),

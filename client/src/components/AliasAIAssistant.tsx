@@ -82,7 +82,10 @@ export function AliasAIAssistant() {
     content: string;
     suggestions?: ReadonlyArray<{ labelAr: string; href: string }>;
   }) => {
-    setMessages(prev => [...prev, { role: "assistant", content: response.content }]);
+    setMessages(prev => [
+      ...prev,
+      { role: "assistant", content: response.content },
+    ]);
     if (response.suggestions?.length) setChips([...response.suggestions]);
   };
 
@@ -121,7 +124,10 @@ export function AliasAIAssistant() {
     setMessages(windowed);
     setInput("");
     setChips([]);
-    const payload = windowed.map(m => ({ role: m.role as "user" | "assistant", content: m.content }));
+    const payload = windowed.map(m => ({
+      role: m.role as "user" | "assistant",
+      content: m.content,
+    }));
     // Tenant mode gets full grounded data; visitors get the platform expert.
     if (isAuthed) chatMutation.mutate({ messages: payload });
     else
@@ -182,10 +188,15 @@ export function AliasAIAssistant() {
               </div>
               <div>
                 <div className="text-sm font-black text-[#e8c9a0] leading-tight">
-                  ألياس <span className="text-[10px] font-mono text-white/40">ALIAS AI</span>
+                  ألياس{" "}
+                  <span className="text-[10px] font-mono text-white/40">
+                    ALIAS AI
+                  </span>
                 </div>
                 <div className="text-[10px] text-white/50 leading-tight">
-                  {isAuthed ? "متصل ببيانات مؤسستك الآن" : "وضع الزائر — خبير المنصة"}
+                  {isAuthed
+                    ? "متصل ببيانات مؤسستك الآن"
+                    : "وضع الزائر — خبير المنصة"}
                   {statusQuery.data?.enabled === false && " • وضع محلي"}
                 </div>
               </div>
@@ -200,7 +211,10 @@ export function AliasAIAssistant() {
           </div>
 
           {/* Messages — auto-scrolled, entrance-animated */}
-          <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3 scroll-smooth">
+          <div
+            ref={scrollRef}
+            className="flex-1 overflow-y-auto px-4 py-3 space-y-3 scroll-smooth"
+          >
             {messages.map((m, i) => (
               <div
                 key={i}

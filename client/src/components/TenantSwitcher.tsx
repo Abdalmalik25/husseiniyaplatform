@@ -45,7 +45,7 @@ export function TenantSwitcher() {
         onChange={onChange}
         className="bg-transparent outline-none cursor-pointer max-w-[140px]"
       >
-        {data.map((t) => (
+        {data.map(t => (
           <option key={t.id} value={t.id} className="text-ink">
             {t.name}
           </option>

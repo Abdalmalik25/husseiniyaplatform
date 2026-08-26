@@ -386,11 +386,13 @@ export default function Commercial() {
   const applyOffersToSale = () => {
     if (!offersData) return;
     const now = new Date();
-    const next = saleItems.map((it) => {
-      const prod: any = (productsData as any[]).find((p) => p.id === it.productId);
+    const next = saleItems.map(it => {
+      const prod: any = (productsData as any[]).find(
+        p => p.id === it.productId
+      );
       const catId = prod?.categoryId;
       const candidates = (offersData as any[]).filter(
-        (o) =>
+        o =>
           o.isActive &&
           (!o.startDate || new Date(o.startDate) <= now) &&
           (!o.endDate || new Date(o.endDate) >= now) &&
@@ -417,7 +419,9 @@ export default function Commercial() {
   const devicesQ = trpc.devices.list.useQuery();
   const [saleWorkSiteId, setSaleWorkSiteId] = useState<number | undefined>();
   const [saleDeviceId, setSaleDeviceId] = useState<number | undefined>();
-  const [saleCoords, setSaleCoords] = useState<{ lat?: string; lng?: string }>({});
+  const [saleCoords, setSaleCoords] = useState<{ lat?: string; lng?: string }>(
+    {}
+  );
   const [zatcaView, setZatcaView] = useState<any>(null);
   const pickLocation = () => {
     if (!navigator.geolocation) {
@@ -425,7 +429,11 @@ export default function Commercial() {
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      pos => setSaleCoords({ lat: pos.coords.latitude.toString(), lng: pos.coords.longitude.toString() }),
+      pos =>
+        setSaleCoords({
+          lat: pos.coords.latitude.toString(),
+          lng: pos.coords.longitude.toString(),
+        }),
       () => toast.error("تعذر تحديد الموقع")
     );
   };
@@ -505,9 +513,12 @@ export default function Commercial() {
     { limit: 300 },
     { staleTime: 60_000 }
   );
-  const catsForOffer = trpc.modules.masterData.listCategories.useQuery(undefined, {
-    staleTime: 60_000,
-  });
+  const catsForOffer = trpc.modules.masterData.listCategories.useQuery(
+    undefined,
+    {
+      staleTime: 60_000,
+    }
+  );
   const createOffer = trpc.modules.offers.create.useMutation({
     onSuccess: () => {
       toast.success("تمت إضافة العرض");
@@ -945,20 +956,34 @@ export default function Commercial() {
                                   productType: (p as any).type || "goods",
                                   unitOfMeasure: (p as any).unitOfMeasure || "",
                                   secondaryUnit: (p as any).secondaryUnit || "",
-                                  conversionFactor: String((p as any).conversionFactor ?? "1"),
+                                  conversionFactor: String(
+                                    (p as any).conversionFactor ?? "1"
+                                  ),
                                   isComposite: !!(p as any).isComposite,
                                   bom: (p as any).bom || "[]",
-                                  alternativeIds: (p as any).alternativeIds || "[]",
+                                  alternativeIds:
+                                    (p as any).alternativeIds || "[]",
                                   attachmentUrl: (p as any).attachmentUrl || "",
                                   costMethod: (p as any).costMethod || "fixed",
-                                  directCost: String((p as any).directCost ?? "0"),
-                                  indirectCost: String((p as any).indirectCost ?? "0"),
-                                  productionMinutes: String((p as any).productionMinutes ?? "0"),
+                                  directCost: String(
+                                    (p as any).directCost ?? "0"
+                                  ),
+                                  indirectCost: String(
+                                    (p as any).indirectCost ?? "0"
+                                  ),
+                                  productionMinutes: String(
+                                    (p as any).productionMinutes ?? "0"
+                                  ),
                                   priceMode: (p as any).priceMode || "margin",
-                                  marginPct: String((p as any).marginPct ?? "20"),
-                                  salesAccountId: (p as any).salesAccountId ?? undefined,
-                                  cogsAccountId: (p as any).cogsAccountId ?? undefined,
-                                  inventoryAccountId: (p as any).inventoryAccountId ?? undefined,
+                                  marginPct: String(
+                                    (p as any).marginPct ?? "20"
+                                  ),
+                                  salesAccountId:
+                                    (p as any).salesAccountId ?? undefined,
+                                  cogsAccountId:
+                                    (p as any).cogsAccountId ?? undefined,
+                                  inventoryAccountId:
+                                    (p as any).inventoryAccountId ?? undefined,
                                 });
                                 setEditProduct(p);
                               }}
@@ -1542,7 +1567,9 @@ export default function Commercial() {
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                     >
                       <div>
-                        <p className="font-bold text-xs text-[#102a2b]">{o.name}</p>
+                        <p className="font-bold text-xs text-[#102a2b]">
+                          {o.name}
+                        </p>
                         <p className="text-[10px] text-gray-500">
                           {o.kind === "financial" ? "خصم مالي" : "عرض كمي"} •{" "}
                           {Number(o.discountPercent)}% خصم
@@ -1564,7 +1591,9 @@ export default function Commercial() {
                               minQty: o.minQty ?? "",
                               productId: o.productId ?? undefined,
                               categoryId: o.categoryId ?? undefined,
-                              startDate: o.startDate ? o.startDate.slice(0, 10) : "",
+                              startDate: o.startDate
+                                ? o.startDate.slice(0, 10)
+                                : "",
                               endDate: o.endDate ? o.endDate.slice(0, 10) : "",
                               isActive: o.isActive,
                             })
@@ -1577,7 +1606,8 @@ export default function Commercial() {
                           variant="outline"
                           className="text-[10px] h-7 text-destructive"
                           onClick={() => {
-                            if (confirm("حذف العرض؟")) deleteOffer.mutate({ id: o.id });
+                            if (confirm("حذف العرض؟"))
+                              deleteOffer.mutate({ id: o.id });
                           }}
                         >
                           حذف
@@ -1710,7 +1740,12 @@ export default function Commercial() {
                 <select
                   className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
                   value={productForm.productType}
-                  onChange={e => setProductForm({ ...productForm, productType: e.target.value })}
+                  onChange={e =>
+                    setProductForm({
+                      ...productForm,
+                      productType: e.target.value,
+                    })
+                  }
                 >
                   <option value="goods">سلعة</option>
                   <option value="service">خدمة</option>
@@ -1720,7 +1755,12 @@ export default function Commercial() {
                 <Label className="text-[10px]">وحدة القياس</Label>
                 <Input
                   value={productForm.unitOfMeasure}
-                  onChange={e => setProductForm({ ...productForm, unitOfMeasure: e.target.value })}
+                  onChange={e =>
+                    setProductForm({
+                      ...productForm,
+                      unitOfMeasure: e.target.value,
+                    })
+                  }
                   className="h-8 text-xs"
                   placeholder="مثل: كجم، لتر، علبة"
                 />
@@ -1730,15 +1770,44 @@ export default function Commercial() {
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label className="text-[10px]">الوحدة الفرعية</Label>
-                <Input value={productForm.secondaryUnit} onChange={e => setProductForm({ ...productForm, secondaryUnit: e.target.value })} className="h-8 text-xs" />
+                <Input
+                  value={productForm.secondaryUnit}
+                  onChange={e =>
+                    setProductForm({
+                      ...productForm,
+                      secondaryUnit: e.target.value,
+                    })
+                  }
+                  className="h-8 text-xs"
+                />
               </div>
               <div>
                 <Label className="text-[10px]">معامل التحويل</Label>
-                <Input type="number" value={productForm.conversionFactor} onChange={e => setProductForm({ ...productForm, conversionFactor: e.target.value })} className="h-8 text-xs" />
+                <Input
+                  type="number"
+                  value={productForm.conversionFactor}
+                  onChange={e =>
+                    setProductForm({
+                      ...productForm,
+                      conversionFactor: e.target.value,
+                    })
+                  }
+                  className="h-8 text-xs"
+                />
               </div>
               <div className="flex items-end">
                 <label className="flex items-center gap-1 text-[10px]">
-                  <input type="checkbox" checked={productForm.isComposite} onChange={e => setProductForm({ ...productForm, isComposite: e.target.checked })} /> صنف مركب
+                  <input
+                    type="checkbox"
+                    checked={productForm.isComposite}
+                    onChange={e =>
+                      setProductForm({
+                        ...productForm,
+                        isComposite: e.target.checked,
+                      })
+                    }
+                  />{" "}
+                  صنف مركب
                 </label>
               </div>
             </div>
@@ -1746,54 +1815,141 @@ export default function Commercial() {
             <div className="grid grid-cols-2 gap-2">
               <div>
                 <Label className="text-[10px]">مكونات (BOM) JSON</Label>
-                <Input value={productForm.bom} onChange={e => setProductForm({ ...productForm, bom: e.target.value })} className="h-8 text-xs" placeholder='[{"productId":1,"qty":2}]' />
+                <Input
+                  value={productForm.bom}
+                  onChange={e =>
+                    setProductForm({ ...productForm, bom: e.target.value })
+                  }
+                  className="h-8 text-xs"
+                  placeholder='[{"productId":1,"qty":2}]'
+                />
               </div>
               <div>
                 <Label className="text-[10px]">أصناف بديلة (JSON)</Label>
-                <Input value={productForm.alternativeIds} onChange={e => setProductForm({ ...productForm, alternativeIds: e.target.value })} className="h-8 text-xs" placeholder='[2,3]' />
+                <Input
+                  value={productForm.alternativeIds}
+                  onChange={e =>
+                    setProductForm({
+                      ...productForm,
+                      alternativeIds: e.target.value,
+                    })
+                  }
+                  className="h-8 text-xs"
+                  placeholder="[2,3]"
+                />
               </div>
             </div>
 
             <div>
               <Label className="text-[10px]">رابط مرفق (صورة/ملف)</Label>
-              <Input value={productForm.attachmentUrl} onChange={e => setProductForm({ ...productForm, attachmentUrl: e.target.value })} className="h-8 text-xs" placeholder="https://..." />
+              <Input
+                value={productForm.attachmentUrl}
+                onChange={e =>
+                  setProductForm({
+                    ...productForm,
+                    attachmentUrl: e.target.value,
+                  })
+                }
+                className="h-8 text-xs"
+                placeholder="https://..."
+              />
             </div>
 
             {productForm.productType === "service" && (
               <div className="border rounded-lg p-2 space-y-2 bg-amber-50/50">
-                <p className="text-[10px] font-bold text-[#102a2b]">تسعير الخدمة (تكلفة دقيقة/مرنة)</p>
+                <p className="text-[10px] font-bold text-[#102a2b]">
+                  تسعير الخدمة (تكلفة دقيقة/مرنة)
+                </p>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className="text-[10px]">طريقة التكلفة</Label>
-                    <select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={productForm.costMethod} onChange={e => setProductForm({ ...productForm, costMethod: e.target.value })}>
+                    <select
+                      className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                      value={productForm.costMethod}
+                      onChange={e =>
+                        setProductForm({
+                          ...productForm,
+                          costMethod: e.target.value,
+                        })
+                      }
+                    >
                       <option value="fixed">ثابتة</option>
                       <option value="calculated">محسوبة</option>
                     </select>
                   </div>
                   <div>
                     <Label className="text-[10px]">تكلفة مباشرة</Label>
-                    <Input type="number" value={productForm.directCost} onChange={e => setProductForm({ ...productForm, directCost: e.target.value })} className="h-8 text-xs" />
+                    <Input
+                      type="number"
+                      value={productForm.directCost}
+                      onChange={e =>
+                        setProductForm({
+                          ...productForm,
+                          directCost: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                    />
                   </div>
                   <div>
                     <Label className="text-[10px]">تكلفة غير مباشرة</Label>
-                    <Input type="number" value={productForm.indirectCost} onChange={e => setProductForm({ ...productForm, indirectCost: e.target.value })} className="h-8 text-xs" />
+                    <Input
+                      type="number"
+                      value={productForm.indirectCost}
+                      onChange={e =>
+                        setProductForm({
+                          ...productForm,
+                          indirectCost: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                    />
                   </div>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <div>
                     <Label className="text-[10px]">دقائق إنتاج</Label>
-                    <Input type="number" value={productForm.productionMinutes} onChange={e => setProductForm({ ...productForm, productionMinutes: e.target.value })} className="h-8 text-xs" />
+                    <Input
+                      type="number"
+                      value={productForm.productionMinutes}
+                      onChange={e =>
+                        setProductForm({
+                          ...productForm,
+                          productionMinutes: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                    />
                   </div>
                   <div>
                     <Label className="text-[10px]">وضع السعر</Label>
-                    <select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={productForm.priceMode} onChange={e => setProductForm({ ...productForm, priceMode: e.target.value })}>
+                    <select
+                      className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                      value={productForm.priceMode}
+                      onChange={e =>
+                        setProductForm({
+                          ...productForm,
+                          priceMode: e.target.value,
+                        })
+                      }
+                    >
                       <option value="margin">هامش</option>
                       <option value="direct">مباشر</option>
                     </select>
                   </div>
                   <div>
                     <Label className="text-[10px]">نسبة الهامش %</Label>
-                    <Input type="number" value={productForm.marginPct} onChange={e => setProductForm({ ...productForm, marginPct: e.target.value })} className="h-8 text-xs" />
+                    <Input
+                      type="number"
+                      value={productForm.marginPct}
+                      onChange={e =>
+                        setProductForm({
+                          ...productForm,
+                          marginPct: e.target.value,
+                        })
+                      }
+                      className="h-8 text-xs"
+                    />
                   </div>
                 </div>
               </div>
@@ -1802,15 +1958,33 @@ export default function Commercial() {
             <div className="grid grid-cols-3 gap-2">
               <div>
                 <Label className="text-[10px]">حساب الإيراد</Label>
-                <AcctSelect value={productForm.salesAccountId} onChange={v => setProductForm({ ...productForm, salesAccountId: v })} accounts={accountsQuery.data} />
+                <AcctSelect
+                  value={productForm.salesAccountId}
+                  onChange={v =>
+                    setProductForm({ ...productForm, salesAccountId: v })
+                  }
+                  accounts={accountsQuery.data}
+                />
               </div>
               <div>
                 <Label className="text-[10px]">حساب التكلفة</Label>
-                <AcctSelect value={productForm.cogsAccountId} onChange={v => setProductForm({ ...productForm, cogsAccountId: v })} accounts={accountsQuery.data} />
+                <AcctSelect
+                  value={productForm.cogsAccountId}
+                  onChange={v =>
+                    setProductForm({ ...productForm, cogsAccountId: v })
+                  }
+                  accounts={accountsQuery.data}
+                />
               </div>
               <div>
                 <Label className="text-[10px]">حساب المخزون</Label>
-                <AcctSelect value={productForm.inventoryAccountId} onChange={v => setProductForm({ ...productForm, inventoryAccountId: v })} accounts={accountsQuery.data} />
+                <AcctSelect
+                  value={productForm.inventoryAccountId}
+                  onChange={v =>
+                    setProductForm({ ...productForm, inventoryAccountId: v })
+                  }
+                  accounts={accountsQuery.data}
+                />
               </div>
             </div>
           </div>
@@ -2040,284 +2214,358 @@ export default function Commercial() {
             <p>الهاتف: {selectedSupplier?.phone}</p>
             <p>المدينة: {selectedSupplier?.city}</p>
           </div>
-           {selectedSupplier && (
-             <CustomFields
-               entityType="supplier"
-               entityId={selectedSupplier.id}
-             />
-           )}
-         </DialogContent>
-       </Dialog>
+          {selectedSupplier && (
+            <CustomFields
+              entityType="supplier"
+              entityId={selectedSupplier.id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
 
-       {/* ─── Offers Dialog (Module B) ─── */}
-       <Dialog open={showOfferDialog} onOpenChange={setShowOfferDialog}>
-         <DialogContent className="bg-white max-w-md">
-           <DialogHeader>
-             <DialogTitle className="text-sm text-[#102a2b]">عرض جديد</DialogTitle>
-           </DialogHeader>
-           <div className="space-y-3">
-             <div>
-               <Label className="text-[10px]">الاسم</Label>
-               <Input
-                 value={offerForm.name}
-                 onChange={e => setOfferForm({ ...offerForm, name: e.target.value })}
-                 className="h-8 text-xs"
-               />
-             </div>
-             <div className="grid grid-cols-2 gap-2">
-               <div>
-                 <Label className="text-[10px]">النوع</Label>
-                 <select
-                   className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
-                   value={offerForm.kind}
-                   onChange={e => setOfferForm({ ...offerForm, kind: e.target.value })}
-                 >
-                   <option value="financial">خصم مالي</option>
-                   <option value="quantity">عرض كمي</option>
-                 </select>
-               </div>
-               <div>
-                 <Label className="text-[10px]">نسبة الخصم %</Label>
-                 <Input
-                   value={offerForm.discountPercent}
-                   onChange={e => setOfferForm({ ...offerForm, discountPercent: e.target.value })}
-                   className="h-8 text-xs"
-                 />
-               </div>
-             </div>
-             <div className="grid grid-cols-2 gap-2">
-               <div>
-                 <Label className="text-[10px]">الحد الأدنى للكمية</Label>
-                 <Input
-                   value={offerForm.minQty}
-                   onChange={e => setOfferForm({ ...offerForm, minQty: e.target.value })}
-                   className="h-8 text-xs"
-                 />
-               </div>
-               <div>
-                 <Label className="text-[10px]">منتج (اختياري)</Label>
-                 <select
-                   className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
-                   value={offerForm.productId ?? ""}
-                   onChange={e => setOfferForm({ ...offerForm, productId: e.target.value ? Number(e.target.value) : undefined })}
-                 >
-                   <option value="">كل المنتجات</option>
-                   {(productsForOffer.data?.items ?? []).map((p: any) => (
-                     <option key={p.id} value={p.id}>{p.name}</option>
-                   ))}
-                 </select>
-               </div>
-             </div>
-             <div>
-               <Label className="text-[10px]">تصنيف (اختياري)</Label>
-               <select
-                 className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
-                 value={offerForm.categoryId ?? ""}
-                 onChange={e => setOfferForm({ ...offerForm, categoryId: e.target.value ? Number(e.target.value) : undefined })}
-               >
-                 <option value="">كل التصنيفات</option>
-                 {(catsForOffer.data ?? []).map((c: any) => (
-                   <option key={c.id} value={c.id}>{c.name}</option>
-                 ))}
-               </select>
-             </div>
-             <div className="grid grid-cols-2 gap-2">
-               <div>
-                 <Label className="text-[10px]">تاريخ البداية</Label>
-                 <Input
-                   type="date"
-                   value={offerForm.startDate}
-                   onChange={e => setOfferForm({ ...offerForm, startDate: e.target.value })}
-                   className="h-8 text-xs"
-                 />
-               </div>
-               <div>
-                 <Label className="text-[10px]">تاريخ النهاية</Label>
-                 <Input
-                   type="date"
-                   value={offerForm.endDate}
-                   onChange={e => setOfferForm({ ...offerForm, endDate: e.target.value })}
-                   className="h-8 text-xs"
-                 />
-               </div>
-             </div>
-             <label className="flex items-center gap-2 text-[11px]">
-               <input
-                 type="checkbox"
-                 checked={offerForm.isActive}
-                 onChange={e => setOfferForm({ ...offerForm, isActive: e.target.checked })}
-               />
-               نشط
-             </label>
-             <DialogFooter>
-               <Button
-                 variant="outline"
-                 size="sm"
-                 onClick={() => setShowOfferDialog(false)}
-                 className="h-8 text-xs"
-               >
-                 إلغاء
-               </Button>
-               <Button
-                 size="sm"
-                 className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
-                 disabled={!offerForm.name || createOffer.isPending}
-                 onClick={() =>
-                   createOffer.mutate({
-                     name: offerForm.name,
-                     kind: offerForm.kind,
-                     discountPercent: offerForm.discountPercent || "0",
-                     minQty: offerForm.minQty || undefined,
-                     productId: offerForm.productId,
-                     categoryId: offerForm.categoryId,
-                     startDate: offerForm.startDate || undefined,
-                     endDate: offerForm.endDate || undefined,
-                   })
-                 }
-               >
-                 {createOffer.isPending ? "جاري الحفظ..." : "حفظ"}
-               </Button>
-             </DialogFooter>
-           </div>
-         </DialogContent>
-       </Dialog>
+      {/* ─── Offers Dialog (Module B) ─── */}
+      <Dialog open={showOfferDialog} onOpenChange={setShowOfferDialog}>
+        <DialogContent className="bg-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm text-[#102a2b]">
+              عرض جديد
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <Label className="text-[10px]">الاسم</Label>
+              <Input
+                value={offerForm.name}
+                onChange={e =>
+                  setOfferForm({ ...offerForm, name: e.target.value })
+                }
+                className="h-8 text-xs"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">النوع</Label>
+                <select
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  value={offerForm.kind}
+                  onChange={e =>
+                    setOfferForm({ ...offerForm, kind: e.target.value })
+                  }
+                >
+                  <option value="financial">خصم مالي</option>
+                  <option value="quantity">عرض كمي</option>
+                </select>
+              </div>
+              <div>
+                <Label className="text-[10px]">نسبة الخصم %</Label>
+                <Input
+                  value={offerForm.discountPercent}
+                  onChange={e =>
+                    setOfferForm({
+                      ...offerForm,
+                      discountPercent: e.target.value,
+                    })
+                  }
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">الحد الأدنى للكمية</Label>
+                <Input
+                  value={offerForm.minQty}
+                  onChange={e =>
+                    setOfferForm({ ...offerForm, minQty: e.target.value })
+                  }
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px]">منتج (اختياري)</Label>
+                <select
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  value={offerForm.productId ?? ""}
+                  onChange={e =>
+                    setOfferForm({
+                      ...offerForm,
+                      productId: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    })
+                  }
+                >
+                  <option value="">كل المنتجات</option>
+                  {(productsForOffer.data?.items ?? []).map((p: any) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div>
+              <Label className="text-[10px]">تصنيف (اختياري)</Label>
+              <select
+                className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                value={offerForm.categoryId ?? ""}
+                onChange={e =>
+                  setOfferForm({
+                    ...offerForm,
+                    categoryId: e.target.value
+                      ? Number(e.target.value)
+                      : undefined,
+                  })
+                }
+              >
+                <option value="">كل التصنيفات</option>
+                {(catsForOffer.data ?? []).map((c: any) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label className="text-[10px]">تاريخ البداية</Label>
+                <Input
+                  type="date"
+                  value={offerForm.startDate}
+                  onChange={e =>
+                    setOfferForm({ ...offerForm, startDate: e.target.value })
+                  }
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div>
+                <Label className="text-[10px]">تاريخ النهاية</Label>
+                <Input
+                  type="date"
+                  value={offerForm.endDate}
+                  onChange={e =>
+                    setOfferForm({ ...offerForm, endDate: e.target.value })
+                  }
+                  className="h-8 text-xs"
+                />
+              </div>
+            </div>
+            <label className="flex items-center gap-2 text-[11px]">
+              <input
+                type="checkbox"
+                checked={offerForm.isActive}
+                onChange={e =>
+                  setOfferForm({ ...offerForm, isActive: e.target.checked })
+                }
+              />
+              نشط
+            </label>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowOfferDialog(false)}
+                className="h-8 text-xs"
+              >
+                إلغاء
+              </Button>
+              <Button
+                size="sm"
+                className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+                disabled={!offerForm.name || createOffer.isPending}
+                onClick={() =>
+                  createOffer.mutate({
+                    name: offerForm.name,
+                    kind: offerForm.kind,
+                    discountPercent: offerForm.discountPercent || "0",
+                    minQty: offerForm.minQty || undefined,
+                    productId: offerForm.productId,
+                    categoryId: offerForm.categoryId,
+                    startDate: offerForm.startDate || undefined,
+                    endDate: offerForm.endDate || undefined,
+                  })
+                }
+              >
+                {createOffer.isPending ? "جاري الحفظ..." : "حفظ"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-       {/* ─── Offers Edit Dialog (Module B) ─── */}
-       <Dialog open={!!editOffer} onOpenChange={(o) => !o && setEditOffer(null)}>
-         <DialogContent className="bg-white max-w-md">
-           <DialogHeader>
-             <DialogTitle className="text-sm text-[#102a2b]">تعديل العرض</DialogTitle>
-           </DialogHeader>
-           {editOffer && (
-             <div className="space-y-3">
-               <div>
-                 <Label className="text-[10px]">الاسم</Label>
-                 <Input
-                   value={editOffer.name}
-                   onChange={e => setEditOffer({ ...editOffer, name: e.target.value })}
-                   className="h-8 text-xs"
-                 />
-               </div>
-               <div className="grid grid-cols-2 gap-2">
-                 <div>
-                   <Label className="text-[10px]">النوع</Label>
-                   <select
-                     className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
-                     value={editOffer.kind}
-                     onChange={e => setEditOffer({ ...editOffer, kind: e.target.value })}
-                   >
-                     <option value="financial">خصم مالي</option>
-                     <option value="quantity">عرض كمي</option>
-                   </select>
-                 </div>
-                 <div>
-                   <Label className="text-[10px]">نسبة الخصم %</Label>
-                   <Input
-                     value={editOffer.discountPercent}
-                     onChange={e => setEditOffer({ ...editOffer, discountPercent: e.target.value })}
-                     className="h-8 text-xs"
-                   />
-                 </div>
-               </div>
-               <div className="grid grid-cols-2 gap-2">
-                 <div>
-                   <Label className="text-[10px]">الحد الأدنى للكمية</Label>
-                   <Input
-                     value={editOffer.minQty}
-                     onChange={e => setEditOffer({ ...editOffer, minQty: e.target.value })}
-                     className="h-8 text-xs"
-                   />
-                 </div>
-                 <div>
-                   <Label className="text-[10px]">منتج (اختياري)</Label>
-                   <select
-                     className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
-                     value={editOffer.productId ?? ""}
-                     onChange={e => setEditOffer({ ...editOffer, productId: e.target.value ? Number(e.target.value) : undefined })}
-                   >
-                     <option value="">كل المنتجات</option>
-                     {(productsForOffer.data?.items ?? []).map((p: any) => (
-                       <option key={p.id} value={p.id}>{p.name}</option>
-                     ))}
-                   </select>
-                 </div>
-               </div>
-               <div>
-                 <Label className="text-[10px]">تصنيف (اختياري)</Label>
-                 <select
-                   className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
-                   value={editOffer.categoryId ?? ""}
-                   onChange={e => setEditOffer({ ...editOffer, categoryId: e.target.value ? Number(e.target.value) : undefined })}
-                 >
-                   <option value="">كل التصنيفات</option>
-                   {(catsForOffer.data ?? []).map((c: any) => (
-                     <option key={c.id} value={c.id}>{c.name}</option>
-                   ))}
-                 </select>
-               </div>
-               <div className="grid grid-cols-2 gap-2">
-                 <div>
-                   <Label className="text-[10px]">تاريخ البداية</Label>
-                   <Input
-                     type="date"
-                     value={editOffer.startDate}
-                     onChange={e => setEditOffer({ ...editOffer, startDate: e.target.value })}
-                     className="h-8 text-xs"
-                   />
-                 </div>
-                 <div>
-                   <Label className="text-[10px]">تاريخ النهاية</Label>
-                   <Input
-                     type="date"
-                     value={editOffer.endDate}
-                     onChange={e => setEditOffer({ ...editOffer, endDate: e.target.value })}
-                     className="h-8 text-xs"
-                   />
-                 </div>
-               </div>
-               <label className="flex items-center gap-2 text-[11px]">
-                 <input
-                   type="checkbox"
-                   checked={editOffer.isActive}
-                   onChange={e => setEditOffer({ ...editOffer, isActive: e.target.checked })}
-                 />
-                 نشط
-               </label>
-               <DialogFooter>
-                 <Button
-                   variant="outline"
-                   size="sm"
-                   onClick={() => setEditOffer(null)}
-                   className="h-8 text-xs"
-                 >
-                   إلغاء
-                 </Button>
-                 <Button
-                   size="sm"
-                   className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
-                   disabled={!editOffer.name || updateOffer.isPending}
-                   onClick={() =>
-                     updateOffer.mutate({
-                       id: editOffer.id,
-                       name: editOffer.name,
-                       kind: editOffer.kind,
-                       discountPercent: editOffer.discountPercent || "0",
-                       minQty: editOffer.minQty || undefined,
-                       productId: editOffer.productId,
-                       categoryId: editOffer.categoryId,
-                       isActive: editOffer.isActive,
-                     })
-                   }
-                 >
-                   {updateOffer.isPending ? "جاري الحفظ..." : "حفظ"}
-                 </Button>
-               </DialogFooter>
-             </div>
-           )}
-         </DialogContent>
-       </Dialog>
+      {/* ─── Offers Edit Dialog (Module B) ─── */}
+      <Dialog open={!!editOffer} onOpenChange={o => !o && setEditOffer(null)}>
+        <DialogContent className="bg-white max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-sm text-[#102a2b]">
+              تعديل العرض
+            </DialogTitle>
+          </DialogHeader>
+          {editOffer && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-[10px]">الاسم</Label>
+                <Input
+                  value={editOffer.name}
+                  onChange={e =>
+                    setEditOffer({ ...editOffer, name: e.target.value })
+                  }
+                  className="h-8 text-xs"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px]">النوع</Label>
+                  <select
+                    className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                    value={editOffer.kind}
+                    onChange={e =>
+                      setEditOffer({ ...editOffer, kind: e.target.value })
+                    }
+                  >
+                    <option value="financial">خصم مالي</option>
+                    <option value="quantity">عرض كمي</option>
+                  </select>
+                </div>
+                <div>
+                  <Label className="text-[10px]">نسبة الخصم %</Label>
+                  <Input
+                    value={editOffer.discountPercent}
+                    onChange={e =>
+                      setEditOffer({
+                        ...editOffer,
+                        discountPercent: e.target.value,
+                      })
+                    }
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px]">الحد الأدنى للكمية</Label>
+                  <Input
+                    value={editOffer.minQty}
+                    onChange={e =>
+                      setEditOffer({ ...editOffer, minQty: e.target.value })
+                    }
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px]">منتج (اختياري)</Label>
+                  <select
+                    className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                    value={editOffer.productId ?? ""}
+                    onChange={e =>
+                      setEditOffer({
+                        ...editOffer,
+                        productId: e.target.value
+                          ? Number(e.target.value)
+                          : undefined,
+                      })
+                    }
+                  >
+                    <option value="">كل المنتجات</option>
+                    {(productsForOffer.data?.items ?? []).map((p: any) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <Label className="text-[10px]">تصنيف (اختياري)</Label>
+                <select
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  value={editOffer.categoryId ?? ""}
+                  onChange={e =>
+                    setEditOffer({
+                      ...editOffer,
+                      categoryId: e.target.value
+                        ? Number(e.target.value)
+                        : undefined,
+                    })
+                  }
+                >
+                  <option value="">كل التصنيفات</option>
+                  {(catsForOffer.data ?? []).map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <Label className="text-[10px]">تاريخ البداية</Label>
+                  <Input
+                    type="date"
+                    value={editOffer.startDate}
+                    onChange={e =>
+                      setEditOffer({ ...editOffer, startDate: e.target.value })
+                    }
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px]">تاريخ النهاية</Label>
+                  <Input
+                    type="date"
+                    value={editOffer.endDate}
+                    onChange={e =>
+                      setEditOffer({ ...editOffer, endDate: e.target.value })
+                    }
+                    className="h-8 text-xs"
+                  />
+                </div>
+              </div>
+              <label className="flex items-center gap-2 text-[11px]">
+                <input
+                  type="checkbox"
+                  checked={editOffer.isActive}
+                  onChange={e =>
+                    setEditOffer({ ...editOffer, isActive: e.target.checked })
+                  }
+                />
+                نشط
+              </label>
+              <DialogFooter>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditOffer(null)}
+                  className="h-8 text-xs"
+                >
+                  إلغاء
+                </Button>
+                <Button
+                  size="sm"
+                  className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+                  disabled={!editOffer.name || updateOffer.isPending}
+                  onClick={() =>
+                    updateOffer.mutate({
+                      id: editOffer.id,
+                      name: editOffer.name,
+                      kind: editOffer.kind,
+                      discountPercent: editOffer.discountPercent || "0",
+                      minQty: editOffer.minQty || undefined,
+                      productId: editOffer.productId,
+                      categoryId: editOffer.categoryId,
+                      isActive: editOffer.isActive,
+                    })
+                  }
+                >
+                  {updateOffer.isPending ? "جاري الحفظ..." : "حفظ"}
+                </Button>
+              </DialogFooter>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
 
-       {/* ─── Sale Dialog ─── */}
+      {/* ─── Sale Dialog ─── */}
       <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
         <DialogContent className="bg-white max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -2368,7 +2616,7 @@ export default function Commercial() {
                 <Label className="text-[10px]">العملة</Label>
                 <Select
                   value={saleCurrency}
-                  onValueChange={(v) => {
+                  onValueChange={v => {
                     setSaleCurrency(v);
                     const c = (currenciesQ.data || []).find(
                       (x: any) => x.code === v
@@ -2393,7 +2641,7 @@ export default function Commercial() {
                 <Label className="text-[10px]">سعر الصرف</Label>
                 <Input
                   value={saleCurrencyRate}
-                  onChange={(e) => setSaleCurrencyRate(e.target.value)}
+                  onChange={e => setSaleCurrencyRate(e.target.value)}
                   className="h-8 text-xs"
                 />
               </div>
@@ -2404,11 +2652,17 @@ export default function Commercial() {
                 <select
                   className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
                   value={saleWorkSiteId ?? ""}
-                  onChange={e => setSaleWorkSiteId(e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={e =>
+                    setSaleWorkSiteId(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
                 >
                   <option value="">—</option>
                   {(workSitesQ.data || []).map(w => (
-                    <option key={w.id} value={w.id}>{w.code} - {w.name}</option>
+                    <option key={w.id} value={w.id}>
+                      {w.code} - {w.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -2417,11 +2671,17 @@ export default function Commercial() {
                 <select
                   className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
                   value={saleDeviceId ?? ""}
-                  onChange={e => setSaleDeviceId(e.target.value ? Number(e.target.value) : undefined)}
+                  onChange={e =>
+                    setSaleDeviceId(
+                      e.target.value ? Number(e.target.value) : undefined
+                    )
+                  }
                 >
                   <option value="">—</option>
                   {(devicesQ.data || []).map(d => (
-                    <option key={d.id} value={d.id}>{d.code} - {d.name}</option>
+                    <option key={d.id} value={d.id}>
+                      {d.code} - {d.name}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -2433,7 +2693,9 @@ export default function Commercial() {
                   className="h-8 text-[10px] w-full"
                   onClick={pickLocation}
                 >
-                  {saleCoords.lat ? `✓ ${saleCoords.lat.slice(0, 6)}` : "تحديد الموقع"}
+                  {saleCoords.lat
+                    ? `✓ ${saleCoords.lat.slice(0, 6)}`
+                    : "تحديد الموقع"}
                 </Button>
               </div>
             </div>
@@ -2465,17 +2727,16 @@ export default function Commercial() {
                   parseFloat(item.unitPrice) * item.quantity -
                   (parseFloat(item.discount) || 0);
                 return (
-                  <div
-                    key={idx}
-                    className="flex items-center gap-1.5 mb-2"
-                  >
+                  <div key={idx} className="flex items-center gap-1.5 mb-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-[10px] font-bold text-[#102a2b] truncate">
                         {item.productName}
                       </p>
                       <p className="text-[9px] text-gray-400">
-                        {(parseFloat(item.unitPrice) * item.quantity).toLocaleString()} −{" "}
-                        خصم {item.discount || "0"} ={" "}
+                        {(
+                          parseFloat(item.unitPrice) * item.quantity
+                        ).toLocaleString()}{" "}
+                        − خصم {item.discount || "0"} ={" "}
                         <span className="font-bold text-[#b87945]">
                           {lineTotal.toLocaleString()} ر.ي
                         </span>
@@ -2486,8 +2747,7 @@ export default function Commercial() {
                       value={item.quantity}
                       onChange={e => {
                         const newItems = [...saleItems];
-                        newItems[idx].quantity =
-                          parseInt(e.target.value) || 1;
+                        newItems[idx].quantity = parseInt(e.target.value) || 1;
                         setSaleItems(newItems);
                       }}
                       className="h-7 text-[10px] w-14"
@@ -2540,7 +2800,9 @@ export default function Commercial() {
                   </span>
                 </div>
                 <div className="flex justify-between border-t pt-1">
-                  <span className="font-bold text-[#102a2b]">الإجمالي النهائي</span>
+                  <span className="font-bold text-[#102a2b]">
+                    الإجمالي النهائي
+                  </span>
                   <span className="font-bold text-[#102a2b]">
                     {saleGrandTotal.toLocaleString()} ر.ي
                   </span>
@@ -2566,9 +2828,7 @@ export default function Commercial() {
                   items: saleItems,
                   paymentMethod: salePayment,
                   paidAmount:
-                    salePayment === "cash"
-                      ? saleGrandTotal.toString()
-                      : "0",
+                    salePayment === "cash" ? saleGrandTotal.toString() : "0",
                   discount: saleDiscountTotal.toString(),
                   country: (settingsQ.data as any)?.country,
                   workSiteId: saleWorkSiteId,
@@ -3104,42 +3364,217 @@ export default function Commercial() {
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <Label className="text-[10px]">نوع الصنف</Label>
-                  <select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={editProductForm.productType} onChange={e => setEditProductForm({ ...editProductForm, productType: e.target.value })}>
+                  <select
+                    className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                    value={editProductForm.productType}
+                    onChange={e =>
+                      setEditProductForm({
+                        ...editProductForm,
+                        productType: e.target.value,
+                      })
+                    }
+                  >
                     <option value="goods">سلعة</option>
                     <option value="service">خدمة</option>
                   </select>
                 </div>
                 <div>
                   <Label className="text-[10px]">وحدة القياس</Label>
-                  <Input value={editProductForm.unitOfMeasure} onChange={e => setEditProductForm({ ...editProductForm, unitOfMeasure: e.target.value })} className="h-8 text-xs" />
+                  <Input
+                    value={editProductForm.unitOfMeasure}
+                    onChange={e =>
+                      setEditProductForm({
+                        ...editProductForm,
+                        unitOfMeasure: e.target.value,
+                      })
+                    }
+                    className="h-8 text-xs"
+                  />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-2">
-                <div><Label className="text-[10px]">وحدة فرعية</Label><Input value={editProductForm.secondaryUnit} onChange={e => setEditProductForm({ ...editProductForm, secondaryUnit: e.target.value })} className="h-8 text-xs" /></div>
-                <div><Label className="text-[10px]">معامل التحويل</Label><Input type="number" value={editProductForm.conversionFactor} onChange={e => setEditProductForm({ ...editProductForm, conversionFactor: e.target.value })} className="h-8 text-xs" /></div>
-                <div className="flex items-end"><label className="flex items-center gap-1 text-[10px]"><input type="checkbox" checked={editProductForm.isComposite} onChange={e => setEditProductForm({ ...editProductForm, isComposite: e.target.checked })} /> مركب</label></div>
+                <div>
+                  <Label className="text-[10px]">وحدة فرعية</Label>
+                  <Input
+                    value={editProductForm.secondaryUnit}
+                    onChange={e =>
+                      setEditProductForm({
+                        ...editProductForm,
+                        secondaryUnit: e.target.value,
+                      })
+                    }
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px]">معامل التحويل</Label>
+                  <Input
+                    type="number"
+                    value={editProductForm.conversionFactor}
+                    onChange={e =>
+                      setEditProductForm({
+                        ...editProductForm,
+                        conversionFactor: e.target.value,
+                      })
+                    }
+                    className="h-8 text-xs"
+                  />
+                </div>
+                <div className="flex items-end">
+                  <label className="flex items-center gap-1 text-[10px]">
+                    <input
+                      type="checkbox"
+                      checked={editProductForm.isComposite}
+                      onChange={e =>
+                        setEditProductForm({
+                          ...editProductForm,
+                          isComposite: e.target.checked,
+                        })
+                      }
+                    />{" "}
+                    مركب
+                  </label>
+                </div>
               </div>
 
               {editProductForm.productType === "service" && (
                 <div className="border rounded-lg p-2 space-y-2 bg-amber-50/50">
                   <div className="grid grid-cols-3 gap-2">
-                    <div><Label className="text-[10px]">طريقة التكلفة</Label><select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={editProductForm.costMethod} onChange={e => setEditProductForm({ ...editProductForm, costMethod: e.target.value })}><option value="fixed">ثابتة</option><option value="calculated">محسوبة</option></select></div>
-                    <div><Label className="text-[10px]">تكلفة مباشرة</Label><Input type="number" value={editProductForm.directCost} onChange={e => setEditProductForm({ ...editProductForm, directCost: e.target.value })} className="h-8 text-xs" /></div>
-                    <div><Label className="text-[10px]">غير مباشرة</Label><Input type="number" value={editProductForm.indirectCost} onChange={e => setEditProductForm({ ...editProductForm, indirectCost: e.target.value })} className="h-8 text-xs" /></div>
+                    <div>
+                      <Label className="text-[10px]">طريقة التكلفة</Label>
+                      <select
+                        className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                        value={editProductForm.costMethod}
+                        onChange={e =>
+                          setEditProductForm({
+                            ...editProductForm,
+                            costMethod: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="fixed">ثابتة</option>
+                        <option value="calculated">محسوبة</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">تكلفة مباشرة</Label>
+                      <Input
+                        type="number"
+                        value={editProductForm.directCost}
+                        onChange={e =>
+                          setEditProductForm({
+                            ...editProductForm,
+                            directCost: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">غير مباشرة</Label>
+                      <Input
+                        type="number"
+                        value={editProductForm.indirectCost}
+                        onChange={e =>
+                          setEditProductForm({
+                            ...editProductForm,
+                            indirectCost: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
-                    <div><Label className="text-[10px]">دقائق إنتاج</Label><Input type="number" value={editProductForm.productionMinutes} onChange={e => setEditProductForm({ ...editProductForm, productionMinutes: e.target.value })} className="h-8 text-xs" /></div>
-                    <div><Label className="text-[10px]">وضع السعر</Label><select className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white" value={editProductForm.priceMode} onChange={e => setEditProductForm({ ...editProductForm, priceMode: e.target.value })}><option value="margin">هامش</option><option value="direct">مباشر</option></select></div>
-                    <div><Label className="text-[10px]">هامش %</Label><Input type="number" value={editProductForm.marginPct} onChange={e => setEditProductForm({ ...editProductForm, marginPct: e.target.value })} className="h-8 text-xs" /></div>
+                    <div>
+                      <Label className="text-[10px]">دقائق إنتاج</Label>
+                      <Input
+                        type="number"
+                        value={editProductForm.productionMinutes}
+                        onChange={e =>
+                          setEditProductForm({
+                            ...editProductForm,
+                            productionMinutes: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">وضع السعر</Label>
+                      <select
+                        className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                        value={editProductForm.priceMode}
+                        onChange={e =>
+                          setEditProductForm({
+                            ...editProductForm,
+                            priceMode: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="margin">هامش</option>
+                        <option value="direct">مباشر</option>
+                      </select>
+                    </div>
+                    <div>
+                      <Label className="text-[10px]">هامش %</Label>
+                      <Input
+                        type="number"
+                        value={editProductForm.marginPct}
+                        onChange={e =>
+                          setEditProductForm({
+                            ...editProductForm,
+                            marginPct: e.target.value,
+                          })
+                        }
+                        className="h-8 text-xs"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
 
               <div className="grid grid-cols-3 gap-2">
-                <div><Label className="text-[10px]">حساب الإيراد</Label><AcctSelect value={editProductForm.salesAccountId} onChange={v => setEditProductForm({ ...editProductForm, salesAccountId: v })} accounts={accountsQuery.data} /></div>
-                <div><Label className="text-[10px]">حساب التكلفة</Label><AcctSelect value={editProductForm.cogsAccountId} onChange={v => setEditProductForm({ ...editProductForm, cogsAccountId: v })} accounts={accountsQuery.data} /></div>
-                <div><Label className="text-[10px]">حساب المخزون</Label><AcctSelect value={editProductForm.inventoryAccountId} onChange={v => setEditProductForm({ ...editProductForm, inventoryAccountId: v })} accounts={accountsQuery.data} /></div>
+                <div>
+                  <Label className="text-[10px]">حساب الإيراد</Label>
+                  <AcctSelect
+                    value={editProductForm.salesAccountId}
+                    onChange={v =>
+                      setEditProductForm({
+                        ...editProductForm,
+                        salesAccountId: v,
+                      })
+                    }
+                    accounts={accountsQuery.data}
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px]">حساب التكلفة</Label>
+                  <AcctSelect
+                    value={editProductForm.cogsAccountId}
+                    onChange={v =>
+                      setEditProductForm({
+                        ...editProductForm,
+                        cogsAccountId: v,
+                      })
+                    }
+                    accounts={accountsQuery.data}
+                  />
+                </div>
+                <div>
+                  <Label className="text-[10px]">حساب المخزون</Label>
+                  <AcctSelect
+                    value={editProductForm.inventoryAccountId}
+                    onChange={v =>
+                      setEditProductForm({
+                        ...editProductForm,
+                        inventoryAccountId: v,
+                      })
+                    }
+                    accounts={accountsQuery.data}
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -3165,7 +3600,8 @@ export default function Commercial() {
                   productType: editProductForm.productType,
                   unitOfMeasure: editProductForm.unitOfMeasure || undefined,
                   secondaryUnit: editProductForm.secondaryUnit || undefined,
-                  conversionFactor: Number(editProductForm.conversionFactor) || 1,
+                  conversionFactor:
+                    Number(editProductForm.conversionFactor) || 1,
                   isComposite: editProductForm.isComposite,
                   bom: editProductForm.bom,
                   alternativeIds: editProductForm.alternativeIds,
@@ -3173,12 +3609,14 @@ export default function Commercial() {
                   costMethod: editProductForm.costMethod,
                   directCost: Number(editProductForm.directCost) || 0,
                   indirectCost: Number(editProductForm.indirectCost) || 0,
-                  productionMinutes: Number(editProductForm.productionMinutes) || 0,
+                  productionMinutes:
+                    Number(editProductForm.productionMinutes) || 0,
                   priceMode: editProductForm.priceMode,
                   marginPct: Number(editProductForm.marginPct) || 0,
                   salesAccountId: editProductForm.salesAccountId || undefined,
                   cogsAccountId: editProductForm.cogsAccountId || undefined,
-                  inventoryAccountId: editProductForm.inventoryAccountId || undefined,
+                  inventoryAccountId:
+                    editProductForm.inventoryAccountId || undefined,
                 } as any)
               }
               disabled={updateProduct.isPending}
@@ -3535,7 +3973,9 @@ function AcctSelect({
     <select
       className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
       value={value ?? ""}
-      onChange={e => onChange(e.target.value ? Number(e.target.value) : undefined)}
+      onChange={e =>
+        onChange(e.target.value ? Number(e.target.value) : undefined)
+      }
     >
       <option value="">افتراضي</option>
       {(accounts || []).map(a => (

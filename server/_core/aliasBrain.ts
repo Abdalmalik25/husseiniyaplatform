@@ -23,40 +23,41 @@ import type { AliasIntent } from "../../shared/aliasAi";
 
 // ─── 1. Intent classification ───────────────────────────────────────────────
 
-const INTENT_KEYWORDS: ReadonlyArray<{ intent: AliasIntent; words: RegExp[] }> = [
-  {
-    intent: "greeting",
-    words: [/^(السلام|مرحب|اهلا|أهلا|هلا|هاي|hi|hello|سلام)/i],
-  },
-  {
-    intent: "finance",
-    words: [
-      /ربح|خسار|إيراد|ايراد|مصروف|مصروفات|رصيد|نقد|سيول|قيد|يومية|ميزان|ميزاني|مالي|مالية|ضريب|زكاة|إقفال|اقفال|profit|revenue|expense|cash|balance|journal/i,
-    ],
-  },
-  {
-    intent: "sales",
-    words: [
-      /فاتور|بيع|مبيع|عميل|ذمم|تحصيل|خصم|عرض سعر|invoice|sale|customer|receivable/i,
-    ],
-  },
-  {
-    intent: "inventory",
-    words: [
-      /مخزون|مستودع|مخزن|صنف|أصناف|اصناف|كمية|جرد|دفعة|صلاحية|تحويل|stock|warehouse|inventory|batch/i,
-    ],
-  },
-  {
-    intent: "partners",
-    words: [/مورد|موردين|شراء|مشتريات|أمر شراء|supplier|vendor|purchase/i],
-  },
-  {
-    intent: "platform",
-    words: [
-      /كيف.*في النظام|كيف أستخدم|كيف استخدم|خطوات|شرح النظام|المنصة|الباقات|اشتراك|صلاحيات|نسخ احتياط|settings|subscription|how (do|to) (i )?use/i,
-    ],
-  },
-];
+const INTENT_KEYWORDS: ReadonlyArray<{ intent: AliasIntent; words: RegExp[] }> =
+  [
+    {
+      intent: "greeting",
+      words: [/^(السلام|مرحب|اهلا|أهلا|هلا|هاي|hi|hello|سلام)/i],
+    },
+    {
+      intent: "finance",
+      words: [
+        /ربح|خسار|إيراد|ايراد|مصروف|مصروفات|رصيد|نقد|سيول|قيد|يومية|ميزان|ميزاني|مالي|مالية|ضريب|زكاة|إقفال|اقفال|profit|revenue|expense|cash|balance|journal/i,
+      ],
+    },
+    {
+      intent: "sales",
+      words: [
+        /فاتور|بيع|مبيع|عميل|ذمم|تحصيل|خصم|عرض سعر|invoice|sale|customer|receivable/i,
+      ],
+    },
+    {
+      intent: "inventory",
+      words: [
+        /مخزون|مستودع|مخزن|صنف|أصناف|اصناف|كمية|جرد|دفعة|صلاحية|تحويل|stock|warehouse|inventory|batch/i,
+      ],
+    },
+    {
+      intent: "partners",
+      words: [/مورد|موردين|شراء|مشتريات|أمر شراء|supplier|vendor|purchase/i],
+    },
+    {
+      intent: "platform",
+      words: [
+        /كيف.*في النظام|كيف أستخدم|كيف استخدم|خطوات|شرح النظام|المنصة|الباقات|اشتراك|صلاحيات|نسخ احتياط|settings|subscription|how (do|to) (i )?use/i,
+      ],
+    },
+  ];
 
 export function classifyIntent(text: string): AliasIntent {
   for (const { intent, words } of INTENT_KEYWORDS) {
@@ -75,11 +76,7 @@ function monthStart(): Date {
   return new Date(d.getFullYear(), d.getMonth(), 1);
 }
 
-async function financeContext(
-   
-  db: any,
-  tenantId: number
-): Promise<string> {
+async function financeContext(db: any, tenantId: number): Promise<string> {
   const rows = await db
     .select({
       type: transactions.type,
@@ -95,8 +92,14 @@ async function financeContext(
     )
     .groupBy(transactions.type);
 
-  const debits = Number(rows.find((r: { type: string; total: string }) => r.type === "debit")?.total ?? 0);
-  const credits = Number(rows.find((r: { type: string; total: string }) => r.type === "credit")?.total ?? 0);
+  const debits = Number(
+    rows.find((r: { type: string; total: string }) => r.type === "debit")
+      ?.total ?? 0
+  );
+  const credits = Number(
+    rows.find((r: { type: string; total: string }) => r.type === "credit")
+      ?.total ?? 0
+  );
   const net = debits - credits;
 
   return [
@@ -107,11 +110,7 @@ async function financeContext(
   ].join("\n");
 }
 
-async function salesContext(
-   
-  db: any,
-  tenantId: number
-): Promise<string> {
+async function salesContext(db: any, tenantId: number): Promise<string> {
   const [agg] = await db
     .select({
       cnt: count(),
@@ -152,11 +151,7 @@ async function salesContext(
   ].join("\n");
 }
 
-async function inventoryContext(
-   
-  db: any,
-  tenantId: number
-): Promise<string> {
+async function inventoryContext(db: any, tenantId: number): Promise<string> {
   const [{ total }] = await db
     .select({ total: count() })
     .from(products)
@@ -187,14 +182,16 @@ async function inventoryContext(
   ].join("\n");
 }
 
-async function partnersContext(
-   
-  db: any,
-  tenantId: number
-): Promise<string> {
+async function partnersContext(db: any, tenantId: number): Promise<string> {
   const [[cust], [sup]] = await Promise.all([
-    db.select({ total: count() }).from(customers).where(eq(customers.tenantId, tenantId)),
-    db.select({ total: count() }).from(suppliers).where(eq(suppliers.tenantId, tenantId)),
+    db
+      .select({ total: count() })
+      .from(customers)
+      .where(eq(customers.tenantId, tenantId)),
+    db
+      .select({ total: count() })
+      .from(suppliers)
+      .where(eq(suppliers.tenantId, tenantId)),
   ]);
   return `[العملاء والموردون]\nعدد العملاء: ${cust?.total ?? 0}\nعدد الموردين: ${sup?.total ?? 0}`;
 }

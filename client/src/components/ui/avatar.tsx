@@ -18,7 +18,7 @@ function Avatar({
         "overflow-hidden rounded-full",
 
         // Consumer overrides
-        className,
+        className
       )}
       {...props}
     />
@@ -39,7 +39,7 @@ function AvatarImage({
         // Image rendering
         "aspect-square object-cover",
 
-        className,
+        className
       )}
       {...props}
     />
@@ -63,15 +63,11 @@ function AvatarFallback({
         // Typography
         "text-muted-foreground text-sm font-medium",
 
-        className,
+        className
       )}
       {...props}
     />
   );
 }
 
-export {
-  Avatar,
-  AvatarImage,
-  AvatarFallback,
-};
+export { Avatar, AvatarImage, AvatarFallback };

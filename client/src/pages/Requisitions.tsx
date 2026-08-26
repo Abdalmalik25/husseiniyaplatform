@@ -67,7 +67,7 @@ export default function Requisitions() {
   const [approvers, setApprovers] = useState<number[]>([]);
 
   const [approvalsFor, setApprovalsFor] = useState<number | null>(null);
-  const reqForApproval = (list as any[]).find((r) => r.id === approvalsFor) as
+  const reqForApproval = (list as any[]).find(r => r.id === approvalsFor) as
     | any
     | undefined;
   const { data: approvals } = trpc.erp.listProcurementApprovals.useQuery(
@@ -89,10 +89,10 @@ export default function Requisitions() {
     },
   });
   const approve = trpc.erp.approveProcurement.useMutation({
-      onSuccess: () => {
-        utils.erp.listProcurements.invalidate();
-        utils.erp.getProcurementKpis.invalidate();
-      },
+    onSuccess: () => {
+      utils.erp.listProcurements.invalidate();
+      utils.erp.getProcurementKpis.invalidate();
+    },
   });
   const receive = trpc.erp.receiveProcurement.useMutation({
     onSuccess: () => {
@@ -113,9 +113,12 @@ export default function Requisitions() {
               <ClipboardList className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">طلبات التوريد</h1>
+              <h1 className="text-xl font-bold text-slate-800">
+                طلبات التوريد
+              </h1>
               <p className="text-sm text-slate-500">
-                سير عمل الشراء الداخلي: طلب ← اعتماد ← استلام (يُرحَّل تلقائياً إلى الدفتر)
+                سير عمل الشراء الداخلي: طلب ← اعتماد ← استلام (يُرحَّل تلقائياً
+                إلى الدفتر)
               </p>
             </div>
           </div>
@@ -127,7 +130,11 @@ export default function Requisitions() {
             ["بانتظار الاعتماد", kpis?.pending ?? 0, "text-amber-700"],
             ["طلبات معتمدة", kpis?.approved ?? 0, "text-blue-700"],
             ["مستلمة", kpis?.received ?? 0, "text-emerald-700"],
-            ["القيمة المفتوحة", `${money(kpis?.openValue)} YER`, "text-brand-700"],
+            [
+              "القيمة المفتوحة",
+              `${money(kpis?.openValue)} YER`,
+              "text-brand-700",
+            ],
           ].map(([label, value, tone]) => (
             <Card key={String(label)} className="border-slate-200 shadow-sm">
               <CardContent className="p-4">
@@ -152,7 +159,7 @@ export default function Requisitions() {
                 <Input
                   className="text-[13px]"
                   value={itemName}
-                  onChange={(e) => setItemName(e.target.value)}
+                  onChange={e => setItemName(e.target.value)}
                   placeholder="مثال: أجهزة حاسوب"
                 />
               </div>
@@ -164,7 +171,7 @@ export default function Requisitions() {
                   <Input
                     className="text-[13px]"
                     value={quantity}
-                    onChange={(e) => setQuantity(e.target.value)}
+                    onChange={e => setQuantity(e.target.value)}
                   />
                 </div>
                 <div>
@@ -174,7 +181,7 @@ export default function Requisitions() {
                   <Input
                     className="text-[13px]"
                     value={unit}
-                    onChange={(e) => setUnit(e.target.value)}
+                    onChange={e => setUnit(e.target.value)}
                   />
                 </div>
               </div>
@@ -186,7 +193,7 @@ export default function Requisitions() {
                   <Input
                     className="text-[13px]"
                     value={estimatedCost}
-                    onChange={(e) => setEstimatedCost(e.target.value)}
+                    onChange={e => setEstimatedCost(e.target.value)}
                     placeholder="0.00"
                   />
                 </div>
@@ -197,7 +204,7 @@ export default function Requisitions() {
                   <Input
                     className="text-[13px]"
                     value={currency}
-                    onChange={(e) => setCurrency(e.target.value)}
+                    onChange={e => setCurrency(e.target.value)}
                   />
                 </div>
               </div>
@@ -209,7 +216,7 @@ export default function Requisitions() {
                   className="text-[13px]"
                   rows={3}
                   value={description}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={e => setDescription(e.target.value)}
                 />
               </div>
               {/* ─── Multi-step approvers (Module A) ─────────────────── */}
@@ -219,7 +226,9 @@ export default function Requisitions() {
                 </Label>
                 <div className="max-h-32 overflow-y-auto rounded-lg border border-slate-200 p-2 space-y-1">
                   {(users ?? []).length === 0 ? (
-                    <p className="text-[11px] text-slate-400">لا يوجد مستخدمون</p>
+                    <p className="text-[11px] text-slate-400">
+                      لا يوجد مستخدمون
+                    </p>
                   ) : (
                     (users ?? []).map((u: any) => (
                       <label
@@ -229,11 +238,11 @@ export default function Requisitions() {
                         <input
                           type="checkbox"
                           checked={approvers.includes(u.id)}
-                          onChange={(e) =>
+                          onChange={e =>
                             setApprovers(
                               e.target.checked
                                 ? [...approvers, u.id]
-                                : approvers.filter((id) => id !== u.id)
+                                : approvers.filter(id => id !== u.id)
                             )
                           }
                         />
@@ -247,7 +256,7 @@ export default function Requisitions() {
                     سيتم الاعتماد بالترتيب:{" "}
                     {approvers
                       .map(
-                        (id) =>
+                        id =>
                           (users ?? []).find((u: any) => u.id === id)?.name ||
                           `مستخدم ${id}`
                       )
@@ -295,13 +304,19 @@ export default function Requisitions() {
                 <TableBody>
                   {isPending ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-8 text-center text-slate-400">
+                      <TableCell
+                        colSpan={6}
+                        className="py-8 text-center text-slate-400"
+                      >
                         جاري التحميل...
                       </TableCell>
                     </TableRow>
                   ) : list.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="py-8 text-center text-slate-400">
+                      <TableCell
+                        colSpan={6}
+                        className="py-8 text-center text-slate-400"
+                      >
                         لا توجد طلبات توريد.
                       </TableCell>
                     </TableRow>
@@ -327,39 +342,48 @@ export default function Requisitions() {
                         </TableCell>
                         <TableCell>
                           <div className="flex flex-wrap gap-1.5">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="h-7 px-2 text-[11px]"
-                          onClick={() => setApprovalsFor(r.id)}
-                        >
-                          <History className="w-3 h-3 mr-1" /> الاعتمادات
-                        </Button>
-                        {(!r.approvers || (r.approvers as any[]).length === 0) &&
-                          r.status !== "approved" &&
-                          r.status !== "received" && (
-                            <>
-                              <Button
-                                size="sm"
-                                className="h-7 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700"
-                                onClick={() =>
-                                  approve.mutate({ id: r.id, decision: "approved", level: 1 })
-                                }
-                              >
-                                <Check className="w-3 h-3 mr-1" /> اعتماد
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="h-7 px-2 text-[11px] text-rose-600 border-rose-200"
-                                onClick={() =>
-                                  approve.mutate({ id: r.id, decision: "rejected", level: 1 })
-                                }
-                              >
-                                <X className="w-3 h-3 mr-1" /> رفض
-                              </Button>
-                            </>
-                          )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 px-2 text-[11px]"
+                              onClick={() => setApprovalsFor(r.id)}
+                            >
+                              <History className="w-3 h-3 mr-1" /> الاعتمادات
+                            </Button>
+                            {(!r.approvers ||
+                              (r.approvers as any[]).length === 0) &&
+                              r.status !== "approved" &&
+                              r.status !== "received" && (
+                                <>
+                                  <Button
+                                    size="sm"
+                                    className="h-7 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700"
+                                    onClick={() =>
+                                      approve.mutate({
+                                        id: r.id,
+                                        decision: "approved",
+                                        level: 1,
+                                      })
+                                    }
+                                  >
+                                    <Check className="w-3 h-3 mr-1" /> اعتماد
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 px-2 text-[11px] text-rose-600 border-rose-200"
+                                    onClick={() =>
+                                      approve.mutate({
+                                        id: r.id,
+                                        decision: "rejected",
+                                        level: 1,
+                                      })
+                                    }
+                                  >
+                                    <X className="w-3 h-3 mr-1" /> رفض
+                                  </Button>
+                                </>
+                              )}
                             {r.status === "approved" && (
                               <Button
                                 size="sm"
@@ -389,7 +413,10 @@ export default function Requisitions() {
       </main>
 
       {/* Approvals dialog */}
-      <Dialog open={approvalsFor !== null} onOpenChange={(o) => !o && setApprovalsFor(null)}>
+      <Dialog
+        open={approvalsFor !== null}
+        onOpenChange={o => !o && setApprovalsFor(null)}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-sm">سجل اعتمادات الطلب</DialogTitle>
@@ -399,43 +426,46 @@ export default function Requisitions() {
             (reqForApproval.approvers as any[]).length > 0 && (
               <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
                 <p className="text-[12px] font-bold text-slate-700">
-                  سير الاعتماد: الخطوة {(Number(reqForApproval.approvalStep) || 0) + 1} من{" "}
+                  سير الاعتماد: الخطوة{" "}
+                  {(Number(reqForApproval.approvalStep) || 0) + 1} من{" "}
                   {reqForApproval.approvers.length}
                 </p>
                 <ol className="space-y-1">
-                  {(reqForApproval.approvers as any[]).map((uid: number, i: number) => {
-                    const log = (reqForApproval.approvalLog as any[]) || [];
-                    const entry = log[i];
-                    const name =
-                      (users ?? []).find((u: any) => u.id === uid)?.name ||
-                      `مستخدم ${uid}`;
-                    const state = entry
-                      ? entry.action === "approved"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-rose-50 text-rose-700"
-                      : i === (Number(reqForApproval.approvalStep) || 0)
-                        ? "bg-amber-50 text-amber-700"
-                        : "bg-white text-slate-400";
-                    return (
-                      <li
-                        key={i}
-                        className={`flex items-center justify-between rounded-md border border-slate-200 px-2 py-1 text-[12px] ${state}`}
-                      >
-                        <span>
-                          {i + 1}. {name}
-                        </span>
-                        <span>
-                          {entry
-                            ? entry.action === "approved"
-                              ? "معتمد"
-                              : "مرفوض"
-                            : i === (Number(reqForApproval.approvalStep) || 0)
-                              ? "بانتظار الاعتماد"
-                              : "لم يُبدأ"}
-                        </span>
-                      </li>
-                    );
-                  })}
+                  {(reqForApproval.approvers as any[]).map(
+                    (uid: number, i: number) => {
+                      const log = (reqForApproval.approvalLog as any[]) || [];
+                      const entry = log[i];
+                      const name =
+                        (users ?? []).find((u: any) => u.id === uid)?.name ||
+                        `مستخدم ${uid}`;
+                      const state = entry
+                        ? entry.action === "approved"
+                          ? "bg-emerald-50 text-emerald-700"
+                          : "bg-rose-50 text-rose-700"
+                        : i === (Number(reqForApproval.approvalStep) || 0)
+                          ? "bg-amber-50 text-amber-700"
+                          : "bg-white text-slate-400";
+                      return (
+                        <li
+                          key={i}
+                          className={`flex items-center justify-between rounded-md border border-slate-200 px-2 py-1 text-[12px] ${state}`}
+                        >
+                          <span>
+                            {i + 1}. {name}
+                          </span>
+                          <span>
+                            {entry
+                              ? entry.action === "approved"
+                                ? "معتمد"
+                                : "مرفوض"
+                              : i === (Number(reqForApproval.approvalStep) || 0)
+                                ? "بانتظار الاعتماد"
+                                : "لم يُبدأ"}
+                          </span>
+                        </li>
+                      );
+                    }
+                  )}
                 </ol>
               </div>
             )}
@@ -472,14 +502,14 @@ export default function Requisitions() {
                 req={reqForApproval}
                 users={users ?? []}
                 meId={me?.id}
-                onApprove={(note) =>
+                onApprove={note =>
                   approve.mutate({
                     id: reqForApproval.id,
                     decision: "approved",
                     note: note || undefined,
                   })
                 }
-                onReject={(note) =>
+                onReject={note =>
                   approve.mutate({
                     id: reqForApproval.id,
                     decision: "rejected",
@@ -493,10 +523,15 @@ export default function Requisitions() {
       </Dialog>
 
       {/* Receive dialog */}
-      <Dialog open={receiveFor !== null} onOpenChange={(o) => !o && setReceiveFor(null)}>
+      <Dialog
+        open={receiveFor !== null}
+        onOpenChange={o => !o && setReceiveFor(null)}
+      >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-sm">استلام التوريد وترحيل القيد</DialogTitle>
+            <DialogTitle className="text-sm">
+              استلام التوريد وترحيل القيد
+            </DialogTitle>
           </DialogHeader>
           <div>
             <Label className="mb-1 block text-[11px] font-bold text-slate-500">
@@ -505,7 +540,7 @@ export default function Requisitions() {
             <Input
               className="text-[13px]"
               value={actualCost}
-              onChange={(e) => setActualCost(e.target.value)}
+              onChange={e => setActualCost(e.target.value)}
               placeholder="اتركه فارغاً لاستخدام التكلفة التقديرية"
             />
           </div>
@@ -513,9 +548,16 @@ export default function Requisitions() {
             <Button
               className="bg-brand text-ink hover:bg-brand-600"
               disabled={receive.isPending}
-              onClick={() => receive.mutate({ id: receiveFor!, actualCost: actualCost || undefined })}
+              onClick={() =>
+                receive.mutate({
+                  id: receiveFor!,
+                  actualCost: actualCost || undefined,
+                })
+              }
             >
-              {receive.isPending ? "جاري الترحيل..." : "تأكيد الاستلام والترحيل"}
+              {receive.isPending
+                ? "جاري الترحيل..."
+                : "تأكيد الاستلام والترحيل"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -560,7 +602,7 @@ function ApprovalAction({
         className="text-[12px]"
         placeholder="ملاحظة الاعتماد (اختياري)"
         value={note}
-        onChange={(e) => setNote(e.target.value)}
+        onChange={e => setNote(e.target.value)}
       />
       <div className="flex gap-2">
         <Button

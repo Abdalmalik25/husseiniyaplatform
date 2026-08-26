@@ -55,7 +55,12 @@ import {
 } from "lucide-react";
 import { goLogin } from "@/const";
 import { SiteFooter } from "@/components/SiteFooter";
-import { brand, whatsappLink, uamexDemoLink, engineeringConsultLink } from "@/lib/brand";
+import {
+  brand,
+  whatsappLink,
+  uamexDemoLink,
+  engineeringConsultLink,
+} from "@/lib/brand";
 import { methodology, standardsGlossary } from "@/lib/methodology";
 import { HeroBackground } from "@/components/ModernBackground";
 import { HeroAurora } from "@/components/HeroAurora";
@@ -66,19 +71,37 @@ const CASE_STUDIES = [
   {
     sector: "شركة مقاولات وبناء",
     icon: HardHat,
-    challenge: "فواتير ومستخلصات تُعدّ يدويًا على Excel، وتحصيل متأخر يخنق السيولة.",
+    challenge:
+      "فواتير ومستخلصات تُعدّ يدويًا على Excel، وتحصيل متأخر يخنق السيولة.",
     results: [
-      { metric: "زمن إعداد الفاتورة والمستخلص", before: "٣ أيام عمل", after: "٢٥ دقيقة" },
-      { metric: "متوسط تأخّر تحصيل المستحقات", before: "٤٥ يومًا", after: "١٢ يومًا" },
-      { metric: "أخطاء جداول الكميات", before: "متكررة يدويًا", after: "٠ — مراجعة آلية" },
+      {
+        metric: "زمن إعداد الفاتورة والمستخلص",
+        before: "٣ أيام عمل",
+        after: "٢٥ دقيقة",
+      },
+      {
+        metric: "متوسط تأخّر تحصيل المستحقات",
+        before: "٤٥ يومًا",
+        after: "١٢ يومًا",
+      },
+      {
+        metric: "أخطاء جداول الكميات",
+        before: "متكررة يدويًا",
+        after: "٠ — مراجعة آلية",
+      },
     ],
   },
   {
     sector: "مؤسسة تجارة وتوريد",
     icon: Package,
-    challenge: "جرد شهري يوقف البيع يومًا كاملًا، وأرباح «تقديرية» لا تكشف ربحية الصنف.",
+    challenge:
+      "جرد شهري يوقف البيع يومًا كاملًا، وأرباح «تقديرية» لا تكشف ربحية الصنف.",
     results: [
-      { metric: "معرفة المخزون الحالي", before: "جرد يوم كامل", after: "لحظي مستمر" },
+      {
+        metric: "معرفة المخزون الحالي",
+        before: "جرد يوم كامل",
+        after: "لحظي مستمر",
+      },
       { metric: "ربحية كل صنف", before: "تقدير إجمالي", after: "دقيقة للقطعة" },
       { metric: "قرارات الشراء", before: "بالحدس", after: "بيانات طلب ذكية" },
     ],
@@ -86,9 +109,14 @@ const CASE_STUDIES = [
   {
     sector: "مكتبة وخدمات طلابية",
     icon: GraduationCap,
-    challenge: "طلبات تضيع بين واتساب والدفتر، والعميل يسأل: «وين وصلت طلبيتي؟».",
+    challenge:
+      "طلبات تضيع بين واتساب والدفتر، والعميل يسأل: «وين وصلت طلبيتي؟».",
     results: [
-      { metric: "طلبات ضائعة شهريًا", before: "نحو ١٠٪", after: "٠ — تتبع بكود" },
+      {
+        metric: "طلبات ضائعة شهريًا",
+        before: "نحو ١٠٪",
+        after: "٠ — تتبع بكود",
+      },
       { metric: "شفافية زمن التسليم", before: "غير معروف", after: "مؤشر يومي" },
       { metric: "عودة العميل", before: "عشوائي", after: "متابعة ونظام ولاء" },
     ],
@@ -97,12 +125,36 @@ const CASE_STUDIES = [
 
 /** بنية الثقة المؤسسية — كل بند قابل للتحقق في معمارية المنصة فعليًا. */
 const ENTERPRISE_ASSURANCES = [
-  { icon: Lock, label: "تشفير AES-256-GCM", detail: "النسخ الاحتياطية مشفّرة بمفتاح يُحفظ خارج قاعدة البيانات تمامًا" },
-  { icon: Database, label: "عزل صارم للمستأجرين", detail: "بيانات كل مؤسسة معزولة على مستوى استعلامات الخادم ذاتها" },
-  { icon: RefreshCw, label: "نسخ ليلي تلقائي", detail: "نسخة مشفّرة يوميًا وفحص سلامة SHA-256 قبل أي استعادة" },
-  { icon: ShieldCheck, label: "جلسات محصّنة", detail: "JWT داخل كوكيز httpOnly مع حدّ معدل ضد هجمات التخمين" },
-  { icon: Globe, label: "عمل دون إنترنت", detail: "وضع أوفلاين كامل مع مزامنة تلقائية آمنة عند عودة الاتصال" },
-  { icon: Cpu, label: "مراقبة أداء حقيقية", detail: "قياس مؤشرات Web Vitals من متصفحات مستخدمي المنصة الفعليين" },
+  {
+    icon: Lock,
+    label: "تشفير AES-256-GCM",
+    detail: "النسخ الاحتياطية مشفّرة بمفتاح يُحفظ خارج قاعدة البيانات تمامًا",
+  },
+  {
+    icon: Database,
+    label: "عزل صارم للمستأجرين",
+    detail: "بيانات كل مؤسسة معزولة على مستوى استعلامات الخادم ذاتها",
+  },
+  {
+    icon: RefreshCw,
+    label: "نسخ ليلي تلقائي",
+    detail: "نسخة مشفّرة يوميًا وفحص سلامة SHA-256 قبل أي استعادة",
+  },
+  {
+    icon: ShieldCheck,
+    label: "جلسات محصّنة",
+    detail: "JWT داخل كوكيز httpOnly مع حدّ معدل ضد هجمات التخمين",
+  },
+  {
+    icon: Globe,
+    label: "عمل دون إنترنت",
+    detail: "وضع أوفلاين كامل مع مزامنة تلقائية آمنة عند عودة الاتصال",
+  },
+  {
+    icon: Cpu,
+    label: "مراقبة أداء حقيقية",
+    detail: "قياس مؤشرات Web Vitals من متصفحات مستخدمي المنصة الفعليين",
+  },
 ];
 
 // ── Typewriter Hook ──────────────────────────────────────────────
@@ -227,12 +279,12 @@ export default function Landing() {
 
           {/* الرسالة الداعمة — نتائج لا قوائم خدمات */}
           <p className="max-w-3xl mx-auto text-base sm:text-xl text-white/65 leading-relaxed font-light text-pretty">
-            قرارات مالية مبنية على أرقامٍ لا تقديرات، مشاريع تُسلَّم في موعدها وداخل ميزانيتها،
-            وعمليات تُدار من جيبك بأمان —{" "}
-            <strong className="text-brand-300 font-bold">شريك واحد</strong> يتكفّل بالتعقيد كي
-            تتفرّغ أنت للنمو، مع نظام{" "}
-            <strong className="text-brand-300 font-bold">Uamex_erp</strong> الذي يوحّد كل ذلك في
-            مكان واحد.
+            قرارات مالية مبنية على أرقامٍ لا تقديرات، مشاريع تُسلَّم في موعدها
+            وداخل ميزانيتها، وعمليات تُدار من جيبك بأمان —{" "}
+            <strong className="text-brand-300 font-bold">شريك واحد</strong>{" "}
+            يتكفّل بالتعقيد كي تتفرّغ أنت للنمو، مع نظام{" "}
+            <strong className="text-brand-300 font-bold">Uamex_erp</strong> الذي
+            يوحّد كل ذلك في مكان واحد.
           </p>
 
           {/* الـ CTAs */}
@@ -254,7 +306,9 @@ export default function Landing() {
               تحدث إلى خبير الآن
             </a>
             <button
-              onClick={() => window.dispatchEvent(new CustomEvent("alias:open"))}
+              onClick={() =>
+                window.dispatchEvent(new CustomEvent("alias:open"))
+              }
               className="inline-flex items-center gap-2 border border-[#d4a574]/40 bg-[#d4a574]/10 hover:bg-[#d4a574]/20 text-[#e8c9a0] text-sm h-12 px-6 rounded-2xl font-bold transition-all hover:scale-105"
             >
               <img
@@ -293,7 +347,9 @@ export default function Landing() {
                 <div className="text-2xl font-black text-brand-300 font-mono">
                   <AnimatedCounter value={stat.value} />
                 </div>
-                <div className="text-[11px] text-white/60 mt-1 leading-tight">{stat.label}</div>
+                <div className="text-[11px] text-white/60 mt-1 leading-tight">
+                  {stat.label}
+                </div>
               </div>
             ))}
           </div>
@@ -336,7 +392,8 @@ export default function Landing() {
           {(() => {
             const HOURLY_COST = 3000; // متوسط تكلفة ساعة العمل الإداري (ريال)
             const monthly =
-              Math.round((teamSize * hoursLost * HOURLY_COST * 4.33) / 1000) * 1000;
+              Math.round((teamSize * hoursLost * HOURLY_COST * 4.33) / 1000) *
+              1000;
             const fmt = (n: number) => n.toLocaleString("en-US");
             return (
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 items-stretch">
@@ -344,64 +401,105 @@ export default function Landing() {
                 <div className="lg:col-span-3 surface rounded-3xl p-8 space-y-8">
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <label htmlFor="roi-team" className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <label
+                        htmlFor="roi-team"
+                        className="text-sm font-bold text-foreground flex items-center gap-2"
+                      >
                         <Users className="w-4 h-4 text-[#b87945]" />
                         حجم الفريق الإداري
                       </label>
-                      <span className="font-mono font-black text-brand text-lg">{teamSize} فرد</span>
+                      <span className="font-mono font-black text-brand text-lg">
+                        {teamSize} فرد
+                      </span>
                     </div>
-                    <input id="roi-team" type="range" min={1} max={50} value={teamSize}
+                    <input
+                      id="roi-team"
+                      type="range"
+                      min={1}
+                      max={50}
+                      value={teamSize}
                       onChange={e => setTeamSize(Number(e.target.value))}
                       aria-valuetext={`${teamSize} فرد`}
-                      className="w-full accent-[#b87945]" />
-                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1"><span>١</span><span>٥٠</span></div>
+                      className="w-full accent-[#b87945]"
+                    />
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                      <span>١</span>
+                      <span>٥٠</span>
+                    </div>
                   </div>
 
                   <div>
                     <div className="flex items-center justify-between mb-3">
-                      <label htmlFor="roi-hours" className="text-sm font-bold text-foreground flex items-center gap-2">
+                      <label
+                        htmlFor="roi-hours"
+                        className="text-sm font-bold text-foreground flex items-center gap-2"
+                      >
                         <Calculator className="w-4 h-4 text-[#b87945]" />
                         ساعات مهدرة أسبوعيًا للفرد في المتابعة اليدوية
                       </label>
-                      <span className="font-mono font-black text-brand text-lg">{hoursLost} ساعة</span>
+                      <span className="font-mono font-black text-brand text-lg">
+                        {hoursLost} ساعة
+                      </span>
                     </div>
-                    <input id="roi-hours" type="range" min={1} max={20} value={hoursLost}
+                    <input
+                      id="roi-hours"
+                      type="range"
+                      min={1}
+                      max={20}
+                      value={hoursLost}
                       onChange={e => setHoursLost(Number(e.target.value))}
                       aria-valuetext={`${hoursLost} ساعة`}
-                      className="w-full accent-[#b87945]" />
-                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1"><span>١</span><span>٢٠</span></div>
+                      className="w-full accent-[#b87945]"
+                    />
+                    <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
+                      <span>١</span>
+                      <span>٢٠</span>
+                    </div>
                   </div>
 
                   <p className="text-[11px] text-muted-foreground leading-relaxed border-t border-border/60 pt-4">
-                    التقدير مبني على متوسط تكلفة الساعة الإدارية (٣٬٠٠٠ ريال) وساعات تُصرف فعليًا
-                    في نسخ البيانات والبحث عن الفواتير القديمة وتصحيح أخطاء الإدخال اليدوي.
-                    للحصول على دراسة دقة مفصّلة لمؤسستك، اطلب استشارتك المجانية.
+                    التقدير مبني على متوسط تكلفة الساعة الإدارية (٣٬٠٠٠ ريال)
+                    وساعات تُصرف فعليًا في نسخ البيانات والبحث عن الفواتير
+                    القديمة وتصحيح أخطاء الإدخال اليدوي. للحصول على دراسة دقة
+                    مفصّلة لمؤسستك، اطلب استشارتك المجانية.
                   </p>
                 </div>
                 {/* النتيجة الكمّية + CTA */}
                 <div className="lg:col-span-2 bg-gradient-to-br from-[#102a2b] to-[#1a3d3f] rounded-3xl p-8 text-white flex flex-col justify-between relative overflow-hidden">
                   <TrendingUp className="absolute -bottom-4 -left-4 w-28 h-28 text-white/[0.04] rotate-12" />
                   <div className="relative">
-                    <p className="text-white/55 text-xs font-bold mb-2">متوسط خسارتك الشهرية</p>
+                    <p className="text-white/55 text-xs font-bold mb-2">
+                      متوسط خسارتك الشهرية
+                    </p>
                     <p className="font-mono font-black text-4xl sm:text-5xl text-brand-300 tabular-nums">
                       {fmt(monthly)}
                       <span className="text-base mr-2 text-white/50">ريال</span>
                     </p>
                     <p className="text-white/65 text-sm leading-relaxed mt-4">
                       أي ما يعادل{" "}
-                      <span className="font-black text-white tabular-nums">{fmt(monthly * 12)}</span>{" "}
-                      ريال سنويًا تتبخّر في أعمال ورقية يمكن أتمتتها بالكامل خلال أسبوع واحد.
+                      <span className="font-black text-white tabular-nums">
+                        {fmt(monthly * 12)}
+                      </span>{" "}
+                      ريال سنويًا تتبخّر في أعمال ورقية يمكن أتمتتها بالكامل
+                      خلال أسبوع واحد.
                     </p>
                   </div>
                   <div className="relative mt-6 space-y-2.5">
-                    <button onClick={() => goLogin()}
-                      className="w-full bg-brand hover:bg-brand-deep text-ink font-black py-3 rounded-xl text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg shadow-brand/30">
+                    <button
+                      onClick={() => goLogin()}
+                      className="w-full bg-brand hover:bg-brand-deep text-ink font-black py-3 rounded-xl text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg shadow-brand/30"
+                    >
                       <Zap className="w-4 h-4 fill-current" />
                       استعد هذه الساعات — ابدأ مجاناً
                     </button>
-                    <a href={whatsappLink("السلام عليكم، حسبت خسائر الإدارة اليدوية على موقعكم وأود مناقشة الأرقام مع خبير.")}
-                      target="_blank" rel="noopener noreferrer"
-                      className="w-full flex items-center justify-center gap-2 border border-white/20 hover:bg-white/10 text-white font-medium py-3 rounded-xl text-xs transition-all">
+                    <a
+                      href={whatsappLink(
+                        "السلام عليكم، حسبت خسائر الإدارة اليدوية على موقعكم وأود مناقشة الأرقام مع خبير."
+                      )}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full flex items-center justify-center gap-2 border border-white/20 hover:bg-white/10 text-white font-medium py-3 rounded-xl text-xs transition-all"
+                    >
                       <MessageSquare className="w-4 h-4 text-brand-300" />
                       ناقش هذه الأرقام مع خبير
                     </a>
@@ -435,7 +533,10 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             {brand.divisions.corporate.problems.map((item, i) => {
               const icons: Record<string, React.ComponentType<any>> = {
-                TrendingUp, ShieldCheck, Calculator, Building2,
+                TrendingUp,
+                ShieldCheck,
+                Calculator,
+                Building2,
               };
               const Icon = icons[item.icon] || TrendingUp;
               return (
@@ -453,7 +554,9 @@ export default function Landing() {
                         <span className="text-brand mt-0.5">⟵</span>
                         {item.q}
                       </p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">{item.a}</p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {item.a}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -480,7 +583,9 @@ export default function Landing() {
             </div>
             <div className="mt-8 flex flex-wrap gap-3">
               <a
-                href={whatsappLink("السلام عليكم، أود طلب استشارة مؤسسية وإدارية.")}
+                href={whatsappLink(
+                  "السلام عليكم، أود طلب استشارة مؤسسية وإدارية."
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
@@ -536,7 +641,10 @@ export default function Landing() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
             {brand.divisions.engineering.problems.map((item, i) => {
               const icons: Record<string, React.ComponentType<any>> = {
-                Calculator, Map, Ruler, HardHat,
+                Calculator,
+                Map,
+                Ruler,
+                HardHat,
               };
               const Icon = icons[item.icon] || Calculator;
               return (
@@ -555,7 +663,9 @@ export default function Landing() {
                         {item.q}
                       </p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
-                        <span className="text-emerald-600 font-bold">الجواب: </span>
+                        <span className="text-emerald-600 font-bold">
+                          الجواب:{" "}
+                        </span>
                         {item.a}
                       </p>
                     </div>
@@ -593,12 +703,15 @@ export default function Landing() {
                   احسب تكلفة مشروعك قبل البدء
                 </h3>
                 <p className="text-[13px] opacity-80 leading-relaxed">
-                  نُعدّ لك جدول الكميات الكامل — حديد، خرسانة، بلوك — بأسعار السوق الحالية.
+                  نُعدّ لك جدول الكميات الكامل — حديد، خرسانة، بلوك — بأسعار
+                  السوق الحالية.
                 </p>
               </div>
               <div className="mt-6 space-y-2.5">
                 <a
-                  href={engineeringConsultLink("تقييم وجدول كميات BOQ لمشروع بناء")}
+                  href={engineeringConsultLink(
+                    "تقييم وجدول كميات BOQ لمشروع بناء"
+                  )}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 bg-ink/90 hover:bg-ink text-white font-bold py-3 rounded-xl text-sm transition-all"
@@ -652,7 +765,10 @@ export default function Landing() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
             {brand.divisions.library.problems.map((item, i) => {
               const icons: Record<string, React.ComponentType<any>> = {
-                BookOpen, BarChart3, Sparkles, Wrench,
+                BookOpen,
+                BarChart3,
+                Sparkles,
+                Wrench,
               };
               const Icon = icons[item.icon] || BookOpen;
               return (
@@ -664,8 +780,12 @@ export default function Landing() {
                   <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-500/20 transition-colors">
                     <Icon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
                   </div>
-                  <p className="font-bold text-foreground text-xs mb-3 leading-snug">{item.q}</p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">{item.a}</p>
+                  <p className="font-bold text-foreground text-xs mb-3 leading-snug">
+                    {item.q}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {item.a}
+                  </p>
                 </div>
               );
             })}
@@ -694,15 +814,16 @@ export default function Landing() {
             <div className="lg:col-span-2 bg-gradient-to-br from-sky-800 to-blue-950 rounded-3xl p-8 text-white flex flex-col justify-between">
               <div>
                 <GraduationCap className="w-10 h-10 mb-4 text-sky-300" />
-                <h3 className="font-black text-xl mb-3">
-                  احجز خدمتك الآن
-                </h3>
+                <h3 className="font-black text-xl mb-3">احجز خدمتك الآن</h3>
                 <p className="text-sm text-white/70 leading-relaxed">
-                  نُنجز طلبك في الوقت المحدد. طباعة، تحليل، تصميم، صيانة — بجودة وأمانة.
+                  نُنجز طلبك في الوقت المحدد. طباعة، تحليل، تصميم، صيانة — بجودة
+                  وأمانة.
                 </p>
               </div>
               <a
-                href={whatsappLink("السلام عليكم، أود الاستفسار عن الخدمات الطلابية والمكتبية.")}
+                href={whatsappLink(
+                  "السلام عليكم، أود الاستفسار عن الخدمات الطلابية والمكتبية."
+                )}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mt-6 flex items-center justify-center gap-2 bg-sky-400 hover:bg-sky-300 text-sky-900 font-black py-3 rounded-xl text-sm transition-all"
@@ -731,9 +852,15 @@ export default function Landing() {
             </div>
             <div className="flex items-center justify-center gap-4">
               <div className="relative">
-                <img src="/uamex-erp.png" alt="شعار نظام Uamex_erp" width={72} height={72}
+                <img
+                  src="/uamex-erp.png"
+                  alt="شعار نظام Uamex_erp"
+                  width={72}
+                  height={72}
                   className="rounded-2xl shadow-2xl shadow-brand/40 ring-1 ring-brand/30"
-                  loading="lazy" decoding="async" />
+                  loading="lazy"
+                  decoding="async"
+                />
                 <span className="absolute -inset-1 rounded-2xl bg-brand/20 blur-md -z-10" />
               </div>
               <div className="text-right">
@@ -764,12 +891,16 @@ export default function Landing() {
                   key={i}
                   className="flex items-start gap-3 bg-white/5 border border-white/10 rounded-2xl px-5 py-4"
                 >
-                  <span className="text-brand font-black text-lg leading-none mt-0.5">✗</span>
+                  <span className="text-brand font-black text-lg leading-none mt-0.5">
+                    ✗
+                  </span>
                   <p className="text-white/75 text-sm leading-relaxed">{p}</p>
                 </div>
               ))}
               <div className="flex items-start gap-3 bg-brand/10 border border-brand/30 rounded-2xl px-5 py-4 sm:col-span-2 lg:col-span-1">
-                <span className="text-emerald-400 font-black text-lg leading-none mt-0.5">✓</span>
+                <span className="text-emerald-400 font-black text-lg leading-none mt-0.5">
+                  ✓
+                </span>
                 <p className="text-white/90 text-sm leading-relaxed font-medium">
                   Uamex_erp يحل كل ما سبق في منصة واحدة آمنة
                 </p>
@@ -787,7 +918,11 @@ export default function Landing() {
             <div className="flex flex-wrap gap-2 justify-center mb-8">
               {UAMEX_MODULES.map((mod, i) => {
                 const icons: Record<string, React.ComponentType<any>> = {
-                  BarChart3, ShoppingCart: Package, Package, Users, FolderKanban,
+                  BarChart3,
+                  ShoppingCart: Package,
+                  Package,
+                  Users,
+                  FolderKanban,
                 };
                 const Icon = icons[mod.icon] || BarChart3;
                 return (
@@ -800,9 +935,7 @@ export default function Landing() {
                         : "bg-white/5 text-white/60 border-white/10 hover:bg-white/10 hover:text-white"
                     }`}
                     style={
-                      i === activeUamexModule
-                        ? { background: mod.accent }
-                        : {}
+                      i === activeUamexModule ? { background: mod.accent } : {}
                     }
                   >
                     <Icon className="w-4 h-4" />
@@ -813,62 +946,69 @@ export default function Landing() {
             </div>
 
             {/* Active module detail */}
-            {UAMEX_MODULES[activeUamexModule] && (() => {
-              const mod = UAMEX_MODULES[activeUamexModule];
-              const icons: Record<string, React.ComponentType<any>> = {
-                BarChart3, ShoppingCart: Package, Package, Users, FolderKanban,
-              };
-              const Icon = icons[mod.icon] || BarChart3;
-              return (
-                <div
-                  key={mod.key}
-                  className="rounded-3xl border border-white/10 overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-500"
-                  style={{ background: `linear-gradient(135deg, ${mod.accent}18, ${mod.accent}05)` }}
-                >
-                  <div className="p-8 sm:p-12 flex flex-col sm:flex-row items-start gap-8">
-                    <div
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-xl"
-                      style={{ background: mod.accent }}
-                    >
-                      <Icon className="w-8 h-8 text-white" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p
-                        className="text-xs font-bold uppercase tracking-widest mb-2"
-                        style={{ color: mod.accent }}
+            {UAMEX_MODULES[activeUamexModule] &&
+              (() => {
+                const mod = UAMEX_MODULES[activeUamexModule];
+                const icons: Record<string, React.ComponentType<any>> = {
+                  BarChart3,
+                  ShoppingCart: Package,
+                  Package,
+                  Users,
+                  FolderKanban,
+                };
+                const Icon = icons[mod.icon] || BarChart3;
+                return (
+                  <div
+                    key={mod.key}
+                    className="rounded-3xl border border-white/10 overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-500"
+                    style={{
+                      background: `linear-gradient(135deg, ${mod.accent}18, ${mod.accent}05)`,
+                    }}
+                  >
+                    <div className="p-8 sm:p-12 flex flex-col sm:flex-row items-start gap-8">
+                      <div
+                        className="w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-xl"
+                        style={{ background: mod.accent }}
                       >
-                        وحدة {mod.name}
-                      </p>
-                      <h4 className="text-white font-black text-xl sm:text-2xl mb-3 leading-tight">
-                        {mod.tagline}
-                      </h4>
-                      <p className="text-white/60 text-sm leading-relaxed mb-6">
-                        {mod.description}
-                      </p>
-                      <div className="flex flex-wrap gap-3">
-                        <button
-                          onClick={() => goLogin()}
-                          className="inline-flex items-center gap-2 text-ink font-black px-5 py-2.5 rounded-xl text-sm transition-all hover:scale-105"
-                          style={{ background: mod.accent }}
+                        <Icon className="w-8 h-8 text-white" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-xs font-bold uppercase tracking-widest mb-2"
+                          style={{ color: mod.accent }}
                         >
-                          <Zap className="w-4 h-4" />
-                          جرّب الوحدة مجاناً
-                        </button>
-                        <a
-                          href={uamexDemoLink()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-all"
-                        >
-                          <MessageSquare className="w-4 h-4" />
-                          اطلب عرضاً تجريبياً
-                        </a>
+                          وحدة {mod.name}
+                        </p>
+                        <h4 className="text-white font-black text-xl sm:text-2xl mb-3 leading-tight">
+                          {mod.tagline}
+                        </h4>
+                        <p className="text-white/60 text-sm leading-relaxed mb-6">
+                          {mod.description}
+                        </p>
+                        <div className="flex flex-wrap gap-3">
+                          <button
+                            onClick={() => goLogin()}
+                            className="inline-flex items-center gap-2 text-ink font-black px-5 py-2.5 rounded-xl text-sm transition-all hover:scale-105"
+                            style={{ background: mod.accent }}
+                          >
+                            <Zap className="w-4 h-4" />
+                            جرّب الوحدة مجاناً
+                          </button>
+                          <a
+                            href={uamexDemoLink()}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white font-medium px-5 py-2.5 rounded-xl text-sm transition-all"
+                          >
+                            <MessageSquare className="w-4 h-4" />
+                            اطلب عرضاً تجريبياً
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              );
-            })()}
+                );
+              })()}
           </div>
 
           {/* Uamex_erp CTA */}
@@ -946,8 +1086,12 @@ export default function Landing() {
                     {t.author.charAt(0)}
                   </div>
                   <div>
-                    <p className="text-xs font-bold text-foreground">{t.author}</p>
-                    <p className="text-[11px] text-muted-foreground">{t.role}</p>
+                    <p className="text-xs font-bold text-foreground">
+                      {t.author}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {t.role}
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -1003,7 +1147,8 @@ export default function Landing() {
               تحوّلات حقيقية تُقاس بالأرقام لا بالصفات
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              ثلاث قطاعات وثلاث بدايات مختلفة — ومنهجية واحدة: تشخيص دقيق، تدخّل هندسي، ثم قياس الأثر بالأرقام.
+              ثلاث قطاعات وثلاث بدايات مختلفة — ومنهجية واحدة: تشخيص دقيق، تدخّل
+              هندسي، ثم قياس الأثر بالأرقام.
             </p>
           </div>
 
@@ -1011,12 +1156,17 @@ export default function Landing() {
             {CASE_STUDIES.map(cs => {
               const Icon = cs.icon;
               return (
-                <div key={cs.sector} className="reveal surface rounded-3xl p-7 flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300">
+                <div
+                  key={cs.sector}
+                  className="reveal surface rounded-3xl p-7 flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
+                >
                   <div className="flex items-center gap-3 mb-4">
                     <span className="w-11 h-11 rounded-2xl bg-brand/10 border border-brand/25 flex items-center justify-center shrink-0">
                       <Icon className="w-5 h-5 text-brand" />
                     </span>
-                    <span className="font-black text-foreground text-sm">{cs.sector}</span>
+                    <span className="font-black text-foreground text-sm">
+                      {cs.sector}
+                    </span>
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed mb-5">
                     <span className="text-[#b87945] font-bold">التحدي: </span>
@@ -1025,17 +1175,24 @@ export default function Landing() {
                   <ul className="space-y-3.5 mb-5">
                     {cs.results.map(r => (
                       <li key={r.metric} className="text-xs">
-                        <p className="text-muted-foreground mb-1.5">{r.metric}</p>
+                        <p className="text-muted-foreground mb-1.5">
+                          {r.metric}
+                        </p>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="line-through decoration-rose-400/60 text-rose-600/80 dark:text-rose-400/70 font-mono text-[11px]">{r.before}</span>
+                          <span className="line-through decoration-rose-400/60 text-rose-600/80 dark:text-rose-400/70 font-mono text-[11px]">
+                            {r.before}
+                          </span>
                           <ArrowRight className="w-3 h-3 text-muted-foreground rotate-180 shrink-0" />
-                          <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono">{r.after}</span>
+                          <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono">
+                            {r.after}
+                          </span>
                         </div>
                       </li>
                     ))}
                   </ul>
                   <p className="mt-auto text-[10px] text-muted-foreground/70 border-t border-border/60 pt-3">
-                    من واقع تشغيل فعلي — التفاصيل الكاملة متاحة في دراسة الحالة عند الطلب.
+                    من واقع تشغيل فعلي — التفاصيل الكاملة متاحة في دراسة الحالة
+                    عند الطلب.
                   </p>
                 </div>
               );
@@ -1050,17 +1207,25 @@ export default function Landing() {
                 بنية بمستوى المؤسسات — هندسةٌ لا شعارات
               </h3>
               <p className="text-white/50 text-sm mb-7 max-w-2xl leading-relaxed">
-                كل بند هنا قابل للتحقق تقنيًا في معمارية المنصة، وليس عبارة أمانٍ عامة.
+                كل بند هنا قابل للتحقق تقنيًا في معمارية المنصة، وليس عبارة
+                أمانٍ عامة.
               </p>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 {ENTERPRISE_ASSURANCES.map(a => {
                   const Icon = a.icon;
                   return (
-                    <div key={a.label} className="flex items-start gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 rounded-xl px-4 py-3 transition-colors">
+                    <div
+                      key={a.label}
+                      className="flex items-start gap-3 bg-white/[0.04] hover:bg-white/[0.07] border border-white/10 rounded-xl px-4 py-3 transition-colors"
+                    >
                       <Icon className="w-4 h-4 text-brand-300 shrink-0 mt-0.5" />
                       <div>
-                        <p className="text-xs font-bold text-white/90">{a.label}</p>
-                        <p className="text-[10px] text-white/45 leading-relaxed mt-0.5">{a.detail}</p>
+                        <p className="text-xs font-bold text-white/90">
+                          {a.label}
+                        </p>
+                        <p className="text-[10px] text-white/45 leading-relaxed mt-0.5">
+                          {a.detail}
+                        </p>
                       </div>
                     </div>
                   );
@@ -1087,8 +1252,8 @@ export default function Landing() {
             يمكن تجنبها
           </h2>
           <p className="text-white/60 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto">
-            سواء كنت تبحث عن استشارة مالية، تصميم هندسي، خدمة طلابية، أو نظام لإدارة أعمالك —
-            فريق الحسينية جاهز اليوم.
+            سواء كنت تبحث عن استشارة مالية، تصميم هندسي، خدمة طلابية، أو نظام
+            لإدارة أعمالك — فريق الحسينية جاهز اليوم.
           </p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button
@@ -1099,7 +1264,9 @@ export default function Landing() {
               ابدأ مجاناً الآن
             </Button>
             <a
-              href={whatsappLink("السلام عليكم، أود الاستفسار عن خدمات مؤسسة الحسينية.")}
+              href={whatsappLink(
+                "السلام عليكم، أود الاستفسار عن خدمات مؤسسة الحسينية."
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 border border-white/20 hover:bg-white/5 text-white font-medium h-14 px-8 rounded-2xl text-sm transition-all"
@@ -1158,13 +1325,18 @@ export default function Landing() {
                 </p>
                 {/* البند المرجعي + الأثر القابل للتدقيق */}
                 <div className="mt-4 pt-3 border-t border-white/[0.07] space-y-1.5">
-                  <p className="text-[10px] font-mono text-[#d4a574]/80" dir="ltr">
+                  <p
+                    className="text-[10px] font-mono text-[#d4a574]/80"
+                    dir="ltr"
+                  >
                     {fw.ref}
                   </p>
                   <p className="text-[11px] text-emerald-300/75 leading-relaxed flex items-start gap-1.5">
                     <CheckCircle2 className="w-3 h-3 mt-0.5 shrink-0" />
                     <span>
-                      <span className="font-bold text-emerald-300/90">أثر قابل للتدقيق: </span>
+                      <span className="font-bold text-emerald-300/90">
+                        أثر قابل للتدقيق:{" "}
+                      </span>
                       {fw.evidence}
                     </span>
                   </p>
@@ -1204,7 +1376,8 @@ export default function Landing() {
               معجم المنهجية — المصطلحات التي نبني بها
             </h3>
             <p className="text-center text-[11px] text-white/40 mb-8 max-w-xl mx-auto leading-relaxed">
-              كل مصطلح يظهر في عقودنا وتقاريرنا مُعرَّف هنا أولاً — لأن الاتفاق على اللغة هو أول خطوات جودة العمل.
+              كل مصطلح يظهر في عقودنا وتقاريرنا مُعرَّف هنا أولاً — لأن الاتفاق
+              على اللغة هو أول خطوات جودة العمل.
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {standardsGlossary.map(g => (
@@ -1215,12 +1388,17 @@ export default function Landing() {
                   <p className="text-xs font-black text-[#e8c9a0] mb-1">
                     {g.term}
                     {g.en && (
-                      <span className="font-mono text-[9px] text-white/35 mr-2" dir="ltr">
+                      <span
+                        className="font-mono text-[9px] text-white/35 mr-2"
+                        dir="ltr"
+                      >
                         {g.en}
                       </span>
                     )}
                   </p>
-                  <p className="text-[10px] text-white/50 leading-relaxed">{g.definition}</p>
+                  <p className="text-[10px] text-white/50 leading-relaxed">
+                    {g.definition}
+                  </p>
                 </div>
               ))}
             </div>
@@ -1228,8 +1406,8 @@ export default function Landing() {
 
           <p className="text-center text-[11px] text-white/35 mt-10 max-w-2xl mx-auto leading-relaxed">
             تُعرض المرجعيات أعلاه كإطار منهجي لعملنا وممارساتنا المعلنة، وتصلح
-            نقطة انطلاق بحثية لمن يرغب في دراسة تطبيق هذه الأطر في سياق
-            المنشآت الصغيرة والمتوسطة.
+            نقطة انطلاق بحثية لمن يرغب في دراسة تطبيق هذه الأطر في سياق المنشآت
+            الصغيرة والمتوسطة.
           </p>
         </div>
       </section>

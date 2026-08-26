@@ -34,7 +34,9 @@ export function BarcodeScanner({
     setError(null);
     const BD = (window as any).BarcodeDetector;
     if (!BD) {
-      setError("متصفحك لا يدعم المسح بالكاميرا — استخدم الإدخال اليدوي (أو ماسح الباركود الذي يكتب تلقائياً).");
+      setError(
+        "متصفحك لا يدعم المسح بالكاميرا — استخدم الإدخال اليدوي (أو ماسح الباركود الذي يكتب تلقائياً)."
+      );
       return;
     }
     try {

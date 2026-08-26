@@ -68,7 +68,8 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#0e2a2b] via-[#16393b] to-[#1d474a]",
     border: "border-[#0e2a2b]",
     icon: Building2,
-    tagline: "نظام محاسبي مرن يخدم جميع أنواع الأنشطة التجارية والصناعية والخدمية.",
+    tagline:
+      "نظام محاسبي مرن يخدم جميع أنواع الأنشطة التجارية والصناعية والخدمية.",
   },
   engineering: {
     key: "engineering",
@@ -79,7 +80,8 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#b87945] via-[#c08e52] to-[#9a6334]",
     border: "border-[#b87945]",
     icon: HardHat,
-    tagline: "إدارة المشاريع والتنفيذ للأنشطة الصناعية والخدمية والبنية التحتية.",
+    tagline:
+      "إدارة المشاريع والتنفيذ للأنشطة الصناعية والخدمية والبنية التحتية.",
   },
   commercial: {
     key: "commercial",
@@ -90,7 +92,8 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     gradient: "from-[#0f766e] via-[#0d9488] to-[#115e59]",
     border: "border-[#0f766e]",
     icon: ShoppingCart,
-    tagline: "إدارة الفواتير والمخزون لعملك سواء كان تجارياً أو خدمياً أو صناعياً.",
+    tagline:
+      "إدارة الفواتير والمخزون لعملك سواء كان تجارياً أو خدمياً أو صناعياً.",
   },
   library: {
     key: "library",
@@ -114,7 +117,7 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     icon: Sparkles,
     tagline: "لوحة تحلل ذكية لأداء أي نشاط تجاري أو صناعي أو طبي.",
   },
-hr: {
+  hr: {
     key: "hr",
     label: "الموارد البشرية",
     en: "hr",
@@ -125,7 +128,7 @@ hr: {
     icon: Users,
     tagline: "إدارة الأقسام والموظفين والحضور والرواتب لجميع أنواع الأنشطة.",
   },
-projects: {
+  projects: {
     key: "projects",
     label: "إدارة المشاريع",
     en: "projects",
@@ -136,7 +139,7 @@ projects: {
     icon: FolderKanban,
     tagline: "متابعة المشاريع والمهام عبر جميع أنواع الأنشطة التجارية.",
   },
-procurement: {
+  procurement: {
     key: "procurement",
     label: "المشتريات والاعتماد",
     en: "procurement",
@@ -147,7 +150,7 @@ procurement: {
     icon: Truck,
     tagline: "سلاسل التوريد والشراء لأنشطة صناعية وطبية وخدمة.",
   },
-distribution: {
+  distribution: {
     key: "distribution",
     label: "التوزيع اللوجستي",
     en: "distribution",
@@ -158,7 +161,7 @@ distribution: {
     icon: Package,
     tagline: "التوزيع السريع بين الفروع والمخازن لجميع أنواع الأنشطة.",
   },
-support: {
+  support: {
     key: "support",
     label: "خدمة العملاء",
     en: "support",
@@ -169,7 +172,7 @@ support: {
     icon: Headset,
     tagline: "متابعة العملاء والدعم لجميع أنواع الأنشطة التجارية والخدمية.",
   },
-quality: {
+  quality: {
     key: "quality",
     label: "الجودة والفحص",
     en: "quality",

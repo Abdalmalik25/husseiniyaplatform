@@ -79,7 +79,7 @@ export default function Contact() {
         HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
       >
     ) =>
-      setForm((f) => ({ ...f, [k]: e.target.value }));
+      setForm(f => ({ ...f, [k]: e.target.value }));
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -296,9 +296,7 @@ export default function Contact() {
                       </select>
                     </div>
                     <div className="space-y-1.5">
-                      <Label className="text-xs font-bold">
-                        تفاصيل طلبك *
-                      </Label>
+                      <Label className="text-xs font-bold">تفاصيل طلبك *</Label>
                       <Textarea
                         value={form.message}
                         onChange={setField("message")}
@@ -372,7 +370,9 @@ export default function Contact() {
                     <Phone className="w-3.5 h-3.5 text-brand" />
                   </div>
                   <div>
-                    <div className="text-[10px] text-white/40">الخط الرئيسي</div>
+                    <div className="text-[10px] text-white/40">
+                      الخط الرئيسي
+                    </div>
                     <div className="font-mono font-bold">
                       {brand.contact.phone}
                     </div>
@@ -415,7 +415,9 @@ export default function Contact() {
                     <div className="leading-relaxed">
                       {brand.contact.address}
                     </div>
-                    <div className="text-brand-300">{brand.contact.country}</div>
+                    <div className="text-brand-300">
+                      {brand.contact.country}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -439,4 +441,3 @@ export default function Contact() {
     </div>
   );
 }
-

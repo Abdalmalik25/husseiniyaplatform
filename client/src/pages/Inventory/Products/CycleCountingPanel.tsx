@@ -5,10 +5,36 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Package, Calendar, AlertTriangle, Plus, Search, Filter, ClipboardCheck, Play, CheckCircle, Eye, Edit, Trash2, FileText } from "lucide-react";
+import {
+  Package,
+  Calendar,
+  AlertTriangle,
+  Plus,
+  Search,
+  Filter,
+  ClipboardCheck,
+  Play,
+  CheckCircle,
+  Eye,
+  Edit,
+  Trash2,
+  FileText,
+} from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -94,7 +120,11 @@ export function CycleCountingPanel() {
     line: any;
   }>({ open: false, cycleCountId: 0, line: null });
 
-  const { data: cycleCounts, isLoading: loadingCounts, refetch: refetchCounts } = trpc.products.cycleCountList.useQuery(
+  const {
+    data: cycleCounts,
+    isLoading: loadingCounts,
+    refetch: refetchCounts,
+  } = trpc.products.cycleCountList.useQuery(
     { status: selectedStatus || undefined },
     { staleTime: 30_000 }
   );
@@ -149,18 +179,33 @@ export function CycleCountingPanel() {
   });
 
   const totalCounts = useMemo(() => cycleCounts?.length || 0, [cycleCounts]);
-  const plannedCount = useMemo(() => cycleCounts?.filter(c => c.status === "planned").length || 0, [cycleCounts]);
-  const inProgressCount = useMemo(() => cycleCounts?.filter(c => c.status === "in_progress").length || 0, [cycleCounts]);
-  const completedCount = useMemo(() => cycleCounts?.filter(c => c.status === "completed").length || 0, [cycleCounts]);
+  const plannedCount = useMemo(
+    () => cycleCounts?.filter(c => c.status === "planned").length || 0,
+    [cycleCounts]
+  );
+  const inProgressCount = useMemo(
+    () => cycleCounts?.filter(c => c.status === "in_progress").length || 0,
+    [cycleCounts]
+  );
+  const completedCount = useMemo(
+    () => cycleCounts?.filter(c => c.status === "completed").length || 0,
+    [cycleCounts]
+  );
 
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-bold text-[#102a2b]">الجرد الدوري</h2>
-          <p className="text-xs text-gray-500">إدارة عمليات الجرد الدوري والمفاجئ للمخازن</p>
+          <p className="text-xs text-gray-500">
+            إدارة عمليات الجرد الدوري والمفاجئ للمخازن
+          </p>
         </div>
-        <Button size="sm" className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8" onClick={() => setShowCreateDialog(true)}>
+        <Button
+          size="sm"
+          className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+          onClick={() => setShowCreateDialog(true)}
+        >
           <Plus className="w-3 h-3 ml-1" /> جرد جديد
         </Button>
       </div>
@@ -186,7 +231,10 @@ export function CycleCountingPanel() {
 
       <div className="flex flex-col sm:flex-row gap-2 mb-3">
         <div className="flex items-center gap-2">
-          <Select value={selectedStatus} onValueChange={v => setSelectedStatus(v)}>
+          <Select
+            value={selectedStatus}
+            onValueChange={v => setSelectedStatus(v)}
+          >
             <SelectTrigger className="h-9 text-xs w-[160px]">
               <SelectValue placeholder="فلترة بالحالة" />
             </SelectTrigger>
@@ -216,7 +264,10 @@ export function CycleCountingPanel() {
           {loadingCounts ? (
             <div className="space-y-2">
               {[...Array(5)].map((_, i) => (
-                <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
+                <div
+                  key={i}
+                  className="h-10 bg-gray-100 rounded animate-pulse"
+                />
               ))}
             </div>
           ) : (
@@ -236,49 +287,122 @@ export function CycleCountingPanel() {
               </thead>
               <tbody>
                 {cycleCounts
-                  ?.filter(cc =>
-                    cc.countNumber?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    cc.warehouseName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    (cc as any).notes?.toLowerCase().includes(searchQuery.toLowerCase())
+                  ?.filter(
+                    cc =>
+                      cc.countNumber
+                        ?.toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                      cc.warehouseName
+                        ?.toLowerCase()
+                        .includes(searchQuery.toLowerCase()) ||
+                      (cc as any).notes
+                        ?.toLowerCase()
+                        .includes(searchQuery.toLowerCase())
                   )
                   .map(cc => (
                     <tr key={cc.id} className="border-b hover:bg-gray-50">
-                      <td className="p-2 font-mono text-[10px] font-bold">{cc.countNumber}</td>
+                      <td className="p-2 font-mono text-[10px] font-bold">
+                        {cc.countNumber}
+                      </td>
                       <td className="p-2">{cc.warehouseName}</td>
                       <td className="p-2 text-center">
-                        <Badge className={statusColors[cc.status] || "bg-gray-100 text-gray-700"} variant="outline">
+                        <Badge
+                          className={
+                            statusColors[cc.status] ||
+                            "bg-gray-100 text-gray-700"
+                          }
+                          variant="outline"
+                        >
                           {statusLabels[cc.status] || cc.status}
                         </Badge>
                       </td>
-                      <td className="p-2 text-center text-[10px]">{cc.plannedDate ? format(new Date(cc.plannedDate), "yyyy/MM/dd") : "-"}</td>
-                      <td className="p-2 text-center text-[10px]">{cc.startedAt ? format(new Date(cc.startedAt), "yyyy/MM/dd HH:mm") : "-"}</td>
-                      <td className="p-2 text-center text-[10px]">{cc.completedAt ? format(new Date(cc.completedAt), "yyyy/MM/dd HH:mm") : "-"}</td>
-                      <td className="p-2 text-center text-[10px]">{cc.assignedToId ? `موظف #${cc.assignedToId}` : "-"}</td>
-                      <td className="p-2 text-center font-mono">{cc.varianceThreshold}%</td>
+                      <td className="p-2 text-center text-[10px]">
+                        {cc.plannedDate
+                          ? format(new Date(cc.plannedDate), "yyyy/MM/dd")
+                          : "-"}
+                      </td>
+                      <td className="p-2 text-center text-[10px]">
+                        {cc.startedAt
+                          ? format(new Date(cc.startedAt), "yyyy/MM/dd HH:mm")
+                          : "-"}
+                      </td>
+                      <td className="p-2 text-center text-[10px]">
+                        {cc.completedAt
+                          ? format(new Date(cc.completedAt), "yyyy/MM/dd HH:mm")
+                          : "-"}
+                      </td>
+                      <td className="p-2 text-center text-[10px]">
+                        {cc.assignedToId ? `موظف #${cc.assignedToId}` : "-"}
+                      </td>
+                      <td className="p-2 text-center font-mono">
+                        {cc.varianceThreshold}%
+                      </td>
                       <td className="p-2 text-left flex items-center gap-1">
                         {cc.status === "planned" && (
-                          <Button size="icon" variant="outline" className="h-6 w-6 text-[10px] text-green-600 hover:bg-green-50" onClick={() => startCycleCount.mutate({ id: cc.id })} disabled={startCycleCount.isPending} title="بدء الجرد">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="h-6 w-6 text-[10px] text-green-600 hover:bg-green-50"
+                            onClick={() =>
+                              startCycleCount.mutate({ id: cc.id })
+                            }
+                            disabled={startCycleCount.isPending}
+                            title="بدء الجرد"
+                          >
                             <Play className="w-3 h-3" />
                           </Button>
                         )}
                         {cc.status === "in_progress" && (
-                          <Button size="icon" variant="outline" className="h-6 w-6 text-[10px] text-blue-600 hover:bg-blue-50" onClick={() => setCountDialog({ open: true, cycleCountId: cc.id, line: null })} title="تسجيل الجرد">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="h-6 w-6 text-[10px] text-blue-600 hover:bg-blue-50"
+                            onClick={() =>
+                              setCountDialog({
+                                open: true,
+                                cycleCountId: cc.id,
+                                line: null,
+                              })
+                            }
+                            title="تسجيل الجرد"
+                          >
                             <ClipboardCheck className="w-3 h-3" />
                           </Button>
                         )}
                         {cc.status === "completed" && (
-                          <Button size="icon" variant="outline" className="h-6 w-6 text-[10px] text-purple-600 hover:bg-purple-50" onClick={() => approveCycleCount.mutate({ id: cc.id, applyAdjustments: true })} disabled={approveCycleCount.isPending} title="اعتماد وتطبيق التسويات">
+                          <Button
+                            size="icon"
+                            variant="outline"
+                            className="h-6 w-6 text-[10px] text-purple-600 hover:bg-purple-50"
+                            onClick={() =>
+                              approveCycleCount.mutate({
+                                id: cc.id,
+                                applyAdjustments: true,
+                              })
+                            }
+                            disabled={approveCycleCount.isPending}
+                            title="اعتماد وتطبيق التسويات"
+                          >
                             <CheckCircle className="w-3 h-3" />
                           </Button>
                         )}
-                        <Button size="icon" variant="ghost" className="h-6 w-6 text-[10px] text-gray-600" title="عرض التفاصيل">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6 text-[10px] text-gray-600"
+                          title="عرض التفاصيل"
+                        >
                           <Eye className="w-3 h-3" />
                         </Button>
                       </td>
                     </tr>
                   ))}
                 {(!cycleCounts || cycleCounts.length === 0) && (
-                  <tr><td colSpan={9} className="text-center text-gray-400 py-8">لا توجد عمليات جرد</td></tr>
+                  <tr>
+                    <td colSpan={9} className="text-center text-gray-400 py-8">
+                      لا توجد عمليات جرد
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -292,10 +416,29 @@ export function CycleCountingPanel() {
           <DialogHeader>
             <DialogTitle>إنشاء جرد دوري جديد</DialogTitle>
           </DialogHeader>
-          <form onSubmit={e => { e.preventDefault(); createCycleCount.mutate({ warehouseId: Number(createForm.warehouseId), plannedDate: createForm.plannedDate, assignedToId: createForm.assignedToId ? Number(createForm.assignedToId) : undefined, varianceThreshold: createForm.varianceThreshold, notes: createForm.notes }); }} className="space-y-3">
+          <form
+            onSubmit={e => {
+              e.preventDefault();
+              createCycleCount.mutate({
+                warehouseId: Number(createForm.warehouseId),
+                plannedDate: createForm.plannedDate,
+                assignedToId: createForm.assignedToId
+                  ? Number(createForm.assignedToId)
+                  : undefined,
+                varianceThreshold: createForm.varianceThreshold,
+                notes: createForm.notes,
+              });
+            }}
+            className="space-y-3"
+          >
             <div>
               <Label className="text-[11px]">المخزن *</Label>
-              <Select value={createForm.warehouseId} onValueChange={v => setCreateForm({...createForm, warehouseId: v})}>
+              <Select
+                value={createForm.warehouseId}
+                onValueChange={v =>
+                  setCreateForm({ ...createForm, warehouseId: v })
+                }
+              >
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="اختر مخزناً" />
                 </SelectTrigger>
@@ -310,11 +453,23 @@ export function CycleCountingPanel() {
             </div>
             <div>
               <Label className="text-[11px]">التاريخ المخطط *</Label>
-              <Input type="date" className="h-9 text-xs" value={createForm.plannedDate} onChange={e => setCreateForm({...createForm, plannedDate: e.target.value})} />
+              <Input
+                type="date"
+                className="h-9 text-xs"
+                value={createForm.plannedDate}
+                onChange={e =>
+                  setCreateForm({ ...createForm, plannedDate: e.target.value })
+                }
+              />
             </div>
             <div>
               <Label className="text-[11px]">المسؤول</Label>
-              <Select value={createForm.assignedToId} onValueChange={v => setCreateForm({...createForm, assignedToId: v})}>
+              <Select
+                value={createForm.assignedToId}
+                onValueChange={v =>
+                  setCreateForm({ ...createForm, assignedToId: v })
+                }
+              >
                 <SelectTrigger className="h-9 text-xs">
                   <SelectValue placeholder="اختر موظفاً (اختياري)" />
                 </SelectTrigger>
@@ -329,15 +484,47 @@ export function CycleCountingPanel() {
             </div>
             <div>
               <Label className="text-[11px]">حد الانحراف %</Label>
-              <Input type="number" step="0.1" min="0" max="100" className="h-9 text-xs" value={createForm.varianceThreshold} onChange={e => setCreateForm({...createForm, varianceThreshold: e.target.value})} />
+              <Input
+                type="number"
+                step="0.1"
+                min="0"
+                max="100"
+                className="h-9 text-xs"
+                value={createForm.varianceThreshold}
+                onChange={e =>
+                  setCreateForm({
+                    ...createForm,
+                    varianceThreshold: e.target.value,
+                  })
+                }
+              />
             </div>
             <div>
               <Label className="text-[11px]">ملاحظات</Label>
-              <Input className="h-9 text-xs" value={createForm.notes} onChange={e => setCreateForm({...createForm, notes: e.target.value})} placeholder="ملاحظات إضافية" />
+              <Input
+                className="h-9 text-xs"
+                value={createForm.notes}
+                onChange={e =>
+                  setCreateForm({ ...createForm, notes: e.target.value })
+                }
+                placeholder="ملاحظات إضافية"
+              />
             </div>
             <DialogFooter className="flex justify-end gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setShowCreateDialog(false)}>إلغاء</Button>
-              <Button type="submit" size="sm" className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b]" disabled={createCycleCount.isPending}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setShowCreateDialog(false)}
+              >
+                إلغاء
+              </Button>
+              <Button
+                type="submit"
+                size="sm"
+                className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b]"
+                disabled={createCycleCount.isPending}
+              >
                 {createCycleCount.isPending ? "جاري الإنشاء..." : "إنشاء الجرد"}
               </Button>
             </DialogFooter>
@@ -347,23 +534,57 @@ export function CycleCountingPanel() {
 
       {/* Record Count Dialog - would need to fetch lines for the selected cycle count */}
       {countDialog.open && (
-        <Dialog open={countDialog.open} onOpenChange={v => setCountDialog({...countDialog, open: v})}>
+        <Dialog
+          open={countDialog.open}
+          onOpenChange={v => setCountDialog({ ...countDialog, open: v })}
+        >
           <DialogContent className="max-w-2xl max-h-[80vh]">
             <DialogHeader>
               <DialogTitle>تسجيل نتائج الجرد</DialogTitle>
             </DialogHeader>
             <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-2">
-              <p className="text-xs text-gray-500">هذه شاشة مبسطة - في التطبيق الكامل ستظهر بنود الجرد المحددة لهذا الجرد</p>
+              <p className="text-xs text-gray-500">
+                هذه شاشة مبسطة - في التطبيق الكامل ستظهر بنود الجرد المحددة لهذا
+                الجرد
+              </p>
               <div className="p-4 bg-gray-50 rounded-lg">
                 <Label className="text-[11px]">الكمية المُجرّدة</Label>
-                <Input type="number" min="0" step="1" className="h-9 text-xs mt-1" placeholder="أدخل الكمية المُجرّدة" />
+                <Input
+                  type="number"
+                  min="0"
+                  step="1"
+                  className="h-9 text-xs mt-1"
+                  placeholder="أدخل الكمية المُجرّدة"
+                />
                 <Label className="text-[11px] mt-2">ملاحظات</Label>
-                <Input className="h-9 text-xs mt-1" placeholder="ملاحظات عن الفرق إن وجد" />
+                <Input
+                  className="h-9 text-xs mt-1"
+                  placeholder="ملاحظات عن الفرق إن وجد"
+                />
               </div>
             </div>
             <DialogFooter className="flex justify-end gap-2">
-              <Button type="button" variant="outline" size="sm" onClick={() => setCountDialog({...countDialog, open: false})}>إلغاء</Button>
-              <Button size="sm" className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b]" disabled={recordCount.isPending} onClick={() => recordCount.mutate({ cycleCountId: countDialog.cycleCountId, productId: 0, warehouseId: 0, countedQty: 0 })}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => setCountDialog({ ...countDialog, open: false })}
+              >
+                إلغاء
+              </Button>
+              <Button
+                size="sm"
+                className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b]"
+                disabled={recordCount.isPending}
+                onClick={() =>
+                  recordCount.mutate({
+                    cycleCountId: countDialog.cycleCountId,
+                    productId: 0,
+                    warehouseId: 0,
+                    countedQty: 0,
+                  })
+                }
+              >
                 {recordCount.isPending ? "جاري الحفظ..." : "حفظ التسجيل"}
               </Button>
             </DialogFooter>

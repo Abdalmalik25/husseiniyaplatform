@@ -285,7 +285,7 @@ function MessagesButton({ compact }: { compact?: boolean }) {
         <div className="space-y-2 border-t pt-2">
           <select
             value={toUser}
-            onChange={(e) => {
+            onChange={e => {
               setToUser(e.target.value);
               setWithUser(e.target.value || null);
             }}
@@ -301,7 +301,7 @@ function MessagesButton({ compact }: { compact?: boolean }) {
           <textarea
             rows={2}
             value={body}
-            onChange={(e) => setBody(e.target.value)}
+            onChange={e => setBody(e.target.value)}
             placeholder="اكتب رسالتك..."
             className="w-full rounded-lg border border-border bg-background px-2 py-1 text-[12px]"
           />
@@ -335,7 +335,10 @@ export function AppSidebar() {
   const [collapsed, setCollapsed] = useState(false); // desktop rail
   const { user, logout } = useAuth();
 
-  const renderSidebar = (variant: "desktop" | "drawer", isCollapsed: boolean) => {
+  const renderSidebar = (
+    variant: "desktop" | "drawer",
+    isCollapsed: boolean
+  ) => {
     const isDrawer = variant === "drawer";
     const compact = isCollapsed && !isDrawer;
 
@@ -365,7 +368,7 @@ export function AppSidebar() {
           ) : (
             !compact && (
               <button
-                onClick={() => setCollapsed((c) => !c)}
+                onClick={() => setCollapsed(c => !c)}
                 className="mr-auto text-white/50 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
                 aria-label="طي القائمة"
                 title="طي/توسيع القائمة"
@@ -376,7 +379,7 @@ export function AppSidebar() {
           )}
           {compact && !isDrawer && (
             <button
-              onClick={() => setCollapsed((c) => !c)}
+              onClick={() => setCollapsed(c => !c)}
               className="absolute top-3 left-2 text-white/50 hover:text-white p-1 rounded-lg hover:bg-white/5 transition-colors"
               aria-label="توسيع القائمة"
               title="توسيع القائمة"
@@ -419,7 +422,7 @@ export function AppSidebar() {
               مساحات العمل
             </p>
           )}
-          {APP_NAV.map((item) => {
+          {APP_NAV.map(item => {
             const Icon = item.icon;
             const isActive =
               location === item.path ||
@@ -452,7 +455,7 @@ export function AppSidebar() {
               أدوات مساعدة
             </p>
           )}
-          {UTILITY_LINKS.map((item) => {
+          {UTILITY_LINKS.map(item => {
             const Icon = item.icon;
             const isActive = location === item.path;
             return (
@@ -477,11 +480,13 @@ export function AppSidebar() {
 
         {/* Footer: collapse toggle (desktop) + theme + back to site + logout */}
         <div className="border-t border-white/10 p-2.5 space-y-1">
-          <div className={`flex items-center gap-1 ${compact ? "" : "justify-between"}`}>
+          <div
+            className={`flex items-center gap-1 ${compact ? "" : "justify-between"}`}
+          >
             <ThemeSwitcher compact={compact} />
             {compact && !isDrawer && (
               <button
-                onClick={() => setCollapsed((c) => !c)}
+                onClick={() => setCollapsed(c => !c)}
                 className="w-full flex items-center justify-center px-3 py-2 rounded-xl text-white/50 hover:bg-white/5 hover:text-white transition-colors"
                 aria-label="توسيع القائمة"
                 title="توسيع القائمة"

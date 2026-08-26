@@ -60,7 +60,12 @@ const SHOWCASE: Record<
   },
 };
 
-const ORDER: ModuleKey[] = ["accounting", "engineering", "commercial", "library"];
+const ORDER: ModuleKey[] = [
+  "accounting",
+  "engineering",
+  "commercial",
+  "library",
+];
 
 export function HeroShowcase() {
   const [active, setActive] = useState<ModuleKey>("accounting");
@@ -132,7 +137,9 @@ export function HeroShowcase() {
               <h3 className="text-white font-black text-base leading-tight truncate">
                 {data.title}
               </h3>
-              <p className="text-white/55 text-[11px] truncate">{data.subtitle}</p>
+              <p className="text-white/55 text-[11px] truncate">
+                {data.subtitle}
+              </p>
             </div>
           </div>
 

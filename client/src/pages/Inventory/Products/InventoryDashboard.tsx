@@ -4,7 +4,26 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Package, TrendingUp, TrendingDown, DollarSign, BarChart3, Target, Archive, AlertTriangle, Clock, Warehouse as WhIcon, Calculator, RefreshCw, Download, Home, LineChart, PieChart, Activity, ClipboardCheck } from "lucide-react";
+import {
+  Package,
+  TrendingUp,
+  TrendingDown,
+  DollarSign,
+  BarChart3,
+  Target,
+  Archive,
+  AlertTriangle,
+  Clock,
+  Warehouse as WhIcon,
+  Calculator,
+  RefreshCw,
+  Download,
+  Home,
+  LineChart,
+  PieChart,
+  Activity,
+  ClipboardCheck,
+} from "lucide-react";
 import { format } from "date-fns";
 import { WarehouseStockPanel } from "./WarehouseStockPanel";
 import { BatchTrackingPanel } from "./BatchTrackingPanel";
@@ -14,7 +33,10 @@ import { InventoryValuationPanel } from "./InventoryValuationPanel";
 import { AdvancedInventoryReportsPanel } from "./AdvancedInventoryReportsPanel";
 
 const formatNum = (n: number) =>
-  new Intl.NumberFormat("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+  new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n);
 
 const formatInt = (n: number) =>
   new Intl.NumberFormat("en-US").format(Math.round(n));
@@ -53,7 +75,10 @@ export function InventoryDashboard() {
   const valuation = trpc.products.valuation.useQuery();
   const lowStock = trpc.products.lowStock.useQuery();
   const { data: warehouses } = trpc.warehouses.list.useQuery();
-  const { data: movements } = trpc.products.movements.useQuery({}, { staleTime: 60_000 });
+  const { data: movements } = trpc.products.movements.useQuery(
+    {},
+    { staleTime: 60_000 }
+  );
   const { data: productsData } = trpc.products.list.useQuery({ limit: 500 });
   const products = productsData?.items ?? [];
 
@@ -70,12 +95,28 @@ export function InventoryDashboard() {
   const thisMonth = new Date(today.getFullYear(), today.getMonth(), 1);
   const lastMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
 
-  const movementsThisMonth = movements?.filter(m => new Date(m.createdAt) >= thisMonth).length || 0;
-  const movementsLastMonth = movements?.filter(m => new Date(m.createdAt) >= lastMonth && new Date(m.createdAt) < thisMonth).length || 0;
-  const movementChange = movementsLastMonth > 0 ? Number(((movementsThisMonth - movementsLastMonth) / movementsLastMonth * 100).toFixed(1)) : 0;
+  const movementsThisMonth =
+    movements?.filter(m => new Date(m.createdAt) >= thisMonth).length || 0;
+  const movementsLastMonth =
+    movements?.filter(
+      m =>
+        new Date(m.createdAt) >= lastMonth && new Date(m.createdAt) < thisMonth
+    ).length || 0;
+  const movementChange =
+    movementsLastMonth > 0
+      ? Number(
+          (
+            ((movementsThisMonth - movementsLastMonth) / movementsLastMonth) *
+            100
+          ).toFixed(1)
+        )
+      : 0;
 
   // Top moving products
-  const productMovement = new Map<number, { in: number; out: number; transfers: number }>();
+  const productMovement = new Map<
+    number,
+    { in: number; out: number; transfers: number }
+  >();
   movements?.forEach(m => {
     if (!productMovement.has(m.productId)) {
       productMovement.set(m.productId, { in: 0, out: 0, transfers: 0 });
@@ -96,7 +137,10 @@ export function InventoryDashboard() {
     });
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-[#f6f7f5] to-[#eef1ea] font-sans" dir="rtl">
+    <main
+      className="min-h-screen bg-gradient-to-b from-[#f6f7f5] to-[#eef1ea] font-sans"
+      dir="rtl"
+    >
       <div className="max-w-7xl mx-auto p-4 space-y-4">
         {/* Header */}
         <div className="bg-[#102a2b] text-white p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -110,10 +154,18 @@ export function InventoryDashboard() {
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" className="text-xs h-8 border-gray-600 text-white hover:bg-gray-800">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 border-gray-600 text-white hover:bg-gray-800"
+            >
               <RefreshCw className="w-3 h-3 ml-1" /> تحديث
             </Button>
-            <Button variant="outline" size="sm" className="text-xs h-8 border-gray-600 text-white hover:bg-gray-800">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs h-8 border-gray-600 text-white hover:bg-gray-800"
+            >
               <Download className="w-3 h-3 ml-1" /> تصدير PDF
             </Button>
           </div>
@@ -143,7 +195,11 @@ export function InventoryDashboard() {
           />
           <KpiCard
             icon={<AlertTriangle className="w-5 h-5" />}
-            iconBg={lowStockCount > 0 ? "bg-red-100 text-red-600" : "bg-green-100 text-green-600"}
+            iconBg={
+              lowStockCount > 0
+                ? "bg-red-100 text-red-600"
+                : "bg-green-100 text-green-600"
+            }
             label="أصناف منخفضة"
             value={formatInt(lowStockCount)}
             danger={lowStockCount > 0}
@@ -175,10 +231,26 @@ export function InventoryDashboard() {
           </CardHeader>
           <CardContent className="p-3">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              <QuickActionBtn icon={<WhIcon className="w-4 h-4" />} label="أرصدة المخازن" desc="عرض تفصيلي لكل مخزن" />
-              <QuickActionBtn icon={<Calculator className="w-4 h-4" />} label="التقييم (FIFO/LIFO)" desc="طرق محاسبية متعددة" />
-              <QuickActionBtn icon={<ClipboardCheck className="w-4 h-4" />} label="الجرد الدوري" desc="إدارة عمليات الجرد" />
-              <QuickActionBtn icon={<Target className="w-4 h-4" />} label="تحليل ABC" desc="تصنيف الأصناف بالأهمية" />
+              <QuickActionBtn
+                icon={<WhIcon className="w-4 h-4" />}
+                label="أرصدة المخازن"
+                desc="عرض تفصيلي لكل مخزن"
+              />
+              <QuickActionBtn
+                icon={<Calculator className="w-4 h-4" />}
+                label="التقييم (FIFO/LIFO)"
+                desc="طرق محاسبية متعددة"
+              />
+              <QuickActionBtn
+                icon={<ClipboardCheck className="w-4 h-4" />}
+                label="الجرد الدوري"
+                desc="إدارة عمليات الجرد"
+              />
+              <QuickActionBtn
+                icon={<Target className="w-4 h-4" />}
+                label="تحليل ABC"
+                desc="تصنيف الأصناف بالأهمية"
+              />
             </div>
           </CardContent>
         </Card>
@@ -187,7 +259,8 @@ export function InventoryDashboard() {
         <Card className="border-0 shadow-sm bg-white">
           <CardHeader className="p-3">
             <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-2">
-              <TrendingUp className="w-4 h-4 text-green-600" /> أكثر الأصناف حركة
+              <TrendingUp className="w-4 h-4 text-green-600" /> أكثر الأصناف
+              حركة
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3 overflow-x-auto">
@@ -206,17 +279,31 @@ export function InventoryDashboard() {
               <tbody>
                 {topMoving.map((m, i) => (
                   <tr key={m.id} className="border-b hover:bg-gray-50">
-                    <td className="p-1.5 text-center text-[10px] text-gray-500">{i + 1}</td>
+                    <td className="p-1.5 text-center text-[10px] text-gray-500">
+                      {i + 1}
+                    </td>
                     <td className="p-1.5 font-mono text-[10px]">{m.code}</td>
                     <td className="p-1.5">{m.name}</td>
-                    <td className="p-1.5 text-center font-mono text-green-600">{formatInt(m.in)}</td>
-                    <td className="p-1.5 text-center font-mono text-red-600">{formatInt(m.out)}</td>
-                    <td className="p-1.5 text-center font-mono text-blue-600">{formatInt(m.transfers)}</td>
-                    <td className="p-1.5 text-center font-bold text-[#102a2b]">{formatInt(m.total)}</td>
+                    <td className="p-1.5 text-center font-mono text-green-600">
+                      {formatInt(m.in)}
+                    </td>
+                    <td className="p-1.5 text-center font-mono text-red-600">
+                      {formatInt(m.out)}
+                    </td>
+                    <td className="p-1.5 text-center font-mono text-blue-600">
+                      {formatInt(m.transfers)}
+                    </td>
+                    <td className="p-1.5 text-center font-bold text-[#102a2b]">
+                      {formatInt(m.total)}
+                    </td>
                   </tr>
                 ))}
                 {topMoving.length === 0 && (
-                  <tr><td colSpan={7} className="text-center text-gray-400 py-8">لا توجد حركات مسجلة</td></tr>
+                  <tr>
+                    <td colSpan={7} className="text-center text-gray-400 py-8">
+                      لا توجد حركات مسجلة
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
@@ -228,7 +315,8 @@ export function InventoryDashboard() {
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader className="p-3">
               <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-[#b87945]" /> توزيع القيمة حسب التصنيف
+                <PieChart className="w-4 h-4 text-[#b87945]" /> توزيع القيمة حسب
+                التصنيف
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3 overflow-x-auto">
@@ -245,17 +333,35 @@ export function InventoryDashboard() {
                   {(summary.data?.byCategory || []).map(c => (
                     <tr key={c.category} className="border-b">
                       <td className="p-1.5">{c.category}</td>
-                      <td className="p-1.5 text-center font-mono">{formatInt(c.qty)}</td>
-                      <td className="p-1.5 text-left font-mono text-[#b87945]">{formatNum(c.value)} ر.ي</td>
-                      <td className="p-1.5 text-left font-bold">{totalStockValue > 0 ? ((c.value / totalStockValue) * 100).toFixed(1) : 0}%</td>
+                      <td className="p-1.5 text-center font-mono">
+                        {formatInt(c.qty)}
+                      </td>
+                      <td className="p-1.5 text-left font-mono text-[#b87945]">
+                        {formatNum(c.value)} ر.ي
+                      </td>
+                      <td className="p-1.5 text-left font-bold">
+                        {totalStockValue > 0
+                          ? ((c.value / totalStockValue) * 100).toFixed(1)
+                          : 0}
+                        %
+                      </td>
                     </tr>
                   ))}
                 </tbody>
                 <tfoot>
                   <tr className="font-bold bg-gray-50">
                     <td className="p-1.5 text-right">الإجمالي</td>
-                    <td className="p-1.5 text-center font-mono">{formatInt(summary.data?.byCategory?.reduce((s, c) => s + c.qty, 0) || 0)}</td>
-                    <td className="p-1.5 text-left font-mono text-[#b87945]">{formatNum(totalStockValue)} ر.ي</td>
+                    <td className="p-1.5 text-center font-mono">
+                      {formatInt(
+                        summary.data?.byCategory?.reduce(
+                          (s, c) => s + c.qty,
+                          0
+                        ) || 0
+                      )}
+                    </td>
+                    <td className="p-1.5 text-left font-mono text-[#b87945]">
+                      {formatNum(totalStockValue)} ر.ي
+                    </td>
                     <td className="p-1.5 text-left">100%</td>
                   </tr>
                 </tfoot>
@@ -266,7 +372,8 @@ export function InventoryDashboard() {
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader className="p-3">
               <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-2">
-                <LineChart className="w-4 h-4 text-blue-600" /> حركة المخزون (30 يوم)
+                <LineChart className="w-4 h-4 text-blue-600" /> حركة المخزون (30
+                يوم)
               </CardTitle>
             </CardHeader>
             <CardContent className="p-3">
@@ -274,15 +381,30 @@ export function InventoryDashboard() {
                 {Array.from({ length: 30 }, (_, i) => {
                   const date = new Date();
                   date.setDate(date.getDate() - (29 - i));
-                  const dayMovements = movements?.filter(m =>
-                    new Date(m.createdAt).toDateString() === date.toDateString()
-                  ).length || 0;
-                  const maxMovements = Math.max(...Array.from({ length: 30 }, (_, j) =>
-                    movements?.filter(m =>
-                      new Date(m.createdAt).toDateString() === new Date(Date.now() - (29 - j) * 86400000).toDateString()
-                    ).length || 0
-                  ), 1);
-                  const height = Math.max((dayMovements / maxMovements) * 100, 4);
+                  const dayMovements =
+                    movements?.filter(
+                      m =>
+                        new Date(m.createdAt).toDateString() ===
+                        date.toDateString()
+                    ).length || 0;
+                  const maxMovements = Math.max(
+                    ...Array.from(
+                      { length: 30 },
+                      (_, j) =>
+                        movements?.filter(
+                          m =>
+                            new Date(m.createdAt).toDateString() ===
+                            new Date(
+                              Date.now() - (29 - j) * 86400000
+                            ).toDateString()
+                        ).length || 0
+                    ),
+                    1
+                  );
+                  const height = Math.max(
+                    (dayMovements / maxMovements) * 100,
+                    4
+                  );
                   return (
                     <div key={i} className="flex flex-col items-center w-full">
                       <div
@@ -290,11 +412,13 @@ export function InventoryDashboard() {
                         style={{ width: "100%", height: `${height}%` }}
                         title={`${format(date, "yyyy/MM/dd")}: ${dayMovements} حركة`}
                       />
-                      <span className="text-[7px] text-gray-400 mt-1">{format(date, "dd")}</span>
+                      <span className="text-[7px] text-gray-400 mt-1">
+                        {format(date, "dd")}
+                      </span>
                     </div>
                   );
                 })}
-                </div>
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -302,22 +426,40 @@ export function InventoryDashboard() {
         {/* Detailed Modules Tabs */}
         <Tabs defaultValue="warehouse-stock" className="mt-4">
           <TabsList className="grid w-full grid-cols-4 md:grid-cols-7 h-10 bg-white border">
-            <TabsTrigger value="warehouse-stock" className="text-[10px] flex items-center gap-1">
+            <TabsTrigger
+              value="warehouse-stock"
+              className="text-[10px] flex items-center gap-1"
+            >
               <WhIcon className="w-3 h-3" /> أرصدة المخازن
             </TabsTrigger>
-            <TabsTrigger value="batches" className="text-[10px] flex items-center gap-1">
+            <TabsTrigger
+              value="batches"
+              className="text-[10px] flex items-center gap-1"
+            >
               <Package className="w-3 h-3" /> الدفعات/التسلسل
             </TabsTrigger>
-            <TabsTrigger value="reservations" className="text-[10px] flex items-center gap-1">
+            <TabsTrigger
+              value="reservations"
+              className="text-[10px] flex items-center gap-1"
+            >
               <Target className="w-3 h-3" /> الحجوزات
             </TabsTrigger>
-            <TabsTrigger value="cycle-count" className="text-[10px] flex items-center gap-1">
+            <TabsTrigger
+              value="cycle-count"
+              className="text-[10px] flex items-center gap-1"
+            >
               <ClipboardCheck className="w-3 h-3" /> الجرد الدوري
             </TabsTrigger>
-            <TabsTrigger value="valuation" className="text-[10px] flex items-center gap-1">
+            <TabsTrigger
+              value="valuation"
+              className="text-[10px] flex items-center gap-1"
+            >
               <Calculator className="w-3 h-3" /> التقييم
             </TabsTrigger>
-            <TabsTrigger value="reports" className="text-[10px] flex items-center gap-1">
+            <TabsTrigger
+              value="reports"
+              className="text-[10px] flex items-center gap-1"
+            >
               <BarChart3 className="w-3 h-3" /> تقارير متقدمة
             </TabsTrigger>
           </TabsList>
@@ -371,20 +513,36 @@ function KpiCard({
   return (
     <Card className="border-0 shadow-sm bg-white p-3">
       <div className="flex items-center gap-3">
-        <div className={`${iconBg} w-10 h-10 rounded-lg flex items-center justify-center`}>
+        <div
+          className={`${iconBg} w-10 h-10 rounded-lg flex items-center justify-center`}
+        >
           {icon}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-[10px] text-gray-500 truncate">{label}</p>
-          <p className={`font-bold text-lg truncate ${danger ? "text-red-600" : "text-[#102a2b]"}`}>{value}</p>
-          {subValue && <p className={`text-[10px] truncate ${subColor}`}>{subValue}</p>}
+          <p
+            className={`font-bold text-lg truncate ${danger ? "text-red-600" : "text-[#102a2b]"}`}
+          >
+            {value}
+          </p>
+          {subValue && (
+            <p className={`text-[10px] truncate ${subColor}`}>{subValue}</p>
+          )}
         </div>
       </div>
     </Card>
   );
 }
 
-function QuickActionBtn({ icon, label, desc }: { icon: React.ReactNode; label: string; desc: string }) {
+function QuickActionBtn({
+  icon,
+  label,
+  desc,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  desc: string;
+}) {
   return (
     <Button
       variant="outline"

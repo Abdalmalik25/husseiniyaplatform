@@ -715,66 +715,72 @@ export const qualityInspectionsRelations = relations(
 );
 
 // ─── Stock Adjustments ────────────────────────────────────────────
-export const stockAdjustmentsRelations = relations(stockAdjustments, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [stockAdjustments.tenantId],
-    references: [tenants.id],
-  }),
-  product: one(products, {
-    fields: [stockAdjustments.productId],
-    references: [products.id],
-  }),
-  warehouse: one(warehouses, {
-    fields: [stockAdjustments.warehouseId],
-    references: [warehouses.id],
-  }),
-  user: one(users, {
-    fields: [stockAdjustments.userId],
-    references: [users.id],
-  }),
-  workSite: one(workSites, {
-    fields: [stockAdjustments.workSiteId],
-    references: [workSites.id],
-  }),
-  device: one(devices, {
-    fields: [stockAdjustments.deviceId],
-    references: [devices.id],
-  }),
-}));
+export const stockAdjustmentsRelations = relations(
+  stockAdjustments,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [stockAdjustments.tenantId],
+      references: [tenants.id],
+    }),
+    product: one(products, {
+      fields: [stockAdjustments.productId],
+      references: [products.id],
+    }),
+    warehouse: one(warehouses, {
+      fields: [stockAdjustments.warehouseId],
+      references: [warehouses.id],
+    }),
+    user: one(users, {
+      fields: [stockAdjustments.userId],
+      references: [users.id],
+    }),
+    workSite: one(workSites, {
+      fields: [stockAdjustments.workSiteId],
+      references: [workSites.id],
+    }),
+    device: one(devices, {
+      fields: [stockAdjustments.deviceId],
+      references: [devices.id],
+    }),
+  })
+);
 
 // ─── Warehouse Transfers ──────────────────────────────────────────
-export const warehouseTransfersRelations = relations(warehouseTransfers, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [warehouseTransfers.tenantId],
-    references: [tenants.id],
-  }),
-  product: one(products, {
-    fields: [warehouseTransfers.productId],
-    references: [products.id],
-  }),
-  fromWarehouse: one(warehouses, {
-    fields: [warehouseTransfers.fromWarehouseId],
-    references: [warehouses.id],
-    relationName: "fromWarehouse",
-  }),
-  toWarehouse: one(warehouses, {
-    fields: [warehouseTransfers.toWarehouseId],
-    references: [warehouses.id],
-    relationName: "toWarehouse",
-  }),
-  user: one(users, {
-    fields: [warehouseTransfers.userId],
-    references: [users.id],
-  }),
-  workSite: one(workSites, {
-    fields: [warehouseTransfers.workSiteId],
-    references: [workSites.id],
-  }),
-  device: one(devices, {
-    fields: [warehouseTransfers.deviceId],
-    references: [devices.id],
-  }),
-}));
+export const warehouseTransfersRelations = relations(
+  warehouseTransfers,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [warehouseTransfers.tenantId],
+      references: [tenants.id],
+    }),
+    product: one(products, {
+      fields: [warehouseTransfers.productId],
+      references: [products.id],
+    }),
+    fromWarehouse: one(warehouses, {
+      fields: [warehouseTransfers.fromWarehouseId],
+      references: [warehouses.id],
+      relationName: "fromWarehouse",
+    }),
+    toWarehouse: one(warehouses, {
+      fields: [warehouseTransfers.toWarehouseId],
+      references: [warehouses.id],
+      relationName: "toWarehouse",
+    }),
+    user: one(users, {
+      fields: [warehouseTransfers.userId],
+      references: [users.id],
+    }),
+    workSite: one(workSites, {
+      fields: [warehouseTransfers.workSiteId],
+      references: [workSites.id],
+    }),
+    device: one(devices, {
+      fields: [warehouseTransfers.deviceId],
+      references: [devices.id],
+    }),
+  })
+);
 
 // ─── Login Attempts ───────────────────────────────────────────────
 export const loginAttemptsRelations = relations(loginAttempts, ({ one }) => ({
@@ -789,31 +795,34 @@ export const loginAttemptsRelations = relations(loginAttempts, ({ one }) => ({
 }));
 
 // ─── Biometric Templates ──────────────────────────────────────────
-export const biometricTemplatesRelations = relations(biometricTemplates, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [biometricTemplates.tenantId],
-    references: [tenants.id],
-  }),
-  user: one(users, {
-    fields: [biometricTemplates.userId],
-    references: [users.id],
-  }),
-  enrolledBy: one(users, {
-    fields: [biometricTemplates.enrolledById],
-    references: [users.id],
-    relationName: "enrolledBiometrics",
-  }),
-  approvedBy: one(users, {
-    fields: [biometricTemplates.approvedById],
-    references: [users.id],
-    relationName: "approvedBiometrics",
-  }),
-  revokedBy: one(users, {
-    fields: [biometricTemplates.revokedById],
-    references: [users.id],
-    relationName: "revokedBiometrics",
-  }),
-}));
+export const biometricTemplatesRelations = relations(
+  biometricTemplates,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [biometricTemplates.tenantId],
+      references: [tenants.id],
+    }),
+    user: one(users, {
+      fields: [biometricTemplates.userId],
+      references: [users.id],
+    }),
+    enrolledBy: one(users, {
+      fields: [biometricTemplates.enrolledById],
+      references: [users.id],
+      relationName: "enrolledBiometrics",
+    }),
+    approvedBy: one(users, {
+      fields: [biometricTemplates.approvedById],
+      references: [users.id],
+      relationName: "approvedBiometrics",
+    }),
+    revokedBy: one(users, {
+      fields: [biometricTemplates.revokedById],
+      references: [users.id],
+      relationName: "revokedBiometrics",
+    }),
+  })
+);
 
 // ─── Translations ─────────────────────────────────────────────────
 export const translationsRelations = relations(translations, ({ one }) => ({
@@ -840,20 +849,26 @@ export const syncMetadataRelations = relations(syncMetadata, ({ one }) => ({
 }));
 
 // ─── Custom Field Definitions ─────────────────────────────────────
-export const customFieldDefsRelations = relations(customFieldDefs, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [customFieldDefs.tenantId],
-    references: [tenants.id],
-  }),
-}));
+export const customFieldDefsRelations = relations(
+  customFieldDefs,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [customFieldDefs.tenantId],
+      references: [tenants.id],
+    }),
+  })
+);
 
 // ─── Custom Field Values ──────────────────────────────────────────
-export const customFieldValuesRelations = relations(customFieldValues, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [customFieldValues.tenantId],
-    references: [tenants.id],
-  }),
-}));
+export const customFieldValuesRelations = relations(
+  customFieldValues,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [customFieldValues.tenantId],
+      references: [tenants.id],
+    }),
+  })
+);
 
 // ─── Journal Entries ──────────────────────────────────────────────
 export const journalEntriesRelations = relations(journalEntries, ({ one }) => ({
@@ -876,113 +891,122 @@ export const journalEntriesRelations = relations(journalEntries, ({ one }) => ({
 }));
 
 // ─── Scheduled Journal Entries ────────────────────────────────────
-export const scheduledJournalEntriesRelations = relations(scheduledJournalEntries, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [scheduledJournalEntries.tenantId],
-    references: [tenants.id],
-  }),
-  branch: one(branches, {
-    fields: [scheduledJournalEntries.branchId],
-    references: [branches.id],
-  }),
-  currency: one(currencies, {
-    fields: [scheduledJournalEntries.currencyId],
-    references: [currencies.id],
-  }),
-}));
+export const scheduledJournalEntriesRelations = relations(
+  scheduledJournalEntries,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [scheduledJournalEntries.tenantId],
+      references: [tenants.id],
+    }),
+    branch: one(branches, {
+      fields: [scheduledJournalEntries.branchId],
+      references: [branches.id],
+    }),
+    currency: one(currencies, {
+      fields: [scheduledJournalEntries.currencyId],
+      references: [currencies.id],
+    }),
+  })
+);
 
 // ─── Recurring Expenses ─────────────────────────────────────────────
-export const recurringExpensesRelations = relations(recurringExpenses, ({ one, many }) => ({
-  tenant: one(tenants, {
-    fields: [recurringExpenses.tenantId],
-    references: [tenants.id],
-  }),
-  category: one(categories, {
-    fields: [recurringExpenses.categoryId],
-    references: [categories.id],
-  }),
-  vendor: one(suppliers, {
-    fields: [recurringExpenses.vendorId],
-    references: [suppliers.id],
-  }),
-  account: one(accounts, {
-    fields: [recurringExpenses.accountId],
-    references: [accounts.id],
-  }),
-  branch: one(branches, {
-    fields: [recurringExpenses.branchId],
-    references: [branches.id],
-  }),
-  taxAccount: one(accounts, {
-    fields: [recurringExpenses.taxAccountId],
-    references: [accounts.id],
-    relationName: "taxAccount",
-  }),
-  paymentAccount: one(accounts, {
-    fields: [recurringExpenses.paymentAccountId],
-    references: [accounts.id],
-    relationName: "paymentAccount",
-  }),
-  approver: one(users, {
-    fields: [recurringExpenses.approverId],
-    references: [users.id],
-    relationName: "approver",
-  }),
-  approvedBy: one(users, {
-    fields: [recurringExpenses.approvedById],
-    references: [users.id],
-    relationName: "approvedBy",
-  }),
-  createdBy: one(users, {
-    fields: [recurringExpenses.createdById],
-    references: [users.id],
-    relationName: "createdBy",
-  }),
-  budget: one(budgets, {
-    fields: [recurringExpenses.budgetId],
-    references: [budgets.id],
-  }),
-  department: one(departments, {
-    fields: [recurringExpenses.departmentId],
-    references: [departments.id],
-  }),
-  project: one(projects, {
-    fields: [recurringExpenses.projectId],
-    references: [projects.id],
-  }),
-  currency: one(currencies, {
-    fields: [recurringExpenses.currencyId],
-    references: [currencies.id],
-  }),
-  runs: many(recurringExpenseRuns),
-}));
+export const recurringExpensesRelations = relations(
+  recurringExpenses,
+  ({ one, many }) => ({
+    tenant: one(tenants, {
+      fields: [recurringExpenses.tenantId],
+      references: [tenants.id],
+    }),
+    category: one(categories, {
+      fields: [recurringExpenses.categoryId],
+      references: [categories.id],
+    }),
+    vendor: one(suppliers, {
+      fields: [recurringExpenses.vendorId],
+      references: [suppliers.id],
+    }),
+    account: one(accounts, {
+      fields: [recurringExpenses.accountId],
+      references: [accounts.id],
+    }),
+    branch: one(branches, {
+      fields: [recurringExpenses.branchId],
+      references: [branches.id],
+    }),
+    taxAccount: one(accounts, {
+      fields: [recurringExpenses.taxAccountId],
+      references: [accounts.id],
+      relationName: "taxAccount",
+    }),
+    paymentAccount: one(accounts, {
+      fields: [recurringExpenses.paymentAccountId],
+      references: [accounts.id],
+      relationName: "paymentAccount",
+    }),
+    approver: one(users, {
+      fields: [recurringExpenses.approverId],
+      references: [users.id],
+      relationName: "approver",
+    }),
+    approvedBy: one(users, {
+      fields: [recurringExpenses.approvedById],
+      references: [users.id],
+      relationName: "approvedBy",
+    }),
+    createdBy: one(users, {
+      fields: [recurringExpenses.createdById],
+      references: [users.id],
+      relationName: "createdBy",
+    }),
+    budget: one(budgets, {
+      fields: [recurringExpenses.budgetId],
+      references: [budgets.id],
+    }),
+    department: one(departments, {
+      fields: [recurringExpenses.departmentId],
+      references: [departments.id],
+    }),
+    project: one(projects, {
+      fields: [recurringExpenses.projectId],
+      references: [projects.id],
+    }),
+    currency: one(currencies, {
+      fields: [recurringExpenses.currencyId],
+      references: [currencies.id],
+    }),
+    runs: many(recurringExpenseRuns),
+  })
+);
 
-export const recurringExpenseRunsRelations = relations(recurringExpenseRuns, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [recurringExpenseRuns.tenantId],
-    references: [tenants.id],
-  }),
-  recurringExpense: one(recurringExpenses, {
-    fields: [recurringExpenseRuns.recurringExpenseId],
-    references: [recurringExpenses.id],
-  }),
-  journalEntry: one(journalEntries, {
-    fields: [recurringExpenseRuns.journalEntryId],
-    references: [journalEntries.id],
-  }),
-  purchaseInvoice: one(purchaseInvoices, {
-    fields: [recurringExpenseRuns.purchaseInvoiceId],
-    references: [purchaseInvoices.id],
-  }),
-  paymentTransaction: one(transactions, {
-    fields: [recurringExpenseRuns.paymentTransactionId],
-    references: [transactions.id],
-  }),
-  processedBy: one(users, {
-    fields: [recurringExpenseRuns.processedById],
-    references: [users.id],
-  }),
-}));
+export const recurringExpenseRunsRelations = relations(
+  recurringExpenseRuns,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [recurringExpenseRuns.tenantId],
+      references: [tenants.id],
+    }),
+    recurringExpense: one(recurringExpenses, {
+      fields: [recurringExpenseRuns.recurringExpenseId],
+      references: [recurringExpenses.id],
+    }),
+    journalEntry: one(journalEntries, {
+      fields: [recurringExpenseRuns.journalEntryId],
+      references: [journalEntries.id],
+    }),
+    purchaseInvoice: one(purchaseInvoices, {
+      fields: [recurringExpenseRuns.purchaseInvoiceId],
+      references: [purchaseInvoices.id],
+    }),
+    paymentTransaction: one(transactions, {
+      fields: [recurringExpenseRuns.paymentTransactionId],
+      references: [transactions.id],
+    }),
+    processedBy: one(users, {
+      fields: [recurringExpenseRuns.processedById],
+      references: [users.id],
+    }),
+  })
+);
 
 // ─── Units ────────────────────────────────────────────────────────
 export const unitsRelations = relations(units, ({ one, many }) => ({
@@ -1174,48 +1198,54 @@ export const warehouseStockRelations = relations(warehouseStock, ({ one }) => ({
 }));
 
 // ─── Inventory Batches ─────────────────────────────────────────────
-export const inventoryBatchesRelations = relations(inventoryBatches, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [inventoryBatches.tenantId],
-    references: [tenants.id],
-  }),
-  product: one(products, {
-    fields: [inventoryBatches.productId],
-    references: [products.id],
-  }),
-  warehouse: one(warehouses, {
-    fields: [inventoryBatches.warehouseId],
-    references: [warehouses.id],
-  }),
-  purchaseInvoice: one(purchaseInvoices, {
-    fields: [inventoryBatches.purchaseInvoiceId],
-    references: [purchaseInvoices.id],
-  }),
-}));
+export const inventoryBatchesRelations = relations(
+  inventoryBatches,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [inventoryBatches.tenantId],
+      references: [tenants.id],
+    }),
+    product: one(products, {
+      fields: [inventoryBatches.productId],
+      references: [products.id],
+    }),
+    warehouse: one(warehouses, {
+      fields: [inventoryBatches.warehouseId],
+      references: [warehouses.id],
+    }),
+    purchaseInvoice: one(purchaseInvoices, {
+      fields: [inventoryBatches.purchaseInvoiceId],
+      references: [purchaseInvoices.id],
+    }),
+  })
+);
 
 // ─── Stock Reservations ────────────────────────────────────────────
-export const stockReservationsRelations = relations(stockReservations, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [stockReservations.tenantId],
-    references: [tenants.id],
-  }),
-  product: one(products, {
-    fields: [stockReservations.productId],
-    references: [products.id],
-  }),
-  warehouse: one(warehouses, {
-    fields: [stockReservations.warehouseId],
-    references: [warehouses.id],
-  }),
-  batch: one(inventoryBatches, {
-    fields: [stockReservations.batchId],
-    references: [inventoryBatches.id],
-  }),
-  customer: one(customers, {
-    fields: [stockReservations.customerId],
-    references: [customers.id],
-  }),
-}));
+export const stockReservationsRelations = relations(
+  stockReservations,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [stockReservations.tenantId],
+      references: [tenants.id],
+    }),
+    product: one(products, {
+      fields: [stockReservations.productId],
+      references: [products.id],
+    }),
+    warehouse: one(warehouses, {
+      fields: [stockReservations.warehouseId],
+      references: [warehouses.id],
+    }),
+    batch: one(inventoryBatches, {
+      fields: [stockReservations.batchId],
+      references: [inventoryBatches.id],
+    }),
+    customer: one(customers, {
+      fields: [stockReservations.customerId],
+      references: [customers.id],
+    }),
+  })
+);
 
 // ─── Cycle Counts ──────────────────────────────────────────────────
 export const cycleCountsRelations = relations(cycleCounts, ({ one, many }) => ({
@@ -1246,49 +1276,55 @@ export const cycleCountsRelations = relations(cycleCounts, ({ one, many }) => ({
   }),
 }));
 
-export const cycleCountLinesRelations = relations(cycleCountLines, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [cycleCountLines.tenantId],
-    references: [tenants.id],
-  }),
-  cycleCount: one(cycleCounts, {
-    fields: [cycleCountLines.cycleCountId],
-    references: [cycleCounts.id],
-  }),
-  product: one(products, {
-    fields: [cycleCountLines.productId],
-    references: [products.id],
-  }),
-  warehouse: one(warehouses, {
-    fields: [cycleCountLines.warehouseId],
-    references: [warehouses.id],
-  }),
-  batch: one(inventoryBatches, {
-    fields: [cycleCountLines.batchId],
-    references: [inventoryBatches.id],
-  }),
-  countedBy: one(users, {
-    fields: [cycleCountLines.countedById],
-    references: [users.id],
-  }),
-}));
+export const cycleCountLinesRelations = relations(
+  cycleCountLines,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [cycleCountLines.tenantId],
+      references: [tenants.id],
+    }),
+    cycleCount: one(cycleCounts, {
+      fields: [cycleCountLines.cycleCountId],
+      references: [cycleCounts.id],
+    }),
+    product: one(products, {
+      fields: [cycleCountLines.productId],
+      references: [products.id],
+    }),
+    warehouse: one(warehouses, {
+      fields: [cycleCountLines.warehouseId],
+      references: [warehouses.id],
+    }),
+    batch: one(inventoryBatches, {
+      fields: [cycleCountLines.batchId],
+      references: [inventoryBatches.id],
+    }),
+    countedBy: one(users, {
+      fields: [cycleCountLines.countedById],
+      references: [users.id],
+    }),
+  })
+);
 
 // ─── Inventory Valuation Layers ────────────────────────────────────
-export const inventoryValuationLayersRelations = relations(inventoryValuationLayers, ({ one }) => ({
-  tenant: one(tenants, {
-    fields: [inventoryValuationLayers.tenantId],
-    references: [tenants.id],
-  }),
-  product: one(products, {
-    fields: [inventoryValuationLayers.productId],
-    references: [products.id],
-  }),
-  warehouse: one(warehouses, {
-    fields: [inventoryValuationLayers.warehouseId],
-    references: [warehouses.id],
-  }),
-  batch: one(inventoryBatches, {
-    fields: [inventoryValuationLayers.batchId],
-    references: [inventoryBatches.id],
-  }),
-}));
+export const inventoryValuationLayersRelations = relations(
+  inventoryValuationLayers,
+  ({ one }) => ({
+    tenant: one(tenants, {
+      fields: [inventoryValuationLayers.tenantId],
+      references: [tenants.id],
+    }),
+    product: one(products, {
+      fields: [inventoryValuationLayers.productId],
+      references: [products.id],
+    }),
+    warehouse: one(warehouses, {
+      fields: [inventoryValuationLayers.warehouseId],
+      references: [warehouses.id],
+    }),
+    batch: one(inventoryBatches, {
+      fields: [inventoryValuationLayers.batchId],
+      references: [inventoryBatches.id],
+    }),
+  })
+);

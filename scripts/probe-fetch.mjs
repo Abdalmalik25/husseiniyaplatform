@@ -15,9 +15,10 @@ const sql = neon(process.env.DATABASE_URL || "");
 
   // cleanup
   await sql.query('DROP TABLE IF EXISTS "_probe_q1", "_probe_q2"', []);
-  const r3 = await sql`SELECT to_regclass('public."_probe_q1"') AS r1, to_regclass('public."_probe_q2"') AS r2`;
+  const r3 =
+    await sql`SELECT to_regclass('public."_probe_q1"') AS r1, to_regclass('public."_probe_q2"') AS r2`;
   console.log("after cleanup:", JSON.stringify(r3[0]));
-})().catch((e) => {
+})().catch(e => {
   console.error("ERR:", e.message);
   process.exit(1);
 });

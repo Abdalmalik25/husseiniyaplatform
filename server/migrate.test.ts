@@ -51,7 +51,9 @@ describe("classifyStatementError", () => {
   });
 
   it("classifies plain english 'already exists' as exists", () => {
-    expect(classifyStatementError(new Error("relation already exists"))).toMatchObject({
+    expect(
+      classifyStatementError(new Error("relation already exists"))
+    ).toMatchObject({
       kind: "exists",
     });
   });
@@ -69,9 +71,11 @@ describe("classifyStatementError", () => {
   });
 
   it("classifies undefined column as failed", () => {
-    expect(classifyStatementError(new Error('column "missing" does not exist (code 42703)'))).toMatchObject(
-      { kind: "failed" }
-    );
+    expect(
+      classifyStatementError(
+        new Error('column "missing" does not exist (code 42703)')
+      )
+    ).toMatchObject({ kind: "failed" });
   });
 
   it("handles non-Error inputs", () => {

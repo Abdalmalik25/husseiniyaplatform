@@ -66,10 +66,12 @@ const jobs = [
 
 Promise.all(jobs.map(([, opts]) => build(opts)))
   .then(() => {
-    jobs.forEach(([label]) => console.log(`✓ Serverless bundle built: ${label}`));
+    jobs.forEach(([label]) =>
+      console.log(`✓ Serverless bundle built: ${label}`)
+    );
     process.exit(0);
   })
-  .catch((err) => {
+  .catch(err => {
     console.error("✗ Serverless bundling failed:", err);
     process.exit(1);
   });

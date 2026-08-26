@@ -1,4 +1,14 @@
-import { eq, and, or, ilike, inArray, asc, gte, sql, isNull } from "drizzle-orm";
+import {
+  eq,
+  and,
+  or,
+  ilike,
+  inArray,
+  asc,
+  gte,
+  sql,
+  isNull,
+} from "drizzle-orm";
 import { z } from "zod";
 import {
   products,
@@ -76,7 +86,11 @@ export async function getCatalog(
     .selectDistinct({ category: products.category })
     .from(products)
     .where(
-      and(eq(products.tenantId, tenantId), eq(products.isActive, true), isNull(products.deletedAt))
+      and(
+        eq(products.tenantId, tenantId),
+        eq(products.isActive, true),
+        isNull(products.deletedAt)
+      )
     );
   return {
     items,

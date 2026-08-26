@@ -21,13 +21,21 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // UTF-8 BOM for flawless Arabic display in Microsoft Excel
 const UTF8_BOM = "\uFEFF";
 
 function downloadCsv(filename: string, content: string) {
-  const blob = new Blob([UTF8_BOM + content], { type: "text/csv;charset=utf-8;" });
+  const blob = new Blob([UTF8_BOM + content], {
+    type: "text/csv;charset=utf-8;",
+  });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.setAttribute("href", url);
@@ -40,7 +48,9 @@ function downloadCsv(filename: string, content: string) {
 
 export function DataImportExportCenter() {
   const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<"accounts" | "products" | "opening_accounts" | "opening_inventory">("accounts");
+  const [activeTab, setActiveTab] = useState<
+    "accounts" | "products" | "opening_accounts" | "opening_inventory"
+  >("accounts");
   const [csvInput, setCsvInput] = useState("");
   const [previewRows, setPreviewRows] = useState<any[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -48,20 +58,29 @@ export function DataImportExportCenter() {
   const utils = trpc.useUtils();
 
   // Queries for exporting current data
-  const { data: accountsList } = trpc.accounting.getAccounts.useQuery(undefined, { enabled: open });
-  const { data: productsList } = trpc.products.list.useQuery(undefined, { enabled: open });
+  const { data: accountsList } = trpc.accounting.getAccounts.useQuery(
+    undefined,
+    { enabled: open }
+  );
+  const { data: productsList } = trpc.products.list.useQuery(undefined, {
+    enabled: open,
+  });
 
   // Mutations
   const importProducts = trpc.products.importCsv.useMutation({
     onSuccess: (res: any) => {
-      toast.success(`تم استيراد وتحديث ${res?.inserted ?? previewRows.length} صنف/خدمة بنجاح!`);
+      toast.success(
+        `تم استيراد وتحديث ${res?.inserted ?? previewRows.length} صنف/خدمة بنجاح!`
+      );
       utils.products.list.invalidate();
       setCsvInput("");
       setPreviewRows([]);
       setIsProcessing(false);
     },
     onError: (err: any) => {
-      toast.error(err?.message || "تعذر استيراد الأصناف، يرجى مراجعة صياغة الملف");
+      toast.error(
+        err?.message || "تعذر استيراد الأصناف، يرجى مراجعة صياغة الملف"
+      );
       setIsProcessing(false);
     },
   });
@@ -69,19 +88,23 @@ export function DataImportExportCenter() {
   // ── Template Generators ──────────────────────────────────────
   const handleDownloadTemplate = () => {
     if (activeTab === "accounts") {
-      const template = "code,name,type,parentCode,notes\n101,الصندوق الرئيسي,asset,,صندوق النقدية الرئيسي\n102,البنك الأهلي - جاري,asset,,حساب البنك الرئيسي\n103,العملاء التجاريون,asset,,الذمم المدينة\n201,الموردون التجاريون,liability,,الذمم الدائنة\n301,رأس المال,equity,,حقوق الملكية\n401,إيرادات المبيعات,revenue,,المبيعات العامة\n501,تكلفة البضاعة المباعة,expense,,تكلفة المبيعات\n502,مصروفات الرواتب والأجور,expense,,المصاريف الإدارية";
+      const template =
+        "code,name,type,parentCode,notes\n101,الصندوق الرئيسي,asset,,صندوق النقدية الرئيسي\n102,البنك الأهلي - جاري,asset,,حساب البنك الرئيسي\n103,العملاء التجاريون,asset,,الذمم المدينة\n201,الموردون التجاريون,liability,,الذمم الدائنة\n301,رأس المال,equity,,حقوق الملكية\n401,إيرادات المبيعات,revenue,,المبيعات العامة\n501,تكلفة البضاعة المباعة,expense,,تكلفة المبيعات\n502,مصروفات الرواتب والأجور,expense,,المصاريف الإدارية";
       downloadCsv("قالب_دليل_الحسابات_Uamex_erp.csv", template);
       toast.success("تم تحميل قالب دليل الحسابات بنجاح");
     } else if (activeTab === "products") {
-      const template = "code,name,type,category,unit,purchasePrice,salePrice,wholesalePrice,currentStock,minStock,barcode\nITM-001,شاشة سامسونج 27 بوصة,goods,إلكترونيات,قطعة,120,160,145,15,3,880123456789\nITM-002,كابل شبكة Cat6 10m,goods,شبكات,حبة,4,8,6,50,10,880123456790\nSRV-001,استشارة ودراسة جدول كميات BOQ,service,خدمات هندسية,خدمة,0,250,200,0,0,";
+      const template =
+        "code,name,type,category,unit,purchasePrice,salePrice,wholesalePrice,currentStock,minStock,barcode\nITM-001,شاشة سامسونج 27 بوصة,goods,إلكترونيات,قطعة,120,160,145,15,3,880123456789\nITM-002,كابل شبكة Cat6 10m,goods,شبكات,حبة,4,8,6,50,10,880123456790\nSRV-001,استشارة ودراسة جدول كميات BOQ,service,خدمات هندسية,خدمة,0,250,200,0,0,";
       downloadCsv("قالب_دليل_الأصناف_والخدمات_Uamex_erp.csv", template);
       toast.success("تم تحميل قالب الأصناف والخدمات بنجاح");
     } else if (activeTab === "opening_accounts") {
-      const template = "accountCode,accountName,debit,credit,notes\n101,الصندوق الرئيسي,50000,0,رصيد أول المدة النقدي\n102,البنك الأهلي,120000,0,رصيد أول المدة البنكي\n103,العميل شركة النور,15000,0,ذمم مدينة رصيد افتتاحي\n201,المورد شركة العالمية,0,35000,ذمم دائنة رصيد افتتاحي\n301,رأس المال,0,150000,رأس المال الافتتاحي المتزن";
+      const template =
+        "accountCode,accountName,debit,credit,notes\n101,الصندوق الرئيسي,50000,0,رصيد أول المدة النقدي\n102,البنك الأهلي,120000,0,رصيد أول المدة البنكي\n103,العميل شركة النور,15000,0,ذمم مدينة رصيد افتتاحي\n201,المورد شركة العالمية,0,35000,ذمم دائنة رصيد افتتاحي\n301,رأس المال,0,150000,رأس المال الافتتاحي المتزن";
       downloadCsv("قالب_الأرصدة_الافتتاحية_للحسابات_Uamex_erp.csv", template);
       toast.success("تم تحميل قالب الأرصدة الافتتاحية بنجاح");
     } else if (activeTab === "opening_inventory") {
-      const template = "productCode,productName,warehouse,quantity,unitCost,notes\nITM-001,شاشة سامسونج 27 بوصة,MAIN,15,120,بضاعة أول المدة جرد فعلي\nITM-002,كابل شبكة Cat6 10m,MAIN,50,4,بضاعة أول المدة جرد فعلي";
+      const template =
+        "productCode,productName,warehouse,quantity,unitCost,notes\nITM-001,شاشة سامسونج 27 بوصة,MAIN,15,120,بضاعة أول المدة جرد فعلي\nITM-002,كابل شبكة Cat6 10m,MAIN,50,4,بضاعة أول المدة جرد فعلي";
       downloadCsv("قالب_أرصدة_أول_المدة_للمخزون_Uamex_erp.csv", template);
       toast.success("تم تحميل قالب مخزون أول المدة بنجاح");
     }
@@ -98,7 +121,10 @@ export function DataImportExportCenter() {
       for (const a of accountsList) {
         csv += `"${a.code}","${a.name}","${a.type}","${a.parentAccountId || ""}","${a.isCustom ? "نعم" : "لا"}"\n`;
       }
-      downloadCsv(`دليل_الحسابات_${new Date().toISOString().slice(0, 10)}.csv`, csv);
+      downloadCsv(
+        `دليل_الحسابات_${new Date().toISOString().slice(0, 10)}.csv`,
+        csv
+      );
       toast.success(`تم تصدير ${accountsList.length} حساب بنجاح`);
     } else if (activeTab === "products") {
       // products.list returns a paginated payload: { items, total }
@@ -107,11 +133,15 @@ export function DataImportExportCenter() {
         toast.error("لا توجد أصناف مسجلة للتصدير حالياً");
         return;
       }
-      let csv = "code,name,type,category,unit,purchasePrice,salePrice,wholesalePrice,currentStock,minStock,barcode\n";
+      let csv =
+        "code,name,type,category,unit,purchasePrice,salePrice,wholesalePrice,currentStock,minStock,barcode\n";
       for (const p of productList) {
         csv += `"${p.code}","${p.name}","${p.type || "goods"}","${p.category || ""}","${p.unit || "قطعة"}","${p.purchasePrice || 0}","${p.salePrice || 0}","${p.wholesalePrice || 0}","${p.currentStock || 0}","${p.minStock || 0}","${p.barcode || ""}"\n`;
       }
-      downloadCsv(`دليل_الأصناف_والمنتجات_${new Date().toISOString().slice(0, 10)}.csv`, csv);
+      downloadCsv(
+        `دليل_الأصناف_والمنتجات_${new Date().toISOString().slice(0, 10)}.csv`,
+        csv
+      );
       toast.success(`تم تصدير ${productList.length} صنف/خدمة بنجاح`);
     } else {
       handleDownloadTemplate();
@@ -123,7 +153,7 @@ export function DataImportExportCenter() {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = event => {
       const text = event.target?.result as string;
       if (text) {
         setCsvInput(text);
@@ -136,15 +166,15 @@ export function DataImportExportCenter() {
   const parseAndPreview = (rawText: string) => {
     try {
       const clean = rawText.replace(/^\uFEFF/, "").trim();
-      const lines = clean.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      const lines = clean.split(/\r?\n/).filter(l => l.trim().length > 0);
       if (lines.length <= 1) {
         toast.error("الملف لا يحتوي على بيانات كافية");
         return;
       }
-      const headers = lines[0].split(",").map((h) => h.replace(/"/g, "").trim());
+      const headers = lines[0].split(",").map(h => h.replace(/"/g, "").trim());
       const rows: any[] = [];
       for (let i = 1; i < lines.length; i++) {
-        const cols = lines[i].split(",").map((c) => c.replace(/"/g, "").trim());
+        const cols = lines[i].split(",").map(c => c.replace(/"/g, "").trim());
         if (cols.length >= 2) {
           const rowObj: any = {};
           headers.forEach((h, idx) => {
@@ -170,7 +200,9 @@ export function DataImportExportCenter() {
       const formattedRows = previewRows.map((r, idx) => ({
         code: r.code || `ITM-${idx + 1}`,
         name: r.name || "صنف بدون اسم",
-        type: (r.type === "service" ? "service" : "goods") as "goods" | "service",
+        type: (r.type === "service" ? "service" : "goods") as
+          | "goods"
+          | "service",
         category: r.category || undefined,
         unit: r.unit || "قطعة",
         purchasePrice: String(r.purchasePrice || "0"),
@@ -185,7 +217,9 @@ export function DataImportExportCenter() {
       // Simulate successful account / balance import with real toast confirmation
       setTimeout(() => {
         setIsProcessing(false);
-        toast.success(`تمت معالجة وتدقيق ${previewRows.length} سجل بنجاح في المنظومة!`);
+        toast.success(
+          `تمت معالجة وتدقيق ${previewRows.length} سجل بنجاح في المنظومة!`
+        );
         setCsvInput("");
         setPreviewRows([]);
         setOpen(false);
@@ -205,7 +239,10 @@ export function DataImportExportCenter() {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto font-display" dir="rtl">
+      <DialogContent
+        className="max-w-3xl max-h-[90vh] overflow-y-auto font-display"
+        dir="rtl"
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base font-black">
             <FileSpreadsheet className="w-5 h-5 text-brand" />
@@ -217,26 +254,38 @@ export function DataImportExportCenter() {
           {/* Tabs Selector */}
           <Tabs
             value={activeTab}
-            onValueChange={(v) => {
+            onValueChange={v => {
               setActiveTab(v as any);
               setCsvInput("");
               setPreviewRows([]);
             }}
           >
             <TabsList className="grid grid-cols-2 sm:grid-cols-4 bg-muted p-1 rounded-xl h-auto">
-              <TabsTrigger value="accounts" className="text-xs font-bold py-2 gap-1.5">
+              <TabsTrigger
+                value="accounts"
+                className="text-xs font-bold py-2 gap-1.5"
+              >
                 <Layers className="w-3.5 h-3.5" />
                 دليل الحسابات
               </TabsTrigger>
-              <TabsTrigger value="products" className="text-xs font-bold py-2 gap-1.5">
+              <TabsTrigger
+                value="products"
+                className="text-xs font-bold py-2 gap-1.5"
+              >
                 <Boxes className="w-3.5 h-3.5" />
                 الأصناف والخدمات
               </TabsTrigger>
-              <TabsTrigger value="opening_accounts" className="text-xs font-bold py-2 gap-1.5">
+              <TabsTrigger
+                value="opening_accounts"
+                className="text-xs font-bold py-2 gap-1.5"
+              >
                 <Coins className="w-3.5 h-3.5" />
                 الأرصدة الافتتاحية
               </TabsTrigger>
-              <TabsTrigger value="opening_inventory" className="text-xs font-bold py-2 gap-1.5">
+              <TabsTrigger
+                value="opening_inventory"
+                className="text-xs font-bold py-2 gap-1.5"
+              >
                 <Warehouse className="w-3.5 h-3.5" />
                 مخزون أول المدة
               </TabsTrigger>
@@ -251,7 +300,8 @@ export function DataImportExportCenter() {
                 تحميل القوالب والتصدير:
               </div>
               <p className="text-[11px] text-muted-foreground">
-                احصل على النموذج الجاهز لتعبئة بياناتك، أو صدّر بياناتك الحالية فورياً:
+                احصل على النموذج الجاهز لتعبئة بياناتك، أو صدّر بياناتك الحالية
+                فورياً:
               </p>
               <div className="flex gap-2 pt-1">
                 <Button
@@ -303,7 +353,7 @@ export function DataImportExportCenter() {
             </div>
             <Textarea
               value={csvInput}
-              onChange={(e) => {
+              onChange={e => {
                 setCsvInput(e.target.value);
                 if (e.target.value.trim()) parseAndPreview(e.target.value);
               }}
@@ -324,8 +374,11 @@ export function DataImportExportCenter() {
                 <table className="w-full text-right text-[11px] border-collapse">
                   <thead className="bg-muted/70 text-muted-foreground sticky top-0">
                     <tr>
-                      {Object.keys(previewRows[0]).map((k) => (
-                        <th key={k} className="p-2 border-b border-border font-bold">
+                      {Object.keys(previewRows[0]).map(k => (
+                        <th
+                          key={k}
+                          className="p-2 border-b border-border font-bold"
+                        >
                           {k}
                         </th>
                       ))}
@@ -333,7 +386,10 @@ export function DataImportExportCenter() {
                   </thead>
                   <tbody>
                     {previewRows.slice(0, 5).map((row, idx) => (
-                      <tr key={idx} className="border-b border-border/50 hover:bg-muted/30">
+                      <tr
+                        key={idx}
+                        className="border-b border-border/50 hover:bg-muted/30"
+                      >
                         {Object.values(row).map((val: any, cidx) => (
                           <td key={cidx} className="p-2 truncate max-w-[150px]">
                             {String(val)}
@@ -362,7 +418,11 @@ export function DataImportExportCenter() {
               className="bg-brand hover:bg-brand-deep text-ink font-black text-xs h-10 px-6 rounded-xl gap-2 shadow-lg"
             >
               <Upload className="w-4 h-4" />
-              <span>{isProcessing ? "جاري الاستيراد..." : "تأكيد واستيراد البيانات للمنظومة"}</span>
+              <span>
+                {isProcessing
+                  ? "جاري الاستيراد..."
+                  : "تأكيد واستيراد البيانات للمنظومة"}
+              </span>
             </Button>
           </div>
         </div>

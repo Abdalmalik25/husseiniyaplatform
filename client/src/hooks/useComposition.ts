@@ -37,10 +37,8 @@ export interface UseCompositionOptions<
   preventDefault?: boolean;
 }
 
-export function useComposition<
-  T extends SupportedElement = HTMLInputElement,
->(
-  options: UseCompositionOptions<T> = {},
+export function useComposition<T extends SupportedElement = HTMLInputElement>(
+  options: UseCompositionOptions<T> = {}
 ): UseCompositionReturn<T> {
   const {
     onKeyDown: originalOnKeyDown,
@@ -79,9 +77,7 @@ export function useComposition<
    * depend on callback identity.
    */
   const onKeyDownCallback = usePersistFn(originalOnKeyDown);
-  const onCompositionStartCallback = usePersistFn(
-    originalOnCompositionStart,
-  );
+  const onCompositionStartCallback = usePersistFn(originalOnCompositionStart);
   const onCompositionEndCallback = usePersistFn(originalOnCompositionEnd);
 
   /**
@@ -110,91 +106,86 @@ export function useComposition<
       pendingCompositionEndRef.current = false;
 
       onCompositionStartCallback?.(event);
-    },
+    }
   );
 
-  const onCompositionEnd = usePersistFn(
-    (event: React.CompositionEvent<T>) => {
-      /**
-       * Do not immediately consider the IME cycle completely finished.
-       *
-       * Safari may emit:
-       *
-       * compositionend
-       * keydown(Enter)
-       *
-       * while Chromium/Firefox commonly emit the events in the opposite
-       * order.
-       */
-      composingRef.current = false;
-      pendingCompositionEndRef.current = true;
+  const onCompositionEnd = usePersistFn((event: React.CompositionEvent<T>) => {
+    /**
+     * Do not immediately consider the IME cycle completely finished.
+     *
+     * Safari may emit:
+     *
+     * compositionend
+     * keydown(Enter)
+     *
+     * while Chromium/Firefox commonly emit the events in the opposite
+     * order.
+     */
+    composingRef.current = false;
+    pendingCompositionEndRef.current = true;
 
-      onCompositionEndCallback?.(event);
+    onCompositionEndCallback?.(event);
 
-      if (cleanupTimerRef.current !== null) {
-        clearTimeout(cleanupTimerRef.current);
-      }
+    if (cleanupTimerRef.current !== null) {
+      clearTimeout(cleanupTimerRef.current);
+    }
 
-      /**
-       * One macrotask is enough to bridge Safari's event ordering
-       * without the previous nested setTimeout approach.
-       */
-      cleanupTimerRef.current = setTimeout(() => {
-        pendingCompositionEndRef.current = false;
-        cleanupTimerRef.current = null;
-      }, 0);
-    },
-  );
+    /**
+     * One macrotask is enough to bridge Safari's event ordering
+     * without the previous nested setTimeout approach.
+     */
+    cleanupTimerRef.current = setTimeout(() => {
+      pendingCompositionEndRef.current = false;
+      cleanupTimerRef.current = null;
+    }, 0);
+  });
 
-  const onKeyDown = usePersistFn(
-    (event: React.KeyboardEvent<T>) => {
-      const nativeEvent = event.nativeEvent as KeyboardEvent;
+  const onKeyDown = usePersistFn((event: React.KeyboardEvent<T>) => {
+    const nativeEvent = event.nativeEvent as KeyboardEvent;
 
-      /**
-       * Prefer the browser's native IME signal whenever available.
-       *
-       * React's `nativeEvent.isComposing` maps to the browser's
-       * KeyboardEvent.isComposing.
-       */
-      const nativeIsComposing = nativeEvent.isComposing === true;
+    /**
+     * Prefer the browser's native IME signal whenever available.
+     *
+     * React's `nativeEvent.isComposing` maps to the browser's
+     * KeyboardEvent.isComposing.
+     */
+    const nativeIsComposing = nativeEvent.isComposing === true;
 
-      const composing =
-        composingRef.current ||
-        nativeIsComposing ||
-        pendingCompositionEndRef.current;
+    const composing =
+      composingRef.current ||
+      nativeIsComposing ||
+      pendingCompositionEndRef.current;
 
-      if (composing) {
-        const isEscape =
-          event.key === "Escape" &&
-          blockKeysRef.current.includes("Escape");
+    if (composing) {
+      const isEscape =
+        event.key === "Escape" && blockKeysRef.current.includes("Escape");
 
-        const isEnter =
-          event.key === "Enter" &&
-          !event.shiftKey &&
-          blockKeysRef.current.includes("Enter");
+      const isEnter =
+        event.key === "Enter" &&
+        !event.shiftKey &&
+        blockKeysRef.current.includes("Enter");
 
-        if (isEscape || isEnter) {
-          /**
-           * Prevent parent handlers such as:
-           *
-           * - form submit
-           * - modal close
-           * - command execution
-           * - chat send
-           */
-          event.stopPropagation();
+      if (isEscape || isEnter) {
+        /**
+         * Prevent parent handlers such as:
+         *
+         * - form submit
+         * - modal close
+         * - command execution
+         * - chat send
+         */
+        event.stopPropagation();
 
-          if (preventDefault) {
-            event.preventDefault();
-          }
-
-          return;
+        if (preventDefault) {
+          event.preventDefault();
         }
-      }
 
-      onKeyDownCallback?.(event);
-    },
-  );
+        return;
+      }
+    }
+
+    onKeyDownCallback?.(event);
+  });
 
   const isComposing = usePersistFn(() => {
     return composingRef.current;

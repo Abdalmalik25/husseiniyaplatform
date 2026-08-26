@@ -3,13 +3,7 @@ import { useLocation } from "wouter";
 import { AppSidebar } from "@/components/AppSidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { trpc } from "@/lib/trpc";
-import {
-  Users,
-  FolderKanban,
-  Truck,
-  Headset,
-  ShieldCheck,
-} from "lucide-react";
+import { Users, FolderKanban, Truck, Headset, ShieldCheck } from "lucide-react";
 
 /**
  * ErpPage — lightweight module hub.
@@ -46,11 +40,41 @@ const DIRECTORY: {
   icon: React.ElementType;
   route: string;
 }[] = [
-  { key: "hr", label: "الموارد البشرية", desc: "الموظفون والحضور والغياب", icon: Users, route: "/hr" },
-  { key: "projects", label: "المشاريع", desc: "المشاريع والمهام", icon: FolderKanban, route: "/projects" },
-  { key: "procurement", label: "المشتريات", desc: "الموردون وفواتير الشراء", icon: Truck, route: "/procurement" },
-  { key: "support", label: "الدعم والجودة", desc: "التذاكر وعمليات التفتيش", icon: Headset, route: "/support" },
-  { key: "quality", label: "الجودة", desc: "فحوص الجودة", icon: ShieldCheck, route: "/support" },
+  {
+    key: "hr",
+    label: "الموارد البشرية",
+    desc: "الموظفون والحضور والغياب",
+    icon: Users,
+    route: "/hr",
+  },
+  {
+    key: "projects",
+    label: "المشاريع",
+    desc: "المشاريع والمهام",
+    icon: FolderKanban,
+    route: "/projects",
+  },
+  {
+    key: "procurement",
+    label: "المشتريات",
+    desc: "الموردون وفواتير الشراء",
+    icon: Truck,
+    route: "/procurement",
+  },
+  {
+    key: "support",
+    label: "الدعم والجودة",
+    desc: "التذاكر وعمليات التفتيش",
+    icon: Headset,
+    route: "/support",
+  },
+  {
+    key: "quality",
+    label: "الجودة",
+    desc: "فحوص الجودة",
+    icon: ShieldCheck,
+    route: "/support",
+  },
 ];
 
 export default function ErpPage() {
@@ -82,16 +106,41 @@ export default function ErpPage() {
 
         {dash.data && (
           <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <StatCard label="الموظفون" value={dash.data.employees} tone="info" icon={Users} />
-            <StatCard label="مشاريع نشطة" value={dash.data.activeProjects} tone="positive" icon={FolderKanban} />
-            <StatCard label="تذاكر مفتوحة" value={dash.data.openTickets} tone="warning" icon={Headset} />
-            <StatCard label="طلبات معلّقة" value={dash.data.pendingRequisitions} tone="info" icon={Truck} />
-            <StatCard label="فحوص جودة" value={dash.data.inspections} tone="positive" icon={ShieldCheck} />
+            <StatCard
+              label="الموظفون"
+              value={dash.data.employees}
+              tone="info"
+              icon={Users}
+            />
+            <StatCard
+              label="مشاريع نشطة"
+              value={dash.data.activeProjects}
+              tone="positive"
+              icon={FolderKanban}
+            />
+            <StatCard
+              label="تذاكر مفتوحة"
+              value={dash.data.openTickets}
+              tone="warning"
+              icon={Headset}
+            />
+            <StatCard
+              label="طلبات معلّقة"
+              value={dash.data.pendingRequisitions}
+              tone="info"
+              icon={Truck}
+            />
+            <StatCard
+              label="فحوص جودة"
+              value={dash.data.inspections}
+              tone="positive"
+              icon={ShieldCheck}
+            />
           </div>
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {DIRECTORY.map((m) => {
+          {DIRECTORY.map(m => {
             const Icon = m.icon;
             return (
               <button

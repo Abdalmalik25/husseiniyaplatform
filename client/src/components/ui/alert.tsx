@@ -26,11 +26,7 @@ const alertVariants = cva(
   {
     variants: {
       variant: {
-        default: [
-          "border-border",
-          "bg-card",
-          "text-card-foreground",
-        ].join(" "),
+        default: ["border-border", "bg-card", "text-card-foreground"].join(" "),
 
         destructive: [
           "border-destructive/30",
@@ -45,34 +41,24 @@ const alertVariants = cva(
     defaultVariants: {
       variant: "default",
     },
-  },
+  }
 );
 
 type AlertProps = React.ComponentProps<"div"> &
   VariantProps<typeof alertVariants>;
 
-function Alert({
-  className,
-  variant,
-  ...props
-}: AlertProps) {
+function Alert({ className, variant, ...props }: AlertProps) {
   return (
     <div
       data-slot="alert"
       role="alert"
-      className={cn(
-        alertVariants({ variant }),
-        className,
-      )}
+      className={cn(alertVariants({ variant }), className)}
       {...props}
     />
   );
 }
 
-function AlertTitle({
-  className,
-  ...props
-}: React.ComponentProps<"div">) {
+function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="alert-title"
@@ -80,7 +66,7 @@ function AlertTitle({
         "col-start-2 min-h-4",
         "font-medium tracking-tight",
         "leading-tight",
-        className,
+        className
       )}
       {...props}
     />
@@ -100,20 +86,13 @@ function AlertDescription({
         "text-sm leading-relaxed",
         "text-muted-foreground",
         "[&_p]:leading-relaxed",
-        className,
+        className
       )}
       {...props}
     />
   );
 }
 
-export {
-  Alert,
-  AlertTitle,
-  AlertDescription,
-  alertVariants,
-};
+export { Alert, AlertTitle, AlertDescription, alertVariants };
 
-export type {
-  AlertProps,
-};
+export type { AlertProps };

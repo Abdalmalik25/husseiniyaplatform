@@ -126,7 +126,8 @@ export function useAuth(options?: UseAuthOptions) {
     const { pathname } = window.location;
     // Already on (or under) the login page → prevents redirect loops and
     // StrictMode double-navigation from re-triggering a full page load.
-    if (pathname === LOGIN_PATH || pathname.startsWith(`${LOGIN_PATH}/`)) return;
+    if (pathname === LOGIN_PATH || pathname.startsWith(`${LOGIN_PATH}/`))
+      return;
 
     if (redirectPath) {
       if (pathname === redirectPath) return;
@@ -158,4 +159,3 @@ export function useAuth(options?: UseAuthOptions) {
     logout,
   };
 }
-

@@ -47,7 +47,11 @@ export function installGlobalErrorCapture(): void {
   };
 
   window.addEventListener("error", ev =>
-    capture("error", ev.error ?? ev.message, ev.filename ? `${ev.filename}:${ev.lineno}` : undefined)
+    capture(
+      "error",
+      ev.error ?? ev.message,
+      ev.filename ? `${ev.filename}:${ev.lineno}` : undefined
+    )
   );
   window.addEventListener("unhandledrejection", ev =>
     capture("unhandledrejection", ev.reason)

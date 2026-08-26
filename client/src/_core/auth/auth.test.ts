@@ -3,7 +3,11 @@ import {
   RUNTIME_USER_INFO_STORAGE_KEY,
   SESSION_MIRROR_STORAGE_KEY,
 } from "./auth.constants";
-import { clearSessionTokenMirror, sanitizeRedirectPath, writeRuntimeUserInfo } from "./index";
+import {
+  clearSessionTokenMirror,
+  sanitizeRedirectPath,
+  writeRuntimeUserInfo,
+} from "./index";
 
 // ---------------------------------------------------------------------------
 // Minimal Storage stub — the vitest environment is `node`, so window storage

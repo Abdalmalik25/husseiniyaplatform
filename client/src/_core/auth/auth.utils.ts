@@ -13,7 +13,11 @@
  * but no route in this app contains a colon.
  */
 export function sanitizeRedirectPath(path: string): string | null {
-  if (!path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) {
+  if (
+    !path.startsWith("/") ||
+    path.startsWith("//") ||
+    path.startsWith("/\\")
+  ) {
     return null;
   }
   // Control characters can be used to smuggle alternate URLs in some clients.

@@ -31,7 +31,8 @@ export default function TechSolutions() {
         "بنية سحابية قابلة للتوسع (Serverless / Microservices) بأعلى درجات الأمان.",
         "لوحات تحكم تفاعلية مع تحكم كامل في الصلاحيات المتعددة.",
       ],
-      whatsappMsg: "السلام عليكم، أود استشارة حول تطوير تطبيق / منصة ويب مخصصة لشركتنا.",
+      whatsappMsg:
+        "السلام عليكم، أود استشارة حول تطوير تطبيق / منصة ويب مخصصة لشركتنا.",
     },
     {
       icon: Zap,
@@ -46,7 +47,8 @@ export default function TechSolutions() {
         "أتمتة رسائل التنبيهات والإشعارات عبر الواتساب والبريد الإلكتروني والـ SMS.",
         "بناء واجهات برمجة التطبيقات (REST / GraphQL APIs) للربط مع الشركاء.",
       ],
-      whatsappMsg: "السلام عليكم، أود استشارة حول أتمتة العمليات وربط الأنظمة في مؤسستنا.",
+      whatsappMsg:
+        "السلام عليكم، أود استشارة حول أتمتة العمليات وربط الأنظمة في مؤسستنا.",
     },
     {
       icon: BarChart3,
@@ -61,7 +63,8 @@ export default function TechSolutions() {
         "مؤشرات أداء الفرق والمبيعات مع تنبيهات عند انخفاض الأداء عن المستهدف.",
         "تقارير تنبؤية للتدفقات النقدية والالتزامات المستقبلية.",
       ],
-      whatsappMsg: "السلام عليكم، أود استشارة حول بناء لوحات تحكم ومؤشرات أداء BI للإدارة.",
+      whatsappMsg:
+        "السلام عليكم، أود استشارة حول بناء لوحات تحكم ومؤشرات أداء BI للإدارة.",
     },
     {
       icon: ShieldCheck,
@@ -76,7 +79,8 @@ export default function TechSolutions() {
         "تقييم الثغرات واختبارات الاختراق لحماية خوادم وشبكات المؤسسة.",
         "خطة استمرارية الأعمال والتعافي من الكوارث (Disaster Recovery).",
       ],
-      whatsappMsg: "السلام عليكم، أود استشارة حول أمان البيانات والنسخ الاحتياطي السحابي.",
+      whatsappMsg:
+        "السلام عليكم، أود استشارة حول أمان البيانات والنسخ الاحتياطي السحابي.",
     },
   ];
 
@@ -104,7 +108,10 @@ export default function TechSolutions() {
           </div>
           <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight text-balance">
             أنظمة مخصصة، تطبيقات ذكية،
-            <span className="block gradient-text-white"> وأتمتة شاملة لعملياتك</span>
+            <span className="block gradient-text-white">
+              {" "}
+              وأتمتة شاملة لعملياتك
+            </span>
           </h1>
           <p className="max-w-2xl mx-auto text-base text-white/65 leading-relaxed font-light">
             نبني حلولاً تقنية رفيعة المستوى تخدم خصوصية أعمالك، ترتبط بسلاسة مع

@@ -637,7 +637,8 @@ function InvoicesPanel({
   suppliers: any[];
   utils: any;
 }) {
-  const supplierName = (id?: number | null) => suppliers.find(s => s.id === id)?.name ?? "بدون مورد";
+  const supplierName = (id?: number | null) =>
+    suppliers.find(s => s.id === id)?.name ?? "بدون مورد";
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);

@@ -100,9 +100,7 @@ function ChartCard({
         </div>
         <div>
           <h3 className="text-sm font-bold text-foreground">{title}</h3>
-          {hint && (
-            <p className="text-[10px] text-muted-foreground">{hint}</p>
-          )}
+          {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
         </div>
       </div>
       <div className="flex-1 min-h-[240px]" dir="ltr">
@@ -132,7 +130,7 @@ export default function Analytics() {
 
   const chartData = useMemo(
     () =>
-      (data?.months ?? []).map((m) => ({
+      (data?.months ?? []).map(m => ({
         ...m,
         label: fmtMonth(m.month),
       })),
@@ -140,7 +138,7 @@ export default function Analytics() {
   );
 
   const [timeFilter, setTimeFilter] = useState<TimeFilterOption>(
-    TIME_FILTERS.find((f) => f.value === "12m") || TIME_FILTERS[0]
+    TIME_FILTERS.find(f => f.value === "12m") || TIME_FILTERS[0]
   );
 
   const filteredData = useMemo(() => {
@@ -151,18 +149,18 @@ export default function Analytics() {
     if (timeFilter.value === "ytd") {
       const now = new Date();
       return chartData.filter(
-        (m) => new Date(m.month + "-01") <= new Date(now.getFullYear(), now.getMonth() + 1, 0)
+        m =>
+          new Date(m.month + "-01") <=
+          new Date(now.getFullYear(), now.getMonth() + 1, 0)
       );
     }
     if (timeFilter.value === "fy") {
       // Financial year starting October
-      return chartData.filter(
-        (m) => {
-          const [y, mo] = m.month.split("-");
-          const month = Number(mo);
-          return month >= 10 || month <= 3; // Oct-Mar spans two fiscal years
-        }
-      );
+      return chartData.filter(m => {
+        const [y, mo] = m.month.split("-");
+        const month = Number(mo);
+        return month >= 10 || month <= 3; // Oct-Mar spans two fiscal years
+      });
     }
     return chartData;
   }, [chartData, timeFilter.value]);
@@ -198,16 +196,18 @@ export default function Analytics() {
           </p>
         </header>
 
-<section className="mb-6">
+        <section className="mb-6">
           <div className="flex flex-col sm:flex-row gap-2 mb-4">
-            {TIME_FILTERS.map((filter) => (
+            {TIME_FILTERS.map(filter => (
               <button
                 key={filter.value}
                 onClick={() => setTimeFilter(filter)}
                 className={`
-                  ${timeFilter.value === filter.value 
-                    ? "bg-brand text-white font-medium rounded-lg px-4 py-2"
-                    : "text-gray-300 hover:bg-gray-700 hover:text-white px-4 py-2"}
+                  ${
+                    timeFilter.value === filter.value
+                      ? "bg-brand text-white font-medium rounded-lg px-4 py-2"
+                      : "text-gray-300 hover:bg-gray-700 hover:text-white px-4 py-2"
+                  }
                   rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand
                 `}
                 type="button"
@@ -216,7 +216,7 @@ export default function Analytics() {
               </button>
             ))}
             <span className="text-sm text-gray-400">
-             period: {timeFilter.label}
+              period: {timeFilter.label}
             </span>
           </div>
         </section>
@@ -256,7 +256,11 @@ export default function Analytics() {
                   {summary.revenue > 0 && (
                     <StatCard
                       label="هامش الربح"
-                      value={summary.totalProfit > 0 ? `${((summary.totalProfit / summary.totalRevenue) * 100).toFixed(1)}%` : "0%"}
+                      value={
+                        summary.totalProfit > 0
+                          ? `${((summary.totalProfit / summary.totalRevenue) * 100).toFixed(1)}%`
+                          : "0%"
+                      }
                       tone="warning"
                       icon={Eye}
                       hint="نسبة الربح إلى الإيرادات"
@@ -265,7 +269,11 @@ export default function Analytics() {
                   {summary.totalExpense > 0 && (
                     <StatCard
                       label="كفاءة المصاريف"
-                      value={summary.totalProfit >= 0 ? `${((summary.totalRevenue - summary.totalExpense) / summary.totalExpense * 100).toFixed(1)}%` : "–"}
+                      value={
+                        summary.totalProfit >= 0
+                          ? `${(((summary.totalRevenue - summary.totalExpense) / summary.totalExpense) * 100).toFixed(1)}%`
+                          : "–"
+                      }
                       tone="info"
                       icon={Sparkles}
                       hint="كفاءة تشغيل المصاريف"
@@ -287,7 +295,10 @@ export default function Analytics() {
                 icon={TrendingUp}
                 hint="آخر 12 شهراً (شهري)"
               >
-                <LineChart data={filteredData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                <LineChart
+                  data={filteredData}
+                  margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8e8" />
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} width={48} />
@@ -315,8 +326,15 @@ export default function Analytics() {
                 </LineChart>
               </ChartCard>
 
-              <ChartCard title="صافي الربح الشهري" icon={Wallet} hint="ربح كل شهر">
-                <BarChart data={filteredData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+              <ChartCard
+                title="صافي الربح الشهري"
+                icon={Wallet}
+                hint="ربح كل شهر"
+              >
+                <BarChart
+                  data={filteredData}
+                  margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8e8" />
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} width={48} />
@@ -324,7 +342,12 @@ export default function Analytics() {
                     formatter={(v: any) => fmt(Number(v))}
                     contentStyle={{ direction: "rtl", fontSize: 12 }}
                   />
-                  <Bar dataKey="profit" name="صافي الربح" fill="#0e2a2b" radius={[6, 6, 0, 0]} />
+                  <Bar
+                    dataKey="profit"
+                    name="صافي الربح"
+                    fill="#0e2a2b"
+                    radius={[6, 6, 0, 0]}
+                  />
                 </BarChart>
               </ChartCard>
 
@@ -338,7 +361,11 @@ export default function Analytics() {
                   layout="vertical"
                   margin={{ top: 10, right: 24, left: 16, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8e8" horizontal={false} />
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="#e2e8e8"
+                    horizontal={false}
+                  />
                   <XAxis type="number" tick={{ fontSize: 10 }} />
                   <YAxis
                     type="category"
@@ -350,7 +377,12 @@ export default function Analytics() {
                     formatter={(v: any) => fmt(Number(v))}
                     contentStyle={{ direction: "rtl", fontSize: 12 }}
                   />
-                  <Bar dataKey="total" name="المبيعات" fill="#b87945" radius={[0, 6, 6, 0]} />
+                  <Bar
+                    dataKey="total"
+                    name="المبيعات"
+                    fill="#b87945"
+                    radius={[0, 6, 6, 0]}
+                  />
                 </BarChart>
               </ChartCard>
 
@@ -369,9 +401,14 @@ export default function Analytics() {
                     outerRadius={80}
                     label={(e: any) => e.branch}
                   >
-                    {(data?.salesByBranch ?? []).map((_: unknown, i: number) => (
-                      <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
-                    ))}
+                    {(data?.salesByBranch ?? []).map(
+                      (_: unknown, i: number) => (
+                        <Cell
+                          key={i}
+                          fill={PIE_COLORS[i % PIE_COLORS.length]}
+                        />
+                      )
+                    )}
                   </Pie>
                   <Tooltip
                     formatter={(v: any) => fmt(Number(v))}
@@ -386,7 +423,10 @@ export default function Analytics() {
                 icon={TrendingUp}
                 hint="الشهري بالمقارنة بالسابق"
               >
-                <FunnelChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                <FunnelChart
+                  data={chartData}
+                  margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8e8" />
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} width={48} />
@@ -410,7 +450,10 @@ export default function Analytics() {
                 icon={Activity}
                 hint="صافي الربح المتراكم"
               >
-                <AreaChart data={chartData} margin={{ top: 10, right: 16, left: 0, bottom: 0 }}>
+                <AreaChart
+                  data={chartData}
+                  margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
+                >
                   <defs>
                     <linearGradient id="cf" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#1f7a6d" stopOpacity={0.5} />
@@ -451,10 +494,18 @@ type SelectValueProps = {
   onValueChange: (v: SelectOption | null) => void;
   className?: string;
 };
-function Select({ options, value, onValueChange, className }: SelectValueProps) {
+function Select({
+  options,
+  value,
+  onValueChange,
+  className,
+}: SelectValueProps) {
   return (
     <div
-      className={className || "relative inline-flex items-center rounded-md border border-gray-700 padding-2"}
+      className={
+        className ||
+        "relative inline-flex items-center rounded-md border border-gray-700 padding-2"
+      }
     >
       <span className="select-text select-none text-white mr-2">
         {value?.label || "حدد الفترة"}
@@ -469,19 +520,37 @@ function Select({ options, value, onValueChange, className }: SelectValueProps) 
     </div>
   );
 }
-function SelectTrigger({ children, className }: { children: any; className?: string }) {
-  return <div className={className || "absolute right-0 top-full z-10 bg-white rounded-border shadow-md border border-gray-300"}>{children}</div>;
-}
-function SelectContent({ children }: { children: any }) {
+function SelectTrigger({
+  children,
+  className,
+}: {
+  children: any;
+  className?: string;
+}) {
   return (
     <div
-      className="max-h-60 overflow-y-auto rounded-border border border-gray-300 bg-white shadow-md"
+      className={
+        className ||
+        "absolute right-0 top-full z-10 bg-white rounded-border shadow-md border border-gray-300"
+      }
     >
       {children}
     </div>
   );
 }
-function SelectItem({ value, children, onSelect, className }: {
+function SelectContent({ children }: { children: any }) {
+  return (
+    <div className="max-h-60 overflow-y-auto rounded-border border border-gray-300 bg-white shadow-md">
+      {children}
+    </div>
+  );
+}
+function SelectItem({
+  value,
+  children,
+  onSelect,
+  className,
+}: {
   value: string;
   children: React.ReactNode;
   onSelect: () => void;
@@ -490,7 +559,10 @@ function SelectItem({ value, children, onSelect, className }: {
   return (
     <button
       onClick={onSelect}
-      className={className || "select-item block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"}
+      className={
+        className ||
+        "select-item block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 cursor-pointer"
+      }
     >
       {children}
     </button>

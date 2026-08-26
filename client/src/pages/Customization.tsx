@@ -98,7 +98,8 @@ export default function Customization() {
                 التخصيص والحقول الإضافية
               </h1>
               <p className="text-sm text-slate-500">
-                أضف حقولاً مخصصة لأي كيان تشغيلي دون تعديل هياكل النظام — مرونة وتخصيص بحسب نشاطكم
+                أضف حقولاً مخصصة لأي كيان تشغيلي دون تعديل هياكل النظام — مرونة
+                وتخصيص بحسب نشاطكم
               </p>
             </div>
           </div>
@@ -115,9 +116,9 @@ export default function Customization() {
                 <select
                   className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[13px]"
                   value={entityType}
-                  onChange={(e) => setEntityType(e.target.value)}
+                  onChange={e => setEntityType(e.target.value)}
                 >
-                  {ENTITY_TYPES.map((e) => (
+                  {ENTITY_TYPES.map(e => (
                     <option key={e.value} value={e.value}>
                       {e.label}
                     </option>
@@ -126,7 +127,9 @@ export default function Customization() {
 
                 <div className="mt-2 space-y-2">
                   {isPending ? (
-                    <p className="text-[12px] text-slate-400">جاري التحميل...</p>
+                    <p className="text-[12px] text-slate-400">
+                      جاري التحميل...
+                    </p>
                   ) : (defs ?? []).length === 0 ? (
                     <p className="text-[12px] text-slate-400">
                       لا توجد حقول مخصصة لهذا الكيان بعد.
@@ -142,7 +145,8 @@ export default function Customization() {
                             {d.label}
                           </div>
                           <div className="text-[11px] text-slate-400">
-                            {d.key} · {FIELD_TYPES.find((t) => t.value === d.type)?.label}
+                            {d.key} ·{" "}
+                            {FIELD_TYPES.find(t => t.value === d.type)?.label}
                             {d.required ? " · إلزامي" : ""}
                             {d.isActive ? "" : " · معطّل"}
                           </div>
@@ -162,25 +166,27 @@ export default function Customization() {
           <div className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-2">
-                <h3 className="text-sm font-bold text-slate-700">إضافة حقل جديد</h3>
+                <h3 className="text-sm font-bold text-slate-700">
+                  إضافة حقل جديد
+                </h3>
                 <Input
                   className="h-9 text-[12px]"
                   placeholder="اسم الحقل (مثل: رقم الرخصة)"
                   value={label}
-                  onChange={(e) => setLabel(e.target.value)}
+                  onChange={e => setLabel(e.target.value)}
                 />
                 <Input
                   className="h-9 text-[12px]"
                   placeholder="المفتاح (اختياري - يُولّد تلقائياً)"
                   value={key}
-                  onChange={(e) => setKey(e.target.value)}
+                  onChange={e => setKey(e.target.value)}
                 />
                 <select
                   className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px]"
                   value={type}
-                  onChange={(e) => setType(e.target.value)}
+                  onChange={e => setType(e.target.value)}
                 >
-                  {FIELD_TYPES.map((t) => (
+                  {FIELD_TYPES.map(t => (
                     <option key={t.value} value={t.value}>
                       {t.label}
                     </option>
@@ -191,14 +197,14 @@ export default function Customization() {
                     className="h-9 text-[12px]"
                     placeholder="الخيارات مفصولة بفاصلة (أ، ب، ج)"
                     value={options}
-                    onChange={(e) => setOptions(e.target.value)}
+                    onChange={e => setOptions(e.target.value)}
                   />
                 )}
                 <label className="flex items-center gap-2 text-[12px] text-slate-600">
                   <input
                     type="checkbox"
                     checked={required}
-                    onChange={(e) => setRequired(e.target.checked)}
+                    onChange={e => setRequired(e.target.checked)}
                   />
                   حقل إلزامي
                 </label>
@@ -216,7 +222,8 @@ export default function Customization() {
             <Card>
               <CardContent className="p-4">
                 <h3 className="mb-2 text-sm font-bold text-slate-700">
-                  معاينة حية ({ENTITY_TYPES.find((e) => e.value === entityType)?.label})
+                  معاينة حية (
+                  {ENTITY_TYPES.find(e => e.value === entityType)?.label})
                 </h3>
                 <CustomFields entityType={entityType} entityId={0} compact />
               </CardContent>

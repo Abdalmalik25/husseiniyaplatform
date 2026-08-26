@@ -1,40 +1,35 @@
-export type ProjectStatus = 
-  | 'planning' 
-  | 'active' 
-  | 'on_hold' 
-  | 'completed' 
-  | 'cancelled' 
-  | 'archived';
+export type ProjectStatus =
+  | "planning"
+  | "active"
+  | "on_hold"
+  | "completed"
+  | "cancelled"
+  | "archived";
 
-export type TaskStatus = 
-  | 'todo' 
-  | 'in_progress' 
-  | 'review' 
-  | 'done' 
-  | 'blocked';
+export type TaskStatus = "todo" | "in_progress" | "review" | "done" | "blocked";
 
-export type TaskPriority = 'low' | 'medium' | 'high' | 'critical' | 'urgent';
+export type TaskPriority = "low" | "medium" | "high" | "critical" | "urgent";
 
-export type ActivityType = 
-  | 'task_created' 
-  | 'task_updated' 
-  | 'task_completed' 
-  | 'comment_added' 
-  | 'file_attached' 
-  | 'status_changed' 
-  | 'assignee_changed' 
-  | 'deadline_changed' 
-  | 'milestone_reached' 
-  | 'budget_alert' 
-  | 'risk_identified' 
-  | 'meeting_scheduled';
+export type ActivityType =
+  | "task_created"
+  | "task_updated"
+  | "task_completed"
+  | "comment_added"
+  | "file_attached"
+  | "status_changed"
+  | "assignee_changed"
+  | "deadline_changed"
+  | "milestone_reached"
+  | "budget_alert"
+  | "risk_identified"
+  | "meeting_scheduled";
 
 export interface ProjectMember {
   id: number;
   projectId: number;
   userId: number;
   employeeId?: number;
-  role: 'owner' | 'manager' | 'lead' | 'member' | 'viewer';
+  role: "owner" | "manager" | "lead" | "member" | "viewer";
   permissions: ProjectPermission[];
   joinedAt: string;
   user?: {
@@ -52,15 +47,15 @@ export interface ProjectMember {
   };
 }
 
-export type ProjectPermission = 
-  | 'view' 
-  | 'edit' 
-  | 'manage_tasks' 
-  | 'manage_members' 
-  | 'manage_budget' 
-  | 'view_reports' 
-  | 'manage_settings' 
-  | 'delete_project';
+export type ProjectPermission =
+  | "view"
+  | "edit"
+  | "manage_tasks"
+  | "manage_members"
+  | "manage_budget"
+  | "view_reports"
+  | "manage_settings"
+  | "delete_project";
 
 export interface Project {
   id: number;
@@ -85,8 +80,8 @@ export interface Project {
   tags: string[];
   customFields: Record<string, any>;
   progress: number;
-  health: 'green' | 'yellow' | 'red';
-  riskLevel: 'low' | 'medium' | 'high';
+  health: "green" | "yellow" | "red";
+  riskLevel: "low" | "medium" | "high";
   createdAt: string;
   updatedAt: string;
   createdById: number;
@@ -233,7 +228,7 @@ export interface Milestone {
   name: string;
   description?: string;
   date: string;
-  status: 'pending' | 'achieved' | 'missed';
+  status: "pending" | "achieved" | "missed";
   linkedTasks: number[];
   createdAt: string;
   updatedAt: string;
@@ -271,10 +266,10 @@ export interface Risk {
   projectId: number;
   title: string;
   description?: string;
-  probability: 'low' | 'medium' | 'high';
-  impact: 'low' | 'medium' | 'high';
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  status: 'identified' | 'assessed' | 'mitigating' | 'monitoring' | 'closed';
+  probability: "low" | "medium" | "high";
+  impact: "low" | "medium" | "high";
+  severity: "low" | "medium" | "high" | "critical";
+  status: "identified" | "assessed" | "mitigating" | "monitoring" | "closed";
   ownerId?: number;
   mitigationPlan?: string;
   contingencyPlan?: string;
@@ -292,8 +287,8 @@ export interface Issue {
   projectId: number;
   title: string;
   description?: string;
-  severity: 'low' | 'medium' | 'high' | 'critical';
-  status: 'open' | 'in_progress' | 'resolved' | 'closed';
+  severity: "low" | "medium" | "high" | "critical";
+  status: "open" | "in_progress" | "resolved" | "closed";
   assigneeId?: number;
   reportedById: number;
   reportedDate: string;
@@ -315,7 +310,7 @@ export interface ProjectFilter {
   dateTo?: string;
   search?: string;
   tags?: string[];
-  health?: ('green' | 'yellow' | 'red')[];
+  health?: ("green" | "yellow" | "red")[];
 }
 
 export interface TaskFilter {
@@ -349,9 +344,9 @@ export interface DashboardKPI {
   label: string;
   value: number | string;
   change?: number;
-  changeType?: 'increase' | 'decrease' | 'neutral';
+  changeType?: "increase" | "decrease" | "neutral";
   trend?: number[];
-  format?: 'number' | 'currency' | 'percent' | 'duration';
+  format?: "number" | "currency" | "percent" | "duration";
   icon?: string;
   color?: string;
 }
@@ -371,8 +366,8 @@ export interface ProjectTimelineEvent {
   description?: string;
   startDate: string;
   endDate?: string;
-  type: 'milestone' | 'task' | 'phase' | 'meeting' | 'deadline' | 'delivery';
-  status: 'planned' | 'in_progress' | 'completed' | 'delayed';
+  type: "milestone" | "task" | "phase" | "meeting" | "deadline" | "delivery";
+  status: "planned" | "in_progress" | "completed" | "delayed";
   color?: string;
   progress?: number;
   assignee?: string;

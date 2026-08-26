@@ -7,12 +7,7 @@ import { cn } from "@/lib/utils";
 function Accordion({
   ...props
 }: React.ComponentProps<typeof AccordionPrimitive.Root>) {
-  return (
-    <AccordionPrimitive.Root
-      data-slot="accordion"
-      {...props}
-    />
-  );
+  return <AccordionPrimitive.Root data-slot="accordion" {...props} />;
 }
 
 function AccordionItem({
@@ -22,10 +17,7 @@ function AccordionItem({
   return (
     <AccordionPrimitive.Item
       data-slot="accordion-item"
-      className={cn(
-        "border-b last:border-b-0",
-        className,
-      )}
+      className={cn("border-b last:border-b-0", className)}
       {...props}
     />
   );
@@ -67,13 +59,11 @@ function AccordionTrigger({
           "[&[data-state=open]>svg]:rotate-180",
 
           // Consumer overrides
-          className,
+          className
         )}
         {...props}
       >
-        <span className="min-w-0 flex-1">
-          {children}
-        </span>
+        <span className="min-w-0 flex-1">{children}</span>
 
         <ChevronDownIcon
           aria-hidden="true"
@@ -82,7 +72,7 @@ function AccordionTrigger({
             "pointer-events-none size-4 shrink-0",
             "translate-y-0.5",
             "text-muted-foreground",
-            "transition-transform duration-200",
+            "transition-transform duration-200"
           )}
         />
       </AccordionPrimitive.Trigger>
@@ -102,20 +92,13 @@ function AccordionContent({
         "overflow-hidden text-sm",
         "data-[state=open]:animate-accordion-down",
         "data-[state=closed]:animate-accordion-up",
-        className,
+        className
       )}
       {...props}
     >
-      <div className="pt-0 pb-4">
-        {children}
-      </div>
+      <div className="pt-0 pb-4">{children}</div>
     </AccordionPrimitive.Content>
   );
 }
 
-export {
-  Accordion,
-  AccordionItem,
-  AccordionTrigger,
-  AccordionContent,
-};
+export { Accordion, AccordionItem, AccordionTrigger, AccordionContent };

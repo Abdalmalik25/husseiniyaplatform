@@ -1,4 +1,7 @@
-import { RUNTIME_USER_INFO_STORAGE_KEY, SESSION_MIRROR_STORAGE_KEY } from "./auth.constants";
+import {
+  RUNTIME_USER_INFO_STORAGE_KEY,
+  SESSION_MIRROR_STORAGE_KEY,
+} from "./auth.constants";
 
 /**
  * Browser storage access for the auth layer.
@@ -42,10 +45,7 @@ export function writeRuntimeUserInfo(user: unknown): void {
     if (user === null || user === undefined) {
       localStorage.removeItem(RUNTIME_USER_INFO_STORAGE_KEY);
     } else {
-      localStorage.setItem(
-        RUNTIME_USER_INFO_STORAGE_KEY,
-        JSON.stringify(user)
-      );
+      localStorage.setItem(RUNTIME_USER_INFO_STORAGE_KEY, JSON.stringify(user));
     }
   });
 }

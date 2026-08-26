@@ -376,7 +376,6 @@ export default function About() {
     window.open(whatsappLink(msg, brand.contact.whatsapp2), "_blank");
   };
 
-
   return (
     <div
       className="min-h-screen bg-[#fbf8f2] text-[#102a2b] pb-20 font-sans"

@@ -20,10 +20,7 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        asChild
-        className="cursor-pointer"
-      >
+      <DropdownMenuTrigger asChild className="cursor-pointer">
         <button
           type="button"
           aria-label="اختيار المظهر"
@@ -40,17 +37,14 @@ export function ThemeSwitcher({ compact = false }: { compact?: boolean }) {
           {!compact && <span>{meta.label}</span>}
         </button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent
-        align="end"
-        className="w-72 font-display"
-      >
+      <DropdownMenuContent align="end" className="w-72 font-display">
         <DropdownMenuLabel className="flex items-center gap-2 text-xs text-muted-foreground">
           <Palette className="h-3.5 w-3.5" />
           المظهر البصري
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
         <div className="max-h-80 overflow-y-auto p-1">
-          {themes.map((t) => (
+          {themes.map(t => (
             <DropdownMenuItem
               key={t.id}
               onSelect={() => setTheme(t.id)}

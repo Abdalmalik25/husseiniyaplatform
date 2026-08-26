@@ -25,4 +25,3 @@ export function usePersistFn<T extends noop>(fn?: T): T {
 
   return persistFn.current!;
 }
-

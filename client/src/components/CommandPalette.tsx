@@ -122,7 +122,7 @@ export function CommandPalette() {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setOpen((o) => !o);
+        setOpen(o => !o);
       }
     };
     const onOpenEvent = () => setOpen(true);
@@ -189,16 +189,14 @@ export function CommandPalette() {
   return (
     <Command.Dialog
       open={open}
-      onOpenChange={(o) => {
+      onOpenChange={o => {
         setOpen(o);
         if (!o) setQuery("");
       }}
       label="لوحة الأوامر"
       className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl flex items-start justify-center pt-[12vh] transition-opacity duration-300"
     >
-      <div
-        className="w-full max-w-xl bg-gray-950 text-white rounded-3xl shadow-2xl overflow-hidden border border-white/10 backdrop-filter backdrop-blur-md"
-      >
+      <div className="w-full max-w-xl bg-gray-950 text-white rounded-3xl shadow-2xl overflow-hidden border border-white/10 backdrop-filter backdrop-blur-md">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10">
           <Search className="w-5 h-5 text-gray-400" />
           <Command.Input
@@ -229,7 +227,7 @@ export function CommandPalette() {
               heading="نتائج البحث"
               className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
             >
-              {results.products.map((p) => (
+              {results.products.map(p => (
                 <Command.Item
                   key={`p-${p.id}`}
                   value={`منتج ${p.name} ${p.code}`}
@@ -242,7 +240,7 @@ export function CommandPalette() {
                   <span className="text-[10px] opacity-60">{p.code}</span>
                 </Command.Item>
               ))}
-              {results.customers.map((c) => (
+              {results.customers.map(c => (
                 <Command.Item
                   key={`c-${c.id}`}
                   value={`عميل ${c.name} ${c.code}`}
@@ -255,7 +253,7 @@ export function CommandPalette() {
                   <span className="text-[10px] opacity-60">{c.code}</span>
                 </Command.Item>
               ))}
-              {results.suppliers.map((s) => (
+              {results.suppliers.map(s => (
                 <Command.Item
                   key={`s-${s.id}`}
                   value={`مورد ${s.name} ${s.code}`}
@@ -276,7 +274,7 @@ export function CommandPalette() {
               heading="التنقل السريع"
               className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
             >
-              {NAV.map((item) => {
+              {NAV.map(item => {
                 const Icon = item.icon;
                 return (
                   <Command.Item
@@ -299,7 +297,7 @@ export function CommandPalette() {
               heading="الوحدات التشغيلية"
               className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
             >
-              {MODULE_LIST.map((m) => {
+              {MODULE_LIST.map(m => {
                 const Icon = m.icon;
                 return (
                   <Command.Item
@@ -309,9 +307,15 @@ export function CommandPalette() {
                     className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
                     style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
                   >
-                    <Icon className="w-4 h-4" style={{ color: m.accent }} shrink-0 />
+                    <Icon
+                      className="w-4 h-4"
+                      style={{ color: m.accent }}
+                      shrink-0
+                    />
                     <span className="flex-1">{m.label}</span>
-                    <span className="text-[10px] text-gray-400">{m.tagline}</span>
+                    <span className="text-[10px] text-gray-400">
+                      {m.tagline}
+                    </span>
                   </Command.Item>
                 );
               })}
@@ -324,7 +328,7 @@ export function CommandPalette() {
               heading="الإجراءات السريعة"
               className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
             >
-              {QUICK_ACTIONS.map((f) => (
+              {QUICK_ACTIONS.map(f => (
                 <Command.Item
                   key={f.label}
                   value={f.label}
@@ -334,7 +338,9 @@ export function CommandPalette() {
                 >
                   <f.icon className="w-4 h-4 shrink-0" />
                   <span className="flex-1">{f.label}</span>
-                  <span className="text-[10px] opacity-60 capitalize">{f.description || ""}</span>
+                  <span className="text-[10px] opacity-60 capitalize">
+                    {f.description || ""}
+                  </span>
                 </Command.Item>
               ))}
             </Command.Group>

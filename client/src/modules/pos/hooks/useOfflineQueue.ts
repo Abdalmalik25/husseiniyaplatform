@@ -59,7 +59,13 @@ async function trpcMutate<T>(procedure: string, input: unknown): Promise<T> {
  */
 async function pushSale(item: OfflineQueueItem): Promise<void> {
   const p: any = item.payload ?? {};
-  const validPaymentMethods = ["cash", "card", "transfer", "credit", "online"] as const;
+  const validPaymentMethods = [
+    "cash",
+    "card",
+    "transfer",
+    "credit",
+    "online",
+  ] as const;
   const paymentMethod = (validPaymentMethods as readonly string[]).includes(
     p.paymentMethod
   )
@@ -92,7 +98,8 @@ async function pushStockAdjustment(item: OfflineQueueItem): Promise<void> {
       ? p.type
       : null;
   if (!type) throw new Error("نوع تسوية المخزون غير معروف");
-  if (!Number.isInteger(Number(p.productId))) throw new Error("معرّف المنتج مفقود");
+  if (!Number.isInteger(Number(p.productId)))
+    throw new Error("معرّف المنتج مفقود");
 
   await trpcMutate("products.adjustStock", {
     productId: Number(p.productId),
@@ -104,7 +111,9 @@ async function pushStockAdjustment(item: OfflineQueueItem): Promise<void> {
 
 export function useOfflineQueue() {
   const [queue, setQueue] = useState<OfflineQueueItem[]>([]);
-  const [isOnline, setIsOnline] = useState(typeof navigator !== "undefined" ? navigator.onLine : true);
+  const [isOnline, setIsOnline] = useState(
+    typeof navigator !== "undefined" ? navigator.onLine : true
+  );
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSync, setLastSync] = useState<number | null>(null);
   const [syncError, setSyncError] = useState<string | null>(null);
@@ -139,17 +148,20 @@ export function useOfflineQueue() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(queue));
   }, [queue]);
 
-  const addToQueue = useCallback((item: Omit<OfflineQueueItem, "id" | "timestamp" | "retries">) => {
-    const newItem: OfflineQueueItem = {
-      ...item,
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-      retries: 0,
-      maxRetries: item.maxRetries || MAX_RETRIES,
-    };
-    setQueue(prev => [...prev, newItem]);
-    return newItem.id;
-  }, []);
+  const addToQueue = useCallback(
+    (item: Omit<OfflineQueueItem, "id" | "timestamp" | "retries">) => {
+      const newItem: OfflineQueueItem = {
+        ...item,
+        id: crypto.randomUUID(),
+        timestamp: Date.now(),
+        retries: 0,
+        maxRetries: item.maxRetries || MAX_RETRIES,
+      };
+      setQueue(prev => [...prev, newItem]);
+      return newItem.id;
+    },
+    []
+  );
 
   const removeFromQueue = useCallback((id: string) => {
     setQueue(prev => prev.filter(item => item.id !== id));
@@ -160,9 +172,9 @@ export function useOfflineQueue() {
   }, []);
 
   const retryItem = useCallback((id: string) => {
-    setQueue(prev => prev.map(item =>
-      item.id === id ? { ...item, retries: 0 } : item
-    ));
+    setQueue(prev =>
+      prev.map(item => (item.id === id ? { ...item, retries: 0 } : item))
+    );
   }, []);
 
   const processQueue = useCallback(async () => {
@@ -197,15 +209,20 @@ export function useOfflineQueue() {
         removeFromQueue(item.id);
       } catch (error) {
         const newRetries = item.retries + 1;
-        setQueue(prev => prev.map(i =>
-          i.id === item.id ? { ...i, retries: newRetries } : i
-        ));
+        setQueue(prev =>
+          prev.map(i => (i.id === item.id ? { ...i, retries: newRetries } : i))
+        );
 
         if (newRetries >= item.maxRetries) {
-          console.error(`Item ${item.id} failed after ${newRetries} retries:`, error);
+          console.error(
+            `Item ${item.id} failed after ${newRetries} retries:`,
+            error
+          );
         }
 
-        await new Promise(resolve => setTimeout(resolve, RETRY_DELAY * newRetries));
+        await new Promise(resolve =>
+          setTimeout(resolve, RETRY_DELAY * newRetries)
+        );
       }
     }
 
@@ -251,9 +268,13 @@ export function useOfflineQueue() {
         // Failing closed is the only safe path: there is no verified server
         // procedure for offline returns — silently "succeeding" here would drop
         // money. The item stays in the queue and surfaces a visible error.
-        throw new Error("المرتجعات الأوفلاين غير مدعومة بعد — راجِعها يدوياً عند الاتصال");
+        throw new Error(
+          "المرتجعات الأوفلاين غير مدعومة بعد — راجِعها يدوياً عند الاتصال"
+        );
       case "payment":
-        throw new Error("الدفعات الأوفلاين غير مدعومة بعد — راجِعها يدوياً عند الاتصال");
+        throw new Error(
+          "الدفعات الأوفلاين غير مدعومة بعد — راجِعها يدوياً عند الاتصال"
+        );
       default:
         throw new Error(`Unknown queue item type: ${(item as any).type}`);
     }
@@ -266,20 +287,26 @@ export function useOfflineQueue() {
   }, [isOnline, isSyncing, processQueue]);
 
   const getQueueStats = useCallback(() => {
-    const byType = queue.reduce((acc, item) => {
-      acc[item.type] = (acc[item.type] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
+    const byType = queue.reduce(
+      (acc, item) => {
+        acc[item.type] = (acc[item.type] || 0) + 1;
+        return acc;
+      },
+      {} as Record<string, number>
+    );
 
     const pendingRetries = queue.filter(item => item.retries > 0).length;
-    const failedItems = queue.filter(item => item.retries >= item.maxRetries).length;
+    const failedItems = queue.filter(
+      item => item.retries >= item.maxRetries
+    ).length;
 
     return {
       total: queue.length,
       byType,
       pendingRetries,
       failedItems,
-      oldestItem: queue.length > 0 ? Math.min(...queue.map(i => i.timestamp)) : null,
+      oldestItem:
+        queue.length > 0 ? Math.min(...queue.map(i => i.timestamp)) : null,
     };
   }, [queue]);
 
@@ -299,23 +326,53 @@ export function useOfflineQueue() {
 }
 
 export function useOfflineSupport() {
-  const { queue, isOnline, isSyncing, addToQueue, removeFromQueue, clearQueue, retryItem, forceSync, getQueueStats } = useOfflineQueue();
+  const {
+    queue,
+    isOnline,
+    isSyncing,
+    addToQueue,
+    removeFromQueue,
+    clearQueue,
+    retryItem,
+    forceSync,
+    getQueueStats,
+  } = useOfflineQueue();
 
-  const queueSale = useCallback((saleData: any) => {
-    return addToQueue({ type: "sale", payload: saleData, maxRetries: 5 });
-  }, [addToQueue]);
+  const queueSale = useCallback(
+    (saleData: any) => {
+      return addToQueue({ type: "sale", payload: saleData, maxRetries: 5 });
+    },
+    [addToQueue]
+  );
 
-  const queueReturn = useCallback((returnData: any) => {
-    return addToQueue({ type: "return", payload: returnData, maxRetries: 5 });
-  }, [addToQueue]);
+  const queueReturn = useCallback(
+    (returnData: any) => {
+      return addToQueue({ type: "return", payload: returnData, maxRetries: 5 });
+    },
+    [addToQueue]
+  );
 
-  const queuePayment = useCallback((paymentData: any) => {
-    return addToQueue({ type: "payment", payload: paymentData, maxRetries: 5 });
-  }, [addToQueue]);
+  const queuePayment = useCallback(
+    (paymentData: any) => {
+      return addToQueue({
+        type: "payment",
+        payload: paymentData,
+        maxRetries: 5,
+      });
+    },
+    [addToQueue]
+  );
 
-  const queueStockAdjustment = useCallback((adjustmentData: any) => {
-    return addToQueue({ type: "stock_adjustment", payload: adjustmentData, maxRetries: 5 });
-  }, [addToQueue]);
+  const queueStockAdjustment = useCallback(
+    (adjustmentData: any) => {
+      return addToQueue({
+        type: "stock_adjustment",
+        payload: adjustmentData,
+        maxRetries: 5,
+      });
+    },
+    [addToQueue]
+  );
 
   return {
     queue,

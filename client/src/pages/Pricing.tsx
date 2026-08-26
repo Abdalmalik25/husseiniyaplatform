@@ -24,41 +24,136 @@ const FEATURE_MATRIX = [
   {
     category: "المحاسبة والمالية",
     features: [
-      { name: "قيد مزدوج ودليل حسابات شجري", starter: true, business: true, enterprise: true },
-      { name: "ميزان المراجعة والميزانية العمومية", starter: true, business: true, enterprise: true },
-      { name: "قائمة الدخل والتدفقات النقدية", starter: true, business: true, enterprise: true },
-      { name: "إقفال السنة المحاسبية التلقائي", starter: false, business: true, enterprise: true },
-      { name: "تقارير مقارنة السنوات", starter: false, business: true, enterprise: true },
+      {
+        name: "قيد مزدوج ودليل حسابات شجري",
+        starter: true,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "ميزان المراجعة والميزانية العمومية",
+        starter: true,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "قائمة الدخل والتدفقات النقدية",
+        starter: true,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "إقفال السنة المحاسبية التلقائي",
+        starter: false,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "تقارير مقارنة السنوات",
+        starter: false,
+        business: true,
+        enterprise: true,
+      },
     ],
   },
   {
     category: "المبيعات والمخزون",
     features: [
-      { name: "فواتير المبيعات والمشتريات", starter: true, business: true, enterprise: true },
-      { name: "إدارة المخزون والحركة التلقائية", starter: true, business: true, enterprise: true },
-      { name: "متابعة المستحقات والديون", starter: true, business: true, enterprise: true },
-      { name: "مخازن متعددة الفروع", starter: false, business: true, enterprise: true },
-      { name: "متجر إلكتروني مربوط بالمخزون", starter: false, business: true, enterprise: true },
+      {
+        name: "فواتير المبيعات والمشتريات",
+        starter: true,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "إدارة المخزون والحركة التلقائية",
+        starter: true,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "متابعة المستحقات والديون",
+        starter: true,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "مخازن متعددة الفروع",
+        starter: false,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "متجر إلكتروني مربوط بالمخزون",
+        starter: false,
+        business: true,
+        enterprise: true,
+      },
     ],
   },
   {
     category: "الإدارة والفروع",
     features: [
-      { name: "مؤسسة واحدة وفرع واحد", starter: true, business: false, enterprise: false },
-      { name: "حتى 3 فروع و10 مستخدمين", starter: false, business: true, enterprise: false },
-      { name: "فروع ومستخدمون غير محدودين", starter: false, business: false, enterprise: true },
-      { name: "نظام صلاحيات متقدم", starter: false, business: true, enterprise: true },
-      { name: "سجل التدقيق والمراقبة", starter: false, business: true, enterprise: true },
+      {
+        name: "مؤسسة واحدة وفرع واحد",
+        starter: true,
+        business: false,
+        enterprise: false,
+      },
+      {
+        name: "حتى 3 فروع و10 مستخدمين",
+        starter: false,
+        business: true,
+        enterprise: false,
+      },
+      {
+        name: "فروع ومستخدمون غير محدودين",
+        starter: false,
+        business: false,
+        enterprise: true,
+      },
+      {
+        name: "نظام صلاحيات متقدم",
+        starter: false,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "سجل التدقيق والمراقبة",
+        starter: false,
+        business: true,
+        enterprise: true,
+      },
     ],
   },
   {
     category: "الدعم والتقنية",
     features: [
-      { name: "يعمل أوفلاين ويتزامن تلقائياً", starter: true, business: true, enterprise: true },
-      { name: "نسخ احتياطي سحابي آمن", starter: true, business: true, enterprise: true },
+      {
+        name: "يعمل أوفلاين ويتزامن تلقائياً",
+        starter: true,
+        business: true,
+        enterprise: true,
+      },
+      {
+        name: "نسخ احتياطي سحابي آمن",
+        starter: true,
+        business: true,
+        enterprise: true,
+      },
       { name: "دعم واتساب", starter: true, business: true, enterprise: true },
-      { name: "دعم ذو أولوية وSLA", starter: false, business: false, enterprise: true },
-      { name: "مدير حساب مخصص", starter: false, business: false, enterprise: true },
+      {
+        name: "دعم ذو أولوية وSLA",
+        starter: false,
+        business: false,
+        enterprise: true,
+      },
+      {
+        name: "مدير حساب مخصص",
+        starter: false,
+        business: false,
+        enterprise: true,
+      },
     ],
   },
 ];
@@ -119,7 +214,9 @@ export default function Pricing() {
                 <div className="flex items-center gap-3 mb-4">
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      p.highlight ? "bg-brand text-ink" : "bg-ink/5 dark:bg-white/10 text-foreground"
+                      p.highlight
+                        ? "bg-brand text-ink"
+                        : "bg-ink/5 dark:bg-white/10 text-foreground"
                     }`}
                   >
                     {p.highlight ? (
@@ -129,8 +226,12 @@ export default function Pricing() {
                     )}
                   </div>
                   <div>
-                    <h3 className="font-bold text-lg text-foreground">{p.name}</h3>
-                    <p className="text-[11px] text-muted-foreground">{p.desc}</p>
+                    <h3 className="font-bold text-lg text-foreground">
+                      {p.name}
+                    </h3>
+                    <p className="text-[11px] text-muted-foreground">
+                      {p.desc}
+                    </p>
                   </div>
                 </div>
 
@@ -140,7 +241,9 @@ export default function Pricing() {
                   >
                     {p.price}
                   </span>
-                  <span className="text-xs text-muted-foreground mr-2">{p.period}</span>
+                  <span className="text-xs text-muted-foreground mr-2">
+                    {p.period}
+                  </span>
                 </div>
 
                 <ul className="space-y-2.5 text-xs text-muted-foreground mb-6">
@@ -196,7 +299,9 @@ export default function Pricing() {
             {/* Header */}
             <div className="grid grid-cols-4 bg-ink text-white text-xs font-bold">
               <div className="p-4">الميزة</div>
-              <div className="p-4 text-center border-r border-white/10">البداية</div>
+              <div className="p-4 text-center border-r border-white/10">
+                البداية
+              </div>
               <div className="p-4 text-center border-r border-white/10 bg-brand/20 text-brand-300">
                 الأعمال ⭐
               </div>
@@ -265,12 +370,15 @@ export default function Pricing() {
             الخدمات الهندسية والطلابية لها أسعار منفصلة
           </h3>
           <p className="text-white/60 text-sm max-w-xl mx-auto leading-relaxed">
-            خدمات الاستشارات الهندسية (BOQ، رفع مساحي، مخططات) والخدمات الطلابية والمكتبية
-            تُسعَّر حسب طبيعة كل طلب وحجمه. تواصل معنا لمعرفة السعر المناسب لمشروعك.
+            خدمات الاستشارات الهندسية (BOQ، رفع مساحي، مخططات) والخدمات الطلابية
+            والمكتبية تُسعَّر حسب طبيعة كل طلب وحجمه. تواصل معنا لمعرفة السعر
+            المناسب لمشروعك.
           </p>
           <div className="flex flex-wrap justify-center gap-3">
             <a
-              href={whatsappLink("السلام عليكم، أود الاستفسار عن أسعار الخدمات الهندسية.")}
+              href={whatsappLink(
+                "السلام عليكم، أود الاستفسار عن أسعار الخدمات الهندسية."
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
@@ -279,7 +387,9 @@ export default function Pricing() {
               استفسر عن الخدمات الهندسية
             </a>
             <a
-              href={whatsappLink("السلام عليكم، أود الاستفسار عن أسعار الخدمات الطلابية والمكتبية.")}
+              href={whatsappLink(
+                "السلام عليكم، أود الاستفسار عن أسعار الخدمات الطلابية والمكتبية."
+              )}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 border border-white/20 hover:bg-white/10 text-white font-medium px-6 py-3 rounded-xl text-sm transition-all"
@@ -295,5 +405,3 @@ export default function Pricing() {
     </div>
   );
 }
-
-

@@ -25,9 +25,9 @@ import {
 } from "@/lib/accountingReports";
 import { toast } from "sonner";
 
-type ReportType = 
-  | "trialBalance" 
-  | "incomeStatement" 
+type ReportType =
+  | "trialBalance"
+  | "incomeStatement"
   | "balanceSheet"
   | "cashFlow"
   | "accountAnalysis"
@@ -54,8 +54,7 @@ export default function Reports() {
   );
   const { data: settingsData } = trpc.accounting.getSettings.useQuery();
   const { data: docsReport } = trpc.modules.documents.recent.useQuery();
-  const { data: profitability } =
-    trpc.modules.reports.profitability.useQuery();
+  const { data: profitability } = trpc.modules.reports.profitability.useQuery();
   const processAlerts = trpc.erp.processAlerts.useMutation({
     onSuccess: (r: any) => {
       toast.success(
@@ -254,7 +253,9 @@ export default function Reports() {
             className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
           >
             <FileText className="w-4 h-4" />
-            {processAlerts.isPending ? "جاري التوليد..." : "توليد التنبيهات الاستباقية"}
+            {processAlerts.isPending
+              ? "جاري التوليد..."
+              : "توليد التنبيهات الاستباقية"}
           </Button>
         </div>
 
@@ -262,26 +263,26 @@ export default function Reports() {
           value={activeReport}
           onValueChange={v => setActiveReport(v as ReportType)}
         >
-           <TabsList className="grid w-full grid-cols-6 h-10 bg-white border">
-             <TabsTrigger value="daily" className="text-[10px]">
+          <TabsList className="grid w-full grid-cols-6 h-10 bg-white border">
+            <TabsTrigger value="daily" className="text-[10px]">
               التقرير اليومي
-             </TabsTrigger>
-             <TabsTrigger value="trialBalance" className="text-[10px]">
+            </TabsTrigger>
+            <TabsTrigger value="trialBalance" className="text-[10px]">
               ميزان المراجعة
-             </TabsTrigger>
-             <TabsTrigger value="incomeStatement" className="text-[10px]">
+            </TabsTrigger>
+            <TabsTrigger value="incomeStatement" className="text-[10px]">
               قائمة الدخل
-             </TabsTrigger>
-             <TabsTrigger value="balanceSheet" className="text-[10px]">
+            </TabsTrigger>
+            <TabsTrigger value="balanceSheet" className="text-[10px]">
               الميزانية العمومية
-             </TabsTrigger>
-             <TabsTrigger value="profitability" className="text-[10px]">
+            </TabsTrigger>
+            <TabsTrigger value="profitability" className="text-[10px]">
               الربحية
-             </TabsTrigger>
-             <TabsTrigger value="documents" className="text-[10px]">
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="text-[10px]">
               المستندات
-             </TabsTrigger>
-           </TabsList>
+            </TabsTrigger>
+          </TabsList>
 
           {/* Trial Balance */}
           <TabsContent value="trialBalance">
@@ -722,9 +723,15 @@ export default function Reports() {
                       <table className="w-full text-xs">
                         <thead>
                           <tr className="border-b bg-gray-50 text-[10px]">
-                            <th className="text-right p-1.5 font-bold">الصنف</th>
-                            <th className="text-center p-1.5 font-bold">الكمية</th>
-                            <th className="text-left p-1.5 font-bold">الإيراد</th>
+                            <th className="text-right p-1.5 font-bold">
+                              الصنف
+                            </th>
+                            <th className="text-center p-1.5 font-bold">
+                              الكمية
+                            </th>
+                            <th className="text-left p-1.5 font-bold">
+                              الإيراد
+                            </th>
                           </tr>
                         </thead>
                         <tbody>
@@ -784,7 +791,8 @@ export default function Reports() {
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
                   <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-[#b87945]" /> المستندات حسب النوع
+                    <FileText className="w-4 h-4 text-[#b87945]" /> المستندات
+                    حسب النوع
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3">
@@ -815,7 +823,8 @@ export default function Reports() {
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
                   <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-[#b87945]" /> أحدث المستندات
+                    <FileText className="w-4 h-4 text-[#b87945]" /> أحدث
+                    المستندات
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3">
@@ -867,8 +876,12 @@ export default function Reports() {
                     <table className="w-full text-xs">
                       <thead>
                         <tr className="border-b bg-gray-50 text-[10px]">
-                          <th className="text-right p-1.5 font-bold">المندوب</th>
-                          <th className="text-left p-1.5 font-bold">المبيعات</th>
+                          <th className="text-right p-1.5 font-bold">
+                            المندوب
+                          </th>
+                          <th className="text-left p-1.5 font-bold">
+                            المبيعات
+                          </th>
                           <th className="text-left p-1.5 font-bold">العمولة</th>
                           <th className="text-left p-1.5 font-bold">البونص</th>
                         </tr>
@@ -906,7 +919,10 @@ export default function Reports() {
                       إجمالي الخصم الممنوح (الفواتير النشطة)
                     </span>
                     <span className="font-bold text-rose-600">
-                      {Number(profitability?.discountTotal || 0).toLocaleString()} ر.ي
+                      {Number(
+                        profitability?.discountTotal || 0
+                      ).toLocaleString()}{" "}
+                      ر.ي
                     </span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg border p-2 text-[12px]">
@@ -916,12 +932,17 @@ export default function Reports() {
                     </span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg border p-2 text-[12px]">
-                    <span className="text-slate-600">العروض النشطة المعرّفة</span>
-                    <span className="font-bold">{profitability?.offers ?? 0}</span>
+                    <span className="text-slate-600">
+                      العروض النشطة المعرّفة
+                    </span>
+                    <span className="font-bold">
+                      {profitability?.offers ?? 0}
+                    </span>
                   </div>
                   <p className="text-[10px] text-gray-400">
-                    ملاحظة: الخصم الممنوح مجمّع من بنود فواتير المبيعات غير الملغاة.
-                    ربط كل خصم بعرض محدد مؤجَّل (يُحفظ معرّف العرض على البند لاحقاً).
+                    ملاحظة: الخصم الممنوح مجمّع من بنود فواتير المبيعات غير
+                    الملغاة. ربط كل خصم بعرض محدد مؤجَّل (يُحفظ معرّف العرض على
+                    البند لاحقاً).
                   </p>
                 </CardContent>
               </Card>

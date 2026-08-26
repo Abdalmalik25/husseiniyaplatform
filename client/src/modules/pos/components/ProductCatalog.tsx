@@ -1,8 +1,25 @@
 import { useState, useCallback, useMemo, useEffect } from "react";
-import { Search, Filter, Grid, List, Barcode, Camera, Package, Tag, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Search,
+  Filter,
+  Grid,
+  List,
+  Barcode,
+  Camera,
+  Package,
+  Tag,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { formatCurrency } from "@/modules/pos/utils/currency";
@@ -42,7 +59,13 @@ export function ProductCard({
       >
         <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden">
           {product.imageUrl ? (
-            <img src={product.imageUrl} alt={product.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+            <img
+              src={product.imageUrl}
+              alt={product.name}
+              loading="lazy"
+              decoding="async"
+              className="w-full h-full object-cover"
+            />
           ) : (
             <Package className="h-6 w-6 text-muted-foreground" />
           )}
@@ -50,9 +73,16 @@ export function ProductCard({
         <div className="flex-1 min-w-0 text-right">
           <div className="flex items-center gap-2">
             <span className="font-medium truncate">{product.name}</span>
-            {product.nameAr && <span className="text-xs text-muted-foreground truncate max-w-[150px]">{product.nameAr}</span>}
+            {product.nameAr && (
+              <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                {product.nameAr}
+              </span>
+            )}
             {showCategories && product.category && (
-              <Badge variant="secondary" className="text-[10px] h-4 px-1.5 whitespace-nowrap">
+              <Badge
+                variant="secondary"
+                className="text-[10px] h-4 px-1.5 whitespace-nowrap"
+              >
                 {product.category}
               </Badge>
             )}
@@ -66,8 +96,20 @@ export function ProductCard({
             <span>كود: {product.code}</span>
             {product.barcode && <span>باركود: {product.barcode}</span>}
             {showStock && product.type === "goods" && (
-              <span className={isOutOfStock ? "text-destructive" : isLowStock ? "text-amber-600" : "text-emerald-600"}>
-                {isOutOfStock ? "نفد" : isLowStock ? `منخفض (${stock})` : `متوفر ${stock}`}
+              <span
+                className={
+                  isOutOfStock
+                    ? "text-destructive"
+                    : isLowStock
+                      ? "text-amber-600"
+                      : "text-emerald-600"
+                }
+              >
+                {isOutOfStock
+                  ? "نفد"
+                  : isLowStock
+                    ? `منخفض (${stock})`
+                    : `متوفر ${stock}`}
               </span>
             )}
           </div>
@@ -94,13 +136,21 @@ export function ProductCard({
     >
       <div className="relative w-full aspect-square rounded-xl bg-muted/50 overflow-hidden flex items-center justify-center">
         {product.imageUrl ? (
-          <img src={product.imageUrl} alt={product.name} loading="lazy" decoding="async" className="w-full h-full object-cover" />
+          <img
+            src={product.imageUrl}
+            alt={product.name}
+            loading="lazy"
+            decoding="async"
+            className="w-full h-full object-cover"
+          />
         ) : (
           <Package className="h-10 w-10 text-muted-foreground" />
         )}
         {isOutOfStock && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="text-white font-bold text-sm px-2 py-1 bg-destructive/90 rounded">نفد المخزون</span>
+            <span className="text-white font-bold text-sm px-2 py-1 bg-destructive/90 rounded">
+              نفد المخزون
+            </span>
           </div>
         )}
         {isLowStock && (
@@ -113,22 +163,40 @@ export function ProductCard({
       </div>
       <div className="w-full space-y-1">
         <div className="flex items-center justify-between">
-          <span className="text-[10px] text-muted-foreground truncate">{product.code}</span>
+          <span className="text-[10px] text-muted-foreground truncate">
+            {product.code}
+          </span>
           {product.type === "service" ? (
-            <Badge variant="outline" className="text-[9px] h-3.5 px-1">خدمة</Badge>
+            <Badge variant="outline" className="text-[9px] h-3.5 px-1">
+              خدمة
+            </Badge>
           ) : (
-            <Badge variant="secondary" className="text-[9px] h-3.5 px-1">سلعة</Badge>
+            <Badge variant="secondary" className="text-[9px] h-3.5 px-1">
+              سلعة
+            </Badge>
           )}
         </div>
-        <span className="line-clamp-2 text-sm font-medium text-foreground">{product.name}</span>
-        {product.nameAr && <span className="line-clamp-1 text-[10px] text-muted-foreground">{product.nameAr}</span>}
+        <span className="line-clamp-2 text-sm font-medium text-foreground">
+          {product.name}
+        </span>
+        {product.nameAr && (
+          <span className="line-clamp-1 text-[10px] text-muted-foreground">
+            {product.nameAr}
+          </span>
+        )}
         {showCategories && product.category && (
-          <Badge variant="secondary" className="text-[9px] h-3.5 px-1">{product.category}</Badge>
+          <Badge variant="secondary" className="text-[9px] h-3.5 px-1">
+            {product.category}
+          </Badge>
         )}
         <div className="flex items-center justify-between w-full">
-          <span className="font-bold text-[#0e2a2b]">{formatCurrency(product.salePrice, currency, decimals)}</span>
+          <span className="font-bold text-[#0e2a2b]">
+            {formatCurrency(product.salePrice, currency, decimals)}
+          </span>
           {showStock && product.type === "goods" && (
-            <span className={`text-[10px] ${isOutOfStock ? "text-destructive" : isLowStock ? "text-amber-600" : "text-emerald-600"}`}>
+            <span
+              className={`text-[10px] ${isOutOfStock ? "text-destructive" : isLowStock ? "text-amber-600" : "text-emerald-600"}`}
+            >
               {isOutOfStock ? "نفد" : isLowStock ? `${stock}` : `${stock}`}
             </span>
           )}
@@ -148,7 +216,12 @@ interface ProductCatalogProps {
   onBarcodeScan: (barcode: string) => void;
   onCategoryChange: (categoryId: number | null) => void;
   onAddToCart: (product: ProductSearchResult, quantity?: number) => void;
-  categories: Array<{ id: number; name: string; nameAr?: string; productCount: number }>;
+  categories: Array<{
+    id: number;
+    name: string;
+    nameAr?: string;
+    productCount: number;
+  }>;
   selectedCategory: number | null;
   searchQuery: string;
   currency: string;
@@ -194,11 +267,16 @@ export function ProductCatalog({
 
   const columnClass = useMemo(() => {
     switch (columns) {
-      case 2: return "grid-cols-2";
-      case 3: return "grid-cols-2 sm:grid-cols-3";
-      case 4: return "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4";
-      case 5: return "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
-      default: return "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4";
+      case 2:
+        return "grid-cols-2";
+      case 3:
+        return "grid-cols-2 sm:grid-cols-3";
+      case 4:
+        return "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4";
+      case 5:
+        return "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
+      default:
+        return "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4";
     }
   }, [columns]);
 
@@ -217,7 +295,10 @@ export function ProductCatalog({
 
         <div className="flex items-center gap-2">
           {categories.length > 0 && (
-            <Select value={selectedCategory?.toString() || ""} onValueChange={v => onCategoryChange(v ? parseInt(v) : null)}>
+            <Select
+              value={selectedCategory?.toString() || ""}
+              onValueChange={v => onCategoryChange(v ? parseInt(v) : null)}
+            >
               <SelectTrigger className="h-9 w-[180px]">
                 <SelectValue placeholder="جميع التصنيفات" />
               </SelectTrigger>
@@ -280,7 +361,11 @@ export function ProductCatalog({
           <div className="bg-card rounded-2xl p-6 w-full max-w-md animate-in slide-in-from-bottom-4">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold">مسح الباركود</h3>
-              <Button variant="ghost" size="icon" onClick={() => setShowScanner(false)}>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowScanner(false)}
+              >
                 <Camera className="h-5 w-5" />
               </Button>
             </div>
@@ -293,8 +378,20 @@ export function ProductCatalog({
               autoFocus
             />
             <div className="flex gap-2">
-              <Button variant="outline" className="flex-1" onClick={() => setShowScanner(false)}>إلغاء</Button>
-              <Button className="flex-1" onClick={handleScan} disabled={!scannerValue.trim()}>بحث</Button>
+              <Button
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowScanner(false)}
+              >
+                إلغاء
+              </Button>
+              <Button
+                className="flex-1"
+                onClick={handleScan}
+                disabled={!scannerValue.trim()}
+              >
+                بحث
+              </Button>
             </div>
           </div>
         </div>

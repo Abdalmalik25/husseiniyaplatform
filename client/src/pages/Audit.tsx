@@ -9,7 +9,10 @@ import { History, Search } from "lucide-react";
 
 function fmtDate(d: string | Date) {
   try {
-    return new Date(d).toLocaleString("ar", { dateStyle: "medium", timeStyle: "short" });
+    return new Date(d).toLocaleString("ar", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
   } catch {
     return String(d);
   }
@@ -35,9 +38,12 @@ export default function Audit() {
               <History className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">سجل التدقيق والأثر</h1>
+              <h1 className="text-xl font-bold text-slate-800">
+                سجل التدقيق والأثر
+              </h1>
               <p className="text-sm text-slate-500">
-                سجل لا رجعة فيه لكل العمليات الحساسة — قابلية تتبّع وتوافق (Compliance) بمعيار مؤسسي
+                سجل لا رجعة فيه لكل العمليات الحساسة — قابلية تتبّع وتوافق
+                (Compliance) بمعيار مؤسسي
               </p>
             </div>
           </div>
@@ -48,7 +54,7 @@ export default function Audit() {
                 className="h-10 border-0 bg-transparent text-[13px] focus-visible:ring-0"
                 placeholder="بحث في نوع العملية (مثال: قيد، فرع، راتب)..."
                 value={action}
-                onChange={(e) => setAction(e.target.value)}
+                onChange={e => setAction(e.target.value)}
               />
             </div>
           </div>
@@ -70,19 +76,28 @@ export default function Audit() {
                   <tbody>
                     {isPending ? (
                       <tr>
-                        <td colSpan={4} className="p-8 text-center text-slate-400">
+                        <td
+                          colSpan={4}
+                          className="p-8 text-center text-slate-400"
+                        >
                           جاري التحميل...
                         </td>
                       </tr>
                     ) : items.length === 0 ? (
                       <tr>
-                        <td colSpan={4} className="p-8 text-center text-slate-400">
+                        <td
+                          colSpan={4}
+                          className="p-8 text-center text-slate-400"
+                        >
                           لا توجد سجلات مطابقة.
                         </td>
                       </tr>
                     ) : (
                       items.map((l: any) => (
-                        <tr key={l.id} className="border-b last:border-0 hover:bg-slate-50">
+                        <tr
+                          key={l.id}
+                          className="border-b last:border-0 hover:bg-slate-50"
+                        >
                           <td className="p-3 whitespace-nowrap text-slate-500">
                             {fmtDate(l.createdAt)}
                           </td>
@@ -90,7 +105,9 @@ export default function Audit() {
                             {l.userName || `مستخدم #${l.userId}`}
                           </td>
                           <td className="p-3">
-                            <Badge className="bg-rose-50 text-rose-700">{l.action}</Badge>
+                            <Badge className="bg-rose-50 text-rose-700">
+                              {l.action}
+                            </Badge>
                           </td>
                           <td className="p-3 text-slate-600">{l.details}</td>
                         </tr>

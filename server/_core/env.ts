@@ -13,4 +13,3 @@ export const ENV = {
   /** Local directory for backup blobs when S3 is not configured. */
   backupDir: process.env.BACKUP_DIR ?? "",
 };
-

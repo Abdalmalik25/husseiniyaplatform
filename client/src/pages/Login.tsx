@@ -59,7 +59,12 @@ const INDUSTRIES = [
     sub: "محلات، مستودعات، شركات توزيع",
     icon: Boxes,
     color: "bg-brand/10 text-brand border-brand/20",
-    modules: ["المحاسبة العامة", "المبيعات ونقاط البيع", "المخازن والأصناف", "المشتريات والموردين"],
+    modules: [
+      "المحاسبة العامة",
+      "المبيعات ونقاط البيع",
+      "المخازن والأصناف",
+      "المشتريات والموردين",
+    ],
     currencyDefault: "YER",
   },
   {
@@ -68,7 +73,12 @@ const INDUSTRIES = [
     sub: "شركات مقاولات، مكاتب هندسية، تطوير عقاري",
     icon: HardHat,
     color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    modules: ["المحاسبة العامة", "المشاريع ومراكز التكلفة", "المشتريات والمستخلصات", "المخازن"],
+    modules: [
+      "المحاسبة العامة",
+      "المشاريع ومراكز التكلفة",
+      "المشتريات والمستخلصات",
+      "المخازن",
+    ],
     currencyDefault: "YER",
   },
   {
@@ -77,7 +87,12 @@ const INDUSTRIES = [
     sub: "مؤسسات خدمية، استشارات، مكاتب مهنية",
     icon: Briefcase,
     color: "bg-sky-500/10 text-sky-400 border-sky-500/20",
-    modules: ["المحاسبة العامة", "فواتير الخدمات والعملاء", "المصروفات والميزانيات", "الموارد البشرية"],
+    modules: [
+      "المحاسبة العامة",
+      "فواتير الخدمات والعملاء",
+      "المصروفات والميزانيات",
+      "الموارد البشرية",
+    ],
     currencyDefault: "YER",
   },
   {
@@ -86,7 +101,12 @@ const INDUSTRIES = [
     sub: "مكتبات، خدمات تصوير، صيانة حواسيب وموبايل",
     icon: BookOpen,
     color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-    modules: ["المحاسبة العامة", "المبيعات ونقاط البيع", "الأصناف المكتبية", "خدمات الصيانة والطلاب"],
+    modules: [
+      "المحاسبة العامة",
+      "المبيعات ونقاط البيع",
+      "الأصناف المكتبية",
+      "خدمات الصيانة والطلاب",
+    ],
     currencyDefault: "YER",
   },
   {
@@ -95,7 +115,14 @@ const INDUSTRIES = [
     sub: "شركات قابضة، فروع متعددة، أنشطة مدمجة",
     icon: Layers,
     color: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    modules: ["المحاسبة العامة", "المبيعات", "المخازن", "المشتريات", "المشاريع", "الموارد البشرية"],
+    modules: [
+      "المحاسبة العامة",
+      "المبيعات",
+      "المخازن",
+      "المشتريات",
+      "المشاريع",
+      "الموارد البشرية",
+    ],
     currencyDefault: "YER",
   },
 ];
@@ -110,7 +137,9 @@ const CURRENCIES = [
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const redirectTo = new URLSearchParams(window.location.search).get("redirect");
+  const redirectTo = new URLSearchParams(window.location.search).get(
+    "redirect"
+  );
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -202,7 +231,7 @@ export default function Login() {
 
   const handleIndustrySelect = (indId: string) => {
     setSelectedIndustry(indId);
-    const found = INDUSTRIES.find((i) => i.id === indId);
+    const found = INDUSTRIES.find(i => i.id === indId);
     if (found) {
       setSelectedModules(found.modules);
       if (regCountry === "السعودية") {
@@ -216,7 +245,7 @@ export default function Login() {
   const toggleModule = (modName: string) => {
     if (selectedModules.includes(modName)) {
       if (selectedModules.length > 1) {
-        setSelectedModules(selectedModules.filter((m) => m !== modName));
+        setSelectedModules(selectedModules.filter(m => m !== modName));
       } else {
         toast.error("يجب تفعيل وحدة واحدة على الأقل");
       }
@@ -284,7 +313,13 @@ export default function Login() {
         {/* Left / Info Column */}
         <div className="lg:col-span-5 space-y-6 text-right">
           <div className="inline-flex items-center gap-2 bg-white/5 border border-brand/40 text-brand-300 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow">
-            <img src="/uamex-favicon-32.png" alt="" width={16} height={16} className="rounded-[4px]" />
+            <img
+              src="/uamex-favicon-32.png"
+              alt=""
+              width={16}
+              height={16}
+              className="rounded-[4px]"
+            />
             بوابة نظام Uamex_erp ERP الموحدة
           </div>
           <h2 className="text-2xl sm:text-4xl font-black font-display text-white leading-tight">
@@ -293,8 +328,8 @@ export default function Login() {
             <span className="text-brand-300">المهيأة لبيئة عملك الحقيقية</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-light">
-            سواء كنت تسجل لأول مرة أو تدخل لمتابعة أعمالك، يوفر لك Uamex_erp شجرة
-            حسابات مهيأة، مخازن مضبوطة، وتقارير فورية تدعم اتخاذ قراراتك.
+            سواء كنت تسجل لأول مرة أو تدخل لمتابعة أعمالك، يوفر لك Uamex_erp
+            شجرة حسابات مهيأة، مخازن مضبوطة، وتقارير فورية تدعم اتخاذ قراراتك.
           </p>
 
           <div className="space-y-3 pt-2 text-xs text-slate-200">
@@ -333,7 +368,7 @@ export default function Login() {
             <CardHeader className="p-5 pb-3">
               <Tabs
                 value={activeTab}
-                onValueChange={(v) => {
+                onValueChange={v => {
                   setActiveTab(v as any);
                   setNotFound(false);
                   setLocked(null);
@@ -364,15 +399,19 @@ export default function Login() {
                   {locked && (
                     <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] text-rose-200">
                       <AlertTriangle className="w-4 h-4 shrink-0" />
-                      تم قفل الحساب مؤقتاً بسبب محاولات متكررة. حاول بعد {locked} دقيقة.
+                      تم قفل الحساب مؤقتاً بسبب محاولات متكررة. حاول بعد{" "}
+                      {locked} دقيقة.
                     </div>
                   )}
                   {notFound && (
                     <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[11px] text-amber-200">
                       <div className="flex items-center gap-2 font-bold mb-1">
-                        <AlertTriangle className="w-4 h-4" /> لا يوجد حساب مسجل بهذا الاسم
+                        <AlertTriangle className="w-4 h-4" /> لا يوجد حساب مسجل
+                        بهذا الاسم
                       </div>
-                      <p className="mb-2">يمكنك فتح حساب وتهيئة منشأتك مجاناً في دقيقة.</p>
+                      <p className="mb-2">
+                        يمكنك فتح حساب وتهيئة منشأتك مجاناً في دقيقة.
+                      </p>
                       <Button
                         size="sm"
                         onClick={() => {
@@ -389,20 +428,22 @@ export default function Login() {
                   <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                        <KeyRound className="w-3.5 h-3.5 text-brand-300" /> اسم المستخدم
+                        <KeyRound className="w-3.5 h-3.5 text-brand-300" /> اسم
+                        المستخدم
                       </Label>
                       <Input
                         required
                         placeholder="اسم المستخدم"
                         value={username}
-                        onChange={(e) => setUsername(e.target.value)}
+                        onChange={e => setUsername(e.target.value)}
                         className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl"
                         autoComplete="username"
                       />
                     </div>
                     <div className="space-y-1.5">
                       <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                        <Lock className="w-3.5 h-3.5 text-brand-300" /> كلمة المرور
+                        <Lock className="w-3.5 h-3.5 text-brand-300" /> كلمة
+                        المرور
                       </Label>
                       <div className="relative">
                         <Input
@@ -410,7 +451,7 @@ export default function Login() {
                           type={showPassword ? "text" : "password"}
                           placeholder="••••••••"
                           value={password}
-                          onChange={(e) => setPassword(e.target.value)}
+                          onChange={e => setPassword(e.target.value)}
                           className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl font-mono pl-10"
                           autoComplete="current-password"
                         />
@@ -419,7 +460,11 @@ export default function Login() {
                           onClick={() => setShowPassword(!showPassword)}
                           className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
                         >
-                          {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          {showPassword ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
                         </button>
                       </div>
                     </div>
@@ -434,7 +479,9 @@ export default function Login() {
 
                     <div className="relative flex items-center justify-center my-2">
                       <div className="border-t border-white/10 w-full" />
-                      <span className="bg-ink px-2 text-[10px] text-white/40 absolute font-mono">أو للتجربة الفورية</span>
+                      <span className="bg-ink px-2 text-[10px] text-white/40 absolute font-mono">
+                        أو للتجربة الفورية
+                      </span>
                     </div>
 
                     <Button
@@ -443,7 +490,10 @@ export default function Login() {
                       onClick={() => {
                         setUsername("admin");
                         setPassword("admin123");
-                        login.mutate({ username: "admin", password: "admin123" });
+                        login.mutate({
+                          username: "admin",
+                          password: "admin123",
+                        });
                       }}
                       className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
                     >
@@ -473,19 +523,47 @@ export default function Login() {
                       </div>
 
                       <div className="space-y-2.5 text-right max-w-xs mx-auto text-xs bg-white/5 p-4 rounded-2xl border border-white/10">
-                        <div className={"flex items-center gap-2.5 " + (provisionStep >= 1 ? "text-emerald-400 font-bold" : "text-white/30")}>
+                        <div
+                          className={
+                            "flex items-center gap-2.5 " +
+                            (provisionStep >= 1
+                              ? "text-emerald-400 font-bold"
+                              : "text-white/30")
+                          }
+                        >
                           <CheckCircle2 className="w-4 h-4 shrink-0" />
                           <span>إنشاء المنشأة والفرع الرئيسي...</span>
                         </div>
-                        <div className={"flex items-center gap-2.5 " + (provisionStep >= 2 ? "text-emerald-400 font-bold" : "text-white/30")}>
+                        <div
+                          className={
+                            "flex items-center gap-2.5 " +
+                            (provisionStep >= 2
+                              ? "text-emerald-400 font-bold"
+                              : "text-white/30")
+                          }
+                        >
                           <CheckCircle2 className="w-4 h-4 shrink-0" />
                           <span>توليد شجرة الحسابات لقطاع النشاط...</span>
                         </div>
-                        <div className={"flex items-center gap-2.5 " + (provisionStep >= 3 ? "text-emerald-400 font-bold" : "text-white/30")}>
+                        <div
+                          className={
+                            "flex items-center gap-2.5 " +
+                            (provisionStep >= 3
+                              ? "text-emerald-400 font-bold"
+                              : "text-white/30")
+                          }
+                        >
                           <CheckCircle2 className="w-4 h-4 shrink-0" />
                           <span>ضبط العملة وسياسات التسعير والمخزن...</span>
                         </div>
-                        <div className={"flex items-center gap-2.5 " + (provisionStep >= 4 ? "text-emerald-400 font-bold" : "text-white/30")}>
+                        <div
+                          className={
+                            "flex items-center gap-2.5 " +
+                            (provisionStep >= 4
+                              ? "text-emerald-400 font-bold"
+                              : "text-white/30")
+                          }
+                        >
                           <CheckCircle2 className="w-4 h-4 shrink-0" />
                           <span>تفعيل 14 يوماً تجريبية كاملة الصلاحيات...</span>
                         </div>
@@ -501,16 +579,19 @@ export default function Login() {
                           { num: 2, label: "القطاع" },
                           { num: 3, label: "الوحدات" },
                           { num: 4, label: "التهيئة" },
-                        ].map((s) => (
-                          <div key={s.num} className="flex items-center gap-1.5 flex-1">
+                        ].map(s => (
+                          <div
+                            key={s.num}
+                            className="flex items-center gap-1.5 flex-1"
+                          >
                             <div
                               className={
                                 "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all " +
                                 (regStep === s.num
                                   ? "bg-brand text-ink shadow-md scale-110"
                                   : regStep > s.num
-                                  ? "bg-emerald-500 text-white"
-                                  : "bg-white/10 text-white/40")
+                                    ? "bg-emerald-500 text-white"
+                                    : "bg-white/10 text-white/40")
                               }
                             >
                               {regStep > s.num ? "✓" : s.num}
@@ -518,12 +599,16 @@ export default function Login() {
                             <span
                               className={
                                 "text-[11px] hidden sm:inline " +
-                                (regStep === s.num ? "text-white font-bold" : "text-white/40")
+                                (regStep === s.num
+                                  ? "text-white font-bold"
+                                  : "text-white/40")
                               }
                             >
                               {s.label}
                             </span>
-                            {s.num < 4 && <div className="flex-1 h-0.5 bg-white/10 mr-1" />}
+                            {s.num < 4 && (
+                              <div className="flex-1 h-0.5 bg-white/10 mr-1" />
+                            )}
                           </div>
                         ))}
                       </div>
@@ -539,7 +624,7 @@ export default function Login() {
                               required
                               placeholder="مثال: شركة الأمل للتجارة والمقاولات"
                               value={regName}
-                              onChange={(e) => setRegName(e.target.value)}
+                              onChange={e => setRegName(e.target.value)}
                               className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl"
                             />
                           </div>
@@ -553,7 +638,7 @@ export default function Login() {
                                 required
                                 placeholder="حروف وأرقام فقط"
                                 value={regUsername}
-                                onChange={(e) => setRegUsername(e.target.value)}
+                                onChange={e => setRegUsername(e.target.value)}
                                 className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl font-mono"
                                 dir="ltr"
                               />
@@ -567,7 +652,7 @@ export default function Login() {
                                 type="password"
                                 placeholder="6 أحرف على الأقل"
                                 value={regPassword}
-                                onChange={(e) => setRegPassword(e.target.value)}
+                                onChange={e => setRegPassword(e.target.value)}
                                 className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl font-mono"
                               />
                             </div>
@@ -580,13 +665,14 @@ export default function Login() {
                               </Label>
                               <select
                                 value={regCountry}
-                                onChange={(e) => {
+                                onChange={e => {
                                   setRegCountry(e.target.value);
-                                  if (e.target.value === "السعودية") setRegCurrency("SAR");
+                                  if (e.target.value === "السعودية")
+                                    setRegCurrency("SAR");
                                 }}
                                 className="h-9 w-full bg-ink border border-white/15 text-white text-xs rounded-xl px-2"
                               >
-                                {COUNTRIES.map((c) => (
+                                {COUNTRIES.map(c => (
                                   <option key={c} value={c}>
                                     {c}
                                   </option>
@@ -601,7 +687,7 @@ export default function Login() {
                                 type="email"
                                 placeholder="name@company.com"
                                 value={regEmail}
-                                onChange={(e) => setRegEmail(e.target.value)}
+                                onChange={e => setRegEmail(e.target.value)}
                                 className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl"
                               />
                             </div>
@@ -626,7 +712,7 @@ export default function Login() {
                           </div>
 
                           <div className="space-y-2">
-                            {INDUSTRIES.map((ind) => {
+                            {INDUSTRIES.map(ind => {
                               const Icon = ind.icon;
                               const isSelected = selectedIndustry === ind.id;
                               return (
@@ -642,16 +728,34 @@ export default function Login() {
                                   }
                                 >
                                   <div className="flex items-center gap-3">
-                                    <div className={"w-9 h-9 rounded-xl flex items-center justify-center " + ind.color}>
+                                    <div
+                                      className={
+                                        "w-9 h-9 rounded-xl flex items-center justify-center " +
+                                        ind.color
+                                      }
+                                    >
                                       <Icon className="w-5 h-5" />
                                     </div>
                                     <div>
-                                      <div className="text-xs font-bold text-white">{ind.title}</div>
-                                      <div className="text-[10px] text-slate-400">{ind.sub}</div>
+                                      <div className="text-xs font-bold text-white">
+                                        {ind.title}
+                                      </div>
+                                      <div className="text-[10px] text-slate-400">
+                                        {ind.sub}
+                                      </div>
                                     </div>
                                   </div>
-                                  <div className={"w-5 h-5 rounded-full border flex items-center justify-center " + (isSelected ? "border-brand bg-brand text-ink" : "border-white/20")}>
-                                    {isSelected && <Check className="w-3 h-3 stroke-[3]" />}
+                                  <div
+                                    className={
+                                      "w-5 h-5 rounded-full border flex items-center justify-center " +
+                                      (isSelected
+                                        ? "border-brand bg-brand text-ink"
+                                        : "border-white/20")
+                                    }
+                                  >
+                                    {isSelected && (
+                                      <Check className="w-3 h-3 stroke-[3]" />
+                                    )}
                                   </div>
                                 </button>
                               );
@@ -686,7 +790,8 @@ export default function Login() {
                             الوحدات ومساحات العمل المقترحة لمنشأتك:
                           </div>
                           <p className="text-[11px] text-slate-400 mb-3">
-                            تم تحديد الوحدات النموذجية لقطاعك، يمكنك تفعيل أو إلغاء ما تريد:
+                            تم تحديد الوحدات النموذجية لقطاعك، يمكنك تفعيل أو
+                            إلغاء ما تريد:
                           </p>
 
                           <div className="grid grid-cols-2 gap-2">
@@ -699,7 +804,7 @@ export default function Login() {
                               "الموارد البشرية",
                               "التقارير والقوائم المالية",
                               "الأمن وسجل التدقيق",
-                            ].map((mod) => {
+                            ].map(mod => {
                               const isChecked = selectedModules.includes(mod);
                               return (
                                 <button
@@ -721,7 +826,9 @@ export default function Login() {
                                         : "border-white/30")
                                     }
                                   >
-                                    {isChecked && <Check className="w-3 h-3 stroke-[3]" />}
+                                    {isChecked && (
+                                      <Check className="w-3 h-3 stroke-[3]" />
+                                    )}
                                   </div>
                                   <span className="truncate">{mod}</span>
                                 </button>
@@ -759,10 +866,10 @@ export default function Login() {
                             </Label>
                             <select
                               value={regCurrency}
-                              onChange={(e) => setRegCurrency(e.target.value)}
+                              onChange={e => setRegCurrency(e.target.value)}
                               className="h-10 w-full bg-ink border border-white/15 text-white text-xs rounded-xl px-3 font-semibold"
                             >
-                              {CURRENCIES.map((cur) => (
+                              {CURRENCIES.map(cur => (
                                 <option key={cur.code} value={cur.code}>
                                   {cur.label}
                                 </option>
@@ -777,8 +884,9 @@ export default function Login() {
                               <span>فترة تجريبية مجانية 14 يوماً</span>
                             </div>
                             <p className="text-[11px] text-slate-300 leading-relaxed">
-                              وصول كامل لكافة مساحات العمل والميزات بدون أي متطلبات بطاقة ائتمان.
-                              بياناتك محفوظة وآمنة بالكامل ويمكنك الترقية في أي وقت.
+                              وصول كامل لكافة مساحات العمل والميزات بدون أي
+                              متطلبات بطاقة ائتمان. بياناتك محفوظة وآمنة بالكامل
+                              ويمكنك الترقية في أي وقت.
                             </p>
                           </div>
 
@@ -798,7 +906,11 @@ export default function Login() {
                               className="flex-1 bg-brand hover:bg-brand-deep text-ink font-black text-xs h-11 rounded-xl gap-2 shadow-xl"
                             >
                               <Zap className="w-4 h-4" />
-                              <span>{register.isPending ? "جاري تهيئة المنشأة..." : "إطلاق المنصة وبدء العمل"}</span>
+                              <span>
+                                {register.isPending
+                                  ? "جاري تهيئة المنشأة..."
+                                  : "إطلاق المنصة وبدء العمل"}
+                              </span>
                             </Button>
                           </div>
                         </div>

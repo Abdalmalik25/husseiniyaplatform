@@ -17,8 +17,7 @@ export function requireTenantId(ctx: { tenantId: number | null }): number {
   if (ctx.tenantId == null) {
     throw new TRPCError({
       code: "FORBIDDEN",
-      message:
-        "TENANT_REQUIRED: هذا الإجراء يتطلب ارتباط المستخدم بمؤسسة نشطة",
+      message: "TENANT_REQUIRED: هذا الإجراء يتطلب ارتباط المستخدم بمؤسسة نشطة",
     });
   }
   return ctx.tenantId;

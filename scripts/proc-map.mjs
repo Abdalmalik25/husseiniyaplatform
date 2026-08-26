@@ -6,7 +6,8 @@ import { join } from "node:path";
 
 const root = process.cwd();
 const dir = join(root, "client", "src");
-const re = /trpc\.(\w+)\.(\w+)\.(useQuery|useMutation|useInfiniteQuery|useSuspenseQuery|useSuspenseInfiniteQuery)\b/g;
+const re =
+  /trpc\.(\w+)\.(\w+)\.(useQuery|useMutation|useInfiniteQuery|useSuspenseQuery|useSuspenseInfiniteQuery)\b/g;
 
 const pages = readdirSync(join(dir, "pages"));
 const components = readdirSync(join(dir, "components"));

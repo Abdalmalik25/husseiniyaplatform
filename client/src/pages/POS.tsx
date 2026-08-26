@@ -75,7 +75,7 @@ export default function POS() {
 
   const { data: daily } = trpc.sales.dailySummary.useQuery(undefined, {
     staleTime: 30_000,
-    placeholderData: (p) => p,
+    placeholderData: p => p,
   });
 
   // ── Currency selector + conversion (Module 3) ──
@@ -88,9 +88,7 @@ export default function POS() {
     const list = (currenciesData ?? []) as any[];
     if (!list.length) return null;
     return (
-      list.find((c) => c.id === curId) ??
-      list.find((c) => c.isDefault) ??
-      list[0]
+      list.find(c => c.id === curId) ?? list.find(c => c.isDefault) ?? list[0]
     );
   }, [currenciesData, curId]);
 
@@ -100,7 +98,7 @@ export default function POS() {
   );
   const setOfferDiscount = useCallback(
     (pid: number, amt: number) =>
-      setOfferDiscounts((prev) => ({ ...prev, [pid]: amt })),
+      setOfferDiscounts(prev => ({ ...prev, [pid]: amt })),
     []
   );
 
@@ -121,7 +119,7 @@ export default function POS() {
   // ── Cashier shift session (operational DB for POS) ──
   const { data: sessions } = trpc.modules.pos.listSessions.useQuery(undefined, {
     staleTime: 20_000,
-    placeholderData: (p) => p,
+    placeholderData: p => p,
   });
   const { data: branches } = trpc.modules.branches.list.useQuery(undefined, {
     staleTime: 60_000,
@@ -153,14 +151,14 @@ export default function POS() {
       toast.error(`المنتج "${p.name}" نفد من المخزون`);
       return;
     }
-    setCart((prev) => {
-      const existing = prev.find((l) => l.productId === p.id);
+    setCart(prev => {
+      const existing = prev.find(l => l.productId === p.id);
       if (existing) {
         if (p.type === "goods" && existing.quantity >= stock) {
           toast.error(`الكمية المتاحة من "${p.name}" هي ${stock}`);
           return prev;
         }
-        return prev.map((l) =>
+        return prev.map(l =>
           l.productId === p.id ? { ...l, quantity: l.quantity + 1 } : l
         );
       }
@@ -180,8 +178,8 @@ export default function POS() {
   };
 
   const changeQty = (productId: number, delta: number, maxStock: number) => {
-    setCart((prev) =>
-      prev.map((l) => {
+    setCart(prev =>
+      prev.map(l => {
         if (l.productId !== productId) return l;
         const next = l.quantity + delta;
         if (next < 1) return l;
@@ -195,8 +193,8 @@ export default function POS() {
   };
 
   const removeLine = (productId: number) => {
-    setCart((prev) => prev.filter((l) => l.productId !== productId));
-    setOfferDiscounts((prev) => {
+    setCart(prev => prev.filter(l => l.productId !== productId));
+    setOfferDiscounts(prev => {
       const n = { ...prev };
       delete n[productId];
       return n;
@@ -204,8 +202,8 @@ export default function POS() {
   };
 
   const setLineDiscount = (productId: number, value: number) =>
-    setCart((prev) =>
-      prev.map((l) =>
+    setCart(prev =>
+      prev.map(l =>
         l.productId === productId ? { ...l, discount: Math.max(0, value) } : l
       )
     );
@@ -238,7 +236,7 @@ export default function POS() {
     }
     createSale.mutate({
       customerId: customerId || undefined,
-      items: cart.map((l) => ({
+      items: cart.map(l => ({
         productId: l.productId,
         productName: l.name,
         quantity: l.quantity,
@@ -254,7 +252,7 @@ export default function POS() {
   };
 
   const MethodIcon =
-    PAYMENT_METHODS.find((m) => m.value === paymentMethod)?.icon ?? Banknote;
+    PAYMENT_METHODS.find(m => m.value === paymentMethod)?.icon ?? Banknote;
 
   return (
     <div className="flex min-h-screen bg-muted/30">
@@ -283,7 +281,7 @@ export default function POS() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setShowDaily((s) => !s)}
+              onClick={() => setShowDaily(s => !s)}
             >
               تقرير اليوم
             </Button>
@@ -298,27 +296,31 @@ export default function POS() {
                 activeSession ? "bg-emerald-500" : "bg-rose-400"
               }`}
             />
-          <select
-            value={branchId}
-            onChange={(e) =>
-              setBranchId(e.target.value ? Number(e.target.value) : "")
-            }
-            className="h-8 rounded-lg border border-border bg-background px-2 text-[12px]"
-          >
-            <option value="">بدون فرع</option>
-            {(branches ?? []).map((b: any) => (
-              <option key={b.id} value={b.id}>
-                {b.name}
-              </option>
-            ))}
-          </select>
-          {activeSession ? (
+            <select
+              value={branchId}
+              onChange={e =>
+                setBranchId(e.target.value ? Number(e.target.value) : "")
+              }
+              className="h-8 rounded-lg border border-border bg-background px-2 text-[12px]"
+            >
+              <option value="">بدون فرع</option>
+              {(branches ?? []).map((b: any) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}
+                </option>
+              ))}
+            </select>
+            {activeSession ? (
               <span className="text-foreground">
                 وردية مفتوحة:{" "}
-                <span className="font-mono font-bold">{activeSession.code}</span>
+                <span className="font-mono font-bold">
+                  {activeSession.code}
+                </span>
               </span>
             ) : (
-              <span className="text-muted-foreground">لا توجد وردية كاشير مفتوحة</span>
+              <span className="text-muted-foreground">
+                لا توجد وردية كاشير مفتوحة
+              </span>
             )}
           </div>
           {activeSession ? (
@@ -391,12 +393,9 @@ export default function POS() {
             </div>
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {Object.entries((daily as any).byMethod ?? {}).map(([k, v]) => (
-                <div
-                  key={k}
-                  className="rounded-xl bg-muted/40 p-3 text-center"
-                >
+                <div key={k} className="rounded-xl bg-muted/40 p-3 text-center">
                   <div className="text-[10px] text-muted-foreground">
-                    {PAYMENT_METHODS.find((m) => m.value === k)?.label ?? k}
+                    {PAYMENT_METHODS.find(m => m.value === k)?.label ?? k}
                   </div>
                   <div className="text-sm font-bold text-foreground">
                     {fmt(Number(v) || 0)}
@@ -441,7 +440,7 @@ export default function POS() {
               <select
                 className="h-8 w-full rounded-lg border border-border bg-background px-2 text-[12px] text-foreground"
                 value={curId}
-                onChange={(e) =>
+                onChange={e =>
                   setCurId(e.target.value ? Number(e.target.value) : "")
                 }
               >
@@ -460,12 +459,14 @@ export default function POS() {
                 <select
                   className="h-9 w-full rounded-lg border border-border bg-background px-2 text-[12px] text-foreground"
                   value={customerId ?? ""}
-                  onChange={(e) =>
-                    setCustomerId(e.target.value ? Number(e.target.value) : null)
+                  onChange={e =>
+                    setCustomerId(
+                      e.target.value ? Number(e.target.value) : null
+                    )
                   }
                 >
                   <option value="">عميل نقدي</option>
-                  {customers.map((c) => (
+                  {customers.map(c => (
                     <option key={c.id} value={c.id}>
                       {c.name} ({c.code})
                     </option>
@@ -475,7 +476,7 @@ export default function POS() {
                   className="mt-2 h-8 text-[12px]"
                   placeholder="بحث عن عميل..."
                   value={customerSearch}
-                  onChange={(e) => setCustomerSearch(e.target.value)}
+                  onChange={e => setCustomerSearch(e.target.value)}
                 />
               </div>
 
@@ -485,7 +486,7 @@ export default function POS() {
                     أضف الأصناف من الكتالوج
                   </p>
                 )}
-                {cart.map((l) => (
+                {cart.map(l => (
                   <CartLineRow
                     key={l.productId}
                     line={l}
@@ -519,7 +520,7 @@ export default function POS() {
                     className="h-7 w-24 text-[11px]"
                     type="number"
                     value={globalDiscount}
-                    onChange={(e) => setGlobalDiscount(e.target.value)}
+                    onChange={e => setGlobalDiscount(e.target.value)}
                   />
                 </div>
                 <div className="flex justify-between border-t border-border pt-1">
@@ -546,7 +547,7 @@ export default function POS() {
                   طريقة الدفع
                 </label>
                 <div className="grid grid-cols-5 gap-1">
-                  {PAYMENT_METHODS.map((m) => {
+                  {PAYMENT_METHODS.map(m => {
                     const Icon = m.icon;
                     return (
                       <button
@@ -572,7 +573,7 @@ export default function POS() {
                   type="number"
                   placeholder="المبلغ المدفوع"
                   value={paidAmount}
-                  onChange={(e) => setPaidAmount(e.target.value)}
+                  onChange={e => setPaidAmount(e.target.value)}
                 />
                 <span className="shrink-0 text-[11px] text-muted-foreground">
                   المتبقي {fmt(due)}
@@ -597,7 +598,7 @@ export default function POS() {
                 className="h-10 border-0 bg-transparent text-[13px] focus-visible:ring-0"
                 placeholder="ابحث عن منتج بالاسم أو الكود..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={e => setSearch(e.target.value)}
               />
             </div>
 
@@ -611,7 +612,7 @@ export default function POS() {
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-                {products.map((p) => {
+                {products.map(p => {
                   const stock = Number(p.currentStock || 0);
                   const out = p.type === "goods" && stock <= 0;
                   return (
@@ -690,7 +691,7 @@ function CartLineRow({
   );
   const units = (pus ?? []) as any[];
   const [unitId, setUnitId] = useState<number | null>(null);
-  const selectedUnit = units.find((u) => u.id === unitId) ?? null;
+  const selectedUnit = units.find(u => u.id === unitId) ?? null;
   const factor = selectedUnit ? Number(selectedUnit.conversionFactor) || 1 : 1;
   const unitName = (id: number) =>
     (allUnits ?? []).find((u: any) => u.id === id)?.name || `#${id}`;
@@ -742,12 +743,12 @@ function CartLineRow({
         <select
           className="mt-1 h-7 w-full rounded-lg border border-border bg-background px-1 text-[11px]"
           value={unitId ?? ""}
-          onChange={(e) =>
+          onChange={e =>
             setUnitId(e.target.value ? Number(e.target.value) : null)
           }
         >
           <option value="">الوحدة الأساسية</option>
-          {units.map((u) => (
+          {units.map(u => (
             <option key={u.id} value={u.id}>
               {unitName(u.unitId)}{" "}
               {u.isBase ? "(أساسية)" : `×${u.conversionFactor}`}
@@ -757,8 +758,8 @@ function CartLineRow({
       )}
       {selectedUnit && (
         <p className="mt-0.5 text-[10px] text-muted-foreground">
-          معامل التحويل ×{factor} — {line.quantity} {unitName(selectedUnit.unitId)} ={" "}
-          {line.quantity * factor} وحدة أساسية
+          معامل التحويل ×{factor} — {line.quantity}{" "}
+          {unitName(selectedUnit.unitId)} = {line.quantity * factor} وحدة أساسية
         </p>
       )}
       {offer && (
@@ -772,11 +773,10 @@ function CartLineRow({
         type="number"
         placeholder="خصم الصنف"
         value={line.discount || ""}
-        onChange={(e) =>
+        onChange={e =>
           setLineDiscount(line.productId, Number(e.target.value) || 0)
         }
       />
     </div>
   );
 }
-

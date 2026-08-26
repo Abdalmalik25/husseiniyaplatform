@@ -36,16 +36,24 @@ export function usePOSNotifications(options: UsePOSNotificationsOptions = {}) {
       setNotifications(prev => {
         const existingIds = new Set(prev.map(n => n.id));
         const merged = [
-          ...newNotifications.filter((n: Notification) => !existingIds.has(n.id)),
+          ...newNotifications.filter(
+            (n: Notification) => !existingIds.has(n.id)
+          ),
           ...prev,
         ].slice(0, maxNotifications);
         return merged;
       });
 
-      setUnreadCount(newNotifications.filter((n: Notification) => !n.read).length);
+      setUnreadCount(
+        newNotifications.filter((n: Notification) => !n.read).length
+      );
 
       const latestUnread = newNotifications.find((n: Notification) => !n.read);
-      if (latestUnread && (!lastFetchRef.current || new Date(latestUnread.timestamp).getTime() > lastFetchRef.current)) {
+      if (
+        latestUnread &&
+        (!lastFetchRef.current ||
+          new Date(latestUnread.timestamp).getTime() > lastFetchRef.current)
+      ) {
         onNotification?.(latestUnread);
       }
 
@@ -57,34 +65,53 @@ export function usePOSNotifications(options: UsePOSNotificationsOptions = {}) {
     }
   }, [isLoading, maxNotifications, onNotification]);
 
-  const markAsRead = useCallback(async (id: string) => {
-    try {
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-      setUnreadCount(prev => Math.max(0, prev - 1));
-      localStorage.setItem("pos_notifications", JSON.stringify(notifications.map(n => n.id === id ? { ...n, read: true } : n)));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل تحديث التنبيه");
-    }
-  }, [notifications]);
+  const markAsRead = useCallback(
+    async (id: string) => {
+      try {
+        setNotifications(prev =>
+          prev.map(n => (n.id === id ? { ...n, read: true } : n))
+        );
+        setUnreadCount(prev => Math.max(0, prev - 1));
+        localStorage.setItem(
+          "pos_notifications",
+          JSON.stringify(
+            notifications.map(n => (n.id === id ? { ...n, read: true } : n))
+          )
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "فشل تحديث التنبيه");
+      }
+    },
+    [notifications]
+  );
 
   const markAllAsRead = useCallback(async () => {
     try {
       setNotifications(prev => prev.map(n => ({ ...n, read: true })));
       setUnreadCount(0);
-      localStorage.setItem("pos_notifications", JSON.stringify(notifications.map(n => ({ ...n, read: true }))));
+      localStorage.setItem(
+        "pos_notifications",
+        JSON.stringify(notifications.map(n => ({ ...n, read: true })))
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "فشل تحديث التنبيهات");
     }
   }, [notifications]);
 
-  const dismiss = useCallback(async (id: string) => {
-    try {
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      localStorage.setItem("pos_notifications", JSON.stringify(notifications.filter(n => n.id !== id)));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل حذف التنبيه");
-    }
-  }, [notifications]);
+  const dismiss = useCallback(
+    async (id: string) => {
+      try {
+        setNotifications(prev => prev.filter(n => n.id !== id));
+        localStorage.setItem(
+          "pos_notifications",
+          JSON.stringify(notifications.filter(n => n.id !== id))
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "فشل حذف التنبيه");
+      }
+    },
+    [notifications]
+  );
 
   const clearAll = useCallback(async () => {
     try {
@@ -96,27 +123,33 @@ export function usePOSNotifications(options: UsePOSNotificationsOptions = {}) {
     }
   }, []);
 
-  const createNotification = useCallback(async (notification: Omit<Notification, "id" | "timestamp" | "read">) => {
-    try {
-      const newNotification: Notification = {
-        ...notification,
-        id: crypto.randomUUID(),
-        timestamp: new Date().toISOString(),
-        read: false,
-      };
-      const updated = [newNotification, ...notifications].slice(0, maxNotifications);
-      setNotifications(updated);
-      localStorage.setItem("pos_notifications", JSON.stringify(updated));
-      if (!newNotification.read) {
-        setUnreadCount(prev => prev + 1);
+  const createNotification = useCallback(
+    async (notification: Omit<Notification, "id" | "timestamp" | "read">) => {
+      try {
+        const newNotification: Notification = {
+          ...notification,
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          read: false,
+        };
+        const updated = [newNotification, ...notifications].slice(
+          0,
+          maxNotifications
+        );
+        setNotifications(updated);
+        localStorage.setItem("pos_notifications", JSON.stringify(updated));
+        if (!newNotification.read) {
+          setUnreadCount(prev => prev + 1);
+        }
+        onNotification?.(newNotification);
+        return newNotification;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "فشل إنشاء التنبيه");
+        return null;
       }
-      onNotification?.(newNotification);
-      return newNotification;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل إنشاء التنبيه");
-      return null;
-    }
-  }, [maxNotifications, notifications, onNotification]);
+    },
+    [maxNotifications, notifications, onNotification]
+  );
 
   useEffect(() => {
     if (autoFetch) {
@@ -128,9 +161,12 @@ export function usePOSNotifications(options: UsePOSNotificationsOptions = {}) {
     }
   }, [autoFetch, fetchInterval, fetchNotifications]);
 
-  const getNotificationsByType = useCallback((type: Notification["type"]) => {
-    return notifications.filter(n => n.type === type);
-  }, [notifications]);
+  const getNotificationsByType = useCallback(
+    (type: Notification["type"]) => {
+      return notifications.filter(n => n.type === type);
+    },
+    [notifications]
+  );
 
   const getUnreadNotifications = useCallback(() => {
     return notifications.filter(n => !n.read);
@@ -157,17 +193,23 @@ interface UsePOSScheduledTasksOptions {
   onTaskTriggered?: (task: ScheduledTask) => void;
 }
 
-export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) {
+export function usePOSScheduledTasks(
+  options: UsePOSScheduledTasksOptions = {}
+) {
   const { autoFetch = true, onTaskTriggered } = options;
 
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const timerRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const timerRefs = useRef<Map<string, ReturnType<typeof setTimeout>>>(
+    new Map()
+  );
   const lastRunRef = useRef<Map<string, number>>(new Map());
   const scheduleTaskRef = useRef<(task: ScheduledTask) => void>(() => {});
   const unscheduleTaskRef = useRef<(id: string) => void>(() => {});
-  const executeTaskRef = useRef<(task: ScheduledTask) => Promise<void>>(async () => {});
+  const executeTaskRef = useRef<(task: ScheduledTask) => Promise<void>>(
+    async () => {}
+  );
 
   const fetchTasks = useCallback(async () => {
     setIsLoading(true);
@@ -181,60 +223,80 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
     }
   }, []);
 
-  const createTask = useCallback(async (task: Omit<ScheduledTask, "id" | "lastRun" | "nextRun">) => {
-    try {
-      const newTask: ScheduledTask = {
-        ...task,
-        id: crypto.randomUUID(),
-        lastRun: undefined,
-        nextRun: undefined,
-      };
-      const updated = [...tasks, newTask];
-      setTasks(updated);
-      localStorage.setItem("pos_scheduled_tasks", JSON.stringify(updated));
-      scheduleTaskRef.current(newTask);
-      return newTask;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل إنشاء المهمة");
-      return null;
-    }
-  }, [tasks]);
+  const createTask = useCallback(
+    async (task: Omit<ScheduledTask, "id" | "lastRun" | "nextRun">) => {
+      try {
+        const newTask: ScheduledTask = {
+          ...task,
+          id: crypto.randomUUID(),
+          lastRun: undefined,
+          nextRun: undefined,
+        };
+        const updated = [...tasks, newTask];
+        setTasks(updated);
+        localStorage.setItem("pos_scheduled_tasks", JSON.stringify(updated));
+        scheduleTaskRef.current(newTask);
+        return newTask;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "فشل إنشاء المهمة");
+        return null;
+      }
+    },
+    [tasks]
+  );
 
-  const updateTask = useCallback(async (id: string, updates: Partial<ScheduledTask>) => {
-    try {
-      const updatedTasks = tasks.map(t => t.id === id ? { ...t, ...updates } : t);
-      setTasks(updatedTasks);
-      localStorage.setItem("pos_scheduled_tasks", JSON.stringify(updatedTasks));
-      unscheduleTaskRef.current(id);
-      const updatedTask = updatedTasks.find(t => t.id === id);
-      if (updatedTask?.enabled) scheduleTaskRef.current(updatedTask);
-      return updatedTask || null;
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل تحديث المهمة");
-      return null;
-    }
-  }, [tasks]);
+  const updateTask = useCallback(
+    async (id: string, updates: Partial<ScheduledTask>) => {
+      try {
+        const updatedTasks = tasks.map(t =>
+          t.id === id ? { ...t, ...updates } : t
+        );
+        setTasks(updatedTasks);
+        localStorage.setItem(
+          "pos_scheduled_tasks",
+          JSON.stringify(updatedTasks)
+        );
+        unscheduleTaskRef.current(id);
+        const updatedTask = updatedTasks.find(t => t.id === id);
+        if (updatedTask?.enabled) scheduleTaskRef.current(updatedTask);
+        return updatedTask || null;
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "فشل تحديث المهمة");
+        return null;
+      }
+    },
+    [tasks]
+  );
 
-  const deleteTask = useCallback(async (id: string) => {
-    try {
-      const updatedTasks = tasks.filter(t => t.id !== id);
-      setTasks(updatedTasks);
-      localStorage.setItem("pos_scheduled_tasks", JSON.stringify(updatedTasks));
-      unscheduleTaskRef.current(id);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل حذف المهمة");
-    }
-  }, [tasks]);
+  const deleteTask = useCallback(
+    async (id: string) => {
+      try {
+        const updatedTasks = tasks.filter(t => t.id !== id);
+        setTasks(updatedTasks);
+        localStorage.setItem(
+          "pos_scheduled_tasks",
+          JSON.stringify(updatedTasks)
+        );
+        unscheduleTaskRef.current(id);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "فشل حذف المهمة");
+      }
+    },
+    [tasks]
+  );
 
-  const runTaskNow = useCallback(async (id: string) => {
-    const task = tasks.find(t => t.id === id);
-    if (!task) return;
-    try {
-      await executeTaskRef.current(task);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل تشغيل المهمة");
-    }
-  }, [tasks]);
+  const runTaskNow = useCallback(
+    async (id: string) => {
+      const task = tasks.find(t => t.id === id);
+      if (!task) return;
+      try {
+        await executeTaskRef.current(task);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "فشل تشغيل المهمة");
+      }
+    },
+    [tasks]
+  );
 
   const scheduleTask = useCallback((task: ScheduledTask) => {
     unscheduleTaskRef.current(task.id);
@@ -259,7 +321,11 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
         return next.getTime();
       }
 
-      if (schedule.frequency === "weekly" && schedule.time && schedule.daysOfWeek?.length) {
+      if (
+        schedule.frequency === "weekly" &&
+        schedule.time &&
+        schedule.daysOfWeek?.length
+      ) {
         const [hours, minutes] = schedule.time.split(":").map(Number);
         const nowDay = new Date().getDay();
         let daysAhead = 7;
@@ -282,7 +348,11 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
         return next.getTime();
       }
 
-      if (schedule.frequency === "monthly" && schedule.time && schedule.dayOfMonth) {
+      if (
+        schedule.frequency === "monthly" &&
+        schedule.time &&
+        schedule.dayOfMonth
+      ) {
         const [hours, minutes] = schedule.time.split(":").map(Number);
         const next = new Date();
         next.setDate(schedule.dayOfMonth);
@@ -314,65 +384,87 @@ export function usePOSScheduledTasks(options: UsePOSScheduledTasksOptions = {}) 
     }
   }, []);
 
-  const executeTask = useCallback(async (task: ScheduledTask) => {
-    try {
-      switch (task.action.type) {
-        case "notification": {
-          // Create a local notification
-          const newNotification: Notification = {
-            id: crypto.randomUUID(),
-            type: task.action.config.type || "info",
-            title: task.action.config.title,
-            titleAr: task.action.config.titleAr,
-            message: task.action.config.message,
-            messageAr: task.action.config.messageAr,
-            timestamp: new Date().toISOString(),
-            read: false,
-          };
-          const stored = localStorage.getItem("pos_notifications");
-          const existingNotifications = stored ? JSON.parse(stored) : [];
-          const updatedNotifications = [newNotification, ...existingNotifications].slice(0, 100);
-          localStorage.setItem("pos_notifications", JSON.stringify(updatedNotifications));
-          break;
+  const executeTask = useCallback(
+    async (task: ScheduledTask) => {
+      try {
+        switch (task.action.type) {
+          case "notification": {
+            // Create a local notification
+            const newNotification: Notification = {
+              id: crypto.randomUUID(),
+              type: task.action.config.type || "info",
+              title: task.action.config.title,
+              titleAr: task.action.config.titleAr,
+              message: task.action.config.message,
+              messageAr: task.action.config.messageAr,
+              timestamp: new Date().toISOString(),
+              read: false,
+            };
+            const stored = localStorage.getItem("pos_notifications");
+            const existingNotifications = stored ? JSON.parse(stored) : [];
+            const updatedNotifications = [
+              newNotification,
+              ...existingNotifications,
+            ].slice(0, 100);
+            localStorage.setItem(
+              "pos_notifications",
+              JSON.stringify(updatedNotifications)
+            );
+            break;
+          }
+          case "api_call":
+            await fetch(task.action.config.url, {
+              method: task.action.config.method || "POST",
+              headers: {
+                "Content-Type": "application/json",
+                ...task.action.config.headers,
+              },
+              body: JSON.stringify(task.action.config.body),
+            });
+            break;
+          case "webhook":
+            await fetch(task.action.config.url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                taskId: task.id,
+                timestamp: Date.now(),
+                ...task.action.config.payload,
+              }),
+            });
+            break;
+          case "email":
+            console.warn(
+              "Email channel not yet implemented:",
+              task.action.type
+            );
+            break;
         }
-        case "api_call":
-          await fetch(task.action.config.url, {
-            method: task.action.config.method || "POST",
-            headers: { "Content-Type": "application/json", ...task.action.config.headers },
-            body: JSON.stringify(task.action.config.body),
-          });
-          break;
-        case "webhook":
-          await fetch(task.action.config.url, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ taskId: task.id, timestamp: Date.now(), ...task.action.config.payload }),
-          });
-          break;
-        case "email":
-          console.warn("Email channel not yet implemented:", task.action.type);
-          break;
+
+        onTaskTriggered?.(task);
+
+        const updatedTasks = tasks.map(t =>
+          t.id === task.id ? { ...t, lastRun: new Date().toISOString() } : t
+        );
+        setTasks(updatedTasks);
+        localStorage.setItem(
+          "pos_scheduled_tasks",
+          JSON.stringify(updatedTasks)
+        );
+
+        if (task.schedule.frequency !== "once") {
+          scheduleTaskRef.current(task);
+        } else {
+          setTasks(prev =>
+            prev.map(t => (t.id === task.id ? { ...t, enabled: false } : t))
+          );
+        }
+      } catch (err) {
+        console.error("Task execution failed:", err);
       }
-
-      onTaskTriggered?.(task);
-
-      const updatedTasks = tasks.map(t =>
-        t.id === task.id
-          ? { ...t, lastRun: new Date().toISOString() }
-          : t
-      );
-      setTasks(updatedTasks);
-      localStorage.setItem("pos_scheduled_tasks", JSON.stringify(updatedTasks));
-
-      if (task.schedule.frequency !== "once") {
-        scheduleTaskRef.current(task);
-      } else {
-        setTasks(prev => prev.map(t => t.id === task.id ? { ...t, enabled: false } : t));
-      }
-    } catch (err) {
-      console.error("Task execution failed:", err);
-    }
-  }, [onTaskTriggered, tasks]);
+    },
+    [onTaskTriggered, tasks]
+  );
 
   // Keep the latest callback refs in sync so the scheduleTask ↔ executeTask
   // cycle stays stable (no redundant re-creation, no stale-closure timers).

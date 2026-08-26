@@ -1,7 +1,12 @@
 import { and, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { notifyOwner } from "./notification";
-import { adminProcedure, protectedProcedure, publicProcedure, router } from "./trpc";
+import {
+  adminProcedure,
+  protectedProcedure,
+  publicProcedure,
+  router,
+} from "./trpc";
 import { requireOwner } from "./tenant";
 import { getDb } from "../db";
 import {
@@ -32,7 +37,9 @@ import {
  * (مكتبة الحسينية) to reuse the same account/product/customer/supplier codes
  * without colliding with tenant 1.
  */
-async function applyTenantUniqueConstraints(db: NonNullable<Awaited<ReturnType<typeof getDb>>>) {
+async function applyTenantUniqueConstraints(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>
+) {
   const dropCandidates: Record<string, string[]> = {
     accounts: ["accounts_code_unique", "accounts_code_key"],
     products: ["products_code_unique", "products_code_key"],
@@ -78,7 +85,9 @@ async function applyTenantUniqueConstraints(db: NonNullable<Awaited<ReturnType<t
  * (goods sales revenue, inventory, sales discount, and per-method bank accounts).
  * Idempotent — safe to call repeatedly.
  */
-async function applyPosSchema(db: NonNullable<Awaited<ReturnType<typeof getDb>>>) {
+async function applyPosSchema(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>
+) {
   const colAdds = [
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "posConfig" text`,
     `ALTER TABLE settings ADD COLUMN IF NOT EXISTS "salesPolicy" text`,
@@ -144,12 +153,48 @@ async function applyPosSchema(db: NonNullable<Awaited<ReturnType<typeof getDb>>>
 
   const allTenants = await db.select({ id: tenants.id }).from(tenants);
   const extraAccounts = [
-    { code: "4011", name: "إيرادات مبيعات البضائع", type: "revenue" as const, category: "الإيرادات التشغيلية", description: "إيرادات بيع البضائع والسلع" },
-    { code: "1060", name: "المخزون السلعي", type: "asset" as const, category: "الأصول المتداولة", description: "قيمة المخزون من البضائع" },
-    { code: "1090", name: "الخصم المسموح به (خصم المبيعات)", type: "expense" as const, category: "خصم المبيعات", description: "خصومات ممنوحة على المبيعات" },
-    { code: "1021", name: "البنك — بطاقات ومدى", type: "asset" as const, category: "الأصول المتداولة", description: "تحصيلات عبر نقاط البيع بالبطاقة" },
-    { code: "1022", name: "البنك — حوالات", type: "asset" as const, category: "الأصول المتداولة", description: "تحصيلات عبر التحويل البنكي" },
-    { code: "1023", name: "البنك — مدفوعات أونلاين", type: "asset" as const, category: "الأصول المتداولة", description: "تحصيلات عبر بوابات الدفع الإلكتروني" },
+    {
+      code: "4011",
+      name: "إيرادات مبيعات البضائع",
+      type: "revenue" as const,
+      category: "الإيرادات التشغيلية",
+      description: "إيرادات بيع البضائع والسلع",
+    },
+    {
+      code: "1060",
+      name: "المخزون السلعي",
+      type: "asset" as const,
+      category: "الأصول المتداولة",
+      description: "قيمة المخزون من البضائع",
+    },
+    {
+      code: "1090",
+      name: "الخصم المسموح به (خصم المبيعات)",
+      type: "expense" as const,
+      category: "خصم المبيعات",
+      description: "خصومات ممنوحة على المبيعات",
+    },
+    {
+      code: "1021",
+      name: "البنك — بطاقات ومدى",
+      type: "asset" as const,
+      category: "الأصول المتداولة",
+      description: "تحصيلات عبر نقاط البيع بالبطاقة",
+    },
+    {
+      code: "1022",
+      name: "البنك — حوالات",
+      type: "asset" as const,
+      category: "الأصول المتداولة",
+      description: "تحصيلات عبر التحويل البنكي",
+    },
+    {
+      code: "1023",
+      name: "البنك — مدفوعات أونلاين",
+      type: "asset" as const,
+      category: "الأصول المتداولة",
+      description: "تحصيلات عبر بوابات الدفع الإلكتروني",
+    },
   ];
   for (const t of allTenants) {
     for (const acc of extraAccounts) {
@@ -369,11 +414,7 @@ export async function provisionGenericTenant(
 ): Promise<number> {
   const country = opts.country || "اليمن";
   let tenantRow = (
-    await db
-      .select()
-      .from(tenants)
-      .where(eq(tenants.code, opts.code))
-      .limit(1)
+    await db.select().from(tenants).where(eq(tenants.code, opts.code)).limit(1)
   )[0];
   if (!tenantRow) {
     const [created] = await db
@@ -450,7 +491,9 @@ export async function provisionGenericTenant(
 
 export const systemRouter = router({
   health: publicProcedure
-    .input(z.object({ timestamp: z.number().min(0, "timestamp cannot be negative") }))
+    .input(
+      z.object({ timestamp: z.number().min(0, "timestamp cannot be negative") })
+    )
     .query(() => ({ ok: true })),
 
   notifyOwner: adminProcedure
@@ -472,13 +515,15 @@ export const systemRouter = router({
   }),
 
   // Super-admin only: harden the schema (global → per-tenant unique keys).
-  applyTenantConstraints: protectedProcedureAdmin().mutation(async ({ ctx }) => {
-    requireOwner(ctx);
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    await applyTenantUniqueConstraints(db);
-    return { ok: true };
-  }),
+  applyTenantConstraints: protectedProcedureAdmin().mutation(
+    async ({ ctx }) => {
+      requireOwner(ctx);
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await applyTenantUniqueConstraints(db);
+      return { ok: true };
+    }
+  ),
 
   // Super-admin only: runtime migration for the flexible POS / sales feature.
   migratePos: protectedProcedureAdmin().mutation(async ({ ctx }) => {
@@ -496,262 +541,263 @@ export const systemRouter = router({
   // Super-admin only: provision "مكتبة الحسينية" as a fully independent
   // tenant, migrate its reference data from docs/ and post a balanced opening
   // entry (inventory value → Dr stock / Cr owner's capital). Idempotent.
-  provisionLibraryTenant: protectedProcedureAdmin().mutation(async ({ ctx }) => {
-    requireOwner(ctx);
-    const db = await getDb();
-    if (!db) throw new Error("Database not available");
-    await applyTenantUniqueConstraints(db);
-    await applyPosSchema(db);
-    await applyGovernanceSchema(db);
-    await applyProductsSchemaFix(db);
-    await applyAuthSchema(db);
+  provisionLibraryTenant: protectedProcedureAdmin().mutation(
+    async ({ ctx }) => {
+      requireOwner(ctx);
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+      await applyTenantUniqueConstraints(db);
+      await applyPosSchema(db);
+      await applyGovernanceSchema(db);
+      await applyProductsSchemaFix(db);
+      await applyAuthSchema(db);
 
-    const ownerId = ctx.user!.id;
+      const ownerId = ctx.user!.id;
 
-    // 1) Tenant (idempotent by immutable code)
-    let tenantRow = (
-      await db
-        .select()
-        .from(tenants)
-        .where(eq(tenants.code, LIBRARY_TENANT_CODE))
-        .limit(1)
-    )[0];
-    let alreadyProvisioned = false;
-    if (tenantRow) {
-      alreadyProvisioned = true;
-    } else {
-      const [created] = await db
-        .insert(tenants)
-        .values({
-          name: LIBRARY_TENANT_NAME,
-          code: LIBRARY_TENANT_CODE,
-          ownerUserId: ownerId,
-          currency: "YER",
-        })
-        .returning();
-      tenantRow = created;
-    }
-    const tid = tenantRow!.id;
-
-    // 2) Branch (idempotent)
-    const existingBranch = await db
-      .select()
-      .from(branches)
-      .where(eq(branches.tenantId, tid))
-      .limit(1);
-    if (existingBranch.length === 0) {
-      await db.insert(branches).values({
-        tenantId: tid,
-        name: "الفرع الرئيسي — مكتبة الحسينية",
-        code: "MAIN",
-        city: "صنعاء",
-        isMain: true,
-      });
-    }
-
-    // 3) Settings (idempotent — unique tenantId)
-    const existingSettings = await db
-      .select()
-      .from(settings)
-      .where(eq(settings.tenantId, tid))
-      .limit(1);
-    if (existingSettings.length === 0) {
-      await db.insert(settings).values({
-        tenantId: tid,
-        institutionName: LIBRARY_TENANT_NAME,
-        currency: "ريال يمني (YER)",
-        accountingPeriod: "2026",
-        managerName: "إدارة مكتبة الحسينية",
-      });
-    }
-
-    let accountsSeeded = 0;
-    let productsSeeded = 0;
-
-    // 4) Chart of accounts (idempotent by count)
-    const acctCount = await db.$count(accounts, eq(accounts.tenantId, tid));
-    if (acctCount === 0) {
-      const inserted = await db
-        .insert(accounts)
-        .values(
-          libraryAccounts.map((a) => ({
-            tenantId: tid,
-            code: a.code,
-            name: a.name,
-            type: a.type,
-            isActive: true,
-            isCustom: false,
-            parentAccountId: null,
-          }))
-        )
-        .returning({ id: accounts.id, code: accounts.code });
-      const codeToId = new Map(inserted.map((r) => [r.code, r.id]));
-      // second pass: wire parent links
-      for (const a of libraryAccounts) {
-        if (a.parentCode && codeToId.has(a.parentCode)) {
-          await db
-            .update(accounts)
-            .set({ parentAccountId: codeToId.get(a.parentCode)! })
-            .where(
-              and(
-                eq(accounts.tenantId, tid),
-                eq(accounts.code, a.code)
-              )
-            );
-        }
-      }
-      accountsSeeded = inserted.length;
-    }
-
-    // 5) Products (goods + services) — idempotent by count
-    const prodCount = await db.$count(products, eq(products.tenantId, tid));
-    if (prodCount === 0) {
-      const all = [
-        ...libraryGoods.map((g) => ({
-          tenantId: tid,
-          code: g.code,
-          name: g.name,
-          type: "goods" as const,
-          category: g.category,
-          unit: g.unit,
-          purchasePrice: g.purchasePrice,
-          salePrice: g.salePrice,
-          currentStock: g.currentStock,
-          isActive: true,
-        })),
-        ...libraryServices.map((s) => ({
-          tenantId: tid,
-          code: `S-${s.code}`,
-          name: s.name,
-          type: "service" as const,
-          category: s.category,
-          unit: s.unit,
-          purchasePrice: s.purchasePrice,
-          salePrice: s.salePrice,
-          currentStock: 0,
-          isActive: true,
-          description: s.description || null,
-        })),
-      ];
-      const inserted = await db.insert(products).values(all).returning();
-      productsSeeded = inserted.length;
-    }
-
-    // 6) Balanced opening entry (inventory value → Dr stock / Cr capital)
-    const openingCount = await db.$count(
-      openingBalances,
-      and(
-        eq(openingBalances.tenantId, tid),
-        eq(openingBalances.periodName, "السنة المالية 2026")
-      )
-    );
-    if (openingCount === 0 && libraryInventoryValue > 0) {
-      const value = libraryInventoryValue.toFixed(2);
-
-      let inventoryAccount = (
+      // 1) Tenant (idempotent by immutable code)
+      let tenantRow = (
         await db
           .select()
-          .from(accounts)
-          .where(
-            and(
-              eq(accounts.tenantId, tid),
-              eq(accounts.type, "asset"),
-              or(
-                ilike(accounts.name, "%مخزون%"),
-                ilike(accounts.name, "%بضاعة%"),
-                ilike(accounts.name, "%جرد%")
-              )
-            )
-          )
+          .from(tenants)
+          .where(eq(tenants.code, LIBRARY_TENANT_CODE))
           .limit(1)
       )[0];
+      let alreadyProvisioned = false;
+      if (tenantRow) {
+        alreadyProvisioned = true;
+      } else {
+        const [created] = await db
+          .insert(tenants)
+          .values({
+            name: LIBRARY_TENANT_NAME,
+            code: LIBRARY_TENANT_CODE,
+            ownerUserId: ownerId,
+            currency: "YER",
+          })
+          .returning();
+        tenantRow = created;
+      }
+      const tid = tenantRow!.id;
 
-      if (!inventoryAccount) {
-        const firstAsset = (
+      // 2) Branch (idempotent)
+      const existingBranch = await db
+        .select()
+        .from(branches)
+        .where(eq(branches.tenantId, tid))
+        .limit(1);
+      if (existingBranch.length === 0) {
+        await db.insert(branches).values({
+          tenantId: tid,
+          name: "الفرع الرئيسي — مكتبة الحسينية",
+          code: "MAIN",
+          city: "صنعاء",
+          isMain: true,
+        });
+      }
+
+      // 3) Settings (idempotent — unique tenantId)
+      const existingSettings = await db
+        .select()
+        .from(settings)
+        .where(eq(settings.tenantId, tid))
+        .limit(1);
+      if (existingSettings.length === 0) {
+        await db.insert(settings).values({
+          tenantId: tid,
+          institutionName: LIBRARY_TENANT_NAME,
+          currency: "ريال يمني (YER)",
+          accountingPeriod: "2026",
+          managerName: "إدارة مكتبة الحسينية",
+        });
+      }
+
+      let accountsSeeded = 0;
+      let productsSeeded = 0;
+
+      // 4) Chart of accounts (idempotent by count)
+      const acctCount = await db.$count(accounts, eq(accounts.tenantId, tid));
+      if (acctCount === 0) {
+        const inserted = await db
+          .insert(accounts)
+          .values(
+            libraryAccounts.map(a => ({
+              tenantId: tid,
+              code: a.code,
+              name: a.name,
+              type: a.type,
+              isActive: true,
+              isCustom: false,
+              parentAccountId: null,
+            }))
+          )
+          .returning({ id: accounts.id, code: accounts.code });
+        const codeToId = new Map(inserted.map(r => [r.code, r.id]));
+        // second pass: wire parent links
+        for (const a of libraryAccounts) {
+          if (a.parentCode && codeToId.has(a.parentCode)) {
+            await db
+              .update(accounts)
+              .set({ parentAccountId: codeToId.get(a.parentCode)! })
+              .where(
+                and(eq(accounts.tenantId, tid), eq(accounts.code, a.code))
+              );
+          }
+        }
+        accountsSeeded = inserted.length;
+      }
+
+      // 5) Products (goods + services) — idempotent by count
+      const prodCount = await db.$count(products, eq(products.tenantId, tid));
+      if (prodCount === 0) {
+        const all = [
+          ...libraryGoods.map(g => ({
+            tenantId: tid,
+            code: g.code,
+            name: g.name,
+            type: "goods" as const,
+            category: g.category,
+            unit: g.unit,
+            purchasePrice: g.purchasePrice,
+            salePrice: g.salePrice,
+            currentStock: g.currentStock,
+            isActive: true,
+          })),
+          ...libraryServices.map(s => ({
+            tenantId: tid,
+            code: `S-${s.code}`,
+            name: s.name,
+            type: "service" as const,
+            category: s.category,
+            unit: s.unit,
+            purchasePrice: s.purchasePrice,
+            salePrice: s.salePrice,
+            currentStock: 0,
+            isActive: true,
+            description: s.description || null,
+          })),
+        ];
+        const inserted = await db.insert(products).values(all).returning();
+        productsSeeded = inserted.length;
+      }
+
+      // 6) Balanced opening entry (inventory value → Dr stock / Cr capital)
+      const openingCount = await db.$count(
+        openingBalances,
+        and(
+          eq(openingBalances.tenantId, tid),
+          eq(openingBalances.periodName, "السنة المالية 2026")
+        )
+      );
+      if (openingCount === 0 && libraryInventoryValue > 0) {
+        const value = libraryInventoryValue.toFixed(2);
+
+        let inventoryAccount = (
           await db
             .select()
             .from(accounts)
-            .where(and(eq(accounts.tenantId, tid), eq(accounts.type, "asset")))
+            .where(
+              and(
+                eq(accounts.tenantId, tid),
+                eq(accounts.type, "asset"),
+                or(
+                  ilike(accounts.name, "%مخزون%"),
+                  ilike(accounts.name, "%بضاعة%"),
+                  ilike(accounts.name, "%جرد%")
+                )
+              )
+            )
             .limit(1)
         )[0];
-        const [created] = await db
-          .insert(accounts)
-          .values({
+
+        if (!inventoryAccount) {
+          const firstAsset = (
+            await db
+              .select()
+              .from(accounts)
+              .where(
+                and(eq(accounts.tenantId, tid), eq(accounts.type, "asset"))
+              )
+              .limit(1)
+          )[0];
+          const [created] = await db
+            .insert(accounts)
+            .values({
+              tenantId: tid,
+              code: "1250",
+              name: "المخزون السلعي",
+              type: "asset",
+              isActive: true,
+              isCustom: true,
+              parentAccountId: firstAsset ? firstAsset.id : null,
+            })
+            .returning();
+          inventoryAccount = created;
+        }
+
+        let capitalAccount = (
+          await db
+            .select()
+            .from(accounts)
+            .where(and(eq(accounts.tenantId, tid), eq(accounts.type, "equity")))
+            .limit(1)
+        )[0];
+        if (!capitalAccount) {
+          const [created] = await db
+            .insert(accounts)
+            .values({
+              tenantId: tid,
+              code: "3000",
+              name: "رأس مال مكتبة الحسينية",
+              type: "equity",
+              isActive: true,
+              isCustom: true,
+            })
+            .returning();
+          capitalAccount = created;
+        }
+
+        await db.insert(openingBalances).values([
+          {
             tenantId: tid,
-            code: "1250",
-            name: "المخزون السلعي",
-            type: "asset",
-            isActive: true,
-            isCustom: true,
-            parentAccountId: firstAsset ? firstAsset.id : null,
-          })
-          .returning();
-        inventoryAccount = created;
+            accountId: inventoryAccount.id,
+            amount: value,
+            type: "debit",
+            periodName: "السنة المالية 2026",
+            notes: "تزويد المخزون الافتتاحي من جرد مكتبة الحسينية",
+          },
+          {
+            tenantId: tid,
+            accountId: capitalAccount.id,
+            amount: value,
+            type: "credit",
+            periodName: "السنة المالية 2026",
+            notes: "رأس مال صاحب المنشأة مقابل المخزون الافتتاحي",
+          },
+        ]);
       }
 
-      let capitalAccount = (
-        await db
-          .select()
-          .from(accounts)
-          .where(and(eq(accounts.tenantId, tid), eq(accounts.type, "equity")))
-          .limit(1)
-      )[0];
-      if (!capitalAccount) {
-        const [created] = await db
-          .insert(accounts)
-          .values({
-            tenantId: tid,
-            code: "3000",
-            name: "رأس مال مكتبة الحسينية",
-            type: "equity",
-            isActive: true,
-            isCustom: true,
-          })
-          .returning();
-        capitalAccount = created;
-      }
+      await db.insert(activityLogs).values({
+        tenantId: tid,
+        userId: ownerId,
+        action: alreadyProvisioned
+          ? `دخول مالك المنصة إلى مؤسسة ${LIBRARY_TENANT_NAME}`
+          : `تزويد مؤسسة ${LIBRARY_TENANT_NAME} وترحيل بياناتها المرجعية`,
+        details: `حسابات: ${accountsSeeded}، أصناف: ${productsSeeded}، قيمة المخزون الافتتاحي: ${libraryInventoryValue.toFixed(
+          2
+        )} ريال يمني`,
+      });
 
-      await db.insert(openingBalances).values([
-        {
-          tenantId: tid,
-          accountId: inventoryAccount.id,
-          amount: value,
-          type: "debit",
-          periodName: "السنة المالية 2026",
-          notes: "تزويد المخزون الافتتاحي من جرد مكتبة الحسينية",
-        },
-        {
-          tenantId: tid,
-          accountId: capitalAccount.id,
-          amount: value,
-          type: "credit",
-          periodName: "السنة المالية 2026",
-          notes: "رأس مال صاحب المنشأة مقابل المخزون الافتتاحي",
-        },
-      ]);
+      return {
+        tenantId: tid,
+        tenantCode: LIBRARY_TENANT_CODE,
+        tenantName: LIBRARY_TENANT_NAME,
+        alreadyProvisioned,
+        accounts: accountsSeeded,
+        products: productsSeeded,
+        inventoryValue: libraryInventoryValue,
+      };
     }
-
-    await db.insert(activityLogs).values({
-      tenantId: tid,
-      userId: ownerId,
-      action: alreadyProvisioned
-        ? `دخول مالك المنصة إلى مؤسسة ${LIBRARY_TENANT_NAME}`
-        : `تزويد مؤسسة ${LIBRARY_TENANT_NAME} وترحيل بياناتها المرجعية`,
-      details: `حسابات: ${accountsSeeded}، أصناف: ${productsSeeded}، قيمة المخزون الافتتاحي: ${libraryInventoryValue.toFixed(
-        2
-      )} ريال يمني`,
-    });
-
-    return {
-      tenantId: tid,
-      tenantCode: LIBRARY_TENANT_CODE,
-      tenantName: LIBRARY_TENANT_NAME,
-      alreadyProvisioned,
-      accounts: accountsSeeded,
-      products: productsSeeded,
-      inventoryValue: libraryInventoryValue,
-    };
-  }),
+  ),
 });
 
 /**

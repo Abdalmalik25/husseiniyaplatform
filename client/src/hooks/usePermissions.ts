@@ -14,4 +14,3 @@ export function usePermissions() {
   const isAdmin = role === "owner" || role === "admin";
   return { role, isAdmin, ready: data !== undefined };
 }
-

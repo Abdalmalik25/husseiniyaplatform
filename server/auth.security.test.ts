@@ -12,7 +12,12 @@ const mockDbSelect = vi.fn();
 const mockDbInsert = vi.fn();
 const mockDbUpdate = vi.fn();
 const mockDbExecute = vi.fn();
-const mockDb = { select: mockDbSelect, insert: mockDbInsert, update: mockDbUpdate, execute: mockDbExecute };
+const mockDb = {
+  select: mockDbSelect,
+  insert: mockDbInsert,
+  update: mockDbUpdate,
+  execute: mockDbExecute,
+};
 
 function mockSelectChain(rows: any[]) {
   const chain = {
@@ -30,7 +35,7 @@ vi.mock("./db", () => ({
   getDb: () => Promise.resolve(mockDb),
   upsertUser: vi.fn().mockResolvedValue(undefined),
 }));
-vi.mock("./_core/systemRouter", async (importOriginal) => {
+vi.mock("./_core/systemRouter", async importOriginal => {
   const actual = await importOriginal<typeof import("./_core/systemRouter")>();
   return {
     ...actual,
@@ -40,14 +45,27 @@ vi.mock("./_core/systemRouter", async (importOriginal) => {
 });
 vi.mock("./_core/geo", () => ({
   getClientIp: vi.fn().mockReturnValue("127.0.0.1"),
-  geolocate: vi.fn().mockResolvedValue({ country: "اليمن", city: "صنعاء", lat: 15.3547, lng: 44.2056 }),
+  geolocate: vi.fn().mockResolvedValue({
+    country: "اليمن",
+    city: "صنعاء",
+    lat: 15.3547,
+    lng: 44.2056,
+  }),
   parseDevice: vi.fn().mockReturnValue("حاسوب — متصفح"),
 }));
 vi.mock("./_core/sdk", () => ({
   sdk: { createSessionToken: vi.fn().mockResolvedValue("mocked-jwt-token") },
 }));
 vi.mock("./_core/env", () => ({
-  ENV: { ownerOpenId: "dev-owner-001", ownerPassword: "pQnrmT8NL3o0cKDtsy9S", cookieSecret: "test-secret", databaseUrl: "postgresql://test", oAuthServerUrl: "http://localhost:4000", appId: "test-app", isProduction: false },
+  ENV: {
+    ownerOpenId: "dev-owner-001",
+    ownerPassword: "pQnrmT8NL3o0cKDtsy9S",
+    cookieSecret: "test-secret",
+    databaseUrl: "postgresql://test",
+    oAuthServerUrl: "http://localhost:4000",
+    appId: "test-app",
+    isProduction: false,
+  },
 }));
 
 import { hashPassword } from "./_core/password";
@@ -59,21 +77,46 @@ import { provisionGenericTenant } from "./_core/systemRouter";
 
 function createCtx(overrides: Partial<TrpcContext> = {}): TrpcContext {
   return {
-    user: null, tenantId: null, isSuperAdmin: false,
-    req: { protocol: "https", headers: { "user-agent": "Mozilla/5.0 TestBrowser/1.0" } } as TrpcContext["req"],
-    res: { cookie: vi.fn(), clearCookie: vi.fn() } as unknown as TrpcContext["res"],
+    user: null,
+    tenantId: null,
+    isSuperAdmin: false,
+    req: {
+      protocol: "https",
+      headers: { "user-agent": "Mozilla/5.0 TestBrowser/1.0" },
+    } as TrpcContext["req"],
+    res: {
+      cookie: vi.fn(),
+      clearCookie: vi.fn(),
+    } as unknown as TrpcContext["res"],
     ...overrides,
   };
 }
 
 function createAuthUser(overrides: Partial<User> = {}): User {
   return {
-    id: 1, openId: "test-open-id", tenantId: 1, name: "Test User", email: "test@example.com",
-    loginMethod: "local", username: "testuser", passwordHash: null, role: "admin" as const,
-    themePreference: "dark", emailNotifications: true, whatsappNotifications: true, compactMode: false,
-    createdAt: new Date(), updatedAt: new Date(), lastSignedIn: new Date(),
-    currentSessionId: null, failedLoginAttempts: 0, lockedUntil: null, passwordChangedAt: new Date(),
-    mfaEnabled: false, mfaSecret: null, ...overrides,
+    id: 1,
+    openId: "test-open-id",
+    tenantId: 1,
+    name: "Test User",
+    email: "test@example.com",
+    loginMethod: "local",
+    username: "testuser",
+    passwordHash: null,
+    role: "admin" as const,
+    themePreference: "dark",
+    emailNotifications: true,
+    whatsappNotifications: true,
+    compactMode: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    lastSignedIn: new Date(),
+    currentSessionId: null,
+    failedLoginAttempts: 0,
+    lockedUntil: null,
+    passwordChangedAt: new Date(),
+    mfaEnabled: false,
+    mfaSecret: null,
+    ...overrides,
   };
 }
 
@@ -84,24 +127,36 @@ describe("auth.ownerLogin", () => {
   it("logs in the platform owner with correct password and sets session cookie", async () => {
     const ctx = createCtx();
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.auth.ownerLogin({ password: ENV.ownerPassword! });
+    const result = await caller.auth.ownerLogin({
+      password: ENV.ownerPassword!,
+    });
     expect(result).toEqual({ success: true });
     expect(ctx.res.cookie).toHaveBeenCalledTimes(1);
-    expect(sdk.createSessionToken).toHaveBeenCalledWith(ENV.ownerOpenId, { name: "Owner" });
-    expect(ctx.res.cookie).toHaveBeenCalledWith("app_session_id", "mocked-jwt-token", expect.objectContaining({ maxAge: expect.any(Number) }));
+    expect(sdk.createSessionToken).toHaveBeenCalledWith(ENV.ownerOpenId, {
+      name: "Owner",
+    });
+    expect(ctx.res.cookie).toHaveBeenCalledWith(
+      "app_session_id",
+      "mocked-jwt-token",
+      expect.objectContaining({ maxAge: expect.any(Number) })
+    );
   });
 
   it("throws FORBIDDEN when ownerPassword env is not configured", async () => {
     const original = ENV.ownerPassword;
     ENV.ownerPassword = "";
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.ownerLogin({ password: "anything" })).rejects.toThrow(TRPCError);
+    await expect(
+      caller.auth.ownerLogin({ password: "anything" })
+    ).rejects.toThrow(TRPCError);
     ENV.ownerPassword = original;
   });
 
   it("throws UNAUTHORIZED on wrong password", async () => {
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.ownerLogin({ password: "wrongPassword" })).rejects.toThrow(TRPCError);
+    await expect(
+      caller.auth.ownerLogin({ password: "wrongPassword" })
+    ).rejects.toThrow(TRPCError);
   });
 
   it("rejects empty password via Zod validation", async () => {
@@ -132,21 +187,28 @@ describe("auth.login (local subscriber)", () => {
     mockSelectChain([user]);
     const ctx = createCtx();
     const caller = appRouter.createCaller(ctx);
-    const result = await caller.auth.login({ username: "subscriber_a", password });
+    const result = await caller.auth.login({
+      username: "subscriber_a",
+      password,
+    });
     expect(result.ok).toBe(true);
     expect(result.user.id).toBe(user.id);
     expect(result.user.name).toBe(user.name);
     expect(result.user.tenantId).toBe(user.tenantId);
     expect(result.user.role).toBe(user.role);
     expect(ctx.res.cookie).toHaveBeenCalledTimes(1);
-    expect(sdk.createSessionToken).toHaveBeenCalledWith(user.openId, { name: user.name || user.username });
+    expect(sdk.createSessionToken).toHaveBeenCalledWith(user.openId, {
+      name: user.name || user.username,
+    });
     expect(mockDbInsert).toHaveBeenCalled();
   });
 
   it("throws NOT_FOUND for unknown username", async () => {
     mockSelectChain([]);
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.login({ username: "nonexistent", password: "whatever" })).rejects.toThrow(TRPCError);
+    await expect(
+      caller.auth.login({ username: "nonexistent", password: "whatever" })
+    ).rejects.toThrow(TRPCError);
   });
 
   it("throws UNAUTHORIZED on wrong password", async () => {
@@ -157,7 +219,9 @@ describe("auth.login (local subscriber)", () => {
     });
     mockSelectChain([user]);
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.login({ username: "good_user", password: "wrongpassword" })).rejects.toThrow(TRPCError);
+    await expect(
+      caller.auth.login({ username: "good_user", password: "wrongpassword" })
+    ).rejects.toThrow(TRPCError);
   });
 
   it("throws FORBIDDEN (LOCKED) after 5 failed attempts within 15 min", async () => {
@@ -182,7 +246,9 @@ describe("auth.login (local subscriber)", () => {
       limit: vi.fn().mockResolvedValue([]),
     }));
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.login({ username: "locked_user", password: "wrongpassword" })).rejects.toThrow(/LOCKED/);
+    await expect(
+      caller.auth.login({ username: "locked_user", password: "wrongpassword" })
+    ).rejects.toThrow(/LOCKED/);
   });
 
   it("records login attempts with geo + device info on success", async () => {
@@ -217,9 +283,11 @@ describe("auth.register (self-serve subscriber signup)", () => {
     mockSelectChain([]);
     mockDbInsert.mockReturnValue({
       values: vi.fn().mockReturnThis(),
-      returning: vi.fn().mockResolvedValue([
-        createAuthUser({ openId: "local:newbiz", username: "newbiz" }),
-      ]),
+      returning: vi
+        .fn()
+        .mockResolvedValue([
+          createAuthUser({ openId: "local:newbiz", username: "newbiz" }),
+        ]),
     });
     const ctx = createCtx();
     const caller = appRouter.createCaller(ctx);
@@ -235,7 +303,10 @@ describe("auth.register (self-serve subscriber signup)", () => {
     expect(result.tenantId).toBe(999);
     expect(provisionGenericTenant).toHaveBeenCalledWith(
       mockDb,
-      expect.objectContaining({ name: "شركة جديدة", code: expect.stringMatching(/^ORG-[A-Z0-9]+$/) })
+      expect.objectContaining({
+        name: "شركة جديدة",
+        code: expect.stringMatching(/^ORG-[A-Z0-9]+$/),
+      })
     );
     expect(ctx.res.cookie).toHaveBeenCalledTimes(1);
     expect(sdk.createSessionToken).toHaveBeenCalled();
@@ -244,38 +315,77 @@ describe("auth.register (self-serve subscriber signup)", () => {
   it("throws CONFLICT when username is already taken", async () => {
     mockSelectChain([createAuthUser({ username: "taken_name" })]);
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.register({ name: "Biz", username: "taken_name", password: "password123" })).rejects.toThrow(TRPCError);
+    await expect(
+      caller.auth.register({
+        name: "Biz",
+        username: "taken_name",
+        password: "password123",
+      })
+    ).rejects.toThrow(TRPCError);
   });
 
   it("validates username format - rejects special characters", async () => {
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.register({ name: "Test", username: "user@invalid", password: "password123" })).rejects.toThrow();
+    await expect(
+      caller.auth.register({
+        name: "Test",
+        username: "user@invalid",
+        password: "password123",
+      })
+    ).rejects.toThrow();
   });
 
   it("validates username minimum length (3 chars)", async () => {
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.register({ name: "Test", username: "ab", password: "password123" })).rejects.toThrow();
+    await expect(
+      caller.auth.register({
+        name: "Test",
+        username: "ab",
+        password: "password123",
+      })
+    ).rejects.toThrow();
   });
 
   it("validates password minimum length (6 chars)", async () => {
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.register({ name: "Test", username: "valid_user", password: "12345" })).rejects.toThrow();
+    await expect(
+      caller.auth.register({
+        name: "Test",
+        username: "valid_user",
+        password: "12345",
+      })
+    ).rejects.toThrow();
   });
 
   it("validates name minimum length (2 chars)", async () => {
     const caller = appRouter.createCaller(createCtx());
-    await expect(caller.auth.register({ name: "X", username: "valid_user", password: "password123" })).rejects.toThrow();
+    await expect(
+      caller.auth.register({
+        name: "X",
+        username: "valid_user",
+        password: "password123",
+      })
+    ).rejects.toThrow();
   });
 
   it("calls provisionGenericTenant on successful signup", async () => {
     mockSelectChain([]);
     mockDbInsert.mockReturnValue({
       values: vi.fn().mockReturnThis(),
-      returning: vi.fn().mockResolvedValue([createAuthUser({ openId: "local:newuser123", username: "newuser123" })]),
+      returning: vi.fn().mockResolvedValue([
+        createAuthUser({
+          openId: "local:newuser123",
+          username: "newuser123",
+        }),
+      ]),
     });
     const ctx = createCtx();
     const caller = appRouter.createCaller(ctx);
-    await caller.auth.register({ name: "Test User", username: "newuser123", password: "password123" });
+    await caller.auth.register({
+      name: "Test User",
+      username: "newuser123",
+      password: "password123",
+    });
     expect(provisionGenericTenant).toHaveBeenCalled();
   });
 });
@@ -288,7 +398,16 @@ describe("auth.logout", () => {
     const result = await caller.auth.logout();
     expect(result).toEqual({ success: true });
     expect(ctx.res.clearCookie).toHaveBeenCalledTimes(1);
-    expect(ctx.res.clearCookie).toHaveBeenCalledWith("app_session_id", expect.objectContaining({ maxAge: -1, secure: true, sameSite: "none", httpOnly: true, path: "/" }));
+    expect(ctx.res.clearCookie).toHaveBeenCalledWith(
+      "app_session_id",
+      expect.objectContaining({
+        maxAge: -1,
+        secure: true,
+        sameSite: "none",
+        httpOnly: true,
+        path: "/",
+      })
+    );
   });
 });
 

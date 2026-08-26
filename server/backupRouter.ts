@@ -22,7 +22,11 @@ import {
 
 export const backupRouter = router({
   run: adminProcedure
-    .input(z.object({ tenantId: z.number().int().positive().nullable().default(null) }))
+    .input(
+      z.object({
+        tenantId: z.number().int().positive().nullable().default(null),
+      })
+    )
     .mutation(async ({ input }) => {
       const manifest = await runBackup(input.tenantId);
       return {

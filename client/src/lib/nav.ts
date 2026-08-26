@@ -54,15 +54,49 @@ export interface NavItem {
 
 /** Public marketing site navigation — shown to visitors in the top bar. */
 export const MARKETING_NAV: NavItem[] = [
-  { path: "/", label: "الرئيسية", icon: HomeIcon, description: "نظرة شاملة على المنصة والخدمات" },
-  { path: "/solutions", label: "الحلول البرمجية", icon: Cpu, description: "أنظمة محاسبية وتجارية جاهزة للعمل فوراً" },
-  { path: "/#engineering", label: "الخدمات الهندسية", icon: Info, description: "رفع مساحي، جداول BOQ، وحلول المقاولات" },
-  { path: "/insights", label: "مركز المعرفة", icon: BookOpen, description: "مقالات وأدلة عملية ودورات متخصصة" },
-  { path: "/tools", label: "حاسبات ذكية", icon: Calculator, description: "حسابات مقاولات وفواتير ورواتب فورية" },
-  { path: "/pricing", label: "الأسعار", icon: CreditCard, description: "باقات مرنة تنمو مع مؤسستك" },
-  { path: "/contact", label: "تواصل", icon: Phone, description: "فريق الدعم جاهز للإجابة خلال دقائق" },
+  {
+    path: "/",
+    label: "الرئيسية",
+    icon: HomeIcon,
+    description: "نظرة شاملة على المنصة والخدمات",
+  },
+  {
+    path: "/solutions",
+    label: "الحلول البرمجية",
+    icon: Cpu,
+    description: "أنظمة محاسبية وتجارية جاهزة للعمل فوراً",
+  },
+  {
+    path: "/#engineering",
+    label: "الخدمات الهندسية",
+    icon: Info,
+    description: "رفع مساحي، جداول BOQ، وحلول المقاولات",
+  },
+  {
+    path: "/insights",
+    label: "مركز المعرفة",
+    icon: BookOpen,
+    description: "مقالات وأدلة عملية ودورات متخصصة",
+  },
+  {
+    path: "/tools",
+    label: "حاسبات ذكية",
+    icon: Calculator,
+    description: "حسابات مقاولات وفواتير ورواتب فورية",
+  },
+  {
+    path: "/pricing",
+    label: "الأسعار",
+    icon: CreditCard,
+    description: "باقات مرنة تنمو مع مؤسستك",
+  },
+  {
+    path: "/contact",
+    label: "تواصل",
+    icon: Phone,
+    description: "فريق الدعم جاهز للإجابة خلال دقائق",
+  },
 ];
-
 
 /** Authenticated app shell navigation — rendered inside the sidebar. */
 export const APP_NAV: NavItem[] = [
@@ -71,8 +105,18 @@ export const APP_NAV: NavItem[] = [
   { path: "/commercial", label: "العمليات التجارية", icon: Package },
   { path: "/inventory", label: "المخزون", icon: Boxes },
   { path: "/store", label: "المتجر الإلكتروني", icon: ShoppingCart },
-  { path: "/procurement-workspace", label: "Workspace المشتريات", icon: Truck, highlight: true },
-  { path: "/supplier-analytics", label: "تحليل الموردين", icon: BarChart3, highlight: true },
+  {
+    path: "/procurement-workspace",
+    label: "Workspace المشتريات",
+    icon: Truck,
+    highlight: true,
+  },
+  {
+    path: "/supplier-analytics",
+    label: "تحليل الموردين",
+    icon: BarChart3,
+    highlight: true,
+  },
   { path: "/procurement", label: "المشتريات التنفيذية", icon: Truck },
   { path: "/projects", label: "المشاريع", icon: FolderKanban },
   { path: "/hr", label: "الموارد البشرية", icon: Users },
@@ -95,7 +139,12 @@ export const APP_NAV: NavItem[] = [
     icon: BarChart3,
     highlight: true,
   },
-  { path: "/billing", label: "الاشتراك والفوترة", icon: CreditCard, highlight: true },
+  {
+    path: "/billing",
+    label: "الاشتراك والفوترة",
+    icon: CreditCard,
+    highlight: true,
+  },
   { path: "/settings", label: "الإعدادات", icon: Settings },
 ];
 
