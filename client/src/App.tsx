@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -19,6 +19,8 @@ import { OfflineBanner } from "@/components/OfflineBanner";
 import { RequireAuth } from "@/components/RequireAuth";
 import { I18nProvider } from "@/lib/i18n";
 import { useWebVitals } from "@/lib/use-web-vitals";
+import { CircularProgress } from "@/components/ui/circular-progress";
+import { LoadingProvider } from "@/lib/loading-context";
 
 const Landing = lazy(() => import("@/pages/Landing"));
 const Login = lazy(() => import("@/pages/Login"));
@@ -63,73 +65,76 @@ const Analytics = lazy(() => import("@/pages/Analytics"));
 const Billing = lazy(() => import("@/pages/Billing"));
 
 /**
- * Full splash — ONLY for the initial application boot.
- * Deliberately single-indicator (one thin line + brand mark): the previous
- * version stacked three progress elements and re-appeared on every route
- * change, which users read as duplicated/broken loading. Route-level chunk
- * loads now use the lightweight <RouteLoader /> below instead.
+ * Unified Route Loader — Single lightweight circular progress for all lazy loads.
+ * Replaces PageSplash + RouteLoader with one consistent brand experience.
  */
-function PageSplash() {
+function RouteLoader() {
   return (
     <div
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-ink-deep/95 backdrop-blur-md font-display"
-      dir="rtl"
+      className="min-h-[50vh] flex items-center justify-center"
       role="status"
-      aria-label="جاري التحميل"
+      aria-label="جاري تحميل الصفحة"
     >
-      <div className="flex flex-col items-center gap-3 p-6 rounded-3xl bg-white/[0.02] border border-white/[0.08] shadow-2xl backdrop-blur-xl max-w-xs w-[88%] text-center">
-        <div className="relative">
-          <BrandLogo size={36} />
-          <div className="absolute -inset-1 rounded-2xl bg-brand/20 blur-md -z-10 animate-pulse" />
-        </div>
-
-        <div>
-          <div className="text-sm font-black text-white">مؤسسة الحسينية</div>
-          <div className="text-[10px] text-white/50 tracking-wider font-mono mt-0.5">
-            Uamex_erp ERP ECOSYSTEM
-          </div>
-        </div>
-
-        {/* Single indeterminate progress line */}
-        <div className="w-36 h-1 bg-white/10 rounded-full overflow-hidden mt-2 relative">
-          <div className="absolute inset-y-0 left-0 w-1/2 bg-gradient-to-r from-brand to-amber-300 rounded-full animate-bounce-up" />
-        </div>
+      <div className="flex flex-col items-center gap-4 text-center">
+        <CircularProgress size={48} variant="brand" strokeWidth={3} />
+        <p className="text-sm text-muted-foreground font-medium">
+          جاري تحميل الصفحة…
+        </p>
       </div>
     </div>
   );
 }
 
 /**
- * RouteLoader — minimal inline loader for subsequent lazy-route navigations.
- * No full-screen takeover: the previous page stays visible underneath, so
- * navigation feels continuous instead of "loading screen → loading screen".
+ * Initial Boot Loader — Only shows on first app load, then never again.
+ * Uses sessionStorage to track if user has seen it.
  */
-function RouteLoader() {
+function InitialBootLoader() {
+  const [show, setShow] = useState(true);
+
+  useEffect(() => {
+    const hasSeenBoot = sessionStorage.getItem("huss-initial-boot-seen");
+    if (hasSeenBoot) {
+      setShow(false);
+      return;
+    }
+    // Mark as seen after a short delay to show the loader at least once
+    const timer = setTimeout(() => {
+      sessionStorage.setItem("huss-initial-boot-seen", "true");
+      setShow(false);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (!show) return <RouteLoader />;
+
   return (
     <div
-      className="min-h-[60vh] flex items-center justify-center"
+      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-ink-deep/95 backdrop-blur-md font-display"
+      dir="rtl"
       role="status"
-      aria-label="جاري تحميل الصفحة"
+      aria-label="جاري تحميل التطبيق"
     >
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-brand/25 border-t-brand animate-spin" />
-        <span className="text-[11px] text-muted-foreground font-semibold">
-          جاري تحميل الصفحة…
-        </span>
+      <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-white/[0.02] border border-white/[0.08] shadow-2xl backdrop-blur-xl max-w-xs w-[88%] text-center">
+        <div className="relative">
+          <BrandLogo size={40} />
+          <div className="absolute -inset-2 rounded-2xl bg-brand/15 blur-md -z-10 animate-pulse" />
+        </div>
+
+        <div>
+          <div className="text-base font-black text-white">الحسينية لخدمات الأعمال</div>
+          <div className="text-[11px] text-white/50 tracking-wider font-mono mt-1">
+            Uamex_erp — Unified Asset Management & Enterprise Exchange
+          </div>
+        </div>
+
+        <CircularProgress size={56} variant="brand" strokeWidth={3.5} />
       </div>
     </div>
   );
 }
 
 function Router() {
-  // The heavy splash belongs to the first boot only; every later Suspense
-  // suspension (lazy route chunk) gets the light loader.
-  const initialBootRef = useRef(true);
-  useEffect(() => {
-    initialBootRef.current = false;
-  }, []);
-  const BootFallback = initialBootRef.current ? PageSplash : RouteLoader;
-
   return (
     <>
       {/* Live document.title per route (SEO + tab readability) + native-style
@@ -140,7 +145,7 @@ function Router() {
       {/* #main-content anchors the skip-to-content link at the very top of
           App for keyboard & screen-reader users (WCAG 2.4.1). */}
       <div id="main-content" tabIndex={-1} className="focus:outline-none">
-        <Suspense fallback={<BootFallback />}>
+        <Suspense fallback={<InitialBootLoader />}>
           <Switch>
             {/* ── Public marketing & guest pages (no session required) ── */}
             <Route path={"/"} component={Landing} />
@@ -295,7 +300,7 @@ function Router() {
             <Route path={"/404"} component={NotFound} />
             <Route component={NotFound} />
           </Switch>
-        </Suspense>
+</Suspense>
       </div>
     </>
   );
@@ -393,19 +398,21 @@ function App() {
         </a>
 
         <ThemeProvider defaultTheme="light" switchable>
-          <OfflineProvider>
-            <OfflineBanner />
-            <TooltipProvider>
-              <Toaster />
-              <Router />
-              <ScrollProgress />
-              <CommandPalette />
-              <FloatingSupportWidget />
-              <AliasAIAssistant />
-              <InstallPrompt />
-              <SWUpdateToast />
-            </TooltipProvider>
-          </OfflineProvider>
+          <LoadingProvider>
+            <OfflineProvider>
+              <OfflineBanner />
+              <TooltipProvider>
+                <Toaster />
+                <Router />
+                <ScrollProgress />
+                <CommandPalette />
+                <FloatingSupportWidget />
+                <AliasAIAssistant />
+                <InstallPrompt />
+                <SWUpdateToast />
+              </TooltipProvider>
+            </OfflineProvider>
+          </LoadingProvider>
         </ThemeProvider>
       </ErrorBoundary>
     </I18nProvider>

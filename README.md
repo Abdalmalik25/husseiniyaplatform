@@ -1,6 +1,6 @@
-# منصة الحسينية | ALHUSAINIA Platform
+#   لخدمات الأعمال الحسينية | ALHUSAINIA Platform
 
-> نظام الحسابات المتقدم والمنصة المتكاملة لمؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة
+> لخدمات الأعمال الحسينية
 >
 > **اسم نظام الإدارة الموحّد: [`Uamex_erp`](public/UAMEX_ERP/UAMEX_ERPLOGO.png)** — وحدة الأعمال/المحاسبة الرسمية المتكاملة (Unified Asset Management &amp; Enterprise Exchange).
 
@@ -179,6 +179,6 @@ MIT License - راجع ملف [LICENSE](LICENSE) للتفاصيل.
 
 ## التواصل
 
-**مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة**
+** الحسينية لخدمات الأعمال   **
 
 - الموقع: [alhusainiaye.vercel.app](https://alhusainiaye.vercel.app)

@@ -11,6 +11,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
+import { ENV } from "./env";
 
 export function createApp(): Express {
   const app = express();
@@ -175,16 +176,34 @@ export function createApp(): Express {
     })
   );
 
-  // Global error handler
+  // Global error handler — correlation ID per request (ISO 22301 / observability)
   app.use(
     (
       err: any,
-      _req: express.Request,
+      req: express.Request,
       res: express.Response,
       _next: express.NextFunction
     ) => {
-      console.error("[Error]", err);
-      res.status(500).json({ error: "خطأ داخلي في الخادم" });
+      const requestId =
+        (req.headers["x-request-id"] as string) ||
+        `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      console.error(
+        JSON.stringify({
+          t: new Date().toISOString(),
+          level: "error",
+          requestId,
+          path: req.path,
+          method: req.method,
+          message: err?.message ?? String(err),
+          stack: ENV.isProduction ? undefined : err?.stack,
+        })
+      );
+      res.setHeader("x-request-id", requestId);
+      const status = err?.status ?? err?.statusCode ?? 500;
+      res.status(status >= 400 && status < 600 ? status : 500).json({
+        error: "خطأ داخلي في الخادم",
+        requestId,
+      });
     }
   );
 

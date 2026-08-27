@@ -13,20 +13,11 @@ import {
   ShieldCheck,
   Zap,
   KeyRound,
-  Building2,
-  BookOpen,
   ChevronLeft,
-  ChevronRight,
   AlertTriangle,
   UserPlus,
   Sparkles,
   CheckCircle2,
-  HardHat,
-  Boxes,
-  Briefcase,
-  Layers,
-  ArrowRight,
-  Check,
   Coins,
   Clock,
 } from "lucide-react";
@@ -34,98 +25,7 @@ import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BrandLogo } from "@/components/BrandLogo";
-
-const COUNTRIES = [
-  "اليمن",
-  "السعودية",
-  "الإمارات العربية المتحدة",
-  "مصر",
-  "الأردن",
-  "قطر",
-  "الكويت",
-  "عمان",
-  "البحرين",
-  "السودان",
-  "العراق",
-  "سوريا",
-  "لبنان",
-  "أخرى",
-];
-
-const INDUSTRIES = [
-  {
-    id: "trade",
-    title: "تجارة جملة وتجزئة ومخازن",
-    sub: "محلات، مستودعات، شركات توزيع",
-    icon: Boxes,
-    color: "bg-brand/10 text-brand border-brand/20",
-    modules: [
-      "المحاسبة العامة",
-      "المبيعات ونقاط البيع",
-      "المخازن والأصناف",
-      "المشتريات والموردين",
-    ],
-    currencyDefault: "YER",
-  },
-  {
-    id: "contracting",
-    title: "مقاولات وإنشاءات وهندسة",
-    sub: "شركات مقاولات، مكاتب هندسية، تطوير عقاري",
-    icon: HardHat,
-    color: "bg-amber-500/10 text-amber-500 border-amber-500/20",
-    modules: [
-      "المحاسبة العامة",
-      "المشاريع ومراكز التكلفة",
-      "المشتريات والمستخلصات",
-      "المخازن",
-    ],
-    currencyDefault: "YER",
-  },
-  {
-    id: "services",
-    title: "شركات واستشارات وخدمات",
-    sub: "مؤسسات خدمية، استشارات، مكاتب مهنية",
-    icon: Briefcase,
-    color: "bg-sky-500/10 text-sky-400 border-sky-500/20",
-    modules: [
-      "المحاسبة العامة",
-      "فواتير الخدمات والعملاء",
-      "المصروفات والميزانيات",
-      "الموارد البشرية",
-    ],
-    currencyDefault: "YER",
-  },
-  {
-    id: "library",
-    title: "مكتبات وخدمات طلابية وتقنية",
-    sub: "مكتبات، خدمات تصوير، صيانة حواسيب وموبايل",
-    icon: BookOpen,
-    color: "bg-emerald-500/10 text-emerald-500 border-emerald-500/20",
-    modules: [
-      "المحاسبة العامة",
-      "المبيعات ونقاط البيع",
-      "الأصناف المكتبية",
-      "خدمات الصيانة والطلاب",
-    ],
-    currencyDefault: "YER",
-  },
-  {
-    id: "enterprise",
-    title: "منشأة شاملة متعددة الأنشطة",
-    sub: "شركات قابضة، فروع متعددة، أنشطة مدمجة",
-    icon: Layers,
-    color: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-    modules: [
-      "المحاسبة العامة",
-      "المبيعات",
-      "المخازن",
-      "المشتريات",
-      "المشاريع",
-      "الموارد البشرية",
-    ],
-    currencyDefault: "YER",
-  },
-];
+import { brand, whatsappLink } from "@/lib/brand";
 
 const CURRENCIES = [
   { code: "YER", label: "ريال يمني (YER)" },
@@ -137,9 +37,7 @@ const CURRENCIES = [
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const redirectTo = new URLSearchParams(window.location.search).get(
-    "redirect"
-  );
+  const redirectTo = new URLSearchParams(window.location.search).get("redirect");
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -149,25 +47,13 @@ export default function Login() {
   const [notFound, setNotFound] = useState(false);
   const [locked, setLocked] = useState<string | null>(null);
 
-  // Multi-Step Registration Wizard States
-  const [regStep, setRegStep] = useState<number>(1);
+  // Simplified Registration States
   const [regName, setRegName] = useState("");
   const [regUsername, setRegUsername] = useState("");
   const [regPassword, setRegPassword] = useState("");
   const [regCountry, setRegCountry] = useState("اليمن");
   const [regCurrency, setRegCurrency] = useState("YER");
   const [regEmail, setRegEmail] = useState("");
-  const [selectedIndustry, setSelectedIndustry] = useState<string>("trade");
-  const [selectedModules, setSelectedModules] = useState<string[]>([
-    "المحاسبة العامة",
-    "المبيعات ونقاط البيع",
-    "المخازن والأصناف",
-    "المشتريات والموردين",
-  ]);
-
-  // Provisioning Simulation state
-  const [isProvisioning, setIsProvisioning] = useState<boolean>(false);
-  const [provisionStep, setProvisionStep] = useState<number>(0);
 
   const goApp = () => {
     setLocation(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/app");
@@ -194,20 +80,10 @@ export default function Login() {
 
   const register = trpc.auth.register.useMutation({
     onSuccess: () => {
-      // Launch live provisioning animation sequence
-      setIsProvisioning(true);
-      setProvisionStep(1);
-      setTimeout(() => setProvisionStep(2), 500);
-      setTimeout(() => setProvisionStep(3), 1000);
-      setTimeout(() => setProvisionStep(4), 1500);
-      setTimeout(() => {
-        setProvisionStep(5);
-        toast.success("تم تهيئة منشأتك وتفعيل الفترة التجريبية بنجاح!");
-        setTimeout(() => goApp(), 600);
-      }, 2000);
+      toast.success("تم تهيئة منشأتك وتفعيل الفترة التجريبية بنجاح!");
+      setTimeout(() => goApp(), 600);
     },
     onError: (err: any) => {
-      setIsProvisioning(false);
       const msg = err?.message || "";
       const code = err?.data?.code || err?.code;
       if (code === "CONFLICT") {
@@ -229,50 +105,16 @@ export default function Login() {
     login.mutate({ username: username.trim(), password });
   };
 
-  const handleIndustrySelect = (indId: string) => {
-    setSelectedIndustry(indId);
-    const found = INDUSTRIES.find(i => i.id === indId);
-    if (found) {
-      setSelectedModules(found.modules);
-      if (regCountry === "السعودية") {
-        setRegCurrency("SAR");
-      } else {
-        setRegCurrency(found.currencyDefault);
-      }
+  const handleRegister = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!regName.trim() || !regUsername.trim() || !regPassword) {
+      toast.error("الرجاء تعبئة اسم المنشأة واسم المستخدم وكلمة المرور");
+      return;
     }
-  };
-
-  const toggleModule = (modName: string) => {
-    if (selectedModules.includes(modName)) {
-      if (selectedModules.length > 1) {
-        setSelectedModules(selectedModules.filter(m => m !== modName));
-      } else {
-        toast.error("يجب تفعيل وحدة واحدة على الأقل");
-      }
-    } else {
-      setSelectedModules([...selectedModules, modName]);
+    if (regPassword.length < 6) {
+      toast.error("كلمة المرور يجب ألا تقل عن 6 أحرف");
+      return;
     }
-  };
-
-  const handleNextStep = () => {
-    if (regStep === 1) {
-      if (!regName.trim() || !regUsername.trim() || !regPassword) {
-        toast.error("الرجاء تعبئة اسم المنشأة واسم المستخدم وكلمة المرور");
-        return;
-      }
-      if (regPassword.length < 6) {
-        toast.error("كلمة المرور يجب ألا تقل عن 6 أحرف");
-        return;
-      }
-      setRegStep(2);
-    } else if (regStep === 2) {
-      setRegStep(3);
-    } else if (regStep === 3) {
-      setRegStep(4);
-    }
-  };
-
-  const handleFinalRegister = () => {
     register.mutate({
       name: regName.trim(),
       username: regUsername.trim(),
@@ -386,7 +228,7 @@ export default function Login() {
                     value="register"
                     className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink"
                   >
-                    فتح حساب وتهيئة منشأة
+                    فتح حساب جديد
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -488,6 +330,125 @@ export default function Login() {
                       type="button"
                       variant="outline"
                       onClick={() => {
+                        setUsername("library_owner");
+                        setPassword("Library@2024");
+                        login.mutate({
+                          username: "library_owner",
+                          password: "Library@2024",
+                        });
+                      }}
+                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-brand-300" />
+                      <span>تجربة مكتبة الحسينية (Demo)</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setUsername("hail_manager");
+                        setPassword("Hail@2024");
+                        login.mutate({
+                          username: "hail_manager",
+                          password: "Hail@2024",
+                        });
+                      }}
+                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>هايل المدير (Admin)</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setUsername("abduljabbar_sales");
+                        setPassword("Abdujabbar@2024");
+                        login.mutate({
+                          username: "abduljabbar_sales",
+                          password: "Abdujabbar@2024",
+                        });
+                      }}
+                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-sky-400" />
+                      <span>عبدالجبار (محاسب)</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setUsername("mohamed_accounting");
+                        setPassword("Mohamed@2024");
+                        login.mutate({
+                          username: "mohamed_accounting",
+                          password: "Mohamed@2024",
+                        });
+                      }}
+                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
+                      <span>محمد مدير الحسابات (محاسب)</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setUsername("imad_support");
+                        setPassword("Imad@2024");
+                        login.mutate({
+                          username: "imad_support",
+                          password: "Imad@2024",
+                        });
+                      }}
+                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-rose-400" />
+                      <span>عماد الدعم والصيانة</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setUsername("sami_sales");
+                        setPassword("Sami@2024");
+                        login.mutate({
+                          username: "sami_sales",
+                          password: "Sami@2024",
+                        });
+                      }}
+                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                      <span>سامي مبيعات وخدمة عملاء</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setUsername("abdulrazzaq_audit");
+                        setPassword("Abdurazzaq@2024");
+                        login.mutate({
+                          username: "abdulrazzaq_audit",
+                          password: "Abdurazzaq@2024",
+                        });
+                      }}
+                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-orange-400" />
+                      <span>عبدالرزاق مراجعة داخلية</span>
+                    </Button>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
                         setUsername("admin");
                         setPassword("admin123");
                         login.mutate({
@@ -498,425 +459,146 @@ export default function Login() {
                       className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
                     >
                       <Sparkles className="w-3.5 h-3.5 text-brand-300" />
-                      <span>تجربة النظام بحساب تجريبي (Demo)</span>
+                      <span>تجربة المدير (Admin Demo)</span>
                     </Button>
                   </form>
                 </div>
               )}
 
-              {/* ── Tab 2: Smart Multi-Step Onboarding Wizard ─ */}
+              {/* ── Tab 2: Simplified Registration ─────────── */}
               {activeTab === "register" && (
                 <div className="animate-in fade-in duration-200">
-                  {isProvisioning ? (
-                    /* Live Provisioning Sequence */
-                    <div className="py-8 px-2 text-center space-y-5">
-                      <div className="w-16 h-16 rounded-2xl bg-brand/15 border border-brand/40 flex items-center justify-center mx-auto text-brand-300 shadow-xl animate-pulse">
-                        <Sparkles className="w-8 h-8" />
-                      </div>
-                      <div>
-                        <h3 className="text-base font-black text-white">
-                          جاري تهيئة بيئة العمل الخاصة بك...
-                        </h3>
-                        <p className="text-xs text-slate-400 mt-1">
-                          يتم إعداد الدليل المحاسبي والمخازن والسياسات المالية
-                        </p>
-                      </div>
+                  <form onSubmit={handleRegister} className="space-y-4">
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-slate-300">
+                        اسم المنشأة / الشركة *
+                      </Label>
+                      <Input
+                        required
+                        placeholder="مثال: مكتبة الحسينية الحديثة"
+                        value={regName}
+                        onChange={e => setRegName(e.target.value)}
+                        className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl"
+                      />
+                    </div>
 
-                      <div className="space-y-2.5 text-right max-w-xs mx-auto text-xs bg-white/5 p-4 rounded-2xl border border-white/10">
-                        <div
-                          className={
-                            "flex items-center gap-2.5 " +
-                            (provisionStep >= 1
-                              ? "text-emerald-400 font-bold"
-                              : "text-white/30")
-                          }
-                        >
-                          <CheckCircle2 className="w-4 h-4 shrink-0" />
-                          <span>إنشاء المنشأة والفرع الرئيسي...</span>
-                        </div>
-                        <div
-                          className={
-                            "flex items-center gap-2.5 " +
-                            (provisionStep >= 2
-                              ? "text-emerald-400 font-bold"
-                              : "text-white/30")
-                          }
-                        >
-                          <CheckCircle2 className="w-4 h-4 shrink-0" />
-                          <span>توليد شجرة الحسابات لقطاع النشاط...</span>
-                        </div>
-                        <div
-                          className={
-                            "flex items-center gap-2.5 " +
-                            (provisionStep >= 3
-                              ? "text-emerald-400 font-bold"
-                              : "text-white/30")
-                          }
-                        >
-                          <CheckCircle2 className="w-4 h-4 shrink-0" />
-                          <span>ضبط العملة وسياسات التسعير والمخزن...</span>
-                        </div>
-                        <div
-                          className={
-                            "flex items-center gap-2.5 " +
-                            (provisionStep >= 4
-                              ? "text-emerald-400 font-bold"
-                              : "text-white/30")
-                          }
-                        >
-                          <CheckCircle2 className="w-4 h-4 shrink-0" />
-                          <span>تفعيل 14 يوماً تجريبية كاملة الصلاحيات...</span>
-                        </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-300">
+                          اسم المستخدم *
+                        </Label>
+                        <Input
+                          required
+                          placeholder="حروف وأرقام فقط"
+                          value={regUsername}
+                          onChange={e => setRegUsername(e.target.value)}
+                          className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl font-mono"
+                          dir="ltr"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-300">
+                          كلمة المرور *
+                        </Label>
+                        <Input
+                          required
+                          type="password"
+                          placeholder="6 أحرف على الأقل"
+                          value={regPassword}
+                          onChange={e => setRegPassword(e.target.value)}
+                          className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl font-mono"
+                        />
                       </div>
                     </div>
-                  ) : (
-                    /* Step by Step Wizard */
-                    <div>
-                      {/* Step indicator bar */}
-                      <div className="flex items-center justify-between gap-1 mb-5 px-1">
-                        {[
-                          { num: 1, label: "المنشأة" },
-                          { num: 2, label: "القطاع" },
-                          { num: 3, label: "الوحدات" },
-                          { num: 4, label: "التهيئة" },
-                        ].map(s => (
-                          <div
-                            key={s.num}
-                            className="flex items-center gap-1.5 flex-1"
-                          >
-                            <div
-                              className={
-                                "w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black transition-all " +
-                                (regStep === s.num
-                                  ? "bg-brand text-ink shadow-md scale-110"
-                                  : regStep > s.num
-                                    ? "bg-emerald-500 text-white"
-                                    : "bg-white/10 text-white/40")
-                              }
-                            >
-                              {regStep > s.num ? "✓" : s.num}
-                            </div>
-                            <span
-                              className={
-                                "text-[11px] hidden sm:inline " +
-                                (regStep === s.num
-                                  ? "text-white font-bold"
-                                  : "text-white/40")
-                              }
-                            >
-                              {s.label}
-                            </span>
-                            {s.num < 4 && (
-                              <div className="flex-1 h-0.5 bg-white/10 mr-1" />
-                            )}
-                          </div>
-                        ))}
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-300">
+                          الدولة
+                        </Label>
+                        <select
+                          value={regCountry}
+                          onChange={e => {
+                            setRegCountry(e.target.value);
+                            if (e.target.value === "السعودية") setRegCurrency("SAR");
+                          }}
+                          className="h-9 w-full bg-ink border border-white/15 text-white text-xs rounded-xl px-2"
+                        >
+                          <option value="اليمن">اليمن</option>
+                          <option value="السعودية">السعودية</option>
+                          <option value="الإمارات العربية المتحدة">الإمارات العربية المتحدة</option>
+                          <option value="مصر">مصر</option>
+                          <option value="الأردن">الأردن</option>
+                          <option value="أخرى">أخرى</option>
+                        </select>
                       </div>
-
-                      {/* Step 1: Basic Info */}
-                      {regStep === 1 && (
-                        <div className="space-y-3.5 animate-in fade-in duration-150">
-                          <div className="space-y-1">
-                            <Label className="text-xs font-bold text-slate-300">
-                              اسم المنشأة / الشركة *
-                            </Label>
-                            <Input
-                              required
-                              placeholder="مثال: شركة الأمل للتجارة والمقاولات"
-                              value={regName}
-                              onChange={e => setRegName(e.target.value)}
-                              className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl"
-                            />
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs font-bold text-slate-300">
-                                اسم المستخدم *
-                              </Label>
-                              <Input
-                                required
-                                placeholder="حروف وأرقام فقط"
-                                value={regUsername}
-                                onChange={e => setRegUsername(e.target.value)}
-                                className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl font-mono"
-                                dir="ltr"
-                              />
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs font-bold text-slate-300">
-                                كلمة المرور *
-                              </Label>
-                              <Input
-                                required
-                                type="password"
-                                placeholder="6 أحرف على الأقل"
-                                value={regPassword}
-                                onChange={e => setRegPassword(e.target.value)}
-                                className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl font-mono"
-                              />
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-2 gap-3">
-                            <div className="space-y-1">
-                              <Label className="text-xs font-bold text-slate-300">
-                                الدولة
-                              </Label>
-                              <select
-                                value={regCountry}
-                                onChange={e => {
-                                  setRegCountry(e.target.value);
-                                  if (e.target.value === "السعودية")
-                                    setRegCurrency("SAR");
-                                }}
-                                className="h-9 w-full bg-ink border border-white/15 text-white text-xs rounded-xl px-2"
-                              >
-                                {COUNTRIES.map(c => (
-                                  <option key={c} value={c}>
-                                    {c}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="space-y-1">
-                              <Label className="text-xs font-bold text-slate-300">
-                                البريد (اختياري)
-                              </Label>
-                              <Input
-                                type="email"
-                                placeholder="name@company.com"
-                                value={regEmail}
-                                onChange={e => setRegEmail(e.target.value)}
-                                className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl"
-                              />
-                            </div>
-                          </div>
-
-                          <Button
-                            type="button"
-                            onClick={handleNextStep}
-                            className="w-full bg-brand hover:bg-brand-deep text-ink font-black text-xs h-10 rounded-xl gap-2 mt-2"
-                          >
-                            <span>التالي: اختيار قطاع النشاط</span>
-                            <ChevronLeft className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
-
-                      {/* Step 2: Industry Selection */}
-                      {regStep === 2 && (
-                        <div className="space-y-3 animate-in fade-in duration-150">
-                          <div className="text-xs text-slate-300 font-bold mb-2">
-                            اختر قطاع عملك لتهيئة شجرة الحسابات المناسبة:
-                          </div>
-
-                          <div className="space-y-2">
-                            {INDUSTRIES.map(ind => {
-                              const Icon = ind.icon;
-                              const isSelected = selectedIndustry === ind.id;
-                              return (
-                                <button
-                                  key={ind.id}
-                                  type="button"
-                                  onClick={() => handleIndustrySelect(ind.id)}
-                                  className={
-                                    "w-full flex items-center justify-between p-3 rounded-2xl border text-right transition-all " +
-                                    (isSelected
-                                      ? "bg-white/10 border-brand shadow-lg"
-                                      : "bg-white/5 border-white/10 hover:bg-white/[0.08]")
-                                  }
-                                >
-                                  <div className="flex items-center gap-3">
-                                    <div
-                                      className={
-                                        "w-9 h-9 rounded-xl flex items-center justify-center " +
-                                        ind.color
-                                      }
-                                    >
-                                      <Icon className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                      <div className="text-xs font-bold text-white">
-                                        {ind.title}
-                                      </div>
-                                      <div className="text-[10px] text-slate-400">
-                                        {ind.sub}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div
-                                    className={
-                                      "w-5 h-5 rounded-full border flex items-center justify-center " +
-                                      (isSelected
-                                        ? "border-brand bg-brand text-ink"
-                                        : "border-white/20")
-                                    }
-                                  >
-                                    {isSelected && (
-                                      <Check className="w-3 h-3 stroke-[3]" />
-                                    )}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          <div className="flex gap-2 pt-2">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => setRegStep(1)}
-                              className="border-white/15 text-white/70 hover:text-white bg-white/5 text-xs h-10 rounded-xl"
-                            >
-                              السابق
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={handleNextStep}
-                              className="flex-1 bg-brand hover:bg-brand-deep text-ink font-black text-xs h-10 rounded-xl gap-1.5"
-                            >
-                              <span>التالي: تأكيد الوحدات</span>
-                              <ChevronLeft className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Step 3: Workspaces / Modules Selection */}
-                      {regStep === 3 && (
-                        <div className="space-y-3 animate-in fade-in duration-150">
-                          <div className="text-xs text-slate-300 font-bold mb-1">
-                            الوحدات ومساحات العمل المقترحة لمنشأتك:
-                          </div>
-                          <p className="text-[11px] text-slate-400 mb-3">
-                            تم تحديد الوحدات النموذجية لقطاعك، يمكنك تفعيل أو
-                            إلغاء ما تريد:
-                          </p>
-
-                          <div className="grid grid-cols-2 gap-2">
-                            {[
-                              "المحاسبة العامة",
-                              "المبيعات ونقاط البيع",
-                              "المخازن والأصناف",
-                              "المشتريات والموردين",
-                              "المشاريع ومراكز التكلفة",
-                              "الموارد البشرية",
-                              "التقارير والقوائم المالية",
-                              "الأمن وسجل التدقيق",
-                            ].map(mod => {
-                              const isChecked = selectedModules.includes(mod);
-                              return (
-                                <button
-                                  key={mod}
-                                  type="button"
-                                  onClick={() => toggleModule(mod)}
-                                  className={
-                                    "flex items-center gap-2 p-2.5 rounded-xl border text-right text-xs font-semibold transition-all " +
-                                    (isChecked
-                                      ? "bg-brand/15 border-brand/40 text-white"
-                                      : "bg-white/5 border-white/10 text-white/50")
-                                  }
-                                >
-                                  <div
-                                    className={
-                                      "w-4 h-4 rounded-md border flex items-center justify-center shrink-0 " +
-                                      (isChecked
-                                        ? "bg-brand border-brand text-ink"
-                                        : "border-white/30")
-                                    }
-                                  >
-                                    {isChecked && (
-                                      <Check className="w-3 h-3 stroke-[3]" />
-                                    )}
-                                  </div>
-                                  <span className="truncate">{mod}</span>
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          <div className="flex gap-2 pt-3">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => setRegStep(2)}
-                              className="border-white/15 text-white/70 hover:text-white bg-white/5 text-xs h-10 rounded-xl"
-                            >
-                              السابق
-                            </Button>
-                            <Button
-                              type="button"
-                              onClick={handleNextStep}
-                              className="flex-1 bg-brand hover:bg-brand-deep text-ink font-black text-xs h-10 rounded-xl gap-1.5"
-                            >
-                              <span>التالي: العملة والتفعيل</span>
-                              <ChevronLeft className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Step 4: Currency & Free Trial Activation */}
-                      {regStep === 4 && (
-                        <div className="space-y-4 animate-in fade-in duration-150">
-                          <div className="space-y-1.5">
-                            <Label className="text-xs font-bold text-slate-300">
-                              العملة الرئيسية للدفاتر والحسابات:
-                            </Label>
-                            <select
-                              value={regCurrency}
-                              onChange={e => setRegCurrency(e.target.value)}
-                              className="h-10 w-full bg-ink border border-white/15 text-white text-xs rounded-xl px-3 font-semibold"
-                            >
-                              {CURRENCIES.map(cur => (
-                                <option key={cur.code} value={cur.code}>
-                                  {cur.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
-
-                          {/* Free Trial Banner */}
-                          <div className="p-4 rounded-2xl bg-brand/10 border border-brand/30 space-y-2 text-right">
-                            <div className="flex items-center gap-2 text-xs font-black text-brand-300">
-                              <Sparkles className="w-4 h-4 text-brand" />
-                              <span>فترة تجريبية مجانية 14 يوماً</span>
-                            </div>
-                            <p className="text-[11px] text-slate-300 leading-relaxed">
-                              وصول كامل لكافة مساحات العمل والميزات بدون أي
-                              متطلبات بطاقة ائتمان. بياناتك محفوظة وآمنة بالكامل
-                              ويمكنك الترقية في أي وقت.
-                            </p>
-                          </div>
-
-                          <div className="flex gap-2 pt-1">
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={() => setRegStep(3)}
-                              className="border-white/15 text-white/70 hover:text-white bg-white/5 text-xs h-11 rounded-xl"
-                            >
-                              السابق
-                            </Button>
-                            <Button
-                              type="button"
-                              disabled={register.isPending}
-                              onClick={handleFinalRegister}
-                              className="flex-1 bg-brand hover:bg-brand-deep text-ink font-black text-xs h-11 rounded-xl gap-2 shadow-xl"
-                            >
-                              <Zap className="w-4 h-4" />
-                              <span>
-                                {register.isPending
-                                  ? "جاري تهيئة المنشأة..."
-                                  : "إطلاق المنصة وبدء العمل"}
-                              </span>
-                            </Button>
-                          </div>
-                        </div>
-                      )}
+                      <div className="space-y-1">
+                        <Label className="text-xs font-bold text-slate-300">
+                          العملة
+                        </Label>
+                        <select
+                          value={regCurrency}
+                          onChange={e => setRegCurrency(e.target.value)}
+                          className="h-9 w-full bg-ink border border-white/15 text-white text-xs rounded-xl px-2 font-semibold"
+                        >
+                          {CURRENCIES.map(cur => (
+                            <option key={cur.code} value={cur.code}>
+                              {cur.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
-                  )}
+
+                    <div className="space-y-1">
+                      <Label className="text-xs font-bold text-slate-300">
+                        البريد الإلكتروني (اختياري)
+                      </Label>
+                      <Input
+                        type="email"
+                        placeholder="name@company.com"
+                        value={regEmail}
+                        onChange={e => setRegEmail(e.target.value)}
+                        className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl"
+                      />
+                    </div>
+
+                    {/* Free Trial Banner */}
+                    <div className="p-4 rounded-2xl bg-brand/10 border border-brand/30 space-y-2 text-right">
+                      <div className="flex items-center gap-2 text-xs font-black text-brand-300">
+                        <Sparkles className="w-4 h-4 text-brand" />
+                        <span>فترة تجريبية مجانية 14 يوماً</span>
+                      </div>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        وصول كامل لكافة مساحات العمل والميزات بدون أي
+                        متطلبات بطاقة ائتمان. بياناتك محفوظة وآمنة بالكامل
+                        ويمكنك الترقية في أي وقت.
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setActiveTab("login")}
+                        className="border-white/15 text-white/70 hover:text-white bg-white/5 text-xs h-11 rounded-xl"
+                      >
+                        تسجيل الدخول بدلاً من ذلك
+                      </Button>
+                      <Button
+                        type="submit"
+                        disabled={register.isPending}
+                        className="flex-1 bg-brand hover:bg-brand-deep text-ink font-black text-xs h-11 rounded-xl gap-2 shadow-xl"
+                      >
+                        <Zap className="w-4 h-4" />
+                        <span>
+                          {register.isPending
+                            ? "جاري تهيئة المنشأة..."
+                            : "إطلاق المنصة وبدء العمل"}
+                        </span>
+                      </Button>
+                    </div>
+                  </form>
                 </div>
               )}
             </CardContent>
