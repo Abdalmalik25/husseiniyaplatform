@@ -4,6 +4,20 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.3.1] — 2026-08-27 · Identity Unification — alhusainiaye.vercel.app + Icon System
+
+### Changed
+
+- **النطاق المعتمد** `alhusainiaye.vercel.app` — تم `vercel alias set` من `alhusainia-47aecnoz0` إلى `alhusainiaye` كنقطة موحدة (بدل تشتت `husseiniya-platform-coral`/`alhusainia-...`). `client/index.html:97` canonical ثابت على `https://alhusainiaye.vercel.app/`.
+
+### Added
+
+- **هوية أيقونات موحدة** — مصدرها `public/favicon.ico:1` (15406 بايت):
+  - المؤسسة: `client/public/favicon.ico` + `favicon-32x32.png:1` + `icon-192.png:1` + `icon-512.png:1` (من `public/android-chrome-*.png`)
+  - النظام: `client/public/uamex-favicon-32.png:1` من `public/UAMEX_ERP/favicon-32x32.png` + `uamex-icon-192.png` + `uamex-erp.png`
+  - الياس: `client/public/elias-favicon-32.png:1` من `public/Elias AI ico/favicon-32x32.png` + `elias-avatar-sm.jpg`
+- **تحسين PWA** `client/index.html:82` إضافة `<link rel="icon" href="/favicon.ico" sizes="any">` + `manifest.webmanifest:38` أيقونات 192/512 maskable مطابقة
+
 ## [2.3.0] — 2026-08-27 · UX Click-Reduction & Tech-Debt Settlement & a11y
 
 ### Added
