@@ -242,15 +242,17 @@ export default function WorkspaceDashboard() {
             <div className="absolute inset-0 brand-dotgrid opacity-10" />
             <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
-                <p className="text-brand-300 text-xs font-bold">
-                  {greetingByHour()}، {firstName} 👋
-                </p>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center gap-1 bg-white/10 border border-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">Uamex_erp v2.2 · منصتك الموحدة</span>
+                  <span className="text-brand-300 text-xs font-bold">
+                    {greetingByHour()}، {firstName} 👋
+                  </span>
+                </div>
                 <h1 className="text-xl sm:text-2xl font-black font-display text-white mt-1">
-                  لوحة القيادة الموحّدة للأعمال
+                  لوحة القيادة الموحّدة — كل وحداتك في نظرة واحدة
                 </h1>
                 <p className="text-xs text-white/70 mt-1 max-w-xl text-pretty">
-                  أدر محاسبتك وفروعك وعملياتك التجارية وخدماتك من مركز واحد
-                  متعدد المؤسسات والعملات.
+                  من القيد إلى التقرير إلى القرار — أدر محاسبتك وفروعك ومبيعاتك وخدماتك من مركز واحد آمن وموثوق.
                 </p>
               </div>
               <div className="flex items-center gap-2">

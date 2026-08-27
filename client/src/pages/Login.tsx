@@ -20,6 +20,12 @@ import {
   CheckCircle2,
   Coins,
   Clock,
+  ChevronDown,
+  Building2,
+  Users,
+  Briefcase,
+  Wrench,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -34,6 +40,158 @@ const CURRENCIES = [
   { code: "AED", label: "درهم إماراتي (AED)" },
   { code: "EGP", label: "جنيه مصري (EGP)" },
 ];
+
+// ── حسابات تجريبية منظمة حسب الدور — تجربة استكشافية موجهة بالسياق
+const DEMO_ACCOUNTS: Array<{
+  username: string;
+  password: string;
+  label: string;
+  role: string;
+  icon: typeof Sparkles;
+  color: string;
+  featured?: boolean;
+}> = [
+  {
+    username: "library_owner",
+    password: "Library@2024",
+    label: "مكتبة الحسينية — المالك",
+    role: "مالك · وصول كامل",
+    icon: Building2,
+    color: "text-brand-300",
+    featured: true,
+  },
+  {
+    username: "admin",
+    password: "admin123",
+    label: "المدير العام — التجربة السريعة",
+    role: "مدير · لوحة كاملة",
+    icon: ShieldCheck,
+    color: "text-emerald-400",
+    featured: true,
+  },
+  {
+    username: "mohamed_accounting",
+    password: "Mohamed@2024",
+    label: "محمد — مدير الحسابات",
+    role: "محاسب · قيود وتقارير",
+    icon: Briefcase,
+    color: "text-amber-400",
+    featured: true,
+  },
+  {
+    username: "hail_manager",
+    password: "Hail@2024",
+    label: "هايل — مدير تنفيذي",
+    role: "مدير · تشغيل",
+    icon: Users,
+    color: "text-sky-400",
+  },
+  {
+    username: "abduljabbar_sales",
+    password: "Abdujabbar@2024",
+    label: "عبدالجبار — محاسب مبيعات",
+    role: "مبيعات · فواتير",
+    icon: Coins,
+    color: "text-sky-400",
+  },
+  {
+    username: "sami_sales",
+    password: "Sami@2024",
+    label: "سامي — مبيعات وخدمة عملاء",
+    role: "مبيعات · متجر",
+    icon: Users,
+    color: "text-purple-400",
+  },
+  {
+    username: "imad_support",
+    password: "Imad@2024",
+    label: "عماد — الدعم والصيانة",
+    role: "دعم · صيانة",
+    icon: Wrench,
+    color: "text-rose-400",
+  },
+  {
+    username: "abdulrazzaq_audit",
+    password: "Abdurazzaq@2024",
+    label: "عبدالرزاق — مراجعة",
+    role: "مراجع · تدقيق",
+    icon: Search,
+    color: "text-orange-400",
+  },
+];
+
+function DemoAccountsSection({
+  onSelect,
+  isPending,
+}: {
+  onSelect: (u: string, p: string) => void;
+  isPending: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const featured = DEMO_ACCOUNTS.filter(a => a.featured);
+  const others = DEMO_ACCOUNTS.filter(a => !a.featured);
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-1 gap-2">
+        {featured.map(acc => {
+          const Icon = acc.icon;
+          return (
+            <button
+              key={acc.username}
+              type="button"
+              disabled={isPending}
+              onClick={() => onSelect(acc.username, acc.password)}
+              className="group flex items-center gap-3 w-full text-right bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-brand/30 rounded-xl px-3 py-2.5 transition-all text-xs disabled:opacity-60"
+            >
+              <span className="w-9 h-9 rounded-lg bg-ink border border-white/10 flex items-center justify-center shrink-0 group-hover:border-brand/30 transition-colors">
+                <Icon className={`w-4 h-4 ${acc.color}`} />
+              </span>
+              <span className="flex-1 min-w-0">
+                <span className="block font-bold text-white leading-tight truncate">{acc.label}</span>
+                <span className="block text-[10px] text-white/50">{acc.role} · {acc.username}</span>
+              </span>
+              <ChevronLeft className="w-3.5 h-3.5 text-white/30 group-hover:text-brand-300 shrink-0" />
+            </button>
+          );
+        })}
+      </div>
+      <button
+        type="button"
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center justify-center gap-1.5 text-[11px] text-white/60 hover:text-white py-1.5 rounded-lg hover:bg-white/5 transition-colors"
+        aria-expanded={expanded}
+      >
+        <span>{expanded ? "إخفاء الأدوار الأخرى" : `عرض ${others.length} أدوار إضافية (مبيعات، دعم، مراجعة)`}</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+      </button>
+      {expanded && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
+          {others.map(acc => {
+            const Icon = acc.icon;
+            return (
+              <button
+                key={acc.username}
+                type="button"
+                disabled={isPending}
+                onClick={() => onSelect(acc.username, acc.password)}
+                className="flex items-center gap-2 w-full text-right bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-xl px-2.5 py-2 transition-all text-xs disabled:opacity-60"
+              >
+                <Icon className={`w-3.5 h-3.5 ${acc.color} shrink-0`} />
+                <span className="flex-1 min-w-0">
+                  <span className="block font-bold text-white/90 leading-tight truncate text-[11px]">{acc.label}</span>
+                  <span className="block text-[10px] text-white/45 truncate">{acc.role}</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+      <p className="text-[10px] text-white/35 text-center leading-relaxed px-2">
+        كل حساب يعزل بياناته تماماً — جرّب دوراً مختلفاً لتستكشف الصلاحيات والتقارير الخاصة به
+      </p>
+    </div>
+  );
+}
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -321,146 +479,20 @@ export default function Login() {
 
                     <div className="relative flex items-center justify-center my-2">
                       <div className="border-t border-white/10 w-full" />
-                      <span className="bg-ink px-2 text-[10px] text-white/40 absolute font-mono">
-                        أو للتجربة الفورية
+                      <span className="bg-ink px-3 text-[10px] text-white/40 absolute font-mono rounded-full border border-white/10">
+                        أو جرّب بحساب تجريبي
                       </span>
                     </div>
 
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setUsername("library_owner");
-                        setPassword("Library@2024");
-                        login.mutate({
-                          username: "library_owner",
-                          password: "Library@2024",
-                        });
+                    {/* حسابات تجريبية — 3 مميزة + باقي الأدوار في قسم قابل للطي */}
+                    <DemoAccountsSection
+                      onSelect={(u, p) => {
+                        setUsername(u);
+                        setPassword(p);
+                        login.mutate({ username: u, password: p });
                       }}
-                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-brand-300" />
-                      <span>تجربة مكتبة الحسينية (Demo)</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setUsername("hail_manager");
-                        setPassword("Hail@2024");
-                        login.mutate({
-                          username: "hail_manager",
-                          password: "Hail@2024",
-                        });
-                      }}
-                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>هايل المدير (Admin)</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setUsername("abduljabbar_sales");
-                        setPassword("Abdujabbar@2024");
-                        login.mutate({
-                          username: "abduljabbar_sales",
-                          password: "Abdujabbar@2024",
-                        });
-                      }}
-                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                      <span>عبدالجبار (محاسب)</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setUsername("mohamed_accounting");
-                        setPassword("Mohamed@2024");
-                        login.mutate({
-                          username: "mohamed_accounting",
-                          password: "Mohamed@2024",
-                        });
-                      }}
-                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-                      <span>محمد مدير الحسابات (محاسب)</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setUsername("imad_support");
-                        setPassword("Imad@2024");
-                        login.mutate({
-                          username: "imad_support",
-                          password: "Imad@2024",
-                        });
-                      }}
-                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-rose-400" />
-                      <span>عماد الدعم والصيانة</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setUsername("sami_sales");
-                        setPassword("Sami@2024");
-                        login.mutate({
-                          username: "sami_sales",
-                          password: "Sami@2024",
-                        });
-                      }}
-                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                      <span>سامي مبيعات وخدمة عملاء</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setUsername("abdulrazzaq_audit");
-                        setPassword("Abdurazzaq@2024");
-                        login.mutate({
-                          username: "abdulrazzaq_audit",
-                          password: "Abdurazzaq@2024",
-                        });
-                      }}
-                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-orange-400" />
-                      <span>عبدالرزاق مراجعة داخلية</span>
-                    </Button>
-
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setUsername("admin");
-                        setPassword("admin123");
-                        login.mutate({
-                          username: "admin",
-                          password: "admin123",
-                        });
-                      }}
-                      className="w-full border-white/15 text-white/80 hover:text-white bg-white/5 text-xs h-10 rounded-xl flex items-center justify-center gap-2 transition-all hover:bg-white/10"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-brand-300" />
-                      <span>تجربة المدير (Admin Demo)</span>
-                    </Button>
+                      isPending={login.isPending}
+                    />
                   </form>
                 </div>
               )}

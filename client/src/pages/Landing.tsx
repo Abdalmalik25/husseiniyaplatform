@@ -248,9 +248,9 @@ export default function Landing() {
 
         {/* شريط التنبيه */}
         <div className="relative z-10 bg-gradient-to-l from-brand/20 to-transparent border-b border-brand/20 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/80">
-          <span className="inline-flex items-center gap-1.5 bg-brand/15 border border-brand/30 px-3 py-0.5 rounded-full font-bold text-brand-300">
-            <Sparkles className="w-3 h-3" /> Uamex_erp v2.0 متاح الآن
-          </span>
+            <span className="inline-flex items-center gap-1.5 bg-brand/15 border border-brand/30 px-3 py-0.5 rounded-full font-bold text-brand-300">
+              <Sparkles className="w-3 h-3" /> Uamex_erp v2.2 — ترقية المحتوى والتجربة والذكاء
+            </span>
           <span className="hidden sm:inline text-white/60">
             نظام إدارة الأعمال الموحّد — جاهز للبدء الفوري
           </span>

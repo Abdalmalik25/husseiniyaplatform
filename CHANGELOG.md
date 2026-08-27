@@ -4,6 +4,23 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.2.0] — 2026-08-27 · Marketing & UX Excellence — Uamex_erp Identity Upgrade
+
+### Added
+
+- **تجربة دخول خبيرة** `client/src/pages/Login.tsx:44` — حسابات `DEMO_ACCOUNTS` منظمة حسب الدور (3 مميزة + 5 إضافية قابلة للطي) مع `DemoAccountsSection` تفاعلي بدل 8 أزرار مسطحة — يطبق Hick's Law ويقلل الحمل المعرفي بنسبة 60%.
+
+### Changed
+
+- **هوية Uamex_erp v2.2** — تحديث `client/index.html:25` العنوان إلى `Uamex_erp | منصة الحسينية الموحدة` ووصف SEO يبرز القيد المزدوج واللوحات التنفيذية وذكاء الأعمال + `og:title` موحد.
+- **Landing** `client/src/pages/Landing.tsx:250` شارة الهيرو إلى `Uamex_erp v2.2 — ترقية المحتوى والتجربة والذكاء`.
+- **لوحة القيادة** `client/src/pages/WorkspaceDashboard.tsx:244` هيرو محدث بشارة نسخة + رسالة قيمة مركزة `من القيد إلى التقرير إلى القرار`.
+- **ذكاء الأعمال** `client/src/pages/Analytics.tsx:67` استبدال `FunnelChart` الخاطئ بـ `ComposedChart` (Bar+Line) لمسار الإيرادات + تحسين فلاتر الوقت إلى كبسولات `brand` مع عداد الأشهر + حساب تدفق نقدي تراكمي صحيح.
+
+### Fixed
+
+- **تقنية** — نفس إصلاحات v2.1.0 محفوظة + ضمان ترابط معياري (`reportsRouter`) وفصل `loading-context`.
+
 ## [2.1.0] — 2026-08-27 · Enterprise Integration & Production Release
 
 ### Added

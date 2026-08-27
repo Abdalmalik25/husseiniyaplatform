@@ -40,8 +40,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  FunnelChart,
-  Funnel,
+  ComposedChart,
 } from "recharts";
 
 const AR_MONTHS = [
@@ -197,28 +196,23 @@ export default function Analytics() {
         </header>
 
         <section className="mb-6">
-          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+          <div className="flex flex-wrap items-center gap-2 mb-4 p-1.5 rounded-xl bg-muted/40 border border-border w-fit">
             {TIME_FILTERS.map(filter => (
               <button
                 key={filter.value}
                 onClick={() => setTimeFilter(filter)}
-                className={`
-                  ${
-                    timeFilter.value === filter.value
-                      ? "bg-brand text-white font-medium rounded-lg px-4 py-2"
-                      : "text-gray-300 hover:bg-gray-700 hover:text-white px-4 py-2"
-                  }
-                  rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-brand
-                `}
+                className={`text-xs font-bold px-4 py-2 rounded-lg transition-all ${
+                  timeFilter.value === filter.value
+                    ? "bg-brand text-ink shadow"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
                 type="button"
               >
                 {filter.label}
               </button>
             ))}
-            <span className="text-sm text-gray-400">
-              period: {timeFilter.label}
-            </span>
           </div>
+          <p className="text-[11px] text-muted-foreground">الفترة النشطة: <span className="font-bold text-foreground">{timeFilter.label}</span> · {filteredData.length} شهراً معروضة</p>
         </section>
 
         {isPending ? (
@@ -419,12 +413,12 @@ export default function Analytics() {
               </ChartCard>
 
               <ChartCard
-                title="معدل نمو الإيرادات"
+                title="مسار الإيرادات عبر الزمن"
                 icon={TrendingUp}
-                hint="الشهري بالمقارنة بالسابق"
+                hint="اتجاه الإيرادات مع متوسط متحرك"
               >
-                <FunnelChart
-                  data={chartData}
+                <ComposedChart
+                  data={filteredData}
                   margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8e8" />
@@ -434,24 +428,19 @@ export default function Analytics() {
                     formatter={(v: any) => fmt(Number(v))}
                     contentStyle={{ direction: "rtl", fontSize: 12 }}
                   />
-                  <Funnel
-                    dataKey="revenue"
-                    name="الإيرادات"
-                    stroke="#1f7a6d"
-                    strokeWidth={2}
-                    fill="#1f7a6d"
-                    radius={8}
-                  />
-                </FunnelChart>
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="revenue" name="الإيرادات" fill="#b87945" radius={[6,6,0,0]} barSize={18} />
+                  <Line type="monotone" dataKey="revenue" name="اتجاه" stroke="#0e2a2b" strokeWidth={2} dot={false} />
+                </ComposedChart>
               </ChartCard>
 
               <ChartCard
                 title="التدفق النقدي التراكمي"
                 icon={Activity}
-                hint="صافي الربح المتراكم"
+                hint="صافي الربح المتراكم — مستوحى من بياناتك الحية"
               >
                 <AreaChart
-                  data={chartData}
+                  data={filteredData.length ? filteredData.map((d: any, i: number, arr: any[]) => ({ ...d, cashflow: arr.slice(0, i+1).reduce((s: number, x: any)=> s + (x.revenue - x.expense),0)})) : filteredData}
                   margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
                 >
                   <defs>
