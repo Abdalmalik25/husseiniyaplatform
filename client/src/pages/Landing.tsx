@@ -257,34 +257,39 @@ export default function Landing() {
         </div>
 
         <div className="max-w-6xl mx-auto text-center relative z-10 px-4 pt-16 pb-24 space-y-8">
-          {/* الوسم الرئيسي */}
-          <div className="inline-flex items-center gap-2 bg-white/5 backdrop-blur border border-brand/40 text-brand-300 px-4 py-1.5 rounded-full text-xs font-bold shadow-xl">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            مؤسسة الحسينية — خدمات الأعمال والاستشارات
+          {/* الوسم الرئيسي — هوية مؤسسية عالمية */}
+          <div className="inline-flex items-center gap-2 bg-white/[0.06] backdrop-blur-xl border border-white/10 text-white/80 px-4 py-1.5 rounded-full text-xs font-bold shadow-xl">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow shadow-emerald-400/40" />
+            مؤسسة الحسينية — بيت الخبرة المؤسسية منذ 2008
+            <span className="hidden sm:inline-flex items-center gap-1.5 mr-2 pr-2 border-r border-white/10 text-[10px] font-mono tracking-widest text-white/50">
+              IFRS • COSO • PMBOK • ISO 9001
+            </span>
           </div>
 
-          {/* العنوان الرئيسي */}
-          <div className="space-y-3">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-[1.1] text-balance">
+          {/* العنوان الرئيسي — مستوى استشاري عالمي */}
+          <div className="space-y-4">
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[-0.02em] leading-[1.05] text-balance">
               إذا كنت{" "}
-              <span className="text-brand border-b-2 border-brand/50 pb-1">
+              <span className="text-transparent bg-clip-text bg-gradient-to-l from-brand via-brand-300 to-[#e7c9a6] border-b-2 border-brand/30 pb-1">
                 {heroPhrase}
-                <span className="animate-pulse">|</span>
+                <span className="animate-pulse text-brand">|</span>
               </span>
             </h1>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.1] text-white/90">
-              لدينا الحل الذي تبحث عنه
+            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.1] text-white">
+              فقرارك يستحق وضوحاً يُدقّق
             </h2>
+            <div className="flex items-center justify-center gap-2 text-[11px] font-mono tracking-widest text-white/40">
+              <span className="h-px w-8 bg-white/10" /> نشخّص — نصمّم — ننفّذ — نقيس <span className="h-px w-8 bg-white/10" />
+            </div>
           </div>
 
-          {/* الرسالة الداعمة — نتائج لا قوائم خدمات */}
-          <p className="max-w-3xl mx-auto text-base sm:text-xl text-white/65 leading-relaxed font-light text-pretty">
-            قرارات مالية مبنية على أرقامٍ لا تقديرات، مشاريع تُسلَّم في موعدها
-            وداخل ميزانيتها، وعمليات تُدار من جيبك بأمان —{" "}
-            <strong className="text-brand-300 font-bold">شريك واحد</strong>{" "}
-            يتكفّل بالتعقيد كي تتفرّغ أنت للنمو، مع نظام{" "}
-            <strong className="text-brand-300 font-bold">Uamex_erp</strong> الذي
-            يوحّد كل ذلك في مكان واحد.
+          {/* الرسالة الداعمة — لغة مجالس الإدارة، لا كتيب تسويق */}
+          <p className="max-w-3xl mx-auto text-base sm:text-xl text-white/70 leading-relaxed font-light text-pretty">
+            لسنا مزوّد برنامج. نحن شريك حوكمة يضعك أمام حقيقة واحدة قابلة للتدقيق:{" "}
+            <strong className="text-white font-bold">قوائم IFRS</strong> تُقرأ في دقيقة،{" "}
+            <strong className="text-white font-bold">ضوابط COSO</strong> تمنع التجاوز دون تعطيل،{" "}
+            <strong className="text-white font-bold">ومشاريع PMBOK</strong> تُسلّم ضمن النطاق والكلفة — كلها في{" "}
+            <strong className="text-brand-300 font-black">Uamex_erp</strong> مصدر الحقيقة الوحيد.
           </p>
 
           {/* الـ CTAs */}
@@ -878,6 +883,23 @@ export default function Landing() {
             <p className="text-sm text-white/50 leading-relaxed max-w-2xl mx-auto">
               {brand.uamex.promise}
             </p>
+            {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات جديدة v2.3.2 */}
+            <div className="flex items-center justify-center gap-6 pt-4">
+              <span className="flex flex-col items-center gap-1">
+                <img src="/favicon-32x32.png?v=2.3.2" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
+                <span className="text-[10px] text-white/60 font-bold">المؤسسة</span>
+              </span>
+              <span className="w-px h-8 bg-white/10" />
+              <span className="flex flex-col items-center gap-1">
+                <img src="/uamex-favicon-32.png?v=2.3.2" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
+                <span className="text-[10px] text-brand-300 font-bold">Uamex_erp</span>
+              </span>
+              <span className="w-px h-8 bg-white/10" />
+              <span className="flex flex-col items-center gap-1">
+                <img src="/elias-avatar-sm.jpg" alt="الياس — المساعد" width={36} height={36} className="rounded-full shadow ring-1 ring-[#d4a574]/40 object-cover" loading="lazy" />
+                <span className="text-[10px] text-[#d4a574] font-bold">الياس AI</span>
+              </span>
+            </div>
           </div>
 
           {/* مشاكل يحلها Uamex_erp */}

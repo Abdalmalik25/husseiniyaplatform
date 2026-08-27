@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v4) — installable PWA + robust offline shell.
+// ALHUSAINIA service worker (v6) — هوية جديدة مع أيقونات المؤسسة/النظام/الياس + Cache bust.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v5";
+const CACHE = "alhusainia-v6";
 const SHELL = [
   "/",
   "/index.html",

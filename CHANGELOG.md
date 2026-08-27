@@ -4,6 +4,21 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.4.0] — 2026-08-27 · World-Class Institutional Content & Appearance
+
+### Changed
+
+- **لغة استشارية عالمية** `client/src/lib/brand.ts:32` — tagline/pod promise أعيدت صياغتها بلغة مجالس الإدارة: `منصة الحوكمة التي تحوّل التعقيد إلى وضوح قابل للقياس` + نموذج `نشخّص-نصمّم-ننفذ-نقيس` على أطر IFRS/COSO/PMBOK؛ `uamex:42` وصف الحقيقة الواحدة بجودة Big Four.
+- **محتوى مؤسسي** `brand.ts:110` corporate hero `هل تملك صورة مالية تُقرأ في 60 ثانية؟` + إجابات Variance/KPIs/COSO/IFRS + مشاكل بصياغة رقابية `ميّز الربح عن السيولة (IAS 7)` `مصفوفة COSO ثلاثية` `موازنة صفرية Budget vs Actual`؛ engineering hero `هل تملك تقديراً يُحتَج به أمام الممول؟` + NRM/POMI 35%.
+- **مظهر عالمي** `client/src/pages/Landing.tsx:259` هيرو فاخر: شارة `بيت الخبرة منذ 2008 • IFRS•COSO•PMBOK•ISO`، عنوان بتدرج `from-brand to-[#e7c9a6]`، شريط منهجية `نشخّص — نصمّم — ننفّذ — نقيس`، ورسالة مجالس إدارة `حقيقة واحدة قابلة للتدقيق`.
+
+## [2.3.2] — 2026-08-27 · Identity Visible — Icons + Messaging Cache-Bust
+
+### Fixed
+
+- **الكاش المتصلب** — `client/public/sw.js:4` `v5 → v6` + `client/index.html:82` إضافة `?v=2.3.2` لكل favicon — كان Service Worker يعيد أيقونات قديمة من `alhusainia-v5` فلم يظهر أي تحديث رغم النشر.
+- **هوية مرئية** `client/src/pages/Landing.tsx:853` صف أيقونات جديد في قسم Uamex_erp يعرض المؤسسة (`/favicon-32x32.png`) / النظام (`/uamex-favicon-32.png`) / الياس (`/elias-avatar-sm.jpg`) مع تسميات — يثبت أن التحديث وصل بصرياً.
+
 ## [2.3.1] — 2026-08-27 · Identity Unification — alhusainiaye.vercel.app + Icon System
 
 ### Changed
