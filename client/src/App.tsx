@@ -21,6 +21,7 @@ import { I18nProvider } from "@/lib/i18n";
 import { useWebVitals } from "@/lib/use-web-vitals";
 import { CircularProgress } from "@/components/ui/circular-progress";
 import { LoadingProvider } from "@/lib/loading-context";
+import { GlobalQuickActions } from "@/components/GlobalQuickActions";
 
 const Landing = lazy(() => import("@/pages/Landing"));
 const Login = lazy(() => import("@/pages/Login"));
@@ -406,6 +407,7 @@ function App() {
                 <Router />
                 <ScrollProgress />
                 <CommandPalette />
+                <GlobalQuickActions />
                 <FloatingSupportWidget />
                 <AliasAIAssistant />
                 <InstallPrompt />

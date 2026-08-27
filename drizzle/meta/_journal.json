@@ -50,6 +50,13 @@
       "when": 1787774800000,
       "tag": "0006_data_fixes_posted_at",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1787880000000,
+      "tag": "0007_fix_branches_tenant_default",
+      "breakpoints": true
     }
   ]
 }

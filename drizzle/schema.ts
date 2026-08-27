@@ -168,7 +168,7 @@ export const branches = pgTable(
   {
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
-    tenantId: integer("tenantId").default(1).notNull(),
+    tenantId: integer("tenantId").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     code: varchar("code", { length: 50 }).notNull(),
     city: varchar("city", { length: 100 }),

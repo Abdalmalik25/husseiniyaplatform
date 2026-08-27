@@ -4,6 +4,23 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.3.0] — 2026-08-27 · UX Click-Reduction & Tech-Debt Settlement & a11y
+
+### Added
+
+- **إجراءات سريعة عالمية** `client/src/components/GlobalQuickActions.tsx:1` — زر عائم 48px + 4 إجراءات (قيد/مبيعات/مشتريات/تقارير) + اختصارات `Ctrl+N`/`Ctrl+Shift+S`/`Ctrl+R`/`Ctrl+K` — يقلل النقرات من 3 إلى 1 في كل مساحة تشغيلية (Fitts + Hick)، مع `aria-label` و `focus-visible:ring`.
+
+### Fixed
+
+- **ديون lint** `client/src/lib/loading-context.tsx:44` لفّ `case STOP` بأقواس لإصلاح `no-case-declarations` (3 أخطاء).
+- **دين مخططي** `drizzle/schema.ts:171` إزالة `default(1)` الخطير من `branches.tenantId` + هجرة `drizzle/0007_fix_branches_tenant_default.sql:1` — يمنع تسريب صامت لبيانات مستأجر إلى مستأجر 1.
+- **دين حزمة** `client/src/pages/Analytics.tsx:482` حذف 77 سطر مكونات Select ميتة غير مستخدمة — خفض الحزمة وتوحيد الأنماط.
+
+### Changed
+
+- **سهولة الوصول** — زر FAB يحقق `WCAG 2.5.5` بحد أدنى 44px، تباين `brand/ink`، وإغلاق بـ `Escape`؛ لوحة الأوامر `CommandPalette.tsx:122` تظل الاختصار الذهبي 0-نقرة عبر لوحة المفاتيح.
+- **Bump `2.2.0 → 2.3.0`** — تركيز على تقليل النقرات والحفاظ على a11y.
+
 ## [2.2.0] — 2026-08-27 · Marketing & UX Excellence — Uamex_erp Identity Upgrade
 
 ### Added

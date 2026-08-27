@@ -41,11 +41,12 @@ function loadingReducer(state: LoadingState, action: LoadingAction): LoadingStat
           ? { ...state.messages, [action.key]: action.message }
           : state.messages,
       };
-    case "STOP":
+    case "STOP": {
       const { [action.key]: _, ...named } = state.named;
       const { [action.key]: _p, ...progress } = state.progress;
       const { [action.key]: _m, ...messages } = state.messages;
       return { ...state, named, progress, messages };
+    }
     case "SET_PROGRESS":
       return {
         ...state,
