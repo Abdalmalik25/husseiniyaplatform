@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v7) — إعادة هندسة المحتوى: إلغاء الشهادات السطحية.
+// ALHUSAINIA service worker (v8) — هوية زجاجية فاخرة: ألوان وتصاميم موحدة.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v7";
+const CACHE = "alhusainia-v8";
 const SHELL = [
   "/",
   "/index.html",

@@ -4,6 +4,14 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.7.1] — 2026-08-28 · Glass Identity — هوية ومظهر وتصاميم وألوان وبطاقات زجاجية
+
+### Changed
+
+- **هوية موحدة** `brand.ts:416` Pillars 4→3 موحدة + `Landing.tsx:295` هيرو CTA 3→2 بصوت واحد
+- **ألوان** `Landing.tsx:1049` المعرفي `sky/blue` → `ink/brand` — لوحة واحدة `ink #0e2a2b / bronze #b87945` بلا تشتت لوني
+- **زجاجية** `Landing.tsx:1080` منهجية `bg-white/5` → `bg-white/[0.04] backdrop-blur-xl border-white/[0.08] shadow-[0_8px_32px_rgba(0,0,0,0.18)]` + بطاقات النتائج `shadow-[0_8px_32px]` — معيار glassmorphism عالمي
+
 ## [2.7.0] — 2026-08-28 · Content Re-engineering — إلغاء السطحية
 
 ### Removed

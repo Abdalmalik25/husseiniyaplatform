@@ -557,15 +557,15 @@ export default function Landing() {
             <p className="text-sm text-white/50 leading-relaxed max-w-2xl mx-auto">
               {brand.uamex.promise}
             </p>
-            {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات جديدة v2.3.2 */}
+            {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات مضبوطة v2.7.1 */}
             <div className="flex items-center justify-center gap-6 pt-4">
               <span className="flex flex-col items-center gap-1">
-                <img src="/favicon-32x32.png?v=2.3.2" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
+                <img src="/favicon-32x32.png?v=2.7.1" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
                 <span className="text-[10px] text-white/60 font-bold">المؤسسة</span>
               </span>
               <span className="w-px h-8 bg-white/10" />
               <span className="flex flex-col items-center gap-1">
-                <img src="/uamex-favicon-32.png?v=2.3.2" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
+                <img src="/uamex-favicon-32.png?v=2.7.1" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
                 <span className="text-[10px] text-brand-300 font-bold">Uamex_erp</span>
               </span>
               <span className="w-px h-8 bg-white/10" />
@@ -1088,55 +1088,55 @@ export default function Landing() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
-            <div className="reveal surface bg-white/5 border-white/10 p-6 rounded-2xl">
-              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4">
+            <div className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all">
+              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4 shadow-inner">
                 <FileText className="w-5 h-5 text-brand-300" />
               </div>
-              <h3 className="font-black text-white text-sm mb-2">IFRS — التقارير المالية</h3>
-              <p className="text-xs text-white/60 leading-relaxed">قوائم تُقرأ في 60 ثانية: قائمة دخل IAS 1، ميزانية IAS 1، وتدفقات IAS 7 — لا تقديرات، بل أثر نقدي.</p>
-              <p className="text-[11px] text-brand-300 font-mono mt-3">IAS 1 · IAS 7 · IFRS 15</p>
+              <h3 className="font-black text-white text-sm mb-2 tracking-tight">IFRS — التقارير المالية</h3>
+              <p className="text-xs text-white/65 leading-relaxed">قوائم تُقرأ في 60 ثانية: دخل IAS 1، ميزانية IAS 1، تدفقات IAS 7 — لا تقديرات، بل أثر نقدي.</p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">IAS 1 · IAS 7 · IFRS 15</p>
             </div>
-            <div className="reveal surface bg-white/5 border-white/10 p-6 rounded-2xl" data-reveal-delay={100}>
-              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4">
+            <div className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all" data-reveal-delay={100}>
+              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4 shadow-inner">
                 <ShieldCheck className="w-5 h-5 text-brand-300" />
               </div>
-              <h3 className="font-black text-white text-sm mb-2">COSO — الرقابة الداخلية</h3>
-              <p className="text-xs text-white/60 leading-relaxed">مصفوفة ثلاثية: إنشاء / اعتماد / ترحيل + سجل تدقيق غير قابل للتعديل — رقابة بلا تعطيل.</p>
-              <p className="text-[11px] text-brand-300 font-mono mt-3">COSO 2013 · 17 مبدأ</p>
+              <h3 className="font-black text-white text-sm mb-2 tracking-tight">COSO — الرقابة الداخلية</h3>
+              <p className="text-xs text-white/65 leading-relaxed">مصفوفة ثلاثية: إنشاء / اعتماد / ترحيل + سجل غير قابل للتعديل — رقابة بلا تعطيل.</p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">COSO 2013 · 17 مبدأ</p>
             </div>
-            <div className="reveal surface bg-white/5 border-white/10 p-6 rounded-2xl" data-reveal-delay={200}>
-              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4">
+            <div className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all" data-reveal-delay={200}>
+              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4 shadow-inner">
                 <FolderKanban className="w-5 h-5 text-brand-300" />
               </div>
-              <h3 className="font-black text-white text-sm mb-2">PMBOK — حوكمة المشاريع</h3>
-              <p className="text-xs text-white/60 leading-relaxed">نطاق مضبوط، تقدير NRM/POMI، ومسار حرج CPM — من الفكرة إلى التسليم ضمن الميزانية.</p>
-              <p className="text-[11px] text-brand-300 font-mono mt-3">PMBOK 7th · NRM2</p>
+              <h3 className="font-black text-white text-sm mb-2 tracking-tight">PMBOK — حوكمة المشاريع</h3>
+              <p className="text-xs text-white/65 leading-relaxed">نطاق مضبوط، تقدير NRM/POMI، ومسار حرج CPM — من الفكرة إلى التسليم ضمن الميزانية.</p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">PMBOK 7th · NRM2</p>
             </div>
-            <div className="reveal surface bg-white/5 border-white/10 p-6 rounded-2xl" data-reveal-delay={300}>
-              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4">
+            <div className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all" data-reveal-delay={300}>
+              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4 shadow-inner">
                 <Layers className="w-5 h-5 text-brand-300" />
               </div>
-              <h3 className="font-black text-white text-sm mb-2">ISO — الجودة والاستمرارية</h3>
-              <p className="text-xs text-white/60 leading-relaxed">عمليات موثقة، نسخ AES-256 ليلية، واستمرارية تشغيل 99.9% — جودة تُدقّق، لا تُدّعى.</p>
-              <p className="text-[11px] text-brand-300 font-mono mt-3">ISO 9001 · ISO 27001</p>
+              <h3 className="font-black text-white text-sm mb-2 tracking-tight">ISO — الجودة والاستمرارية</h3>
+              <p className="text-xs text-white/65 leading-relaxed">عمليات موثقة، نسخ AES-256 ليلية، واستمرارية 99.9% — جودة تُدقّق، لا تُدّعى.</p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">ISO 9001 · ISO 27001</p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 reveal">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-black text-brand-300 font-mono">14 يوم → 4 ساعات</p>
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 text-center shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">14 يوم → 4 ساعات</p>
               <p className="text-[11px] text-white/60 mt-1">زمن إغلاق الدفاتر السنوي</p>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-black text-brand-300 font-mono">±30% → ±5%</p>
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 text-center shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">±30% → ±5%</p>
               <p className="text-[11px] text-white/60 mt-1">انحراف تقدير الكميات</p>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-black text-brand-300 font-mono">0 ورقة</p>
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 text-center shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">0 ورقة</p>
               <p className="text-[11px] text-white/60 mt-1">دورة اعتماد رقمية كاملة</p>
             </div>
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
-              <p className="text-2xl font-black text-brand-300 font-mono">60 ثانية</p>
+            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 text-center shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
+              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">60 ثانية</p>
               <p className="text-[11px] text-white/60 mt-1">قراءة الميزان والتدفق</p>
             </div>
           </div>
