@@ -182,7 +182,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
         <span className="flex items-center gap-3">
           <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-brand-300" /> +967 778 343 988</span>
           <span className="w-px h-3 bg-white/10" />
-          <span className="font-mono text-brand-300">Uamex_erp v2.11.3</span>
+          <span className="font-mono text-brand-300">Uamex_erp v2.12.0</span>
         </span>
       </div>
       <div className={`bg-ink/75 backdrop-blur-2xl border-b transition-all duration-500 ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}>
@@ -239,6 +239,27 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
               </span>
             )}
           </div>
+        </div>
+
+        {/* Helper tools — يسار الشريط وحده — أدوات مساعدة منفصلة عن التنقل الرئيسي */}
+        <div className="hidden lg:flex items-center gap-1.5 border-r border-white/10 pr-3 mr-1">
+          <button
+            onClick={() => window.dispatchEvent(new Event("alh:open-command"))}
+            className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 h-7 px-2.5 rounded-lg text-[11px] transition-colors"
+            aria-label="بحث شامل — اكتمال تلقائي"
+            title="بحث شامل (Ctrl+K)"
+          >
+            <Search className="w-3.5 h-3.5 text-brand-300" />
+            <span className="hidden xl:inline">بحث</span>
+          </button>
+          <ThemeSwitcher compact />
+          <button
+            onClick={handleLanguageToggle}
+            className="flex items-center gap-1 text-white/50 hover:text-white h-7 px-2 rounded-lg hover:bg-white/5 text-[11px] transition-colors"
+            aria-label="تبديل اللغة"
+          >
+            <Globe className="w-3.5 h-3.5" />
+          </button>
         </div>
 
         {/* Desktop Navigation — عناقيد Mega Menu بأسلوب SaaS العالمي */}
@@ -377,35 +398,8 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
           </Button>
         </nav>
 
-        {/* Actions & Mobile Menu Toggle */}
+        {/* Actions — يمين الشريط: تنقل رئيسي فقط + إجراءات */}
         <div className="flex items-center gap-2">
-          {/* Command palette trigger (⌘K) */}
-          <button
-            onClick={() => window.dispatchEvent(new Event("alh:open-command"))}
-            className="hidden lg:flex items-center gap-2 bg-white/5 border border-brand/30 text-white/75 hover:text-white hover:bg-white/10 h-8 px-2.5 rounded-lg text-[11px] transition-colors"
-            aria-label="لوحة الأوامر"
-          >
-            <Search className="w-3.5 h-3.5 text-brand-300" />
-            <span>بحث…</span>
-            <kbd className="font-mono text-[9px] text-brand-300 border border-brand/40 rounded px-1">
-              ⌘K
-            </kbd>
-          </button>
-
-          {/* Language Toggle (Global Identity) */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleLanguageToggle}
-            className="text-white/70 hover:text-white hover:bg-white/5 h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium"
-            aria-label="تبديل اللغة"
-          >
-            <Globe className="w-3.5 h-3.5 text-brand-300" />
-            <span>العربية / EN</span>
-          </Button>
-
-          {/* Theme Picker — professional multi-theme switcher */}
-          <ThemeSwitcher />
 
           {/* Super-admin tenant switcher (owner only) */}
           <TenantSwitcher />

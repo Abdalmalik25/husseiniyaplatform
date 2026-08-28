@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v20) — نقرة واحدة ورسائل قيمة بلا سطحية.
+// ALHUSAINIA service worker (v21) — شريط ذكي + DataGrid بيانات ضخمة.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v20";
+const CACHE = "alhusainia-v21";
 const SHELL = [
   "/",
   "/index.html",

@@ -12,6 +12,13 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - **أيقونة قديمة** `public/ALHUSAINIALOGO.png` (1363960) اعتُمدت كأصل حديث — نُسخت إلى `public/favicon-32x32.png` و `client/public` — `BrandLogo.tsx:143` wordmark صار `الحسينية لخدمات الأعمال` فقط
 - **شريط عشوائي** `HeaderNavbar.tsx:40` أعيد ترتيبه بمنطق خبير هرمي: 3 مباشر + 2 عنقود (حلول: Uamex/مؤسسية/هندسة/معرفية + أدوات: حاسبات/معرفة/تتبع/تكامل/تحميل) — الأقسام بارزة والأدوات في قائمة واحدة
 
+## [2.12.0] — 2026-08-28 · Toolbar & DataGrid — شريط ذكي وشبكة بيانات ضخمة
+
+### Added
+
+- **شريط أدوات ذكي** `HeaderNavbar.tsx:40` أعيد تنظيمه بمنطق خبير: 3 مباشر (الرئيسية/الأسعار/تواصل) + 2 عنقود (حلول: 4 أقسام + أدوات: 5 أدوات) — الأقسام الرئيسية بارزة والأدوات في قائمة واحدة ذكية مع `prefetch` للأدوات
+- **DataGrid احترافية** `client/src/components/ui/data-grid.tsx:1` تدعم البيانات الكبيرة (ترقيم 50 صف/صفحة) + فلترة متعددة (نص/قائمة/تاريخ/رقم) + ترتيب + طباعة وتصدير CSV/Excel حسب الصلاحيات (`canPrint/canExport`) — `print` يولد HTML للطباعة و `export` يولد CSV/Excel مع BOM
+
 ## [2.11.3] — 2026-08-28 · One-Click & Value Marketing — نقرة واحدة ورسائل قيمة
 
 ### Changed
