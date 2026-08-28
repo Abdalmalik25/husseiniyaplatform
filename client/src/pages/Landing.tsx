@@ -607,15 +607,15 @@ export default function Landing() {
             <p className="text-sm text-white/50 leading-relaxed max-w-2xl mx-auto">
               {brand.uamex.promise}
             </p>
-            {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات مضبوطة v2.8.0 */}
+            {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات مضبوطة v2.8.1 */}
             <div className="flex items-center justify-center gap-6 pt-4">
               <span className="flex flex-col items-center gap-1">
-                <img src="/favicon-32x32.png?v=2.8.0" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
+                <img src="/favicon-32x32.png?v=2.8.1" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
                 <span className="text-[10px] text-white/60 font-bold">المؤسسة</span>
               </span>
               <span className="w-px h-8 bg-white/10" />
               <span className="flex flex-col items-center gap-1">
-                <img src="/uamex-favicon-32.png?v=2.8.0" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
+                <img src="/uamex-favicon-32.png?v=2.8.1" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
                 <span className="text-[10px] text-brand-300 font-bold">Uamex_erp</span>
               </span>
               <span className="w-px h-8 bg-white/10" />

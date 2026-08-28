@@ -31,7 +31,9 @@ import {
   PackageCheck,
   ChefHat,
   Info,
+  Heart,
 } from "lucide-react";
+import { useWishlist } from "@/lib/wishlist";
 
 interface CartItem {
   productId: number;
@@ -51,6 +53,8 @@ export default function Store() {
   const [checkoutOpen, setCheckoutOpen] = useState(false);
   const [placed, setPlaced] = useState<{ orderNumber: string } | null>(null);
   const [lastPhone, setLastPhone] = useState("");
+  const [wishlistOpen, setWishlistOpen] = useState(false);
+  const { items: wishlistItems, has: hasWishlist, toggle: toggleWishlist } = useWishlist();
 
   const catalog = trpc.store.catalog.useQuery(
     {
@@ -257,6 +261,20 @@ export default function Store() {
               <Button
                 size="sm"
                 variant="outline"
+                className="text-white border-white/30 h-7 text-xs bg-[#102a2b] hover:bg-[#1e3a3c] relative"
+                onClick={() => setWishlistOpen(true)}
+              >
+                <Heart className={`w-3.5 h-3.5 ml-1 ${wishlistItems.length > 0 ? "fill-red-500 text-red-500" : ""}`} />
+                <span>المفضلة</span>
+                {wishlistItems.length > 0 && (
+                  <span className="absolute -top-1.5 -left-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
+                    {wishlistItems.length}
+                  </span>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 className="text-white border-white/30 h-7 text-xs bg-[#102a2b] hover:bg-[#1e3a3c]"
                 onClick={() => setLocation("/about")}
               >
@@ -394,15 +412,29 @@ export default function Store() {
                         ر.ي / {p.unit}
                       </span>
                     </div>
-                    <Button
-                      size="sm"
-                      className="bg-[#102a2b] hover:bg-[#1d3f40] h-7 px-2 text-[11px]"
-                      disabled={out}
-                      onClick={() => addToCart(p)}
-                    >
-                      <Plus className="w-3 h-3 ml-1" />
-                      أضف
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="outline"
+                        className="w-7 h-7"
+                        onClick={() => {
+                          toggleWishlist({ id: p.id, name: p.name, code: p.code, price: parseFloat(p.salePrice || "0") });
+                          toast.success(hasWishlist(p.id) ? "أُزيل من المفضلة" : "أُضيف إلى المفضلة");
+                        }}
+                        aria-label="المفضلة"
+                      >
+                        <Heart className={`w-3.5 h-3.5 ${hasWishlist(p.id) ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-[#102a2b] hover:bg-[#1d3f40] h-7 px-2 text-[11px]"
+                        disabled={out}
+                        onClick={() => addToCart(p)}
+                      >
+                        <Plus className="w-3 h-3 ml-1" />
+                        أضف
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -448,6 +480,42 @@ export default function Store() {
             </div>
           </div>
         )}
+
+        {/* Wishlist dialog */}
+        <Dialog open={wishlistOpen} onOpenChange={setWishlistOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="text-[#102a2b] flex items-center gap-2">
+                <Heart className="w-4 h-4 text-red-500" />
+                المفضلة ({wishlistItems.length})
+              </DialogTitle>
+              <DialogDescription className="text-xs">المنتجات التي حفظتها — محفوظة محلياً على جهازك</DialogDescription>
+            </DialogHeader>
+            {wishlistItems.length === 0 ? (
+              <div className="text-center py-8">
+                <Heart className="w-10 h-10 text-gray-300 mx-auto mb-2" />
+                <p className="text-sm text-gray-400">قائمة المفضلة فارغة</p>
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto">
+                {wishlistItems.map(it => (
+                  <div key={it.id} className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                    <div className="min-w-0">
+                      <p className="font-bold text-xs truncate">{it.name}</p>
+                      <p className="text-[10px] text-gray-500">{it.code} • {it.price.toLocaleString()} ر.ي</p>
+                    </div>
+                    <Button size="icon" variant="ghost" className="w-7 h-7 text-red-500" onClick={() => toggleWishlist(it)}>
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            <DialogFooter>
+              <Button variant="outline" className="w-full text-xs" onClick={() => setWishlistOpen(false)}>إغلاق</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         {/* Checkout dialog */}
         <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>

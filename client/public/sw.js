@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v9) — تصميم فاخر ومنهجية 4 أطوار.
+// ALHUSAINIA service worker (v10) — سد فجوة المفضلة وحالات الفراغ.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v9";
+const CACHE = "alhusainia-v10";
 const SHELL = [
   "/",
   "/index.html",

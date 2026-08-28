@@ -4,6 +4,13 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.8.1] — 2026-08-28 · Gap Closure — مفضلة المتجر وحالات فراغ موحدة
+
+### Added
+
+- **المفضلة** `client/src/lib/wishlist.tsx:1` سياق `WishlistProvider` بذاكرة محلية `alhusainia:wishlist` + `client/src/pages/Store.tsx:15` زر قلب على كل صنف + عداد في الشريط + حوار `المفضلة` — يسد فجوة P3 wishlist
+- **حالات فراغ** `client/src/components/ui/empty-state.tsx:1` مكون موحد — يسد دين حالات الخطأ P2
+
 ## [2.8.0] — 2026-08-28 · World-Class Design & Consulting — مصمم واستشاري تسويق مؤسسي
 
 ### Added
