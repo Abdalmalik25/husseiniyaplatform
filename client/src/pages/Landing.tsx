@@ -517,332 +517,7 @@ export default function Landing() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
-          قسم ١: الاستشارات المؤسسية والإدارية
-      ═══════════════════════════════════════════════════════════ */}
-      <section id="corporate" className="py-20 px-4 scroll-mt-20">
-        <div className="max-w-7xl mx-auto">
-          {/* Header */}
-          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
-            <Badge className="bg-brand/10 text-brand border border-brand/30 font-bold text-xs px-3 py-1">
-              ١ · الاستشارات المؤسسية والإدارية
-            </Badge>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
-              {brand.divisions.corporate.heroQuestion}
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              {brand.divisions.corporate.heroAnswer}
-            </p>
-          </div>
-
-          {/* المشاكل والحلول */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {brand.divisions.corporate.problems.map((item, i) => {
-              const icons: Record<string, React.ComponentType<any>> = {
-                TrendingUp,
-                ShieldCheck,
-                Calculator,
-                Building2,
-              };
-              const Icon = icons[item.icon] || TrendingUp;
-              return (
-                <div
-                  key={i}
-                  className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group"
-                  data-reveal-delay={i * 100}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 group-hover:bg-brand/20 transition-colors">
-                      <Icon className="w-5 h-5 text-brand" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-foreground text-sm mb-2 flex items-start gap-2">
-                        <span className="text-brand mt-0.5">⟵</span>
-                        {item.q}
-                      </p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {item.a}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* الخدمات */}
-          <div className="bg-ink rounded-3xl p-8 reveal">
-            <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-              <Layers className="w-5 h-5 text-brand" />
-              ما نقدمه في الاستشارات المؤسسية
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-              {brand.divisions.corporate.services.map((s, i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-2.5 text-sm text-white/70 bg-white/5 border border-white/10 rounded-xl px-4 py-3"
-                >
-                  <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-                  {s}
-                </div>
-              ))}
-            </div>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a
-                href={whatsappLink(
-                  "السلام عليكم، أود طلب استشارة مؤسسية وإدارية."
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
-              >
-                <MessageSquare className="w-4 h-4" />
-                اطلب استشارة مجانية
-              </a>
-              <Button
-                onClick={() => goLogin()}
-                variant="outline"
-                className="border-white/20 bg-white/5 text-white hover:bg-white/10 text-sm px-6 py-3 rounded-xl h-auto"
-              >
-                دخول نظام Uamex_erp
-                <ArrowRight className="w-4 h-4 rotate-180 mr-1" />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════
-          قسم ٢: الخدمات الهندسية والعقارية والمقاولات
-      ═══════════════════════════════════════════════════════════ */}
-      <section
-        id="engineering"
-        className="py-20 px-4 scroll-mt-20 bg-gradient-to-b from-sand to-[#f5ede0] dark:from-background dark:to-card"
-      >
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
-            <Badge className="bg-[#b87945]/10 text-[#b87945] border border-[#b87945]/30 font-bold text-xs px-3 py-1">
-              ٢ · الخدمات الهندسية والعقارية والمقاولات
-            </Badge>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
-              {brand.divisions.engineering.heroQuestion}
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-              {brand.divisions.engineering.heroAnswer}
-            </p>
-            {/* الجمهور المستهدف */}
-            <div className="flex flex-wrap justify-center gap-2 pt-2">
-              {brand.divisions.engineering.personas.map(p => (
-                <span
-                  key={p}
-                  className="text-xs bg-[#b87945]/10 border border-[#b87945]/20 text-[#9a6334] dark:text-brand-300 px-3 py-1 rounded-full font-medium"
-                >
-                  {p}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* المشاكل والحلول */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-            {brand.divisions.engineering.problems.map((item, i) => {
-              const icons: Record<string, React.ComponentType<any>> = {
-                Calculator,
-                Map,
-                Ruler,
-                HardHat,
-              };
-              const Icon = icons[item.icon] || Calculator;
-              return (
-                <div
-                  key={i}
-                  className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group border border-[#b87945]/10"
-                  data-reveal-delay={i * 100}
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="w-11 h-11 rounded-xl bg-[#b87945]/10 border border-[#b87945]/20 flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-[#b87945]" />
-                    </div>
-                    <div>
-                      <p className="font-bold text-foreground text-sm mb-2">
-                        <span className="text-[#b87945]">السؤال: </span>
-                        {item.q}
-                      </p>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        <span className="text-emerald-600 font-bold">
-                          الجواب:{" "}
-                        </span>
-                        {item.a}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* بطاقة الخدمات + كيفية التواصل */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 reveal">
-            <div className="lg:col-span-2 bg-gradient-to-br from-[#102a2b] to-[#1a3d3f] rounded-3xl p-8 text-white">
-              <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
-                <HardHat className="w-5 h-5 text-brand" />
-                الخدمات الهندسية والمساحية
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {brand.divisions.engineering.services.map((s, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2.5 text-xs text-white/75 bg-white/5 border border-white/10 rounded-xl px-4 py-3"
-                  >
-                    <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
-                    {s}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* CTA Card */}
-            <div className="bg-gradient-to-br from-[#b87945] to-[#9a6334] rounded-3xl p-8 text-ink flex flex-col justify-between">
-              <div>
-                <HardHat className="w-10 h-10 mb-4 opacity-80" />
-                <h3 className="font-black text-xl mb-2">
-                  احسب تكلفة مشروعك قبل البدء
-                </h3>
-                <p className="text-[13px] opacity-80 leading-relaxed">
-                  نُعدّ لك جدول الكميات الكامل — حديد، خرسانة، بلوك — بأسعار
-                  السوق الحالية.
-                </p>
-              </div>
-              <div className="mt-6 space-y-2.5">
-                <a
-                  href={engineeringConsultLink(
-                    "تقييم وجدول كميات BOQ لمشروع بناء"
-                  )}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 bg-ink/90 hover:bg-ink text-white font-bold py-3 rounded-xl text-sm transition-all"
-                >
-                  <MessageSquare className="w-4 h-4" />
-                  طلب جدول كميات BOQ
-                </a>
-                <a
-                  href={engineeringConsultLink("رفع مساحي وتحديد حدود الأرض")}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-ink font-bold py-3 rounded-xl text-sm transition-all"
-                >
-                  <Map className="w-4 h-4" />
-                  طلب رفع مساحي
-                </a>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════
-          قسم ٣: الخدمات الطلابية والمكتبة والصيانة
-      ═══════════════════════════════════════════════════════════ */}
-      <section id="library" className="py-20 px-4 scroll-mt-20">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
-            <Badge className="bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/30 font-bold text-xs px-3 py-1">
-              ٣ · الخدمات الطلابية والمكتبة والصيانة
-            </Badge>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
-              {brand.divisions.library.heroQuestion}
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              {brand.divisions.library.heroAnswer}
-            </p>
-            <div className="flex flex-wrap justify-center gap-2 pt-2">
-              {brand.divisions.library.personas.map(p => (
-                <span
-                  key={p}
-                  className="text-xs bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-400 px-3 py-1 rounded-full font-medium"
-                >
-                  {p}
-                </span>
-              ))}
-            </div>
-          </div>
-
-          {/* بطاقات المشاكل */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
-            {brand.divisions.library.problems.map((item, i) => {
-              const icons: Record<string, React.ComponentType<any>> = {
-                BookOpen,
-                BarChart3,
-                Sparkles,
-                Wrench,
-              };
-              const Icon = icons[item.icon] || BookOpen;
-              return (
-                <div
-                  key={i}
-                  className="reveal surface rounded-2xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition-all group"
-                  data-reveal-delay={i * 80}
-                >
-                  <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-500/20 transition-colors">
-                    <Icon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
-                  </div>
-                  <p className="font-bold text-foreground text-xs mb-3 leading-snug">
-                    {item.q}
-                  </p>
-                  <p className="text-[11px] text-muted-foreground leading-relaxed">
-                    {item.a}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* قائمة الخدمات + CTA */}
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 reveal">
-            <div className="lg:col-span-3 surface rounded-3xl p-8">
-              <h3 className="font-bold text-foreground text-lg mb-5 flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-sky-600" />
-                قائمة الخدمات الطلابية والمكتبية
-              </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {brand.divisions.library.services.map((s, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 text-xs text-muted-foreground bg-sky-500/5 border border-sky-500/10 rounded-xl px-3 py-2.5"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-500 shrink-0" />
-                    {s}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="lg:col-span-2 bg-gradient-to-br from-sky-800 to-blue-950 rounded-3xl p-8 text-white flex flex-col justify-between">
-              <div>
-                <GraduationCap className="w-10 h-10 mb-4 text-sky-300" />
-                <h3 className="font-black text-xl mb-3">احجز خدمتك الآن</h3>
-                <p className="text-sm text-white/70 leading-relaxed">
-                  نُنجز طلبك في الوقت المحدد. طباعة، تحليل، تصميم، صيانة — بجودة
-                  وأمانة.
-                </p>
-              </div>
-              <a
-                href={whatsappLink(
-                  "السلام عليكم، أود الاستفسار عن الخدمات الطلابية والمكتبية."
-                )}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="mt-6 flex items-center justify-center gap-2 bg-sky-400 hover:bg-sky-300 text-sky-900 font-black py-3 rounded-xl text-sm transition-all"
-              >
-                <MessageSquare className="w-4 h-4" />
-                تواصل عبر واتساب
-              </a>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* ═══════════════════════════════════════════════════════════
-          قسم ٤: Uamex_erp — هوية النظام ومكوناته
+          قسم ١: المنصة الموحدة Uamex_erp — لب الحل
       ═══════════════════════════════════════════════════════════ */}
       <section id="uamex" className="py-20 px-4 scroll-mt-20 bg-ink text-white">
         <div className="max-w-7xl mx-auto">
@@ -851,7 +526,7 @@ export default function Landing() {
             <div className="inline-flex items-center gap-3">
               <div className="h-px w-12 bg-brand/50" />
               <span className="text-brand-300 font-mono text-xs font-bold tracking-widest uppercase">
-                Enterprise Software
+                ١ · المنصة الموحدة — Uamex_erp
               </span>
               <div className="h-px w-12 bg-brand/50" />
             </div>
@@ -1070,6 +745,332 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          قسم ٢: الاستشارات المؤسسية والإدارية — حوكمة القرار
+      ═══════════════════════════════════════════════════════════ */}
+      <section id="corporate" className="py-20 px-4 scroll-mt-20">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
+            <Badge className="bg-brand/10 text-brand border border-brand/30 font-bold text-xs px-3 py-1">
+              ٢ · الاستشارات المؤسسية والإدارية
+            </Badge>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
+              {brand.divisions.corporate.heroQuestion}
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              {brand.divisions.corporate.heroAnswer}
+            </p>
+          </div>
+
+          {/* المشاكل والحلول */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            {brand.divisions.corporate.problems.map((item, i) => {
+              const icons: Record<string, React.ComponentType<any>> = {
+                TrendingUp,
+                ShieldCheck,
+                Calculator,
+                Building2,
+              };
+              const Icon = icons[item.icon] || TrendingUp;
+              return (
+                <div
+                  key={i}
+                  className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group"
+                  data-reveal-delay={i * 100}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0 group-hover:bg-brand/20 transition-colors">
+                      <Icon className="w-5 h-5 text-brand" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground text-sm mb-2 flex items-start gap-2">
+                        <span className="text-brand mt-0.5">⟵</span>
+                        {item.q}
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        {item.a}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* الخدمات */}
+          <div className="bg-ink rounded-3xl p-8 reveal">
+            <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
+              <Layers className="w-5 h-5 text-brand" />
+              ما نقدمه في الاستشارات المؤسسية
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {brand.divisions.corporate.services.map((s, i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-2.5 text-sm text-white/70 bg-white/5 border border-white/10 rounded-xl px-4 py-3"
+                >
+                  <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                  {s}
+                </div>
+              ))}
+            </div>
+            <div className="mt-8 flex flex-wrap gap-3">
+              <a
+                href={whatsappLink(
+                  "السلام عليكم، أود طلب استشارة مؤسسية وإدارية."
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
+              >
+                <MessageSquare className="w-4 h-4" />
+                اطلب استشارة مجانية
+              </a>
+              <Button
+                onClick={() => goLogin()}
+                variant="outline"
+                className="border-white/20 bg-white/5 text-white hover:bg-white/10 text-sm px-6 py-3 rounded-xl h-auto"
+              >
+                دخول نظام Uamex_erp
+                <ArrowRight className="w-4 h-4 rotate-180 mr-1" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          قسم ٣: الخدمات الهندسية والعقارية والمقاولات — من الفكرة إلى المفتاح
+      ═══════════════════════════════════════════════════════════ */}
+      <section
+        id="engineering"
+        className="py-20 px-4 scroll-mt-20 bg-gradient-to-b from-sand to-[#f5ede0] dark:from-background dark:to-card"
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
+            <Badge className="bg-[#b87945]/10 text-[#b87945] border border-[#b87945]/30 font-bold text-xs px-3 py-1">
+              ٣ · الخدمات الهندسية والعقارية والمقاولات
+            </Badge>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
+              {brand.divisions.engineering.heroQuestion}
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-2xl mx-auto">
+              {brand.divisions.engineering.heroAnswer}
+            </p>
+            {/* الجمهور المستهدف */}
+            <div className="flex flex-wrap justify-center gap-2 pt-2">
+              {brand.divisions.engineering.personas.map(p => (
+                <span
+                  key={p}
+                  className="text-xs bg-[#b87945]/10 border border-[#b87945]/20 text-[#9a6334] dark:text-brand-300 px-3 py-1 rounded-full font-medium"
+                >
+                  {p}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* المشاكل والحلول */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+            {brand.divisions.engineering.problems.map((item, i) => {
+              const icons: Record<string, React.ComponentType<any>> = {
+                Calculator,
+                Map,
+                Ruler,
+                HardHat,
+              };
+              const Icon = icons[item.icon] || Calculator;
+              return (
+                <div
+                  key={i}
+                  className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group border border-[#b87945]/10"
+                  data-reveal-delay={i * 100}
+                >
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-[#b87945]/10 border border-[#b87945]/20 flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-[#b87945]" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-foreground text-sm mb-2">
+                        <span className="text-[#b87945]">السؤال: </span>
+                        {item.q}
+                      </p>
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        <span className="text-emerald-600 font-bold">
+                          الجواب:{" "}
+                        </span>
+                        {item.a}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* بطاقة الخدمات + كيفية التواصل */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 reveal">
+            <div className="lg:col-span-2 bg-gradient-to-br from-[#102a2b] to-[#1a3d3f] rounded-3xl p-8 text-white">
+              <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
+                <HardHat className="w-5 h-5 text-brand" />
+                الخدمات الهندسية والمساحية
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {brand.divisions.engineering.services.map((s, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2.5 text-xs text-white/75 bg-white/5 border border-white/10 rounded-xl px-4 py-3"
+                  >
+                    <CheckCircle2 className="w-4 h-4 text-brand shrink-0" />
+                    {s}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* CTA Card */}
+            <div className="bg-gradient-to-br from-[#b87945] to-[#9a6334] rounded-3xl p-8 text-ink flex flex-col justify-between">
+              <div>
+                <HardHat className="w-10 h-10 mb-4 opacity-80" />
+                <h3 className="font-black text-xl mb-2">
+                  احسب تكلفة مشروعك قبل البدء
+                </h3>
+                <p className="text-[13px] opacity-80 leading-relaxed">
+                  نُعدّ لك جدول الكميات الكامل — حديد، خرسانة، بلوك — بأسعار
+                  السوق الحالية.
+                </p>
+              </div>
+              <div className="mt-6 space-y-2.5">
+                <a
+                  href={engineeringConsultLink(
+                    "تقييم وجدول كميات BOQ لمشروع بناء"
+                  )}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 bg-ink/90 hover:bg-ink text-white font-bold py-3 rounded-xl text-sm transition-all"
+                >
+                  <MessageSquare className="w-4 h-4" />
+                  طلب جدول كميات BOQ
+                </a>
+                <a
+                  href={engineeringConsultLink("رفع مساحي وتحديد حدود الأرض")}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center justify-center gap-2 bg-white/20 hover:bg-white/30 text-ink font-bold py-3 rounded-xl text-sm transition-all"
+                >
+                  <Map className="w-4 h-4" />
+                  طلب رفع مساحي
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          قسم ٤: الخدمات المعرفية والطباعة الاحترافية — مسار النشر المحكم
+      ═══════════════════════════════════════════════════════════ */}
+      <section id="library" className="py-20 px-4 scroll-mt-20">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
+            <Badge className="bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/30 font-bold text-xs px-3 py-1">
+              ٤ · الخدمات المعرفية والطباعة الاحترافية
+            </Badge>
+            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
+              {brand.divisions.library.heroQuestion}
+            </h2>
+            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
+              {brand.divisions.library.heroAnswer}
+            </p>
+            <div className="flex flex-wrap justify-center gap-2 pt-2">
+              {brand.divisions.library.personas.map(p => (
+                <span
+                  key={p}
+                  className="text-xs bg-sky-500/10 border border-sky-500/20 text-sky-700 dark:text-sky-400 px-3 py-1 rounded-full font-medium"
+                >
+                  {p}
+                </span>
+              ))}
+            </div>
+          </div>
+
+          {/* بطاقات المشاكل */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-12">
+            {brand.divisions.library.problems.map((item, i) => {
+              const icons: Record<string, React.ComponentType<any>> = {
+                BookOpen,
+                BarChart3,
+                Sparkles,
+                Wrench,
+              };
+              const Icon = icons[item.icon] || BookOpen;
+              return (
+                <div
+                  key={i}
+                  className="reveal surface rounded-2xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition-all group"
+                  data-reveal-delay={i * 80}
+                >
+                  <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-500/20 transition-colors">
+                    <Icon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
+                  </div>
+                  <p className="font-bold text-foreground text-xs mb-3 leading-snug">
+                    {item.q}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">
+                    {item.a}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* قائمة الخدمات + CTA */}
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 reveal">
+            <div className="lg:col-span-3 surface rounded-3xl p-8">
+              <h3 className="font-bold text-foreground text-lg mb-5 flex items-center gap-2">
+                <GraduationCap className="w-5 h-5 text-sky-600" />
+                قائمة الخدمات الطلابية والمكتبية
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {brand.divisions.library.services.map((s, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 text-xs text-muted-foreground bg-sky-500/5 border border-sky-500/10 rounded-xl px-3 py-2.5"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                    {s}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 bg-gradient-to-br from-sky-800 to-blue-950 rounded-3xl p-8 text-white flex flex-col justify-between">
+              <div>
+                <GraduationCap className="w-10 h-10 mb-4 text-sky-300" />
+                <h3 className="font-black text-xl mb-3">احجز خدمتك الآن</h3>
+                <p className="text-sm text-white/70 leading-relaxed">
+                  نُنجز طلبك في الوقت المحدد. طباعة، تحليل، تصميم، صيانة — بجودة
+                  وأمانة.
+                </p>
+              </div>
+              <a
+                href={whatsappLink(
+                  "السلام عليكم، أود الاستفسار عن الخدمات الطلابية والمكتبية."
+                )}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-6 flex items-center justify-center gap-2 bg-sky-400 hover:bg-sky-300 text-sky-900 font-black py-3 rounded-xl text-sm transition-all"
+              >
+                <MessageSquare className="w-4 h-4" />
+                تواصل عبر واتساب
+              </a>
+            </div>
+          </div>
+        </div>
+      </section>
+
 
       {/* ═══════════════════════════════════════════════════════════
           الشهادات

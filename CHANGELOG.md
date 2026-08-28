@@ -4,6 +4,17 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.6.0] — 2026-08-28 · World-Class Content Ordering & Expert Messaging
+
+### Changed
+
+- **النسق الفكري** `client/src/pages/Landing.tsx:519` إعادة ترتيب funnel عالمي: `Cost → Uamex (١) → Corporate (٢) → Engineering (٣) → Knowledge (٤)` بدل `Corporate → Engineering → Library → Uamex` — يضع الحل في المقدمة ثم يبرهن بالقطاعات (من الملموس إلى الاستراتيجي)
+- **الترقيم والمظهر** — كل قسم يحمل رقماً هرمياً `١·`/`٢·`/`٣·`/`٤·` مع تعليق `لب الحل/حوكمة القرار/من الفكرة إلى المفتاح/مسار النشر المحكم` وتباعد `py-20` وإيقاع `reveal` موحد
+
+### Added
+
+- **رسائل معرفية خبيرة** `client/src/lib/brand.ts:193` library hero `هل بحثك جاهز للنشر بمعايير المجلات المحكمة؟` + إجابة `SPSS v28 + APA 7th` + مشاكل بصياغة رقابية `هل تنسيق رسالتي يطابق دليل الجامعة حرفياً؟` `هل تحليلي يصمد أمام سؤال اللجنة؟`
+
 ## [2.5.0] — 2026-08-28 · Advanced Best-Practice Elevation — Observability + Security + Architecture
 
 ### Added
