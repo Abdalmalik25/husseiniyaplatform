@@ -10,10 +10,10 @@ import { Button } from "@/components/ui/button";
  * - a11y: aria-label، تركيز مرئي، إغلاق بـ Escape
  */
 const QUICK_ACTIONS = [
-  { key: "tx", label: "قيد سريع", icon: FileText, path: "/accounting", accent: "bg-brand text-ink", shortcut: "Ctrl+N" },
-  { key: "sale", label: "فاتورة مبيعات", icon: ShoppingCart, path: "/commercial", accent: "bg-emerald-600 text-white", shortcut: "Ctrl+Shift+S" },
-  { key: "purchase", label: "فاتورة مشتريات", icon: Package, path: "/commercial", accent: "bg-sky-700 text-white", shortcut: "Ctrl+Shift+P" },
-  { key: "report", label: "التقارير", icon: BarChart3, path: "/reports", accent: "bg-ink text-white", shortcut: "Ctrl+R" },
+  { key: "tx", label: "قيد سريع — إنشاء مباشر", icon: FileText, path: "/accounting?new=tx", accent: "bg-brand text-ink", shortcut: "Ctrl+N" },
+  { key: "sale", label: "فاتورة مبيعات — إنشاء مباشر", icon: ShoppingCart, path: "/commercial?new=sale", accent: "bg-emerald-600 text-white", shortcut: "Ctrl+Shift+S" },
+  { key: "purchase", label: "فاتورة مشتريات — إنشاء مباشر", icon: Package, path: "/commercial?new=purchase", accent: "bg-sky-700 text-white", shortcut: "Ctrl+Shift+P" },
+  { key: "report", label: "التقارير — عرض فوري", icon: BarChart3, path: "/reports", accent: "bg-ink text-white", shortcut: "Ctrl+R" },
 ] as const;
 
 export function GlobalQuickActions() {

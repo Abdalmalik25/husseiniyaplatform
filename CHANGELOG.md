@@ -12,6 +12,13 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - **أيقونة قديمة** `public/ALHUSAINIALOGO.png` (1363960) اعتُمدت كأصل حديث — نُسخت إلى `public/favicon-32x32.png` و `client/public` — `BrandLogo.tsx:143` wordmark صار `الحسينية لخدمات الأعمال` فقط
 - **شريط عشوائي** `HeaderNavbar.tsx:40` أعيد ترتيبه بمنطق خبير هرمي: 3 مباشر + 2 عنقود (حلول: Uamex/مؤسسية/هندسة/معرفية + أدوات: حاسبات/معرفة/تتبع/تكامل/تحميل) — الأقسام بارزة والأدوات في قائمة واحدة
 
+## [2.11.3] — 2026-08-28 · One-Click & Value Marketing — نقرة واحدة ورسائل قيمة
+
+### Changed
+
+- **نقرة واحدة** `GlobalQuickActions.tsx:12` مسارات `?new=tx/sale/purchase` — كل إجراء ينشئ مباشراً بافتراضات ذكية (عميل نقدي، مخزن رئيسي) — يقلل المسار الحرج من 6 نقرات إلى 1
+- **رسائل قيمة** `brand.ts:40` tagline `14 يوم → 4 ساعات` + promise `قيمة: 70% أقل + معلومة: 4 أطوار على IFRS/COSO/PMBOK + فائدة: 60 ثانية` — بلا سطحية أو تقزيم، كل جملة تحمل قيمة/معلومة/فائدة قابلة للقياس
+
 ## [2.11.1] — 2026-08-28 · Precise Identity Audit — مراجعة دقيقة واعتماد نهائي
 
 ### Changed

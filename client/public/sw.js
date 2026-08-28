@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v19) — إصلاح دخول متعدد المستأجرين وأيقونة حديثة.
+// ALHUSAINIA service worker (v20) — نقرة واحدة ورسائل قيمة بلا سطحية.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v19";
+const CACHE = "alhusainia-v20";
 const SHELL = [
   "/",
   "/index.html",
