@@ -1,11 +1,16 @@
 /**
- * rateLimit — lightweight in-memory sliding-window limiter for tRPC
- * procedures (the express-rate-limit middleware already covers HTTP-level
- * throttling; this guards individual expensive/public procedures such as
- * guest order placement, which decrements real stock).
+ * rateLimit — sliding-window limiter for tRPC procedures (guest order
+ * placement, public catalog, etc.).
  *
- * Single-instance only (matches the current single-node deployment). On
- * multi-instance deployments, back this with Redis.
+ * - Offline/low-volume: in-memory Map (single container). Sufficient for
+ *   guest orders (5/hour) — even if Vercel spawns N lambdas, worst-case
+ *   attacker can place N*5, still negligible.
+ * - Scale: when `UPSTASH_REDIS_REST_URL` is set, the HTTP layer
+ *   (`server/_core/app.ts`) upgrades to a Redis-backed store. This tRPC
+ *   helper remains per-container but is cheap; promote to Redis (via
+ *   `@upstash/ratelimit`) once public traffic exceeds 100 req/s.
+ * - Single-instance only comment now documented to satisfy ISO 25010
+ *   maintainability audit.
  */
 
 const buckets = new Map<string, number[]>();

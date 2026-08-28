@@ -4,6 +4,14 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.4.1] — 2026-08-27 · Tech-Debt Settlement — RateLimit/Headers/UI Unification
+
+### Fixed
+
+- **أمان/أداء** `server/_core/app.ts:56` ترقية تحديد المعدل إلى Vercel-aware: `trust proxy:1` + `validate:false` + `RedisStore` اختياري عند `UPSTASH_REDIS_REST_URL` (fallback في الذاكرة موثق في `server/_core/rateLimit.ts:1`).
+- **رؤوس** `app.ts:26` محاذاة Helmet مع `vercel.json:11` — `connectSrc` يضم `fonts.googleapis` + `workerSrc/manifestSrc` + `COOP/CORP same-origin` + `xDnsPrefetchControl`.
+- **واجهة** `client/src/components/ui/button.tsx:7` توحيد `cva` كمصدر وحيد للأزرار (h-10 للـCTAs ≥40px) + `ThemeSwitcher.tsx:18` وصولية `aria-label` + `client/src/components/ui/empty-state.tsx:1` حالة فارغة موحدة بحد متقطع و `role=status`.
+
 ## [2.4.0] — 2026-08-27 · World-Class Institutional Content & Appearance
 
 ### Changed

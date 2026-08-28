@@ -23,7 +23,7 @@ export function createApp(): Express {
   // shares a single bucket and throttling becomes meaningless in prod.
   app.set("trust proxy", 1);
 
-  // Helmet security headers
+  // Helmet security headers — aligned with vercel.json (CSP + COOP/CORP).
   app.use(
     helmet({
       contentSecurityPolicy: {
@@ -37,14 +37,25 @@ export function createApp(): Express {
           ],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
           imgSrc: ["'self'", "data:", "blob:", "https:"],
-          connectSrc: ["'self'", "https://*.neon.tech", "https://*.vercel.app"],
+          connectSrc: [
+            "'self'",
+            "https://*.neon.tech",
+            "https://*.vercel.app",
+            "https://fonts.googleapis.com",
+            "https://fonts.gstatic.com",
+          ],
+          workerSrc: ["'self'", "blob:"],
+          manifestSrc: ["'self'"],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
           formAction: ["'self'"],
         },
       },
       crossOriginEmbedderPolicy: false,
+      crossOriginOpenerPolicy: { policy: "same-origin" },
+      crossOriginResourcePolicy: { policy: "same-origin" },
       referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+      xDnsPrefetchControl: { allow: true },
     })
   );
 
@@ -53,22 +64,50 @@ export function createApp(): Express {
   // static assets, improving load times especially on slower connections.
   app.use(compression());
 
-  // Rate limiting - API endpoints (stricter)
+  // Rate limiting — Vercel-aware.
+  // - `trust proxy:1` above ensures `req.ip` is the real client behind Vercel's edge.
+  // - `validate:false` silences express-rate-limit's trust-proxy warning which we
+  //   handle explicitly. Memory store is per-lambda (acceptable for 5/hour guest
+  //   orders); set `UPSTASH_REDIS_REST_URL` to upgrade to Redis without code change
+  //   (the import is lazy so the bundle stays lean).
+  const maybeRedisStore = (() => {
+    try {
+      // Lazy: only if the operator provisioned Upstash (Vercel Marketplace → Upstash Redis).
+      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { Redis } = require("@upstash/redis");
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { RedisStore } = require("rate-limit-redis");
+        const client = new Redis({
+          url: process.env.UPSTASH_REDIS_REST_URL,
+          token: process.env.UPSTASH_REDIS_REST_TOKEN,
+        });
+        return new RedisStore({ sendCommand: (...args: string[]) => (client as any).sendCommand(args) });
+      }
+    } catch {
+      // No Redis — fall back to in-memory (documented in rateLimit.ts).
+    }
+    return undefined;
+  })();
+
   const apiLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // 100 requests per window
+    windowMs: 15 * 60 * 1000,
+    max: 100,
     message: { error: "تم تجاوز الحد المسموح من طلبات API." },
     standardHeaders: true,
     legacyHeaders: false,
+    validate: false,
+    ...(maybeRedisStore ? { store: maybeRedisStore } : {}),
   });
 
-  // Rate limiting - auth endpoints (very strict)
   const authLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 20, // 20 attempts per window
+    windowMs: 15 * 60 * 1000,
+    max: 20,
     message: { error: "تم تجاوز الحد المسموح من محاولات تسجيل الدخول." },
     standardHeaders: true,
     legacyHeaders: false,
+    validate: false,
+    ...(maybeRedisStore ? { store: maybeRedisStore } : {}),
   });
 
   // Configure body parser with reasonable size limit

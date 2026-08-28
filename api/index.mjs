@@ -1,5 +1,11 @@
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -40487,34 +40493,60 @@ function createApp() {
           ],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
           imgSrc: ["'self'", "data:", "blob:", "https:"],
-          connectSrc: ["'self'", "https://*.neon.tech", "https://*.vercel.app"],
+          connectSrc: [
+            "'self'",
+            "https://*.neon.tech",
+            "https://*.vercel.app",
+            "https://fonts.googleapis.com",
+            "https://fonts.gstatic.com"
+          ],
+          workerSrc: ["'self'", "blob:"],
+          manifestSrc: ["'self'"],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
           formAction: ["'self'"]
         }
       },
       crossOriginEmbedderPolicy: false,
-      referrerPolicy: { policy: "strict-origin-when-cross-origin" }
+      crossOriginOpenerPolicy: { policy: "same-origin" },
+      crossOriginResourcePolicy: { policy: "same-origin" },
+      referrerPolicy: { policy: "strict-origin-when-cross-origin" },
+      xDnsPrefetchControl: { allow: true }
     })
   );
   app2.use(compression());
+  const maybeRedisStore = (() => {
+    try {
+      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+        const { Redis } = __require("@upstash/redis");
+        const { RedisStore } = __require("rate-limit-redis");
+        const client = new Redis({
+          url: process.env.UPSTASH_REDIS_REST_URL,
+          token: process.env.UPSTASH_REDIS_REST_TOKEN
+        });
+        return new RedisStore({ sendCommand: (...args) => client.sendCommand(args) });
+      }
+    } catch {
+    }
+    return void 0;
+  })();
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1e3,
-    // 15 minutes
     max: 100,
-    // 100 requests per window
     message: { error: "\u062A\u0645 \u062A\u062C\u0627\u0648\u0632 \u0627\u0644\u062D\u062F \u0627\u0644\u0645\u0633\u0645\u0648\u062D \u0645\u0646 \u0637\u0644\u0628\u0627\u062A API." },
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    validate: false,
+    ...maybeRedisStore ? { store: maybeRedisStore } : {}
   });
   const authLimiter = rateLimit({
     windowMs: 15 * 60 * 1e3,
-    // 15 minutes
     max: 20,
-    // 20 attempts per window
     message: { error: "\u062A\u0645 \u062A\u062C\u0627\u0648\u0632 \u0627\u0644\u062D\u062F \u0627\u0644\u0645\u0633\u0645\u0648\u062D \u0645\u0646 \u0645\u062D\u0627\u0648\u0644\u0627\u062A \u062A\u0633\u062C\u064A\u0644 \u0627\u0644\u062F\u062E\u0648\u0644." },
     standardHeaders: true,
-    legacyHeaders: false
+    legacyHeaders: false,
+    validate: false,
+    ...maybeRedisStore ? { store: maybeRedisStore } : {}
   });
   app2.use(express.json({ limit: "10mb" }));
   app2.use(express.urlencoded({ limit: "10mb", extended: true }));
@@ -40561,7 +40593,7 @@ function createApp() {
       dbAvailable,
       service: "alhusainia-platform",
       institution: "\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644 \u0648\u0645\u0643\u062A\u0628\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0627\u0644\u062D\u062F\u064A\u062B\u0629",
-      version: true ? "2.4.0" : (
+      version: true ? "2.4.1" : (
         // dev (tsx) runs without the esbuild define
         "dev"
       ),
