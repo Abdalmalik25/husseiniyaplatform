@@ -4,6 +4,18 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.5.0] — 2026-08-28 · Advanced Best-Practice Elevation — Observability + Security + Architecture
+
+### Added
+
+- **Observability** `server/_core/logger.ts:1` هيكل JSON سطر بسطر 12-factor (redact أسرار) + `app.ts:17` وسيط `x-request-id` مبكر + `logger.info` للوصول — يغذي Vercel Log Drains بلا تسريب
+- **Architecture** `server/services/doubleEntryValidator.ts:1` خدمة نقية `isBalanced/imbalance/validateOrThrow` بتحمل 0.01 — تفصل منطق القيد المزدوج عن الـ routers (SOLID)
+
+### Changed
+
+- **Security** `vercel.json:24` HSTS أضيف `preload` — يصبح `max-age=63072000; includeSubDomains; preload` لتمكين HSTS preload list
+- **Bump `2.4.2 → 2.5.0`** — ترقية إلى مستوى متقدم وفق OWASP/ISO 25010/12-Factor
+
 ## [2.4.2] — 2026-08-28 · Terminology Refinement — إزالة السطحية الكارثية
 
 ### Fixed

@@ -4453,7 +4453,7 @@ async function placePublicOrder(db, tenantId, input) {
     }
   }
   const result = await db.transaction(async (tx) => {
-    const [order] = await tx.insert(orders).values({
+    const [order2] = await tx.insert(orders).values({
       tenantId,
       orderNumber,
       customerId,
@@ -4463,7 +4463,7 @@ async function placePublicOrder(db, tenantId, input) {
       assignedTo: "\u0627\u0644\u0645\u062A\u062C\u0631 \u0627\u0644\u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A",
       status: "pending"
     }).returning();
-    await tx.insert(orderItems).values(itemValues.map((it) => ({ ...it, orderId: order.id })));
+    await tx.insert(orderItems).values(itemValues.map((it) => ({ ...it, orderId: order2.id })));
     for (const it of itemValues) {
       const updated = await tx.update(products).set({ currentStock: sql2`${products.currentStock} - ${it.quantity}` }).where(
         and(
@@ -4480,12 +4480,12 @@ async function placePublicOrder(db, tenantId, input) {
         productId: it.productId,
         type: "out",
         quantity: it.quantity,
-        referenceId: order.id,
+        referenceId: order2.id,
         referenceType: "order",
         notes: `\u0637\u0644\u0628 \u0645\u062A\u062C\u0631 \u0625\u0644\u0643\u062A\u0631\u0648\u0646\u064A ${orderNumber}`
       });
     }
-    return { orderId: order.id, orderNumber };
+    return { orderId: order2.id, orderNumber };
   });
   if (process.env.ORDER_WEBHOOK_URL) {
     const payload = {
@@ -39872,7 +39872,7 @@ ${analysisText}
         userId: ctx.user?.id ?? null
       });
       const result = await db.transaction(async (tx) => {
-        const [order] = await tx.insert(orders).values({
+        const [order2] = await tx.insert(orders).values({
           tenantId: ctx.tenantId,
           country,
           workSiteId: input.workSiteId ?? null,
@@ -39890,7 +39890,7 @@ ${analysisText}
           userId: ctx.user.id
         }).returning();
         const itemValues = effectiveItems.map((item) => ({
-          orderId: order.id,
+          orderId: order2.id,
           productId: item.productId,
           productName: item.productName,
           quantity: item.quantity,
@@ -39916,7 +39916,7 @@ ${analysisText}
             productId: item.productId,
             type: "out",
             quantity: item.quantity,
-            referenceId: order.id,
+            referenceId: order2.id,
             referenceType: "order",
             notes: `\u0637\u0644\u0628 \u062A\u0648\u0632\u064A\u0639 ${orderNumber}`
           });
@@ -39926,7 +39926,7 @@ ${analysisText}
           action: `\u0625\u0646\u0634\u0627\u0621 \u0637\u0644\u0628 \u062A\u0648\u0632\u064A\u0639: ${orderNumber}`,
           details: `\u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A: ${total}`
         });
-        return { orderId: order.id, orderNumber };
+        return { orderId: order2.id, orderNumber };
       });
       return { success: true, ...result };
     }),
@@ -40006,16 +40006,16 @@ ${analysisText}
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       await seedDefaultAccountsForTenant(ctx.tenantId);
-      const [order] = await db.select().from(orders).where(
+      const [order2] = await db.select().from(orders).where(
         and7(
           eq12(orders.id, input.orderId),
           eq12(orders.tenantId, ctx.tenantId)
         )
       ).limit(1);
-      if (!order) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
-      if (order.status === "cancelled")
+      if (!order2) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
+      if (order2.status === "cancelled")
         throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u062D\u0648\u064A\u0644\u0647");
-      const items = await db.select().from(orderItems).where(eq12(orderItems.orderId, order.id));
+      const items = await db.select().from(orderItems).where(eq12(orderItems.orderId, order2.id));
       if (items.length === 0) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0644\u0627 \u064A\u062D\u062A\u0648\u064A \u0623\u0635\u0646\u0627\u0641\u0627\u064B");
       const subtotal = items.reduce(
         (s, it) => s + parseFloat(it.unitPrice || "0") * it.quantity,
@@ -40031,17 +40031,17 @@ ${analysisText}
       const randPart = Math.random().toString(36).substring(2, 7).toUpperCase();
       const invoiceNumber = `SI-${datePart}-${randPart}`;
       const result = await db.transaction(async (tx) => {
-        const prior = await tx.select().from(salesInvoices).where(ilike5(salesInvoices.notes, `%${order.orderNumber}%`)).limit(1);
+        const prior = await tx.select().from(salesInvoices).where(ilike5(salesInvoices.notes, `%${order2.orderNumber}%`)).limit(1);
         if (prior.length > 0)
           throw new Error(
             `\u062A\u0645 \u062A\u062D\u0648\u064A\u0644 \u0627\u0644\u0637\u0644\u0628 \u0645\u0633\u0628\u0642\u0627\u064B \u0625\u0644\u0649 \u0641\u0627\u062A\u0648\u0631\u0629 ${prior[0].invoiceNumber}`
           );
-        const fresh = await tx.select().from(orders).where(eq12(orders.id, order.id)).limit(1);
+        const fresh = await tx.select().from(orders).where(eq12(orders.id, order2.id)).limit(1);
         if (fresh.length === 0 || fresh[0].status === "cancelled")
           throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u062D\u0648\u064A\u0644\u0647");
         const [invoice] = await tx.insert(salesInvoices).values({
           invoiceNumber,
-          customerId: order.customerId || null,
+          customerId: order2.customerId || null,
           status,
           subtotal: subtotal.toFixed(2),
           discount: "0",
@@ -40065,8 +40065,8 @@ ${analysisText}
         }));
         await tx.insert(salesInvoiceItems).values(itemValues);
         const unpaid = total - paidAmount;
-        if (order.customerId && unpaid > 9e-3) {
-          await tx.update(customers).set({ balance: sql8`${customers.balance} + ${unpaid}` }).where(eq12(customers.id, order.customerId));
+        if (order2.customerId && unpaid > 9e-3) {
+          await tx.update(customers).set({ balance: sql8`${customers.balance} + ${unpaid}` }).where(eq12(customers.id, order2.customerId));
         }
         await postInvoiceGlEntries(tx, {
           kind: "sale",
@@ -40079,11 +40079,11 @@ ${analysisText}
           tenantId: ctx.tenantId
         });
         if (fresh[0].status === "pending") {
-          await tx.update(orders).set({ status: "confirmed", updatedAt: /* @__PURE__ */ new Date() }).where(eq12(orders.id, order.id));
+          await tx.update(orders).set({ status: "confirmed", updatedAt: /* @__PURE__ */ new Date() }).where(eq12(orders.id, order2.id));
         }
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
-          action: `\u062A\u062D\u0648\u064A\u0644 \u0627\u0644\u0637\u0644\u0628 ${order.orderNumber} \u0625\u0644\u0649 \u0641\u0627\u062A\u0648\u0631\u0629 \u0645\u0628\u064A\u0639\u0627\u062A ${invoiceNumber}`,
+          action: `\u062A\u062D\u0648\u064A\u0644 \u0627\u0644\u0637\u0644\u0628 ${order2.orderNumber} \u0625\u0644\u0649 \u0641\u0627\u062A\u0648\u0631\u0629 \u0645\u0628\u064A\u0639\u0627\u062A ${invoiceNumber}`,
           details: `\u0627\u0644\u0625\u062C\u0645\u0627\u0644\u064A: ${total.toFixed(2)} \u2014 \u0627\u0644\u0645\u062F\u0641\u0648\u0639: ${paidAmount.toFixed(2)} (\u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u0645\u062D\u062C\u0648\u0632 \u0645\u0646 \u0648\u0642\u062A \u0627\u0644\u0637\u0644\u0628)`
         });
         return { invoiceId: invoice.id, invoiceNumber };
@@ -40476,10 +40476,45 @@ async function createContext(opts) {
 init_db();
 init_env();
 import { sql as sql9 } from "drizzle-orm";
+
+// server/_core/logger.ts
+var order = { debug: 10, info: 20, warn: 30, error: 40 };
+var level = process.env.LOG_LEVEL || (process.env.NODE_ENV === "production" ? "info" : "debug");
+function shouldLog(l) {
+  return order[l] >= order[level];
+}
+function safeJson(obj) {
+  const redacted = { ...obj };
+  for (const k of ["cookie", "authorization", "password", "DATABASE_URL", "JWT_SECRET"]) {
+    if (k in redacted) redacted[k] = "[REDACTED]";
+  }
+  return JSON.stringify({ t: (/* @__PURE__ */ new Date()).toISOString(), ...redacted });
+}
+var logger = {
+  debug: (msg, meta = {}) => {
+    if (shouldLog("debug")) console.debug(safeJson({ level: "debug", msg, ...meta }));
+  },
+  info: (msg, meta = {}) => {
+    if (shouldLog("info")) console.log(safeJson({ level: "info", msg, ...meta }));
+  },
+  warn: (msg, meta = {}) => {
+    if (shouldLog("warn")) console.warn(safeJson({ level: "warn", msg, ...meta }));
+  },
+  error: (msg, meta = {}) => {
+    console.error(safeJson({ level: "error", msg, ...meta }));
+  }
+};
+
+// server/_core/app.ts
 function createApp() {
   const app2 = express();
   app2.disable("x-powered-by");
   app2.set("trust proxy", 1);
+  app2.use((req, _res, next) => {
+    const id = req.headers["x-request-id"] || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    req.requestId = id;
+    next();
+  });
   app2.use(
     helmet({
       contentSecurityPolicy: {
@@ -40563,15 +40598,13 @@ function createApp() {
     const start = Date.now();
     res.on("finish", () => {
       if (req.path.startsWith("/api")) {
-        console.log(
-          JSON.stringify({
-            t: (/* @__PURE__ */ new Date()).toISOString(),
-            method: req.method,
-            path: req.path,
-            status: res.statusCode,
-            ms: Date.now() - start
-          })
-        );
+        logger.info("access", {
+          requestId: req.requestId,
+          method: req.method,
+          path: req.path,
+          status: res.statusCode,
+          ms: Date.now() - start
+        });
       }
     });
     next();
@@ -40593,7 +40626,7 @@ function createApp() {
       dbAvailable,
       service: "alhusainia-platform",
       institution: "\u0645\u062C\u0645\u0648\u0639\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u2014 \u062D\u0644\u0648\u0644 \u0627\u0644\u0623\u0639\u0645\u0627\u0644 \u0648\u0627\u0644\u0647\u0646\u062F\u0633\u0629 \u0648\u0627\u0644\u0645\u0639\u0631\u0641\u0629",
-      version: true ? "2.4.2" : (
+      version: true ? "2.5.0" : (
         // dev (tsx) runs without the esbuild define
         "dev"
       ),
@@ -40624,18 +40657,14 @@ function createApp() {
   );
   app2.use(
     (err, req, res, _next) => {
-      const requestId = req.headers["x-request-id"] || `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-      console.error(
-        JSON.stringify({
-          t: (/* @__PURE__ */ new Date()).toISOString(),
-          level: "error",
-          requestId,
-          path: req.path,
-          method: req.method,
-          message: err?.message ?? String(err),
-          stack: ENV.isProduction ? void 0 : err?.stack
-        })
-      );
+      const requestId = req.requestId || req.headers["x-request-id"] || "unknown";
+      logger.error("unhandled", {
+        requestId,
+        path: req.path,
+        method: req.method,
+        message: err?.message ?? String(err),
+        stack: ENV.isProduction ? void 0 : err?.stack
+      });
       res.setHeader("x-request-id", requestId);
       const status = err?.status ?? err?.statusCode ?? 500;
       res.status(status >= 400 && status < 600 ? status : 500).json({

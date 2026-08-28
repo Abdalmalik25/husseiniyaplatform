@@ -12,16 +12,24 @@ import { createContext } from "./context";
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
 import { ENV } from "./env";
+import { logger } from "./logger";
 
 export function createApp(): Express {
   const app = express();
 
   // Hide X-Powered-By header
   app.disable("x-powered-by");
-  // Trust one reverse-proxy hop (Vercel/nginx) so `req.ip` and the per-IP
-  // rate limiters see the real client address — otherwise every visitor
-  // shares a single bucket and throttling becomes meaningless in prod.
   app.set("trust proxy", 1);
+
+  // 12-factor request correlation — every request gets x-request-id early so
+  // both access logs and error logs can be joined.
+  app.use((req, _res, next) => {
+    const id =
+      (req.headers["x-request-id"] as string) ||
+      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+    (req as any).requestId = id;
+    next();
+  });
 
   // Helmet security headers — aligned with vercel.json (CSP + COOP/CORP).
   app.use(
@@ -134,21 +142,18 @@ export function createApp(): Express {
     }
   );
 
-  // Structured request logging (JSON lines) — one line per API request with
-  // duration, so production incidents are diagnosable without extra tooling.
+  // Structured access log — now via logger.info (Vercel JSON drain).
   app.use((req, res, next) => {
     const start = Date.now();
     res.on("finish", () => {
       if (req.path.startsWith("/api")) {
-        console.log(
-          JSON.stringify({
-            t: new Date().toISOString(),
-            method: req.method,
-            path: req.path,
-            status: res.statusCode,
-            ms: Date.now() - start,
-          })
-        );
+        logger.info("access", {
+          requestId: (req as any).requestId,
+          method: req.method,
+          path: req.path,
+          status: res.statusCode,
+          ms: Date.now() - start,
+        });
       }
     });
     next();
@@ -215,7 +220,7 @@ export function createApp(): Express {
     })
   );
 
-  // Global error handler — correlation ID per request (ISO 22301 / observability)
+  // Global error handler — correlation via logger.error.
   app.use(
     (
       err: any,
@@ -223,20 +228,14 @@ export function createApp(): Express {
       res: express.Response,
       _next: express.NextFunction
     ) => {
-      const requestId =
-        (req.headers["x-request-id"] as string) ||
-        `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-      console.error(
-        JSON.stringify({
-          t: new Date().toISOString(),
-          level: "error",
-          requestId,
-          path: req.path,
-          method: req.method,
-          message: err?.message ?? String(err),
-          stack: ENV.isProduction ? undefined : err?.stack,
-        })
-      );
+      const requestId = (req as any).requestId || (req.headers["x-request-id"] as string) || "unknown";
+      logger.error("unhandled", {
+        requestId,
+        path: req.path,
+        method: req.method,
+        message: err?.message ?? String(err),
+        stack: ENV.isProduction ? undefined : err?.stack,
+      });
       res.setHeader("x-request-id", requestId);
       const status = err?.status ?? err?.statusCode ?? 500;
       res.status(status >= 400 && status < 600 ? status : 500).json({
