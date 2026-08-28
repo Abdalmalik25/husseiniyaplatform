@@ -4,6 +4,13 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.11.1] — 2026-08-28 · Precise Identity Audit — مراجعة دقيقة واعتماد نهائي
+
+### Changed
+
+- **مراجعة دقيقة** `public/` بذكاء `System.Drawing.Image` — كل صورة مقاسة بأبعادها الحقيقية: المنصة 192/512 (59723/355312) + النظام 192/512 (83812/514534) + التطبيق 192/512 (75072/460070) + favicons 16/32/48 — اعتُمدت كما هي حالياً كأساس نهائي بلا استبدال قديم
+- **هوية فعلية** `client/public/` مطابقة تماماً لـ `public/` (icon-192/512, favicon, uamex-favicon, elias-favicon) — لا ملفات سطحية، كل أيقونة مرتبطة فعلياً في `index.html` و `Landing.tsx`
+
 ## [2.11.0] — 2026-08-28 · Identity Adoption — الصور الجديدة هوية أساسية
 
 ### Added

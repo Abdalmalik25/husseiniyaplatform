@@ -37,15 +37,15 @@
 
 ```
 husseiniya-platform/
-├── public/ (الهوية الرسمية الجديدة)
-│   ├── ALHUSAINIALOGO.png              # المنصة — 1363960
-│   ├── UAMEX_ERP/UAMEX_ERPLOGO.png     # النظام — 2121972
-│   ├── Elias AI ico/Elias AI.jpg       # التطبيق/الياس — 2614002
-│   ├── favicon.ico (15406) + android-chrome-*.png + apple-touch-icon.png
-│   └── client/public/ (المنسوخة كأساس افتراضي)
-│       ├── platform-logo.png / icon-512.png / favicon.ico
-│       ├── uamex-erp.png / uamex-favicon-32.png
-│       └── elias-avatar.jpg
+├── public/ — الهوية الرسمية النهائية (مراجعة دقيقة 2026-08-28)
+│   ├── favicon.ico (15406, 48x48) + favicon-16x16.png (925, 16x16) + favicon-32x32.png (2741, 32x32)
+│   ├── android-chrome-192x192.png (59723, 192x192) + android-chrome-512x512.png (355312, 512x512) + apple-touch-icon.png (53405, 180x180)
+│   ├── UAMEX_ERP/ — النظام: favicon.ico (15406) + favicon-32x32.png (3307, 32x32) + android-chrome 192 (83812) / 512 (514534) + apple-touch 74536
+│   ├── Elias AI ico/ — التطبيق: Elias AI.jpg (2614002, 2816x1536) + favicon 32 (3016) + android-chrome 192 (75072) / 512 (460070)
+│   └── client/public/ — المنسوخة كأساس افتراضي (مطابقة تماماً لـ public)
+│       ├── favicon.ico / icon-192.png (59723) / icon-512.png (355312) / apple-touch-icon.png (53405)
+│       ├── uamex-favicon-32.png (3307) / uamex-erp.png (2121972*) / uamex-apple-touch-icon.png (74536)
+│       └── elias-avatar.jpg (2614002) / elias-favicon-32.png (3016) — *uamex-erp.png لا يزال عالي الدقة كأصل النظام حتى بعد حذف UAMEX_ERPLOGO.png من public
 ├── server/
 │   ├── routers.ts             # كل مسارات tRPC (15 روتراً) — يضم costCenters, beneficiaries
 │   ├── costCentersRouter.ts   # مراكز التكلفة الهرمية
