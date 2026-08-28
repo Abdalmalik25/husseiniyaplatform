@@ -29244,6 +29244,34 @@ function otpauthUrl(secret, account, issuer = "ALHUSAINIA") {
   return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }
 
+// server/services/doubleEntryValidator.ts
+function isBalanced(legs, tolerance = 0.01) {
+  let debit = 0;
+  let credit = 0;
+  for (const l of legs) {
+    const v = typeof l.amount === "string" ? parseFloat(l.amount) : l.amount;
+    if (!Number.isFinite(v) || v < 0) return false;
+    if (l.type === "debit") debit += v;
+    else credit += v;
+  }
+  return Math.abs(debit - credit) <= tolerance;
+}
+function imbalance(legs) {
+  let d = 0, c = 0;
+  for (const l of legs) {
+    const v = typeof l.amount === "string" ? parseFloat(l.amount) : l.amount;
+    if (l.type === "debit") d += v;
+    else c += v;
+  }
+  return d - c;
+}
+function validateOrThrow(legs, context) {
+  if (!isBalanced(legs)) {
+    const diff = imbalance(legs);
+    throw new Error(`\u0642\u064A\u0648\u062F \u063A\u064A\u0631 \u0645\u062A\u0648\u0627\u0632\u0646\u0629${context ? ` (${context})` : ""}: \u0627\u0644\u0641\u0631\u0642 ${diff.toFixed(2)}`);
+  }
+}
+
 // server/_core/governance.ts
 import { randomUUID, createHash } from "crypto";
 function genGlobalCode(opts) {
@@ -34441,6 +34469,10 @@ async function postInvoiceGlEntries(tx, opts) {
     }
   }
   if (pending.length > 0) {
+    validateOrThrow(
+      pending.map((p) => ({ type: p.type, amount: p.amount })),
+      `\u0641\u0627\u062A\u0648\u0631\u0629 ${opts.invoiceNumber}`
+    );
     const total = pending.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
     const [je] = await tx.insert(journalEntries).values({
       tenantId: opts.tenantId,
@@ -40916,7 +40948,7 @@ function createApp() {
       dbAvailable,
       service: "alhusainia-platform",
       institution: "\u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644",
-      version: true ? "2.10.2" : (
+      version: true ? "2.10.4" : (
         // dev (tsx) runs without the esbuild define
         "dev"
       ),

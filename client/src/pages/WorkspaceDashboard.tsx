@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { trpc } from "@/lib/trpc";
+import { notifyLowStock, notifyPendingInvoice } from "@/lib/push";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { EngineeringBOQCalculator } from "@/components/EngineeringBOQCalculator";
 import { BusinessLifecycleWizard } from "@/components/BusinessLifecycleWizard";
@@ -193,6 +194,14 @@ export default function WorkspaceDashboard() {
   const active = MODULES[activeWorkspace];
   const allowed = modulesForRole(user?.role);
   const visibleModules = MODULE_LIST.filter(m => allowed.includes(m.key));
+
+  React.useEffect(() => {
+    if (!isLoading) {
+      if (lowStockCount > 0) notifyLowStock(lowStockCount);
+      const pending = (commercialStats as any)?.pendingOrders ?? 0;
+      if (pending > 0) notifyPendingInvoice(pending);
+    }
+  }, [isLoading, lowStockCount, commercialStats]);
 
   return (
     <div

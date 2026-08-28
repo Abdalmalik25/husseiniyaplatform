@@ -249,7 +249,7 @@ export default function Landing() {
         {/* شريط التنبيه */}
         <div className="relative z-10 bg-gradient-to-l from-brand/20 to-transparent border-b border-brand/20 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/80">
             <span className="inline-flex items-center gap-1.5 bg-brand/15 border border-brand/30 px-3 py-0.5 rounded-full font-bold text-brand-300">
-              <Sparkles className="w-3 h-3" /> Uamex_erp v2.10.2 — منصة موحدة بلا سطحية
+              <Sparkles className="w-3 h-3" /> Uamex_erp v2.10.4 — اعتماد تحديثات وترقية مكونات
             </span>
           <span className="hidden sm:inline text-white/60">
             نظام إدارة الأعمال الموحّد — جاهز للبدء الفوري
@@ -607,15 +607,15 @@ export default function Landing() {
             <p className="text-sm text-white/50 leading-relaxed max-w-2xl mx-auto">
               {brand.uamex.promise}
             </p>
-            {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات مضبوطة v2.10.2 */}
+            {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات مضبوطة v2.10.4 */}
             <div className="flex items-center justify-center gap-6 pt-4">
               <span className="flex flex-col items-center gap-1">
-                <img src="/favicon-32x32.png?v=2.10.2" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
+                <img src="/favicon-32x32.png?v=2.10.4" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
                 <span className="text-[10px] text-white/60 font-bold">المؤسسة</span>
               </span>
               <span className="w-px h-8 bg-white/10" />
               <span className="flex flex-col items-center gap-1">
-                <img src="/uamex-favicon-32.png?v=2.10.2" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
+                <img src="/uamex-favicon-32.png?v=2.10.4" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
                 <span className="text-[10px] text-brand-300 font-bold">Uamex_erp</span>
               </span>
               <span className="w-px h-8 bg-white/10" />

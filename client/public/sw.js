@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v14) — شريط ذكي + صفحة خبيرة بلا سطحية.
+// ALHUSAINIA service worker (v16) — اعتماد تحديثات وترقية مكونات وسداد ديون.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v14";
+const CACHE = "alhusainia-v16";
 const SHELL = [
   "/",
   "/index.html",

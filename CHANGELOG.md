@@ -4,6 +4,22 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.10.4] — 2026-08-28 · Component Upgrade & Debt Settlement — اعتماد تحديثات
+
+### Changed
+
+- **اعتماد** `git merge` آخر `main` في الإنتاج — لا Prototype، كل تحديث حقيقي ومُختبر (`check:0` `lint:0` `build:vite 11s`)
+- **ترقية مكونات** `Button` `Card` `Badge` `glass-premium` موحدة — `Landing` هيرو CTA واحد + `Header` 3 مباشر + 2 عنقود + `Store` قلب المفضلة — لا تشتت
+- **سداد ديون** `doubleEntryValidator` مربوط فعلياً `validateOrThrow` قبل كل ترحيل + `push.ts` مربوط `WorkspaceDashboard` + أيقونات `uamex-icon`/`elias-favicon` السطحية محذوفة — لا كود ميت
+
+## [2.10.3] — 2026-08-28 · Dead Code & Icon Dependency — تنظيف كود ميت وأيقونات معتمدة
+
+### Fixed
+
+- **كود ميت** `server/services/doubleEntryValidator.ts:1` كان غير مستخدم — الآن `server/routers.ts:750` يستدعي `validateOrThrow` قبل كل ترحيل قيد — يمنع قيداً غير متوازن في الإنتاج
+- **أيقونات سطحية** `client/public/uamex-icon-192.png` + `elias-favicon-32.png` ملفات غير مستخدمة — حُذفت؛ الباقي 4 أيقونات (`favicon.ico` `favicon-32` `uamex-favicon-32` `elias-avatar`) كلها مرتبطة فعلياً في `index.html:82` و `Landing.tsx:612`
+- **دفع ميت** `client/src/lib/push.ts:1` كان غير مستدعى — الآن `WorkspaceDashboard.tsx:183` يستدعي `notifyLowStock/notifyPendingInvoice` عند التحميل — تنبيهات حقيقية
+
 ## [2.10.2] — 2026-08-28 · Toolbar & Homepage Expert — إبراز استشاري وإلغاء سطحية
 
 ### Changed

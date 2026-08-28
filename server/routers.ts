@@ -11,6 +11,7 @@ import {
 import { hashPassword, verifyPassword } from "./_core/password";
 import { getClientIp, geolocate, parseDevice } from "./_core/geo";
 import { generateSecret, verifyToken, otpauthUrl } from "./_core/totp";
+import { validateOrThrow } from "./services/doubleEntryValidator";
 import {
   genGlobalCode,
   isSaudiCountry,
@@ -751,6 +752,10 @@ async function postInvoiceGlEntries(
 
   // ─── Integration backbone: group all legs under one journal entry ─────
   if (pending.length > 0) {
+    validateOrThrow(
+      pending.map(p => ({ type: p.type as "debit" | "credit", amount: p.amount })),
+      `فاتورة ${opts.invoiceNumber}`
+    );
     const total = pending.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
     const [je] = await tx
       .insert(journalEntries)
