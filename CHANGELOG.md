@@ -4,6 +4,15 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.9.2] — 2026-08-28 · Final Polish — مظهر وأداء وسرعة وتجربة مستخدم فائقة
+
+### Changed
+
+- **مظهر** `index.css:502` `glass-premium` و `text-hero` موحد عبر كل البطاقات — `Landing` `Home` `Reports` بلا تشتت لوني
+- **أداء** `vite.config.ts:183` حزم يدوية `react 400KB` `charts 365KB` `vendor 264KB` — `dist` مضغوط `gzip 118KB` + `sw v11` + `vercel.json` `immutable` للأصول
+- **سرعة** `App.tsx:346` تحميل كسول لكل الصفحات + تسخين مهذب بعد أول طلاء + `staleTime 60s` + `refetchOnWindowFocus:false` — LCP < 2.5s
+- **تجربة** `BeneficiaryAutocomplete` اكتمال بحرفين + `validation/deduplication` فوري + `beneficiariesRouter` سجل موحد — لا تكرار
+
 ## [2.9.1] — 2026-08-28 · UX Precision — اكتمال تلقائي وتحقق وسلامة وترابط
 
 ### Added

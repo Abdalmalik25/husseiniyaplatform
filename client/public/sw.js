@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v11) — دقة متناهية: اكتمال وتحقق وترابط.
+// ALHUSAINIA service worker (v12) — بولند نهائي: مظهر وأداء وسرعة وتجربة.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v11";
+const CACHE = "alhusainia-v12";
 const SHELL = [
   "/",
   "/index.html",
