@@ -20,6 +20,7 @@ import { erpRouter } from "./erpRouter";
 import { modulesRouter } from "./modulesRouter";
 import { aliasAiRouter } from "./aliasAiRouter";
 import { backupRouter } from "./backupRouter";
+import { costCentersRouter } from "./costCentersRouter";
 import {
   publicProcedure,
   protectedProcedure,
@@ -9337,6 +9338,7 @@ ${analysisText}
         return { success: true };
       }),
   }),
+  costCenters: costCentersRouter,
 });
 
 export type AppRouter = typeof appRouter;

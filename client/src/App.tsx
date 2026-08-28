@@ -65,6 +65,9 @@ const Requisitions = lazy(() => import("@/pages/Requisitions"));
 const Operations = lazy(() => import("@/pages/Operations"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Billing = lazy(() => import("@/pages/Billing"));
+const SubscriberOnboarding = lazy(() => import("@/pages/SubscriberOnboarding"));
+const CostCenters = lazy(() => import("@/pages/CostCenters"));
+const ZatcaIntegration = lazy(() => import("@/pages/ZatcaIntegration"));
 
 /**
  * Unified Route Loader — Single lightweight circular progress for all lazy loads.
@@ -299,6 +302,21 @@ function Router() {
                 <Billing />
               </RequireAuth>
             </Route>
+            <Route path={"/onboarding"}>
+              <RequireAuth>
+                <SubscriberOnboarding />
+              </RequireAuth>
+            </Route>
+            <Route path={"/cost-centers"}>
+              <RequireAuth>
+                <CostCenters />
+              </RequireAuth>
+            </Route>
+            <Route path={"/zatca"}>
+              <RequireAuth>
+                <ZatcaIntegration />
+              </RequireAuth>
+            </Route>
             <Route path={"/404"} component={NotFound} />
             <Route component={NotFound} />
           </Switch>
@@ -356,6 +374,9 @@ function App() {
       () => import("@/pages/ErpPage"),
       () => import("@/pages/Integrate"),
       () => import("@/pages/Portal"),
+      () => import("@/pages/SubscriberOnboarding"),
+      () => import("@/pages/CostCenters"),
+      () => import("@/pages/ZatcaIntegration"),
     ];
 
     let i = 0;

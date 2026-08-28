@@ -4,6 +4,20 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.9.0] — 2026-08-28 · Subscriber Management — بورك فلو تهيئة ذكي + مراكز تكلفة + ZATCA
+
+### Added
+
+- **بورك فلو تهيئة المشترك** `client/src/pages/SubscriberOnboarding.tsx:1` شاشة مستقلة 6 خطوات تأخذ متغيرات (قطاع/حجم/دولة/فروع/نموذج مبيعات/مخزون/ضريبة) وتقترح عبر `onboardingPresets.ts:1` الدليل المحاسبي المعياري، الأصناف، الإعدادات، السياسات، الأدوار والأسقف — حتى يصل المستخدم وكل مدخلاته جاهزة
+- **شجرة الحسابات المعيارية** — `suggestChart` يولد 11 أساسي + إضافات قطاعية (WIP للمقاولات، مواد خام للصناعة) مع هرمية `parentCode` وربط بمراكز التكلفة
+- **مراكز التكلفة** `drizzle/schema.ts:3731` جدول `cost_centers` الهرمي + `costCenterId` في `transactions:305` + `drizzle/0008_cost_centers.sql:1` + `server/costCentersRouter.ts:1` + `client/src/pages/CostCenters.tsx:1` شاشة شجرة مع تكامل الأدوار والأسقف
+- **الفوترة السعودية** `client/src/pages/ZatcaIntegration.tsx:1` شاشة مستقلة لربط ZATCA (المرحلة 1 QR+Hash / المرحلة 2 Clearance/Reporting) — حفظ `zatcaConfig`، معاينة QR، مزامنة، وتقارير كل الاشتراطات
+
+### Changed
+
+- **توجيه** `client/src/App.tsx:360` مسارات `/onboarding` `/cost-centers` `/zatca` + prefetch
+- **تكامل** `server/routers.ts:19` `costCentersRouter` مضاف لـ `appRouter`
+
 ## [2.8.1] — 2026-08-28 · Gap Closure — مفضلة المتجر وحالات فراغ موحدة
 
 ### Added

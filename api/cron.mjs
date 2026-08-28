@@ -230,6 +230,7 @@ var transactions = pgTable(
     tenantId: integer("tenantId").notNull(),
     accountId: integer("accountId").notNull(),
     branchId: integer("branchId"),
+    costCenterId: integer("costCenterId"),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     type: transactionTypeEnum("type").default("debit").notNull(),
     transactionDate: timestamp("transactionDate").notNull(),

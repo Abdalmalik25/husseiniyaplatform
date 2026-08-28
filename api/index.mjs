@@ -257,6 +257,7 @@ var init_schema = __esm({
         tenantId: integer("tenantId").notNull(),
         accountId: integer("accountId").notNull(),
         branchId: integer("branchId"),
+        costCenterId: integer("costCenterId"),
         amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
         type: transactionTypeEnum("type").default("debit").notNull(),
         transactionDate: timestamp("transactionDate").notNull(),
@@ -33630,6 +33631,37 @@ var backupRouter = router({
   })
 });
 
+// server/costCentersRouter.ts
+import { z as z7 } from "zod";
+import { eq as eq12, and as and7 } from "drizzle-orm";
+init_db();
+init_schema();
+var costCentersRouter = router({
+  list: tenantProcedure.query(async ({ ctx }) => {
+    const db = await getDb();
+    if (!db || !ctx.tenantId) return [];
+    return db.select().from(costCenters).where(eq12(costCenters.tenantId, ctx.tenantId)).orderBy(costCenters.code);
+  }),
+  create: tenantProcedure.input(z7.object({ code: z7.string().min(1).max(30), name: z7.string().min(1).max(150), parentId: z7.number().nullable().optional(), costType: z7.string().optional() })).mutation(async ({ input, ctx }) => {
+    const db = await getDb();
+    if (!db || !ctx.tenantId) throw new Error("DB unavailable");
+    const [row] = await db.insert(costCenters).values({
+      tenantId: ctx.tenantId,
+      code: input.code,
+      name: input.name,
+      parentId: input.parentId ?? null,
+      type: input.costType || "cost"
+    }).returning();
+    return row;
+  }),
+  remove: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
+    const db = await getDb();
+    if (!db || !ctx.tenantId) throw new Error("DB unavailable");
+    await db.delete(costCenters).where(and7(eq12(costCenters.id, input.id), eq12(costCenters.tenantId, ctx.tenantId)));
+    return { success: true };
+  })
+});
+
 // server/routers.ts
 init_db();
 import { timingSafeEqual as timingSafeEqual2, randomUUID as randomUUID2 } from "crypto";
@@ -33669,11 +33701,11 @@ function checkRateLimit(key, max, windowMs, now = Date.now()) {
 init_schema();
 import { TRPCError as TRPCError6 } from "@trpc/server";
 import {
-  eq as eq12,
+  eq as eq13,
   desc as desc5,
   sql as sql8,
   asc as asc5,
-  and as and7,
+  and as and8,
   or as or4,
   gte as gte6,
   lte as lte5,
@@ -33682,7 +33714,7 @@ import {
   ne as ne3,
   isNull as isNull4
 } from "drizzle-orm";
-import { z as z7 } from "zod";
+import { z as z8 } from "zod";
 function getMonthlyFactor(frequency) {
   switch (frequency) {
     case "daily":
@@ -33807,7 +33839,7 @@ async function seedDefaultAccountsForTenant(tenantId) {
         }
       });
     }
-    const existingSettings = await db.select().from(settings).where(eq12(settings.tenantId, tenantId)).limit(1);
+    const existingSettings = await db.select().from(settings).where(eq13(settings.tenantId, tenantId)).limit(1);
     if (existingSettings.length === 0) {
       await db.insert(settings).values({
         tenantId,
@@ -33826,7 +33858,7 @@ async function seedDefaultAccountsForTenant(tenantId) {
         accountingPeriod: "\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026",
         managerName: "\u0625\u062F\u0627\u0631\u0629 \u0627\u0644\u0645\u0624\u0633\u0633\u0629",
         notes: "\u0627\u0644\u0646\u0638\u0627\u0645 \u0627\u0644\u0645\u062D\u0627\u0633\u0628\u064A \u0627\u0644\u0645\u0639\u062A\u0645\u062F \u0644\u0645\u0624\u0633\u0633\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644 - \u0645\u0631\u0646 \u0648\u062F\u0642\u064A\u0642."
-      }).where(eq12(settings.id, existingSettings[0].id));
+      }).where(eq13(settings.id, existingSettings[0].id));
     }
     const defaultProducts = [
       {
@@ -34014,7 +34046,7 @@ async function getTenantConfig(db, tenantId) {
       postingRules: DEFAULT_POSTING_RULES
     };
   }
-  const rows = await db.select().from(settings).where(eq12(settings.tenantId, tenantId)).limit(1);
+  const rows = await db.select().from(settings).where(eq13(settings.tenantId, tenantId)).limit(1);
   const row = rows[0];
   return {
     posConfig: parseConfig(row?.posConfig, DEFAULT_POS_CONFIG),
@@ -34046,12 +34078,12 @@ function stringifyConfig(v) {
 }
 async function postInvoiceGlEntries(tx, opts) {
   const defaultBranch = async () => {
-    const rows = await tx.select().from(branches).where(eq12(branches.tenantId, opts.tenantId)).orderBy(desc5(branches.isMain)).limit(1);
+    const rows = await tx.select().from(branches).where(eq13(branches.tenantId, opts.tenantId)).orderBy(desc5(branches.isMain)).limit(1);
     return rows[0]?.id ?? null;
   };
   const effectiveBranchId = opts.branchId ?? await defaultBranch();
   const findAccount = async (code) => {
-    const rows = await tx.select().from(accounts).where(and7(eq12(accounts.code, code), eq12(accounts.tenantId, opts.tenantId))).limit(1);
+    const rows = await tx.select().from(accounts).where(and8(eq13(accounts.code, code), eq13(accounts.tenantId, opts.tenantId))).limit(1);
     return rows[0];
   };
   const pending = [];
@@ -34071,7 +34103,7 @@ async function postInvoiceGlEntries(tx, opts) {
   });
   const cfg = await getTenantConfig(tx, opts.tenantId);
   const findAccountById = async (id) => {
-    const rows = await tx.select().from(accounts).where(and7(eq12(accounts.id, id), eq12(accounts.tenantId, opts.tenantId))).limit(1);
+    const rows = await tx.select().from(accounts).where(and8(eq13(accounts.id, id), eq13(accounts.tenantId, opts.tenantId))).limit(1);
     return rows[0];
   };
   const resolveAccount = async (ref) => {
@@ -34247,7 +34279,7 @@ var appRouter = router({
     }),
     // Self-contained owner login (no external OAuth provider required).
     // Issues a signed session cookie for the configured owner openId.
-    ownerLogin: publicProcedure.input(z7.object({ password: z7.string().min(1).max(256) })).mutation(async ({ ctx, input }) => {
+    ownerLogin: publicProcedure.input(z8.object({ password: z8.string().min(1).max(256) })).mutation(async ({ ctx, input }) => {
       const expected = ENV.ownerPassword;
       if (!expected) {
         throw new TRPCError6({
@@ -34281,13 +34313,13 @@ var appRouter = router({
       return { success: true };
     }),
     updateProfile: tenantProcedure.input(
-      z7.object({
-        name: z7.string().min(1),
-        email: z7.string().email().optional().or(z7.literal("")),
-        themePreference: z7.string(),
-        emailNotifications: z7.boolean(),
-        whatsappNotifications: z7.boolean(),
-        compactMode: z7.boolean()
+      z8.object({
+        name: z8.string().min(1),
+        email: z8.string().email().optional().or(z8.literal("")),
+        themePreference: z8.string(),
+        emailNotifications: z8.boolean(),
+        whatsappNotifications: z8.boolean(),
+        compactMode: z8.boolean()
       })
     ).mutation(async ({ ctx, input }) => {
       const db = await getDb();
@@ -34299,7 +34331,7 @@ var appRouter = router({
         emailNotifications: input.emailNotifications,
         whatsappNotifications: input.whatsappNotifications,
         compactMode: input.compactMode
-      }).where(eq12(users.id, ctx.user.id));
+      }).where(eq13(users.id, ctx.user.id));
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
         userName: input.name,
@@ -34312,7 +34344,7 @@ var appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      const logs = await db.select().from(activityLogs).where(eq12(activityLogs.tenantId, tid)).orderBy(desc5(activityLogs.createdAt)).limit(25);
+      const logs = await db.select().from(activityLogs).where(eq13(activityLogs.tenantId, tid)).orderBy(desc5(activityLogs.createdAt)).limit(25);
       return logs;
     }),
     // ── Local subscriber login (username + password) ──
@@ -34320,9 +34352,9 @@ var appRouter = router({
     // UNAUTHORIZED on wrong password, FORBIDDEN when locked (5 fails / 15 min).
     // Every attempt (device + geo) is persisted to login_attempts.
     login: publicProcedure.input(
-      z7.object({
-        username: z7.string().min(1).max(120),
-        password: z7.string().min(1).max(200)
+      z8.object({
+        username: z8.string().min(1).max(120),
+        password: z8.string().min(1).max(200)
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -34356,7 +34388,7 @@ var appRouter = router({
         }
       };
       const uname = input.username.trim();
-      const user = (await db.select().from(users).where(eq12(users.username, uname)).limit(1))[0];
+      const user = (await db.select().from(users).where(eq13(users.username, uname)).limit(1))[0];
       if (!user) {
         await recordAttempt(false, {});
         throw new TRPCError6({
@@ -34366,9 +34398,9 @@ var appRouter = router({
       }
       const since = new Date(Date.now() - 15 * 60 * 1e3);
       const recent = await db.select({ count: sql8`count(*)::int` }).from(loginAttempts).where(
-        and7(
-          eq12(loginAttempts.username, uname),
-          eq12(loginAttempts.success, false),
+        and8(
+          eq13(loginAttempts.username, uname),
+          eq13(loginAttempts.success, false),
           gte6(loginAttempts.createdAt, since)
         )
       );
@@ -34381,9 +34413,9 @@ var appRouter = router({
             Math.ceil(
               (15 * 60 * 1e3 - (Date.now() - new Date(
                 (await db.select({ c: loginAttempts.createdAt }).from(loginAttempts).where(
-                  and7(
-                    eq12(loginAttempts.username, uname),
-                    eq12(loginAttempts.success, false),
+                  and8(
+                    eq13(loginAttempts.username, uname),
+                    eq13(loginAttempts.success, false),
                     gte6(loginAttempts.createdAt, since)
                   )
                 ).orderBy(loginAttempts.createdAt).limit(1))[0]?.c || /* @__PURE__ */ new Date()
@@ -34427,16 +34459,16 @@ var appRouter = router({
     }),
     // ── Self-serve signup: creates a new organisation + admin user ──
     register: publicProcedure.input(
-      z7.object({
-        name: z7.string().min(2).max(120),
-        username: z7.string().min(3).max(120).regex(
+      z8.object({
+        name: z8.string().min(2).max(120),
+        username: z8.string().min(3).max(120).regex(
           /^[a-zA-Z0-9_.-]+$/,
           "\u0627\u0633\u0645 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645: \u062D\u0631\u0648\u0641 \u0648\u0623\u0631\u0642\u0627\u0645 \u0648 . _ - \u0641\u0642\u0637"
         ),
-        password: z7.string().min(6).max(200),
-        country: z7.string().max(100).optional(),
-        currency: z7.string().max(50).optional(),
-        email: z7.string().email().optional().or(z7.literal(""))
+        password: z8.string().min(6).max(200),
+        country: z8.string().max(100).optional(),
+        currency: z8.string().max(50).optional(),
+        email: z8.string().email().optional().or(z8.literal(""))
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -34447,7 +34479,7 @@ var appRouter = router({
         });
       await applyAuthSchema(db);
       const uname = input.username.trim();
-      const clash = await db.select({ id: users.id }).from(users).where(eq12(users.username, uname)).limit(1);
+      const clash = await db.select({ id: users.id }).from(users).where(eq13(users.username, uname)).limit(1);
       if (clash.length)
         throw new TRPCError6({
           code: "CONFLICT",
@@ -34472,7 +34504,7 @@ var appRouter = router({
         role: "admin",
         lastSignedIn: /* @__PURE__ */ new Date()
       }).returning();
-      await db.update(tenants).set({ ownerUserId: userRow.id }).where(eq12(tenants.id, tid));
+      await db.update(tenants).set({ ownerUserId: userRow.id }).where(eq13(tenants.id, tid));
       const token = await sdk.createSessionToken(userRow.openId, {
         name: input.name.trim()
       });
@@ -34492,18 +34524,18 @@ var appRouter = router({
       if (!uid && !uname) return [];
       const rows = await db.select().from(loginAttempts).where(
         or4(
-          eq12(loginAttempts.userId, uid ?? -1),
-          eq12(loginAttempts.username, uname ?? "")
+          eq13(loginAttempts.userId, uid ?? -1),
+          eq13(loginAttempts.username, uname ?? "")
         )
       ).orderBy(desc5(loginAttempts.createdAt)).limit(50);
       return rows;
     }),
     onboard: protectedProcedure.input(
-      z7.object({
-        institutionName: z7.string().min(1),
-        currency: z7.string().optional(),
-        country: z7.string().optional(),
-        managerName: z7.string().optional()
+      z8.object({
+        institutionName: z8.string().min(1),
+        currency: z8.string().optional(),
+        country: z8.string().optional(),
+        managerName: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -34526,7 +34558,7 @@ var appRouter = router({
         city: "\u0635\u0646\u0639\u0627\u0621",
         isMain: true
       }).returning();
-      await db.update(users).set({ tenantId: tenant.id, role: "admin" }).where(eq12(users.id, ctx.user.id));
+      await db.update(users).set({ tenantId: tenant.id, role: "admin" }).where(eq13(users.id, ctx.user.id));
       await seedDefaultAccountsForTenant(tenant.id);
       return { tenantId: tenant.id, branchId: branch.id };
     })
@@ -34537,13 +34569,13 @@ var appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      return await db.select().from(warehouses).where(eq12(warehouses.tenantId, tid)).orderBy(asc5(warehouses.code));
+      return await db.select().from(warehouses).where(eq13(warehouses.tenantId, tid)).orderBy(asc5(warehouses.code));
     }),
     create: tenantProcedure.input(
-      z7.object({
-        code: z7.string().min(1),
-        name: z7.string().min(1),
-        location: z7.string().optional()
+      z8.object({
+        code: z8.string().min(1),
+        name: z8.string().min(1),
+        location: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -34553,26 +34585,26 @@ var appRouter = router({
       return { success: true, warehouse: row };
     }),
     update: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        name: z7.string().optional(),
-        location: z7.string().optional(),
-        isActive: z7.boolean().optional()
+      z8.object({
+        id: z8.number(),
+        name: z8.string().optional(),
+        location: z8.string().optional(),
+        isActive: z8.boolean().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = requireTenantId(ctx);
       const { id, ...data } = input;
-      await db.update(warehouses).set(data).where(and7(eq12(warehouses.id, id), eq12(warehouses.tenantId, tid)));
+      await db.update(warehouses).set(data).where(and8(eq13(warehouses.id, id), eq13(warehouses.tenantId, tid)));
       return { success: true };
     }),
-    remove: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
+    remove: tenantProcedure.input(z8.object({ id: z8.number() })).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = requireTenantId(ctx);
       await db.delete(warehouses).where(
-        and7(eq12(warehouses.id, input.id), eq12(warehouses.tenantId, tid))
+        and8(eq13(warehouses.id, input.id), eq13(warehouses.tenantId, tid))
       );
       return { success: true };
     })
@@ -34583,15 +34615,15 @@ var appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      return db.select().from(workSites).where(eq12(workSites.tenantId, tid)).orderBy(asc5(workSites.code));
+      return db.select().from(workSites).where(eq13(workSites.tenantId, tid)).orderBy(asc5(workSites.code));
     }),
     create: tenantProcedure.input(
-      z7.object({
-        code: z7.string().min(1),
-        name: z7.string().min(1),
-        address: z7.string().optional(),
-        lat: z7.string().optional(),
-        lng: z7.string().optional()
+      z8.object({
+        code: z8.string().min(1),
+        name: z8.string().min(1),
+        address: z8.string().optional(),
+        lat: z8.string().optional(),
+        lng: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -34600,11 +34632,11 @@ var appRouter = router({
       const [row] = await db.insert(workSites).values({ ...input, tenantId: tid }).returning();
       return { success: true, workSite: row };
     }),
-    remove: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
+    remove: tenantProcedure.input(z8.object({ id: z8.number() })).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = requireTenantId(ctx);
-      await db.delete(workSites).where(and7(eq12(workSites.id, input.id), eq12(workSites.tenantId, tid)));
+      await db.delete(workSites).where(and8(eq13(workSites.id, input.id), eq13(workSites.tenantId, tid)));
       return { success: true };
     })
   }),
@@ -34614,15 +34646,15 @@ var appRouter = router({
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      return db.select().from(devices).where(eq12(devices.tenantId, tid)).orderBy(asc5(devices.code));
+      return db.select().from(devices).where(eq13(devices.tenantId, tid)).orderBy(asc5(devices.code));
     }),
     create: tenantProcedure.input(
-      z7.object({
-        code: z7.string().min(1),
-        name: z7.string().min(1),
-        type: z7.string().default("pos"),
-        workSiteId: z7.number().optional(),
-        location: z7.string().optional()
+      z8.object({
+        code: z8.string().min(1),
+        name: z8.string().min(1),
+        type: z8.string().default("pos"),
+        workSiteId: z8.number().optional(),
+        location: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
@@ -34631,11 +34663,11 @@ var appRouter = router({
       const [row] = await db.insert(devices).values({ ...input, tenantId: tid }).returning();
       return { success: true, device: row };
     }),
-    remove: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
+    remove: tenantProcedure.input(z8.object({ id: z8.number() })).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = requireTenantId(ctx);
-      await db.delete(devices).where(and7(eq12(devices.id, input.id), eq12(devices.tenantId, tid)));
+      await db.delete(devices).where(and8(eq13(devices.id, input.id), eq13(devices.tenantId, tid)));
       return { success: true };
     })
   }),
@@ -34660,25 +34692,25 @@ var appRouter = router({
       await seedDefaultAccountsForTenant(ctx.tenantId);
       const db = await getDb();
       if (!db) return { ...fallback, subscriptionStatus: "active" };
-      const res = await db.select().from(settings).where(eq12(settings.tenantId, ctx.tenantId)).limit(1);
+      const res = await db.select().from(settings).where(eq13(settings.tenantId, ctx.tenantId)).limit(1);
       if (!res[0]) return { ...fallback, subscriptionStatus: "active" };
       return parseSettingsRow(res[0]);
     }),
     // سياسة اشتراك مرنة — لا تُغلق النظام أبداً:
     // trial → active → grace (مهلة غير محدودة) → suspended فقط عند طلب المستخدم
     updateSubscription: tenantProcedure.input(
-      z7.object({
-        status: z7.enum(["trial", "active", "grace", "suspended"]),
+      z8.object({
+        status: z8.enum(["trial", "active", "grace", "suspended"]),
         // وسيلة دفع محلية اختيارية
-        paymentMethod: z7.string().optional(),
+        paymentMethod: z8.string().optional(),
         // كود ترويجي / خصم اختياري
-        promoCode: z7.string().optional()
+        promoCode: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(settings).where(eq12(settings.tenantId, ctx.tenantId)).limit(1);
+      const existing = await db.select().from(settings).where(eq13(settings.tenantId, ctx.tenantId)).limit(1);
       const newStatus = input.status;
       if (existing.length > 0) {
         await db.update(settings).set({
@@ -34686,7 +34718,7 @@ var appRouter = router({
           ...input.paymentMethod ? {
             notes: `\u0648\u0633\u064A\u0644\u0629 \u0627\u0644\u062F\u0641\u0639: ${input.paymentMethod}${input.promoCode ? ` \u2014 \u0643\u0648\u062F: ${input.promoCode}` : ""}`
           } : {}
-        }).where(eq12(settings.id, existing[0].id));
+        }).where(eq13(settings.id, existing[0].id));
       }
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
@@ -34698,25 +34730,25 @@ var appRouter = router({
     }),
     // Update settings (Permanent save)
     updateSettings: tenantProcedure.input(
-      z7.object({
-        institutionName: z7.string().min(1),
-        currency: z7.string().min(1),
-        country: z7.string().min(1).default("\u0627\u0644\u064A\u0645\u0646"),
-        accountingPeriod: z7.string().min(1),
-        managerName: z7.string().optional(),
-        taxNumber: z7.string().optional(),
-        notes: z7.string().optional(),
-        posConfig: z7.any().optional(),
-        salesPolicy: z7.any().optional(),
-        paymentMethods: z7.any().optional(),
-        postingRules: z7.any().optional(),
-        zatcaConfig: z7.any().optional()
+      z8.object({
+        institutionName: z8.string().min(1),
+        currency: z8.string().min(1),
+        country: z8.string().min(1).default("\u0627\u0644\u064A\u0645\u0646"),
+        accountingPeriod: z8.string().min(1),
+        managerName: z8.string().optional(),
+        taxNumber: z8.string().optional(),
+        notes: z8.string().optional(),
+        posConfig: z8.any().optional(),
+        salesPolicy: z8.any().optional(),
+        paymentMethods: z8.any().optional(),
+        postingRules: z8.any().optional(),
+        zatcaConfig: z8.any().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const existing = await db.select().from(settings).where(eq12(settings.tenantId, ctx.tenantId)).limit(1);
+      const existing = await db.select().from(settings).where(eq13(settings.tenantId, ctx.tenantId)).limit(1);
       const payload = { ...input };
       if (input.posConfig !== void 0)
         payload.posConfig = stringifyConfig(input.posConfig);
@@ -34729,7 +34761,7 @@ var appRouter = router({
       if (input.zatcaConfig !== void 0)
         payload.zatcaConfig = stringifyConfig(input.zatcaConfig);
       if (existing.length > 0) {
-        await db.update(settings).set(payload).where(eq12(settings.id, existing[0].id));
+        await db.update(settings).set(payload).where(eq13(settings.id, existing[0].id));
       } else {
         await db.insert(settings).values({ ...payload, tenantId: ctx.tenantId });
       }
@@ -34741,16 +34773,16 @@ var appRouter = router({
       await seedDefaultAccountsForTenant(ctx.tenantId);
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(accounts).where(eq12(accounts.tenantId, ctx.tenantId)).orderBy(asc5(accounts.code));
+      return await db.select().from(accounts).where(eq13(accounts.tenantId, ctx.tenantId)).orderBy(asc5(accounts.code));
     }),
     // Add custom account
     addAccount: tenantProcedure.input(
-      z7.object({
-        code: z7.string().min(1),
-        name: z7.string().min(1),
-        type: z7.enum(["asset", "liability", "equity", "revenue", "expense"]),
-        category: z7.string().optional(),
-        description: z7.string().optional()
+      z8.object({
+        code: z8.string().min(1),
+        name: z8.string().min(1),
+        type: z8.enum(["asset", "liability", "equity", "revenue", "expense"]),
+        category: z8.string().optional(),
+        description: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -34765,13 +34797,13 @@ var appRouter = router({
     }),
     // Update account (Name, Code, Type, Status)
     updateAccount: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        name: z7.string().min(1),
-        code: z7.string().min(1),
-        type: z7.enum(["asset", "liability", "equity", "revenue", "expense"]),
-        isActive: z7.boolean(),
-        parentAccountId: z7.number().nullable().optional()
+      z8.object({
+        id: z8.number(),
+        name: z8.string().min(1),
+        code: z8.string().min(1),
+        type: z8.enum(["asset", "liability", "equity", "revenue", "expense"]),
+        isActive: z8.boolean(),
+        parentAccountId: z8.number().nullable().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -34784,7 +34816,7 @@ var appRouter = router({
         isActive: input.isActive,
         ...input.parentAccountId !== void 0 ? { parentAccountId: input.parentAccountId } : {}
       }).where(
-        and7(eq12(accounts.id, input.id), eq12(accounts.tenantId, ctx.tenantId))
+        and8(eq13(accounts.id, input.id), eq13(accounts.tenantId, ctx.tenantId))
       );
       await db.insert(activityLogs).values({
         userId: ctx.user.id,
@@ -34796,9 +34828,9 @@ var appRouter = router({
     }),
     // Move account in Tree (Drag and Drop / Reparenting)
     moveAccount: tenantProcedure.input(
-      z7.object({
-        accountId: z7.number(),
-        newParentAccountId: z7.number().nullable()
+      z8.object({
+        accountId: z8.number(),
+        newParentAccountId: z8.number().nullable()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -34810,9 +34842,9 @@ var appRouter = router({
       await db.update(accounts).set({
         parentAccountId: input.newParentAccountId
       }).where(
-        and7(
-          eq12(accounts.id, input.accountId),
-          eq12(accounts.tenantId, ctx.tenantId)
+        and8(
+          eq13(accounts.id, input.accountId),
+          eq13(accounts.tenantId, ctx.tenantId)
         )
       );
       await db.insert(activityLogs).values({
@@ -34825,20 +34857,20 @@ var appRouter = router({
     }),
     // Get Transactions with pagination / filters
     getTransactions: tenantProcedure.input(
-      z7.object({
-        search: z7.string().optional(),
-        accountId: z7.number().optional(),
-        startDate: z7.string().optional(),
-        endDate: z7.string().optional(),
-        limit: z7.number().min(1).max(500).default(100),
-        offset: z7.number().min(0).default(0),
-        includeReversed: z7.boolean().optional()
+      z8.object({
+        search: z8.string().optional(),
+        accountId: z8.number().optional(),
+        startDate: z8.string().optional(),
+        endDate: z8.string().optional(),
+        limit: z8.number().min(1).max(500).default(100),
+        offset: z8.number().min(0).default(0),
+        includeReversed: z8.boolean().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      const conditions = [eq12(transactions.tenantId, ctx.tenantId)];
+      const conditions = [eq13(transactions.tenantId, ctx.tenantId)];
       if (input?.search) {
         conditions.push(
           or4(
@@ -34850,10 +34882,10 @@ var appRouter = router({
         );
       }
       if (input?.accountId) {
-        conditions.push(eq12(transactions.accountId, input.accountId));
+        conditions.push(eq13(transactions.accountId, input.accountId));
       }
       if (!input?.includeReversed) {
-        conditions.push(eq12(transactions.isReversed, false));
+        conditions.push(eq13(transactions.isReversed, false));
       }
       if (input?.startDate) {
         conditions.push(
@@ -34865,7 +34897,7 @@ var appRouter = router({
           lte5(transactions.transactionDate, new Date(input.endDate))
         );
       }
-      const whereClause = conditions.length > 0 ? and7(...conditions) : void 0;
+      const whereClause = conditions.length > 0 ? and8(...conditions) : void 0;
       const list = await db.select({
         id: transactions.id,
         accountId: transactions.accountId,
@@ -34884,32 +34916,32 @@ var appRouter = router({
         referenceId: transactions.referenceId,
         branchId: transactions.branchId,
         createdAt: transactions.createdAt
-      }).from(transactions).leftJoin(accounts, eq12(transactions.accountId, accounts.id)).where(whereClause).orderBy(desc5(transactions.transactionDate), desc5(transactions.id)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
+      }).from(transactions).leftJoin(accounts, eq13(transactions.accountId, accounts.id)).where(whereClause).orderBy(desc5(transactions.transactionDate), desc5(transactions.id)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
       return list;
     }),
     // Add Transaction
     addTransaction: tenantProcedure.input(
-      z7.object({
-        id: z7.number().optional(),
-        accountId: z7.number(),
-        amount: z7.string().refine((v) => {
+      z8.object({
+        id: z8.number().optional(),
+        accountId: z8.number(),
+        amount: z8.string().refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && n > 0 && n < 1e9;
         }, "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B \u0648\u0623\u0642\u0644 \u0645\u0646 \u0645\u0644\u064A\u0627\u0631"),
-        type: z7.enum(["debit", "credit"]),
-        transactionDate: z7.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        narration: z7.string().max(500).optional(),
-        notes: z7.string().optional(),
-        lifecycleStatus: z7.enum(["saved", "approved", "sent"]).default("saved")
+        type: z8.enum(["debit", "credit"]),
+        transactionDate: z8.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
+        narration: z8.string().max(500).optional(),
+        notes: z8.string().optional(),
+        lifecycleStatus: z8.enum(["saved", "approved", "sent"]).default("saved")
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const account = await db.select().from(accounts).where(
-        and7(
-          eq12(accounts.id, input.accountId),
-          eq12(accounts.tenantId, ctx.tenantId)
+        and8(
+          eq13(accounts.id, input.accountId),
+          eq13(accounts.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (account.length === 0) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
@@ -34937,17 +34969,17 @@ var appRouter = router({
     }),
     // Batch Add Transactions with Lifecycle Status (saved, approved, sent)
     addBatchTransactions: tenantProcedure.input(
-      z7.object({
-        lifecycleStatus: z7.enum(["saved", "approved", "sent"]).default("saved"),
-        rows: z7.array(
-          z7.object({
-            id: z7.number().optional(),
-            accountId: z7.number(),
-            amount: z7.string(),
-            type: z7.enum(["debit", "credit"]).default("debit"),
-            transactionDate: z7.string(),
-            narration: z7.string().optional(),
-            notes: z7.string().optional()
+      z8.object({
+        lifecycleStatus: z8.enum(["saved", "approved", "sent"]).default("saved"),
+        rows: z8.array(
+          z8.object({
+            id: z8.number().optional(),
+            accountId: z8.number(),
+            amount: z8.string(),
+            type: z8.enum(["debit", "credit"]).default("debit"),
+            transactionDate: z8.string(),
+            narration: z8.string().optional(),
+            notes: z8.string().optional()
           })
         )
       })
@@ -34984,25 +35016,25 @@ var appRouter = router({
     }),
     // Daily Entry: recording a single daily movement (debit/credit) against an account
     dailyEntry: tenantProcedure.input(
-      z7.object({
-        accountId: z7.number(),
-        amount: z7.string().refine((v) => {
+      z8.object({
+        accountId: z8.number(),
+        amount: z8.string().refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && n > 0 && n < 1e9;
         }, "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B \u0648\u0623\u0642\u0644 \u0645\u0646 \u0645\u0644\u064A\u0627\u0631"),
-        type: z7.enum(["debit", "credit"]),
-        transactionDate: z7.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        narration: z7.string().max(200).optional().default("\u062D\u0631\u0643\u0629 \u064A\u0648\u0645\u064A\u0629"),
-        lifecycleStatus: z7.enum(["saved"]).default("saved")
+        type: z8.enum(["debit", "credit"]),
+        transactionDate: z8.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
+        narration: z8.string().max(200).optional().default("\u062D\u0631\u0643\u0629 \u064A\u0648\u0645\u064A\u0629"),
+        lifecycleStatus: z8.enum(["saved"]).default("saved")
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const account = await db.select().from(accounts).where(
-        and7(
-          eq12(accounts.id, input.accountId),
-          eq12(accounts.tenantId, ctx.tenantId)
+        and8(
+          eq13(accounts.id, input.accountId),
+          eq13(accounts.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (account.length === 0) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
@@ -35023,24 +35055,24 @@ var appRouter = router({
     }),
     // Update Transaction Lifecycle (Approve, Send, Post/Migrate, Reverse)
     updateTransactionLifecycle: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        lifecycleStatus: z7.enum([
+      z8.object({
+        id: z8.number(),
+        lifecycleStatus: z8.enum([
           "saved",
           "approved",
           "sent",
           "posted",
           "completed"
         ]),
-        reversalReason: z7.string().optional()
+        reversalReason: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(transactions).where(
-        and7(
-          eq12(transactions.id, input.id),
-          eq12(transactions.tenantId, ctx.tenantId)
+        and8(
+          eq13(transactions.id, input.id),
+          eq13(transactions.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u062D\u0631\u0643\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
@@ -35053,9 +35085,9 @@ var appRouter = router({
         lifecycleStatus: input.lifecycleStatus,
         ...input.reversalReason ? { reversalReason: input.reversalReason, isReversed: true } : {}
       }).where(
-        and7(
-          eq12(transactions.id, input.id),
-          eq12(transactions.tenantId, ctx.tenantId)
+        and8(
+          eq13(transactions.id, input.id),
+          eq13(transactions.tenantId, ctx.tenantId)
         )
       );
       await db.insert(activityLogs).values({
@@ -35067,20 +35099,20 @@ var appRouter = router({
     }),
     // Update Transaction (Only allowed if lifecycleStatus === 'saved')
     updateTransaction: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        amount: z7.string(),
-        narration: z7.string().optional(),
-        notes: z7.string().optional()
+      z8.object({
+        id: z8.number(),
+        amount: z8.string(),
+        narration: z8.string().optional(),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(transactions).where(
-        and7(
-          eq12(transactions.id, input.id),
-          eq12(transactions.tenantId, ctx.tenantId)
+        and8(
+          eq13(transactions.id, input.id),
+          eq13(transactions.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u062D\u0631\u0643\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
@@ -35094,26 +35126,26 @@ var appRouter = router({
         narration: input.narration || null,
         notes: input.notes || null
       }).where(
-        and7(
-          eq12(transactions.id, input.id),
-          eq12(transactions.tenantId, ctx.tenantId)
+        and8(
+          eq13(transactions.id, input.id),
+          eq13(transactions.tenantId, ctx.tenantId)
         )
       );
       return { success: true };
     }),
     // Delete Transaction (only if status is 'saved')
     deleteTransaction: tenantProcedure.input(
-      z7.object({
-        id: z7.number()
+      z8.object({
+        id: z8.number()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(transactions).where(
-        and7(
-          eq12(transactions.id, input.id),
-          eq12(transactions.tenantId, ctx.tenantId)
+        and8(
+          eq13(transactions.id, input.id),
+          eq13(transactions.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u062D\u0631\u0643\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
@@ -35123,9 +35155,9 @@ var appRouter = router({
         );
       }
       await db.delete(transactions).where(
-        and7(
-          eq12(transactions.id, input.id),
-          eq12(transactions.tenantId, ctx.tenantId)
+        and8(
+          eq13(transactions.id, input.id),
+          eq13(transactions.tenantId, ctx.tenantId)
         )
       );
       await db.insert(activityLogs).values({
@@ -35137,9 +35169,9 @@ var appRouter = router({
     }),
     // Smart Suggestions Engine: recommends accounts & standard amounts based on history & operation type
     getSmartSuggestions: tenantProcedure.input(
-      z7.object({
-        query: z7.string().optional(),
-        operationType: z7.string().optional()
+      z8.object({
+        query: z8.string().optional(),
+        operationType: z8.string().optional()
         // e.g. "إيراد", "مصروف", "سداد", "عميل"
       })
     ).query(async ({ input, ctx }) => {
@@ -35148,11 +35180,11 @@ var appRouter = router({
       const db = await getDb();
       if (!db)
         return { suggestedAccounts: [], recentNarrations: [], insights: [] };
-      const allAccounts = await db.select().from(accounts).where(eq12(accounts.tenantId, ctx.tenantId));
+      const allAccounts = await db.select().from(accounts).where(eq13(accounts.tenantId, ctx.tenantId));
       const usageRows = await db.select({
         accountId: transactions.accountId,
         cnt: sql8`count(*)::int`
-      }).from(transactions).where(eq12(transactions.tenantId, ctx.tenantId)).groupBy(transactions.accountId);
+      }).from(transactions).where(eq13(transactions.tenantId, ctx.tenantId)).groupBy(transactions.accountId);
       const usage = /* @__PURE__ */ new Map();
       usageRows.forEach(
         (r) => usage.set(Number(r.accountId), Number(r.cnt))
@@ -35162,7 +35194,7 @@ var appRouter = router({
         accountId: transactions.accountId,
         amount: transactions.amount,
         accountName: accounts.name
-      }).from(transactions).leftJoin(accounts, eq12(transactions.accountId, accounts.id)).where(eq12(transactions.tenantId, ctx.tenantId)).orderBy(desc5(transactions.id)).limit(20);
+      }).from(transactions).leftJoin(accounts, eq13(transactions.accountId, accounts.id)).where(eq13(transactions.tenantId, ctx.tenantId)).orderBy(desc5(transactions.id)).limit(20);
       const q = input.query?.trim().toLowerCase();
       let candidates = allAccounts;
       if (q) {
@@ -35195,7 +35227,7 @@ var appRouter = router({
         debits: sql8`coalesce(sum(case when ${transactions.type} = 'debit' then ${transactions.amount}::numeric else 0 end),0)::float`,
         credits: sql8`coalesce(sum(case when ${transactions.type} = 'credit' then ${transactions.amount}::numeric else 0 end),0)::float`,
         count: sql8`count(*)::int`
-      }).from(transactions).where(eq12(transactions.tenantId, ctx.tenantId));
+      }).from(transactions).where(eq13(transactions.tenantId, ctx.tenantId));
       const balance = Number(agg?.credits || 0) - Number(agg?.debits || 0);
       const fmt2 = (n) => `${(Number.isFinite(n) ? n : 0).toLocaleString("en-US", {
         maximumFractionDigits: 2
@@ -35232,20 +35264,20 @@ var appRouter = router({
     }),
     // ── Manual Journal Entry (smart, balanced, backbone-integrated) ──
     createManualJournalEntry: tenantProcedure.input(
-      z7.object({
-        date: z7.string().optional(),
-        narration: z7.string().min(1),
-        referenceNo: z7.string().optional(),
-        branchId: z7.number().optional(),
-        lines: z7.array(
-          z7.object({
-            accountId: z7.number(),
-            type: z7.enum(["debit", "credit"]),
-            amount: z7.string().refine(
+      z8.object({
+        date: z8.string().optional(),
+        narration: z8.string().min(1),
+        referenceNo: z8.string().optional(),
+        branchId: z8.number().optional(),
+        lines: z8.array(
+          z8.object({
+            accountId: z8.number(),
+            type: z8.enum(["debit", "credit"]),
+            amount: z8.string().refine(
               (v) => parseFloat(v) > 0,
               "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631"
             ),
-            narration: z7.string().optional()
+            narration: z8.string().optional()
           })
         ).min(2, "\u0627\u0644\u0642\u064A\u062F \u064A\u062D\u062A\u0627\u062C \u062D\u0631\u0643\u062A\u064A\u0646 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644")
       })
@@ -35262,7 +35294,7 @@ var appRouter = router({
         );
       const txDate = input.date ? new Date(input.date) : /* @__PURE__ */ new Date();
       const ref = input.referenceNo || `MAN-${Date.now().toString().slice(-6)}`;
-      const bRows = await db.select().from(branches).where(eq12(branches.tenantId, tenantId)).orderBy(desc5(branches.isMain)).limit(1);
+      const bRows = await db.select().from(branches).where(eq13(branches.tenantId, tenantId)).orderBy(desc5(branches.isMain)).limit(1);
       const effectiveBranchId = input.branchId ?? bRows[0]?.id ?? null;
       const [je] = await db.insert(journalEntries).values({
         tenantId,
@@ -35306,21 +35338,21 @@ var appRouter = router({
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
-        return db.select().from(scheduledJournalEntries).where(eq12(scheduledJournalEntries.tenantId, ctx.tenantId)).orderBy(desc5(scheduledJournalEntries.nextRunAt));
+        return db.select().from(scheduledJournalEntries).where(eq13(scheduledJournalEntries.tenantId, ctx.tenantId)).orderBy(desc5(scheduledJournalEntries.nextRunAt));
       }),
       create: adminProcedure.input(
-        z7.object({
-          name: z7.string().min(1),
-          description: z7.string().optional(),
-          branchId: z7.number().optional(),
-          frequency: z7.enum(["once", "daily", "weekly", "monthly"]).default("monthly"),
-          nextRunAt: z7.string(),
-          legs: z7.array(
-            z7.object({
-              accountId: z7.number(),
-              debit: z7.string().default("0"),
-              credit: z7.string().default("0"),
-              description: z7.string().optional()
+        z8.object({
+          name: z8.string().min(1),
+          description: z8.string().optional(),
+          branchId: z8.number().optional(),
+          frequency: z8.enum(["once", "daily", "weekly", "monthly"]).default("monthly"),
+          nextRunAt: z8.string(),
+          legs: z8.array(
+            z8.object({
+              accountId: z8.number(),
+              debit: z8.string().default("0"),
+              credit: z8.string().default("0"),
+              description: z8.string().optional()
             })
           ).min(1)
         })
@@ -35341,20 +35373,20 @@ var appRouter = router({
         return row;
       }),
       update: adminProcedure.input(
-        z7.object({
-          id: z7.number(),
-          name: z7.string().optional(),
-          description: z7.string().optional(),
-          branchId: z7.number().optional(),
-          frequency: z7.enum(["once", "daily", "weekly", "monthly"]).optional(),
-          nextRunAt: z7.string().optional(),
-          isActive: z7.boolean().optional(),
-          legs: z7.array(
-            z7.object({
-              accountId: z7.number(),
-              debit: z7.string().default("0"),
-              credit: z7.string().default("0"),
-              description: z7.string().optional()
+        z8.object({
+          id: z8.number(),
+          name: z8.string().optional(),
+          description: z8.string().optional(),
+          branchId: z8.number().optional(),
+          frequency: z8.enum(["once", "daily", "weekly", "monthly"]).optional(),
+          nextRunAt: z8.string().optional(),
+          isActive: z8.boolean().optional(),
+          legs: z8.array(
+            z8.object({
+              accountId: z8.number(),
+              debit: z8.string().default("0"),
+              credit: z8.string().default("0"),
+              description: z8.string().optional()
             })
           ).optional()
         })
@@ -35365,20 +35397,20 @@ var appRouter = router({
         const set = { ...rest };
         if (rest.nextRunAt) set.nextRunAt = new Date(rest.nextRunAt);
         await db.update(scheduledJournalEntries).set(set).where(
-          and7(
-            eq12(scheduledJournalEntries.tenantId, ctx.tenantId),
-            eq12(scheduledJournalEntries.id, id)
+          and8(
+            eq13(scheduledJournalEntries.tenantId, ctx.tenantId),
+            eq13(scheduledJournalEntries.id, id)
           )
         );
         return { success: true };
       }),
-      delete: adminProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
+      delete: adminProcedure.input(z8.object({ id: z8.number() })).mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         await db.delete(scheduledJournalEntries).where(
-          and7(
-            eq12(scheduledJournalEntries.tenantId, ctx.tenantId),
-            eq12(scheduledJournalEntries.id, input.id)
+          and8(
+            eq13(scheduledJournalEntries.tenantId, ctx.tenantId),
+            eq13(scheduledJournalEntries.id, input.id)
           )
         );
         return { success: true };
@@ -35391,53 +35423,53 @@ var appRouter = router({
     // ─── Recurring / Scheduled Expenses (Intelligent Automation) ────────
     recurringExpenses: router({
       list: tenantProcedure.input(
-        z7.object({
-          status: z7.string().optional(),
-          categoryId: z7.number().optional(),
-          vendorId: z7.number().optional(),
-          limit: z7.number().default(100).optional(),
-          offset: z7.number().default(0).optional()
+        z8.object({
+          status: z8.string().optional(),
+          categoryId: z8.number().optional(),
+          vendorId: z8.number().optional(),
+          limit: z8.number().default(100).optional(),
+          offset: z8.number().default(0).optional()
         }).optional()
       ).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
         const where = [
-          eq12(recurringExpenses.tenantId, ctx.tenantId),
-          input?.status ? eq12(recurringExpenses.status, input.status) : void 0,
-          input?.categoryId ? eq12(recurringExpenses.categoryId, input.categoryId) : void 0,
-          input?.vendorId ? eq12(recurringExpenses.vendorId, input.vendorId) : void 0
+          eq13(recurringExpenses.tenantId, ctx.tenantId),
+          input?.status ? eq13(recurringExpenses.status, input.status) : void 0,
+          input?.categoryId ? eq13(recurringExpenses.categoryId, input.categoryId) : void 0,
+          input?.vendorId ? eq13(recurringExpenses.vendorId, input.vendorId) : void 0
         ].filter(Boolean);
-        return db.select().from(recurringExpenses).where(and7(...where)).orderBy(desc5(recurringExpenses.nextRunAt)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
+        return db.select().from(recurringExpenses).where(and8(...where)).orderBy(desc5(recurringExpenses.nextRunAt)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
       }),
-      get: tenantProcedure.input(z7.object({ id: z7.number() })).query(async ({ ctx, input }) => {
+      get: tenantProcedure.input(z8.object({ id: z8.number() })).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const [row] = await db.select().from(recurringExpenses).where(
-          and7(
-            eq12(recurringExpenses.id, input.id),
-            eq12(recurringExpenses.tenantId, ctx.tenantId)
+          and8(
+            eq13(recurringExpenses.id, input.id),
+            eq13(recurringExpenses.tenantId, ctx.tenantId)
           )
         ).limit(1);
         if (!row) throw new Error("\u0627\u0644\u0645\u0635\u0631\u0648\u0641 \u0627\u0644\u062F\u0648\u0631\u064A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
-        const runs = await db.select().from(recurringExpenseRuns).where(eq12(recurringExpenseRuns.recurringExpenseId, input.id)).orderBy(desc5(recurringExpenseRuns.runNumber)).limit(20);
+        const runs = await db.select().from(recurringExpenseRuns).where(eq13(recurringExpenseRuns.recurringExpenseId, input.id)).orderBy(desc5(recurringExpenseRuns.runNumber)).limit(20);
         return { ...row, runs };
       }),
       create: adminProcedure.input(
-        z7.object({
-          name: z7.string().min(1),
-          description: z7.string().optional(),
-          categoryId: z7.number().optional(),
-          vendorId: z7.number().optional(),
-          accountId: z7.number(),
-          branchId: z7.number().optional(),
-          amount: z7.string(),
-          currency: z7.string().default("YER"),
-          exchangeRate: z7.string().default("1"),
-          taxRate: z7.string().default("0"),
-          taxAccountId: z7.number().optional(),
-          frequency: z7.enum([
+        z8.object({
+          name: z8.string().min(1),
+          description: z8.string().optional(),
+          categoryId: z8.number().optional(),
+          vendorId: z8.number().optional(),
+          accountId: z8.number(),
+          branchId: z8.number().optional(),
+          amount: z8.string(),
+          currency: z8.string().default("YER"),
+          exchangeRate: z8.string().default("1"),
+          taxRate: z8.string().default("0"),
+          taxAccountId: z8.number().optional(),
+          frequency: z8.enum([
             "daily",
             "weekly",
             "biweekly",
@@ -35447,25 +35479,25 @@ var appRouter = router({
             "annual",
             "custom"
           ]).default("monthly"),
-          customCron: z7.string().optional(),
-          dayOfMonth: z7.number().min(1).max(31).optional(),
-          dayOfWeek: z7.number().min(0).max(6).optional(),
-          weekOfMonth: z7.number().min(1).max(5).optional(),
-          startDate: z7.string(),
-          endDate: z7.string().optional(),
-          maxOccurrences: z7.number().optional(),
-          basis: z7.enum(["accrual", "cash"]).default("accrual"),
-          status: z7.enum(["draft", "active", "paused", "completed", "cancelled"]).default("draft"),
-          approvalStatus: z7.enum(["pending", "approved", "rejected", "auto_approved"]).default("pending"),
-          approverId: z7.number().optional(),
-          paymentMethod: z7.string().optional(),
-          paymentAccountId: z7.number().optional(),
-          autoPay: z7.boolean().default(false),
-          budgetId: z7.number().optional(),
-          departmentId: z7.number().optional(),
-          projectId: z7.number().optional(),
-          tags: z7.array(z7.string()).optional(),
-          metadata: z7.record(z7.string(), z7.any()).optional()
+          customCron: z8.string().optional(),
+          dayOfMonth: z8.number().min(1).max(31).optional(),
+          dayOfWeek: z8.number().min(0).max(6).optional(),
+          weekOfMonth: z8.number().min(1).max(5).optional(),
+          startDate: z8.string(),
+          endDate: z8.string().optional(),
+          maxOccurrences: z8.number().optional(),
+          basis: z8.enum(["accrual", "cash"]).default("accrual"),
+          status: z8.enum(["draft", "active", "paused", "completed", "cancelled"]).default("draft"),
+          approvalStatus: z8.enum(["pending", "approved", "rejected", "auto_approved"]).default("pending"),
+          approverId: z8.number().optional(),
+          paymentMethod: z8.string().optional(),
+          paymentAccountId: z8.number().optional(),
+          autoPay: z8.boolean().default(false),
+          budgetId: z8.number().optional(),
+          departmentId: z8.number().optional(),
+          projectId: z8.number().optional(),
+          tags: z8.array(z8.string()).optional(),
+          metadata: z8.record(z8.string(), z8.any()).optional()
         })
       ).mutation(async ({ input, ctx }) => {
         if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -35474,9 +35506,9 @@ var appRouter = router({
         const startDate = new Date(input.startDate);
         const nextRunAt = new Date(startDate);
         const [account] = await db.select().from(accounts).where(
-          and7(
-            eq12(accounts.id, input.accountId),
-            eq12(accounts.tenantId, ctx.tenantId)
+          and8(
+            eq13(accounts.id, input.accountId),
+            eq13(accounts.tenantId, ctx.tenantId)
           )
         ).limit(1);
         if (!account) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
@@ -35522,20 +35554,20 @@ var appRouter = router({
         return row;
       }),
       update: adminProcedure.input(
-        z7.object({
-          id: z7.number(),
-          name: z7.string().optional(),
-          description: z7.string().optional(),
-          categoryId: z7.number().nullish(),
-          vendorId: z7.number().nullish(),
-          accountId: z7.number().optional(),
-          branchId: z7.number().nullish(),
-          amount: z7.string().optional(),
-          currency: z7.string().optional(),
-          exchangeRate: z7.string().optional(),
-          taxRate: z7.string().optional(),
-          taxAccountId: z7.number().nullish(),
-          frequency: z7.enum([
+        z8.object({
+          id: z8.number(),
+          name: z8.string().optional(),
+          description: z8.string().optional(),
+          categoryId: z8.number().nullish(),
+          vendorId: z8.number().nullish(),
+          accountId: z8.number().optional(),
+          branchId: z8.number().nullish(),
+          amount: z8.string().optional(),
+          currency: z8.string().optional(),
+          exchangeRate: z8.string().optional(),
+          taxRate: z8.string().optional(),
+          taxAccountId: z8.number().nullish(),
+          frequency: z8.enum([
             "daily",
             "weekly",
             "biweekly",
@@ -35545,25 +35577,25 @@ var appRouter = router({
             "annual",
             "custom"
           ]).optional(),
-          customCron: z7.string().optional(),
-          dayOfMonth: z7.number().min(1).max(31).optional(),
-          dayOfWeek: z7.number().min(0).max(6).optional(),
-          weekOfMonth: z7.number().min(1).max(5).optional(),
-          startDate: z7.string().optional(),
-          endDate: z7.string().nullish(),
-          maxOccurrences: z7.number().nullish(),
-          basis: z7.enum(["accrual", "cash"]).optional(),
-          status: z7.enum(["draft", "active", "paused", "completed", "cancelled"]).optional(),
-          approvalStatus: z7.enum(["pending", "approved", "rejected", "auto_approved"]).optional(),
-          approverId: z7.number().nullish(),
-          paymentMethod: z7.string().optional(),
-          paymentAccountId: z7.number().nullish(),
-          autoPay: z7.boolean().optional(),
-          budgetId: z7.number().nullish(),
-          departmentId: z7.number().nullish(),
-          projectId: z7.number().nullish(),
-          tags: z7.array(z7.string()).optional(),
-          metadata: z7.record(z7.string(), z7.any()).optional()
+          customCron: z8.string().optional(),
+          dayOfMonth: z8.number().min(1).max(31).optional(),
+          dayOfWeek: z8.number().min(0).max(6).optional(),
+          weekOfMonth: z8.number().min(1).max(5).optional(),
+          startDate: z8.string().optional(),
+          endDate: z8.string().nullish(),
+          maxOccurrences: z8.number().nullish(),
+          basis: z8.enum(["accrual", "cash"]).optional(),
+          status: z8.enum(["draft", "active", "paused", "completed", "cancelled"]).optional(),
+          approvalStatus: z8.enum(["pending", "approved", "rejected", "auto_approved"]).optional(),
+          approverId: z8.number().nullish(),
+          paymentMethod: z8.string().optional(),
+          paymentAccountId: z8.number().nullish(),
+          autoPay: z8.boolean().optional(),
+          budgetId: z8.number().nullish(),
+          departmentId: z8.number().nullish(),
+          projectId: z8.number().nullish(),
+          tags: z8.array(z8.string()).optional(),
+          metadata: z8.record(z8.string(), z8.any()).optional()
         })
       ).mutation(async ({ input, ctx }) => {
         const db = await getDb();
@@ -35576,50 +35608,50 @@ var appRouter = router({
         if (rest.tags) set.tags = rest.tags;
         if (rest.metadata) set.metadata = rest.metadata;
         const [current] = await db.select().from(recurringExpenses).where(
-          and7(
-            eq12(recurringExpenses.id, id),
-            eq12(recurringExpenses.tenantId, ctx.tenantId)
+          and8(
+            eq13(recurringExpenses.id, id),
+            eq13(recurringExpenses.tenantId, ctx.tenantId)
           )
         ).limit(1);
         await db.update(recurringExpenses).set(set).where(
-          and7(
-            eq12(recurringExpenses.id, id),
-            eq12(recurringExpenses.tenantId, ctx.tenantId)
+          and8(
+            eq13(recurringExpenses.id, id),
+            eq13(recurringExpenses.tenantId, ctx.tenantId)
           )
         );
         if (current && (rest.frequency || rest.startDate || rest.dayOfMonth || rest.dayOfWeek || rest.weekOfMonth)) {
-          const updated = await db.select().from(recurringExpenses).where(eq12(recurringExpenses.id, id)).limit(1);
+          const updated = await db.select().from(recurringExpenses).where(eq13(recurringExpenses.id, id)).limit(1);
           if (updated[0]?.status === "active" && updated[0]?.approvalStatus === "approved") {
             await scheduleNextRun(db, id, ctx.tenantId);
           }
         }
         return { success: true };
       }),
-      delete: adminProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
+      delete: adminProcedure.input(z8.object({ id: z8.number() })).mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
-        await db.delete(recurringExpenseRuns).where(eq12(recurringExpenseRuns.recurringExpenseId, input.id));
+        await db.delete(recurringExpenseRuns).where(eq13(recurringExpenseRuns.recurringExpenseId, input.id));
         await db.delete(recurringExpenses).where(
-          and7(
-            eq12(recurringExpenses.id, input.id),
-            eq12(recurringExpenses.tenantId, ctx.tenantId)
+          and8(
+            eq13(recurringExpenses.id, input.id),
+            eq13(recurringExpenses.tenantId, ctx.tenantId)
           )
         );
         return { success: true };
       }),
       approve: adminProcedure.input(
-        z7.object({
-          id: z7.number(),
-          decision: z7.enum(["approved", "rejected"]),
-          note: z7.string().optional()
+        z8.object({
+          id: z8.number(),
+          decision: z8.enum(["approved", "rejected"]),
+          note: z8.string().optional()
         })
       ).mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const [rec] = await db.select().from(recurringExpenses).where(
-          and7(
-            eq12(recurringExpenses.id, input.id),
-            eq12(recurringExpenses.tenantId, ctx.tenantId)
+          and8(
+            eq13(recurringExpenses.id, input.id),
+            eq13(recurringExpenses.tenantId, ctx.tenantId)
           )
         ).limit(1);
         if (!rec) throw new Error("\u0627\u0644\u0645\u0635\u0631\u0648\u0641 \u0627\u0644\u062F\u0648\u0631\u064A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
@@ -35629,7 +35661,7 @@ var appRouter = router({
           approvalStatus: input.decision,
           approvedAt: /* @__PURE__ */ new Date(),
           approvedById: ctx.user.id
-        }).where(eq12(recurringExpenses.id, input.id));
+        }).where(eq13(recurringExpenses.id, input.id));
         if (input.decision === "approved" && rec.status === "active") {
           await scheduleNextRun(db, input.id, ctx.tenantId);
         }
@@ -35640,47 +35672,47 @@ var appRouter = router({
         return runRecurringExpenses(ctx.tenantId, ctx.user?.id ?? null);
       }),
       getRuns: tenantProcedure.input(
-        z7.object({
-          recurringExpenseId: z7.number().optional(),
-          status: z7.string().optional(),
-          from: z7.string().optional(),
-          to: z7.string().optional(),
-          limit: z7.number().default(100).optional(),
-          offset: z7.number().default(0).optional()
+        z8.object({
+          recurringExpenseId: z8.number().optional(),
+          status: z8.string().optional(),
+          from: z8.string().optional(),
+          to: z8.string().optional(),
+          limit: z8.number().default(100).optional(),
+          offset: z8.number().default(0).optional()
         })
       ).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
         const where = [
-          eq12(recurringExpenseRuns.tenantId, ctx.tenantId),
-          input?.recurringExpenseId ? eq12(
+          eq13(recurringExpenseRuns.tenantId, ctx.tenantId),
+          input?.recurringExpenseId ? eq13(
             recurringExpenseRuns.recurringExpenseId,
             input.recurringExpenseId
           ) : void 0,
-          input?.status ? eq12(recurringExpenseRuns.status, input.status) : void 0,
+          input?.status ? eq13(recurringExpenseRuns.status, input.status) : void 0,
           input?.from ? gte6(recurringExpenseRuns.scheduledDate, new Date(input.from)) : void 0,
           input?.to ? lte5(recurringExpenseRuns.scheduledDate, new Date(input.to)) : void 0
         ].filter(Boolean);
-        return db.select().from(recurringExpenseRuns).where(and7(...where)).orderBy(desc5(recurringExpenseRuns.scheduledDate)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
+        return db.select().from(recurringExpenseRuns).where(and8(...where)).orderBy(desc5(recurringExpenseRuns.scheduledDate)).limit(input?.limit ?? 100).offset(input?.offset ?? 0);
       }),
-      retryRun: adminProcedure.input(z7.object({ runId: z7.number() })).mutation(async ({ input, ctx }) => {
+      retryRun: adminProcedure.input(z8.object({ runId: z8.number() })).mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db) throw new Error("Database not available");
         const [run] = await db.select().from(recurringExpenseRuns).where(
-          and7(
-            eq12(recurringExpenseRuns.id, input.runId),
-            eq12(recurringExpenseRuns.tenantId, ctx.tenantId)
+          and8(
+            eq13(recurringExpenseRuns.id, input.runId),
+            eq13(recurringExpenseRuns.tenantId, ctx.tenantId)
           )
         ).limit(1);
         if (!run) throw new Error("\u062A\u0634\u063A\u064A\u0644 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
         if (run.status === "completed")
           throw new Error("\u062A\u0645 \u062A\u0646\u0641\u064A\u0630 \u0647\u0630\u0627 \u0627\u0644\u062A\u0634\u063A\u064A\u0644 \u0645\u0633\u0628\u0642\u0627\u064B");
-        await db.update(recurringExpenseRuns).set({ status: "pending", errorMessage: null }).where(eq12(recurringExpenseRuns.id, input.runId));
+        await db.update(recurringExpenseRuns).set({ status: "pending", errorMessage: null }).where(eq13(recurringExpenseRuns.id, input.runId));
         await processRecurringExpenseRun(db, run, ctx.user?.id ?? null);
         return { success: true };
       }),
-      getUpcoming: tenantProcedure.input(z7.object({ days: z7.number().default(30) })).query(async ({ ctx, input }) => {
+      getUpcoming: tenantProcedure.input(z8.object({ days: z8.number().default(30) })).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
@@ -35688,10 +35720,10 @@ var appRouter = router({
           Date.now() + (input.days || 30) * 24 * 60 * 60 * 1e3
         );
         return db.select().from(recurringExpenses).where(
-          and7(
-            eq12(recurringExpenses.tenantId, ctx.tenantId),
-            eq12(recurringExpenses.status, "active"),
-            eq12(recurringExpenses.approvalStatus, "approved"),
+          and8(
+            eq13(recurringExpenses.tenantId, ctx.tenantId),
+            eq13(recurringExpenses.status, "active"),
+            eq13(recurringExpenses.approvalStatus, "approved"),
             lte5(recurringExpenses.nextRunAt, until)
           )
         ).orderBy(asc5(recurringExpenses.nextRunAt));
@@ -35714,24 +35746,24 @@ var appRouter = router({
             overdue: 0,
             totalMonthly: 0
           };
-        const [total] = await db.select({ c: sql8`count(*)` }).from(recurringExpenses).where(eq12(recurringExpenses.tenantId, ctx.tenantId));
+        const [total] = await db.select({ c: sql8`count(*)` }).from(recurringExpenses).where(eq13(recurringExpenses.tenantId, ctx.tenantId));
         const [active] = await db.select({ c: sql8`count(*)` }).from(recurringExpenses).where(
-          and7(
-            eq12(recurringExpenses.tenantId, ctx.tenantId),
-            eq12(recurringExpenses.status, "active")
+          and8(
+            eq13(recurringExpenses.tenantId, ctx.tenantId),
+            eq13(recurringExpenses.status, "active")
           )
         );
         const [pending] = await db.select({ c: sql8`count(*)` }).from(recurringExpenses).where(
-          and7(
-            eq12(recurringExpenses.tenantId, ctx.tenantId),
-            eq12(recurringExpenses.approvalStatus, "pending")
+          and8(
+            eq13(recurringExpenses.tenantId, ctx.tenantId),
+            eq13(recurringExpenses.approvalStatus, "pending")
           )
         );
         const [overdue] = await db.select({ c: sql8`count(*)` }).from(recurringExpenses).where(
-          and7(
-            eq12(recurringExpenses.tenantId, ctx.tenantId),
-            eq12(recurringExpenses.status, "active"),
-            eq12(recurringExpenses.approvalStatus, "approved"),
+          and8(
+            eq13(recurringExpenses.tenantId, ctx.tenantId),
+            eq13(recurringExpenses.status, "active"),
+            eq13(recurringExpenses.approvalStatus, "approved"),
             sql8`${recurringExpenses.nextRunAt} < now()`
           )
         );
@@ -35739,10 +35771,10 @@ var appRouter = router({
           amount: recurringExpenses.amount,
           frequency: recurringExpenses.frequency
         }).from(recurringExpenses).where(
-          and7(
-            eq12(recurringExpenses.tenantId, ctx.tenantId),
-            eq12(recurringExpenses.status, "active"),
-            eq12(recurringExpenses.approvalStatus, "approved")
+          and8(
+            eq13(recurringExpenses.tenantId, ctx.tenantId),
+            eq13(recurringExpenses.status, "active"),
+            eq13(recurringExpenses.approvalStatus, "approved")
           )
         );
         let totalMonthly = 0;
@@ -35760,7 +35792,7 @@ var appRouter = router({
         };
       }),
       // Cash flow preview for recurring expenses
-      getPreview: tenantProcedure.input(z7.object({ months: z7.number().default(12).optional() })).query(async ({ ctx, input }) => {
+      getPreview: tenantProcedure.input(z8.object({ months: z8.number().default(12).optional() })).query(async ({ ctx, input }) => {
         if (!ctx.tenantId) return [];
         return generateUpcomingRuns(ctx.tenantId, input.months ?? 12);
       })
@@ -35770,15 +35802,15 @@ var appRouter = router({
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(budgets).where(eq12(budgets.tenantId, ctx.tenantId)).orderBy(desc5(budgets.id));
+      return await db.select().from(budgets).where(eq13(budgets.tenantId, ctx.tenantId)).orderBy(desc5(budgets.id));
     }),
     saveBudget: tenantProcedure.input(
-      z7.object({
-        id: z7.number().optional(),
-        periodName: z7.string(),
-        targetRevenue: z7.string(),
-        targetExpense: z7.string(),
-        notes: z7.string().optional()
+      z8.object({
+        id: z8.number().optional(),
+        periodName: z8.string(),
+        targetRevenue: z8.string(),
+        targetExpense: z8.string(),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -35830,10 +35862,10 @@ var appRouter = router({
         narration: transactions.narration,
         lifecycleStatus: transactions.lifecycleStatus,
         isReversed: transactions.isReversed
-      }).from(transactions).leftJoin(accounts, eq12(transactions.accountId, accounts.id)).where(
-        and7(
-          eq12(transactions.tenantId, ctx.tenantId),
-          eq12(transactions.isReversed, false)
+      }).from(transactions).leftJoin(accounts, eq13(transactions.accountId, accounts.id)).where(
+        and8(
+          eq13(transactions.tenantId, ctx.tenantId),
+          eq13(transactions.isReversed, false)
         )
       ).orderBy(desc5(transactions.transactionDate), desc5(transactions.id));
       let totalRevenue = 0;
@@ -35894,10 +35926,10 @@ var appRouter = router({
         transactionDate: transactions.transactionDate,
         accountType: accounts.type,
         lifecycleStatus: transactions.lifecycleStatus
-      }).from(transactions).leftJoin(accounts, eq12(transactions.accountId, accounts.id)).where(
-        and7(
-          eq12(transactions.tenantId, ctx.tenantId),
-          eq12(transactions.isReversed, false)
+      }).from(transactions).leftJoin(accounts, eq13(transactions.accountId, accounts.id)).where(
+        and8(
+          eq13(transactions.tenantId, ctx.tenantId),
+          eq13(transactions.isReversed, false)
         )
       );
       const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -35954,8 +35986,8 @@ var appRouter = router({
     }),
     // Opening Balances management for new periods
     getOpeningBalances: tenantProcedure.input(
-      z7.object({
-        periodName: z7.string().optional()
+      z8.object({
+        periodName: z8.string().optional()
       })
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
@@ -35963,21 +35995,21 @@ var appRouter = router({
       if (!db) return [];
       const period = input.periodName || "\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026";
       return await db.select().from(openingBalances).where(
-        and7(
-          eq12(openingBalances.tenantId, ctx.tenantId),
-          eq12(openingBalances.periodName, period)
+        and8(
+          eq13(openingBalances.tenantId, ctx.tenantId),
+          eq13(openingBalances.periodName, period)
         )
       );
     }),
     saveOpeningBalances: tenantProcedure.input(
-      z7.object({
-        periodName: z7.string(),
-        balances: z7.array(
-          z7.object({
-            accountId: z7.number(),
-            amount: z7.string(),
-            type: z7.enum(["debit", "credit"]),
-            notes: z7.string().optional()
+      z8.object({
+        periodName: z8.string(),
+        balances: z8.array(
+          z8.object({
+            accountId: z8.number(),
+            amount: z8.string(),
+            type: z8.enum(["debit", "credit"]),
+            notes: z8.string().optional()
           })
         )
       })
@@ -35987,10 +36019,10 @@ var appRouter = router({
       if (!db) throw new Error("Database not available");
       for (const item of input.balances) {
         const existing = await db.select().from(openingBalances).where(
-          and7(
-            eq12(openingBalances.tenantId, ctx.tenantId),
-            eq12(openingBalances.accountId, item.accountId),
-            eq12(openingBalances.periodName, input.periodName)
+          and8(
+            eq13(openingBalances.tenantId, ctx.tenantId),
+            eq13(openingBalances.accountId, item.accountId),
+            eq13(openingBalances.periodName, input.periodName)
           )
         ).limit(1);
         if (existing.length > 0) {
@@ -35998,7 +36030,7 @@ var appRouter = router({
             amount: item.amount,
             type: item.type,
             notes: item.notes || null
-          }).where(eq12(openingBalances.id, existing[0].id));
+          }).where(eq13(openingBalances.id, existing[0].id));
         } else {
           await db.insert(openingBalances).values({
             tenantId: ctx.tenantId,
@@ -36021,9 +36053,9 @@ var appRouter = router({
     // Period Closing (إقفال الدورة) — preview balances then post closing entries
     closing: router({
       preview: tenantProcedure.input(
-        z7.object({
-          periodName: z7.string().default("\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026"),
-          asOfDate: z7.string().optional()
+        z8.object({
+          periodName: z8.string().default("\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026"),
+          asOfDate: z8.string().optional()
         })
       ).query(async ({ input, ctx }) => {
         const db = await getDb();
@@ -36032,20 +36064,20 @@ var appRouter = router({
         const tid = requireTenantId(ctx);
         const asOf = input.asOfDate ? new Date(input.asOfDate) : /* @__PURE__ */ new Date();
         const allAccounts = await db.select().from(accounts).where(
-          and7(eq12(accounts.tenantId, tid), eq12(accounts.isActive, true))
+          and8(eq13(accounts.tenantId, tid), eq13(accounts.isActive, true))
         );
         const opening = await db.select().from(openingBalances).where(
-          and7(
-            eq12(openingBalances.tenantId, tid),
-            eq12(openingBalances.periodName, input.periodName),
+          and8(
+            eq13(openingBalances.tenantId, tid),
+            eq13(openingBalances.periodName, input.periodName),
             lte5(openingBalances.createdAt, asOf)
           )
         );
         const txns = await db.select().from(transactions).where(
-          and7(
-            eq12(transactions.tenantId, tid),
+          and8(
+            eq13(transactions.tenantId, tid),
             lte5(transactions.transactionDate, asOf),
-            eq12(transactions.isReversed, false),
+            eq13(transactions.isReversed, false),
             or4(
               isNull4(transactions.referenceType),
               ne3(transactions.referenceType, "closing")
@@ -36083,10 +36115,10 @@ var appRouter = router({
         };
       }),
       execute: tenantProcedure.input(
-        z7.object({
-          periodName: z7.string().default("\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026"),
-          asOfDate: z7.string().optional(),
-          retainedAccountId: z7.number().optional()
+        z8.object({
+          periodName: z8.string().default("\u0627\u0644\u0633\u0646\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 2026"),
+          asOfDate: z8.string().optional(),
+          retainedAccountId: z8.number().optional()
         })
       ).mutation(async ({ input, ctx }) => {
         const db = await getDb();
@@ -36094,9 +36126,9 @@ var appRouter = router({
         const asOf = input.asOfDate ? new Date(input.asOfDate) : /* @__PURE__ */ new Date();
         const tid = requireTenantId(ctx);
         const already = await db.select().from(transactions).where(
-          and7(
-            eq12(transactions.tenantId, tid),
-            eq12(transactions.referenceType, "closing"),
+          and8(
+            eq13(transactions.tenantId, tid),
+            eq13(transactions.referenceType, "closing"),
             ilike5(transactions.narration, `%${input.periodName}%`)
           )
         ).limit(1);
@@ -36107,16 +36139,16 @@ var appRouter = router({
         let retainedId = input.retainedAccountId;
         if (!retainedId) {
           const eq3010 = await db.select().from(accounts).where(
-            and7(
-              eq12(accounts.tenantId, tid),
-              eq12(accounts.code, "3010"),
-              eq12(accounts.type, "equity")
+            and8(
+              eq13(accounts.tenantId, tid),
+              eq13(accounts.code, "3010"),
+              eq13(accounts.type, "equity")
             )
           ).limit(1);
           const fallback = eq3010.length > 0 ? eq3010[0].id : (await db.select().from(accounts).where(
-            and7(
-              eq12(accounts.tenantId, tid),
-              eq12(accounts.type, "equity")
+            and8(
+              eq13(accounts.tenantId, tid),
+              eq13(accounts.type, "equity")
             )
           ).limit(1))[0]?.id;
           if (!fallback)
@@ -36125,19 +36157,19 @@ var appRouter = router({
             );
           retainedId = fallback;
         }
-        const allAccounts = await db.select().from(accounts).where(eq12(accounts.tenantId, tid));
+        const allAccounts = await db.select().from(accounts).where(eq13(accounts.tenantId, tid));
         const opening = await db.select().from(openingBalances).where(
-          and7(
-            eq12(openingBalances.tenantId, tid),
-            eq12(openingBalances.periodName, input.periodName),
+          and8(
+            eq13(openingBalances.tenantId, tid),
+            eq13(openingBalances.periodName, input.periodName),
             lte5(openingBalances.createdAt, asOf)
           )
         );
         const txns = await db.select().from(transactions).where(
-          and7(
-            eq12(transactions.tenantId, tid),
+          and8(
+            eq13(transactions.tenantId, tid),
             lte5(transactions.transactionDate, asOf),
-            eq12(transactions.isReversed, false)
+            eq13(transactions.isReversed, false)
           )
         );
         const balanceOf = /* @__PURE__ */ new Map();
@@ -36239,10 +36271,10 @@ var appRouter = router({
       if (!db)
         return { status: "OK", score: 100, warnings: [], recommendations: [] };
       const tid = requireTenantId(ctx);
-      const allAccounts = await db.select().from(accounts).where(eq12(accounts.tenantId, tid));
+      const allAccounts = await db.select().from(accounts).where(eq13(accounts.tenantId, tid));
       const allTransactions = await db.select().from(transactions).where(
-        and7(
-          eq12(transactions.tenantId, tid),
+        and8(
+          eq13(transactions.tenantId, tid),
           inArray3(transactions.lifecycleStatus, ["approved", "posted"])
         )
       );
@@ -36309,9 +36341,9 @@ var appRouter = router({
     }),
     // Smart Document & Image Parser with AI for Merchant Auditing
     smartParseDocumentOrImage: tenantProcedure.input(
-      z7.object({
-        fileUrl: z7.string().optional(),
-        rawText: z7.string().optional()
+      z8.object({
+        fileUrl: z8.string().optional(),
+        rawText: z8.string().optional()
       })
     ).mutation(async ({ input }) => {
       const allAccounts = await (await getDb())?.select().from(accounts) || [];
@@ -36379,21 +36411,21 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
       const db = await getDb();
       if (!db) return { tenants: [], branches: [] };
       if (!ctx.tenantId) return { tenants: [], branches: [] };
-      const userTenant = await db.select().from(tenants).where(eq12(tenants.id, ctx.tenantId)).limit(1);
+      const userTenant = await db.select().from(tenants).where(eq13(tenants.id, ctx.tenantId)).limit(1);
       if (userTenant.length === 0) {
         return { tenants: [], branches: [] };
       }
       return {
         tenants: userTenant,
-        branches: await db.select().from(branches).where(eq12(branches.tenantId, ctx.tenantId))
+        branches: await db.select().from(branches).where(eq13(branches.tenantId, ctx.tenantId))
       };
     }),
     createBranch: tenantProcedure.input(
-      z7.object({
-        tenantId: z7.number(),
-        name: z7.string(),
-        code: z7.string(),
-        city: z7.string().optional()
+      z8.object({
+        tenantId: z8.number(),
+        name: z8.string(),
+        code: z8.string(),
+        city: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -36415,30 +36447,30 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
     }),
     // Custom role & branch permissions management
     getUserPermissions: tenantProcedure.input(
-      z7.object({
-        userId: z7.number()
+      z8.object({
+        userId: z8.number()
       })
     ).query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(userBranchPermissions).where(eq12(userBranchPermissions.userId, input.userId));
+      return await db.select().from(userBranchPermissions).where(eq13(userBranchPermissions.userId, input.userId));
     }),
     saveUserPermission: tenantProcedure.input(
-      z7.object({
-        userId: z7.number(),
-        branchId: z7.number(),
-        canView: z7.boolean(),
-        canInsert: z7.boolean(),
-        canApprove: z7.boolean(),
-        canPost: z7.boolean()
+      z8.object({
+        userId: z8.number(),
+        branchId: z8.number(),
+        canView: z8.boolean(),
+        canInsert: z8.boolean(),
+        canApprove: z8.boolean(),
+        canPost: z8.boolean()
       })
     ).mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(userBranchPermissions).where(
-        and7(
-          eq12(userBranchPermissions.userId, input.userId),
-          eq12(userBranchPermissions.branchId, input.branchId)
+        and8(
+          eq13(userBranchPermissions.userId, input.userId),
+          eq13(userBranchPermissions.branchId, input.branchId)
         )
       );
       if (existing.length > 0) {
@@ -36447,7 +36479,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
           canInsert: input.canInsert,
           canApprove: input.canApprove,
           canPost: input.canPost
-        }).where(eq12(userBranchPermissions.id, existing[0].id));
+        }).where(eq13(userBranchPermissions.id, existing[0].id));
       } else {
         await db.insert(userBranchPermissions).values({
           tenantId: ctx.tenantId,
@@ -36479,7 +36511,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
         type: transactions.type,
         branchId: transactions.branchId,
         accountType: accounts.type
-      }).from(transactions).leftJoin(accounts, eq12(transactions.accountId, accounts.id)).where(inArray3(transactions.lifecycleStatus, ["approved", "posted"]));
+      }).from(transactions).leftJoin(accounts, eq13(transactions.accountId, accounts.id)).where(inArray3(transactions.lifecycleStatus, ["approved", "posted"]));
       const branchStats = /* @__PURE__ */ new Map();
       for (const b of allBranches) {
         branchStats.set(b.id, { revenue: 0, expenses: 0, count: 0 });
@@ -36537,7 +36569,7 @@ ${input.rawText || input.fileUrl || "\u0644\u0627 \u064A\u0648\u062C\u062F \u064
         narration: transactions.narration,
         lifecycleStatus: transactions.lifecycleStatus,
         isReversed: transactions.isReversed
-      }).from(transactions).leftJoin(accounts, eq12(transactions.accountId, accounts.id)).where(eq12(transactions.isReversed, false)).orderBy(desc5(transactions.transactionDate), desc5(transactions.id));
+      }).from(transactions).leftJoin(accounts, eq13(transactions.accountId, accounts.id)).where(eq13(transactions.isReversed, false)).orderBy(desc5(transactions.transactionDate), desc5(transactions.id));
       const allAccts = await db.select().from(accounts);
       const allBudgets = await db.select().from(budgets).orderBy(desc5(budgets.id));
       const approved = allTx.filter(
@@ -36715,9 +36747,9 @@ ${analysisText}
           activityLogs: []
         };
       const tid = ctx.tenantId;
-      const tenantSalesIds = db.select({ id: salesInvoices.id }).from(salesInvoices).where(eq12(salesInvoices.tenantId, tid));
-      const tenantPurchaseIds = db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(eq12(purchaseInvoices.tenantId, tid));
-      const tenantOrderIds = db.select({ id: orders.id }).from(orders).where(eq12(orders.tenantId, tid));
+      const tenantSalesIds = db.select({ id: salesInvoices.id }).from(salesInvoices).where(eq13(salesInvoices.tenantId, tid));
+      const tenantPurchaseIds = db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(eq13(purchaseInvoices.tenantId, tid));
+      const tenantOrderIds = db.select({ id: orders.id }).from(orders).where(eq13(orders.tenantId, tid));
       const [
         allAccounts,
         allTransactions,
@@ -36740,26 +36772,26 @@ ${analysisText}
         allPayments,
         allActivityLogs
       ] = await Promise.all([
-        db.select().from(accounts).where(eq12(accounts.tenantId, tid)).orderBy(asc5(accounts.code)),
-        db.select().from(transactions).where(eq12(transactions.tenantId, tid)).orderBy(desc5(transactions.id)).limit(500),
-        db.select().from(settings).where(eq12(settings.tenantId, tid)).limit(1),
-        db.select().from(budgets).where(eq12(budgets.tenantId, tid)).orderBy(desc5(budgets.id)),
-        db.select().from(openingBalances).where(eq12(openingBalances.tenantId, tid)),
-        db.select().from(branches).where(eq12(branches.tenantId, tid)),
-        db.select().from(tenants).where(eq12(tenants.id, tid)),
-        db.select().from(products).where(and7(eq12(products.tenantId, tid), isNull4(products.deletedAt))).orderBy(asc5(products.code)),
-        db.select().from(warehouses).where(eq12(warehouses.tenantId, tid)),
-        db.select().from(inventoryMovements).where(eq12(inventoryMovements.tenantId, tid)).orderBy(desc5(inventoryMovements.createdAt)).limit(500),
-        db.select().from(customers).where(and7(eq12(customers.tenantId, tid), isNull4(customers.deletedAt))).orderBy(asc5(customers.code)),
-        db.select().from(suppliers).where(and7(eq12(suppliers.tenantId, tid), isNull4(suppliers.deletedAt))).orderBy(asc5(suppliers.code)),
-        db.select().from(salesInvoices).where(eq12(salesInvoices.tenantId, tid)).orderBy(desc5(salesInvoices.createdAt)).limit(200),
+        db.select().from(accounts).where(eq13(accounts.tenantId, tid)).orderBy(asc5(accounts.code)),
+        db.select().from(transactions).where(eq13(transactions.tenantId, tid)).orderBy(desc5(transactions.id)).limit(500),
+        db.select().from(settings).where(eq13(settings.tenantId, tid)).limit(1),
+        db.select().from(budgets).where(eq13(budgets.tenantId, tid)).orderBy(desc5(budgets.id)),
+        db.select().from(openingBalances).where(eq13(openingBalances.tenantId, tid)),
+        db.select().from(branches).where(eq13(branches.tenantId, tid)),
+        db.select().from(tenants).where(eq13(tenants.id, tid)),
+        db.select().from(products).where(and8(eq13(products.tenantId, tid), isNull4(products.deletedAt))).orderBy(asc5(products.code)),
+        db.select().from(warehouses).where(eq13(warehouses.tenantId, tid)),
+        db.select().from(inventoryMovements).where(eq13(inventoryMovements.tenantId, tid)).orderBy(desc5(inventoryMovements.createdAt)).limit(500),
+        db.select().from(customers).where(and8(eq13(customers.tenantId, tid), isNull4(customers.deletedAt))).orderBy(asc5(customers.code)),
+        db.select().from(suppliers).where(and8(eq13(suppliers.tenantId, tid), isNull4(suppliers.deletedAt))).orderBy(asc5(suppliers.code)),
+        db.select().from(salesInvoices).where(eq13(salesInvoices.tenantId, tid)).orderBy(desc5(salesInvoices.createdAt)).limit(200),
         db.select().from(salesInvoiceItems).where(inArray3(salesInvoiceItems.invoiceId, tenantSalesIds)),
-        db.select().from(purchaseInvoices).where(eq12(purchaseInvoices.tenantId, tid)).orderBy(desc5(purchaseInvoices.createdAt)).limit(200),
+        db.select().from(purchaseInvoices).where(eq13(purchaseInvoices.tenantId, tid)).orderBy(desc5(purchaseInvoices.createdAt)).limit(200),
         db.select().from(purchaseInvoiceItems).where(inArray3(purchaseInvoiceItems.invoiceId, tenantPurchaseIds)),
-        db.select().from(orders).where(eq12(orders.tenantId, tid)).orderBy(desc5(orders.createdAt)).limit(200),
+        db.select().from(orders).where(eq13(orders.tenantId, tid)).orderBy(desc5(orders.createdAt)).limit(200),
         db.select().from(orderItems).where(inArray3(orderItems.orderId, tenantOrderIds)),
-        db.select().from(payments).where(eq12(payments.tenantId, tid)).orderBy(desc5(payments.createdAt)).limit(500),
-        db.select().from(activityLogs).where(eq12(activityLogs.tenantId, tid)).orderBy(desc5(activityLogs.createdAt)).limit(200)
+        db.select().from(payments).where(eq13(payments.tenantId, tid)).orderBy(desc5(payments.createdAt)).limit(500),
+        db.select().from(activityLogs).where(eq13(activityLogs.tenantId, tid)).orderBy(desc5(activityLogs.createdAt)).limit(200)
       ]);
       return {
         accounts: allAccounts,
@@ -36787,15 +36819,15 @@ ${analysisText}
     }),
     // Push batch of offline mutations (for bulk sync)
     pushMutations: tenantProcedure.input(
-      z7.object({
-        mutations: z7.array(
-          z7.object({
-            table: z7.string(),
-            operation: z7.enum(["create", "update", "delete"]),
-            recordId: z7.string(),
-            payload: z7.any(),
-            timestamp: z7.number(),
-            deviceId: z7.string()
+      z8.object({
+        mutations: z8.array(
+          z8.object({
+            table: z8.string(),
+            operation: z8.enum(["create", "update", "delete"]),
+            recordId: z8.string(),
+            payload: z8.any(),
+            timestamp: z8.number(),
+            deviceId: z8.string()
           })
         )
       })
@@ -36824,10 +36856,10 @@ ${analysisText}
                 type: mutation.payload.type,
                 isActive: mutation.payload.isActive,
                 parentAccountId: mutation.payload.parentAccountId
-              }).where(eq12(accounts.id, mutation.payload.id));
+              }).where(eq13(accounts.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.delete(accounts).where(eq12(accounts.id, mutation.payload.id));
+              await db.delete(accounts).where(eq13(accounts.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "transactions") {
@@ -36855,16 +36887,16 @@ ${analysisText}
                 narration: mutation.payload.narration,
                 notes: mutation.payload.notes,
                 lifecycleStatus: mutation.payload.lifecycleStatus
-              }).where(eq12(transactions.id, mutation.payload.id));
+              }).where(eq13(transactions.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.delete(transactions).where(eq12(transactions.id, mutation.payload.id));
+              await db.delete(transactions).where(eq13(transactions.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "settings") {
             const existing = await db.select().from(settings).limit(1);
             if (existing.length > 0) {
-              await db.update(settings).set(mutation.payload).where(eq12(settings.id, existing[0].id));
+              await db.update(settings).set(mutation.payload).where(eq13(settings.id, existing[0].id));
             } else {
               await db.insert(settings).values(mutation.payload);
             }
@@ -36877,9 +36909,9 @@ ${analysisText}
           } else if (mutation.table === "openingBalances") {
             if (mutation.operation === "create" || mutation.operation === "update") {
               const existing = await db.select().from(openingBalances).where(
-                and7(
-                  eq12(openingBalances.accountId, mutation.payload.accountId),
-                  eq12(
+                and8(
+                  eq13(openingBalances.accountId, mutation.payload.accountId),
+                  eq13(
                     openingBalances.periodName,
                     mutation.payload.periodName
                   )
@@ -36890,7 +36922,7 @@ ${analysisText}
                   amount: mutation.payload.amount,
                   type: mutation.payload.type,
                   notes: mutation.payload.notes
-                }).where(eq12(openingBalances.id, existing[0].id));
+                }).where(eq13(openingBalances.id, existing[0].id));
               } else {
                 await db.insert(openingBalances).values(mutation.payload);
               }
@@ -36904,10 +36936,10 @@ ${analysisText}
               });
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(products).set(mutation.payload).where(eq12(products.id, mutation.payload.id));
+              await db.update(products).set(mutation.payload).where(eq13(products.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.update(products).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq12(products.id, mutation.payload.id));
+              await db.update(products).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq13(products.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "customers") {
@@ -36918,10 +36950,10 @@ ${analysisText}
               });
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(customers).set(mutation.payload).where(eq12(customers.id, mutation.payload.id));
+              await db.update(customers).set(mutation.payload).where(eq13(customers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.update(customers).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq12(customers.id, mutation.payload.id));
+              await db.update(customers).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq13(customers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "suppliers") {
@@ -36932,10 +36964,10 @@ ${analysisText}
               });
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(suppliers).set(mutation.payload).where(eq12(suppliers.id, mutation.payload.id));
+              await db.update(suppliers).set(mutation.payload).where(eq13(suppliers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.operation === "delete" && mutation.payload.id) {
-              await db.update(suppliers).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq12(suppliers.id, mutation.payload.id));
+              await db.update(suppliers).set({ deletedAt: /* @__PURE__ */ new Date() }).where(eq13(suppliers.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "warehouses") {
@@ -36957,7 +36989,7 @@ ${analysisText}
                 serverId: inserted[0]?.id
               });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(salesInvoices).set(mutation.payload).where(eq12(salesInvoices.id, mutation.payload.id));
+              await db.update(salesInvoices).set(mutation.payload).where(eq13(salesInvoices.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "salesInvoiceItems") {
@@ -36974,7 +37006,7 @@ ${analysisText}
                 serverId: inserted[0]?.id
               });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(purchaseInvoices).set(mutation.payload).where(eq12(purchaseInvoices.id, mutation.payload.id));
+              await db.update(purchaseInvoices).set(mutation.payload).where(eq13(purchaseInvoices.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "purchaseInvoiceItems") {
@@ -36991,7 +37023,7 @@ ${analysisText}
                 serverId: inserted[0]?.id
               });
             } else if (mutation.operation === "update" && mutation.payload.id) {
-              await db.update(orders).set(mutation.payload).where(eq12(orders.id, mutation.payload.id));
+              await db.update(orders).set(mutation.payload).where(eq13(orders.id, mutation.payload.id));
               results.push({ recordId: mutation.recordId, status: "ok" });
             }
           } else if (mutation.table === "orderItems") {
@@ -37033,9 +37065,9 @@ ${analysisText}
     }),
     // Get changes since a timestamp (incremental sync)
     getChangesSince: tenantProcedure.input(
-      z7.object({
-        since: z7.string().datetime(),
-        tables: z7.array(z7.string()).optional()
+      z8.object({
+        since: z8.string().datetime(),
+        tables: z8.array(z8.string()).optional()
       })
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -37073,50 +37105,50 @@ ${analysisText}
       ];
       const changes = {};
       const tid = ctx.tenantId;
-      const tenantSalesIds = db.select({ id: salesInvoices.id }).from(salesInvoices).where(eq12(salesInvoices.tenantId, tid));
-      const tenantPurchaseIds = db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(eq12(purchaseInvoices.tenantId, tid));
-      const tenantOrderIds = db.select({ id: orders.id }).from(orders).where(eq12(orders.tenantId, tid));
+      const tenantSalesIds = db.select({ id: salesInvoices.id }).from(salesInvoices).where(eq13(salesInvoices.tenantId, tid));
+      const tenantPurchaseIds = db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(eq13(purchaseInvoices.tenantId, tid));
+      const tenantOrderIds = db.select({ id: orders.id }).from(orders).where(eq13(orders.tenantId, tid));
       for (const table of tablesToSync) {
         switch (table) {
           case "accounts":
             changes.accounts = await db.select().from(accounts).where(
-              and7(
-                eq12(accounts.tenantId, tid),
+              and8(
+                eq13(accounts.tenantId, tid),
                 gte6(accounts.updatedAt, sinceDate)
               )
             );
             break;
           case "transactions":
             changes.transactions = await db.select().from(transactions).where(
-              and7(
-                eq12(transactions.tenantId, tid),
+              and8(
+                eq13(transactions.tenantId, tid),
                 gte6(transactions.updatedAt, sinceDate)
               )
             );
             break;
           case "settings":
-            changes.settings = await db.select().from(settings).where(eq12(settings.tenantId, tid));
+            changes.settings = await db.select().from(settings).where(eq13(settings.tenantId, tid));
             break;
           case "budgets":
             changes.budgets = await db.select().from(budgets).where(
-              and7(
-                eq12(budgets.tenantId, tid),
+              and8(
+                eq13(budgets.tenantId, tid),
                 gte6(budgets.createdAt, sinceDate)
               )
             );
             break;
           case "openingBalances":
             changes.openingBalances = await db.select().from(openingBalances).where(
-              and7(
-                eq12(openingBalances.tenantId, tid),
+              and8(
+                eq13(openingBalances.tenantId, tid),
                 gte6(openingBalances.createdAt, sinceDate)
               )
             );
             break;
           case "products":
             changes.products = await db.select().from(products).where(
-              and7(
-                eq12(products.tenantId, tid),
+              and8(
+                eq13(products.tenantId, tid),
                 gte6(products.updatedAt, sinceDate),
                 isNull4(products.deletedAt)
               )
@@ -37124,24 +37156,24 @@ ${analysisText}
             break;
           case "warehouses":
             changes.warehouses = await db.select().from(warehouses).where(
-              and7(
-                eq12(warehouses.tenantId, tid),
+              and8(
+                eq13(warehouses.tenantId, tid),
                 gte6(warehouses.createdAt, sinceDate)
               )
             );
             break;
           case "inventoryMovements":
             changes.inventoryMovements = await db.select().from(inventoryMovements).where(
-              and7(
-                eq12(inventoryMovements.tenantId, tid),
+              and8(
+                eq13(inventoryMovements.tenantId, tid),
                 gte6(inventoryMovements.createdAt, sinceDate)
               )
             );
             break;
           case "customers":
             changes.customers = await db.select().from(customers).where(
-              and7(
-                eq12(customers.tenantId, tid),
+              and8(
+                eq13(customers.tenantId, tid),
                 gte6(customers.updatedAt, sinceDate),
                 isNull4(customers.deletedAt)
               )
@@ -37149,8 +37181,8 @@ ${analysisText}
             break;
           case "suppliers":
             changes.suppliers = await db.select().from(suppliers).where(
-              and7(
-                eq12(suppliers.tenantId, tid),
+              and8(
+                eq13(suppliers.tenantId, tid),
                 gte6(suppliers.updatedAt, sinceDate),
                 isNull4(suppliers.deletedAt)
               )
@@ -37158,15 +37190,15 @@ ${analysisText}
             break;
           case "salesInvoices":
             changes.salesInvoices = await db.select().from(salesInvoices).where(
-              and7(
-                eq12(salesInvoices.tenantId, tid),
+              and8(
+                eq13(salesInvoices.tenantId, tid),
                 gte6(salesInvoices.updatedAt, sinceDate)
               )
             );
             break;
           case "salesInvoiceItems":
             changes.salesInvoiceItems = await db.select().from(salesInvoiceItems).where(
-              and7(
+              and8(
                 inArray3(salesInvoiceItems.invoiceId, tenantSalesIds),
                 gte6(salesInvoiceItems.createdAt, sinceDate)
               )
@@ -37174,15 +37206,15 @@ ${analysisText}
             break;
           case "purchaseInvoices":
             changes.purchaseInvoices = await db.select().from(purchaseInvoices).where(
-              and7(
-                eq12(purchaseInvoices.tenantId, tid),
+              and8(
+                eq13(purchaseInvoices.tenantId, tid),
                 gte6(purchaseInvoices.updatedAt, sinceDate)
               )
             );
             break;
           case "purchaseInvoiceItems":
             changes.purchaseInvoiceItems = await db.select().from(purchaseInvoiceItems).where(
-              and7(
+              and8(
                 inArray3(purchaseInvoiceItems.invoiceId, tenantPurchaseIds),
                 gte6(purchaseInvoiceItems.createdAt, sinceDate)
               )
@@ -37190,15 +37222,15 @@ ${analysisText}
             break;
           case "orders":
             changes.orders = await db.select().from(orders).where(
-              and7(
-                eq12(orders.tenantId, tid),
+              and8(
+                eq13(orders.tenantId, tid),
                 gte6(orders.updatedAt, sinceDate)
               )
             );
             break;
           case "orderItems":
             changes.orderItems = await db.select().from(orderItems).where(
-              and7(
+              and8(
                 inArray3(orderItems.orderId, tenantOrderIds),
                 gte6(orderItems.createdAt, sinceDate)
               )
@@ -37206,75 +37238,75 @@ ${analysisText}
             break;
           case "payments":
             changes.payments = await db.select().from(payments).where(
-              and7(
-                eq12(payments.tenantId, tid),
+              and8(
+                eq13(payments.tenantId, tid),
                 gte6(payments.createdAt, sinceDate)
               )
             );
             break;
           case "activityLogs":
             changes.activityLogs = await db.select().from(activityLogs).where(
-              and7(
-                eq12(activityLogs.tenantId, tid),
+              and8(
+                eq13(activityLogs.tenantId, tid),
                 gte6(activityLogs.createdAt, sinceDate)
               )
             );
             break;
           case "branches":
             changes.branches = await db.select().from(branches).where(
-              and7(
-                eq12(branches.tenantId, tid),
+              and8(
+                eq13(branches.tenantId, tid),
                 gte6(branches.createdAt, sinceDate)
               )
             );
             break;
           case "tenants":
-            changes.tenants = await db.select().from(tenants).where(eq12(tenants.id, tid));
+            changes.tenants = await db.select().from(tenants).where(eq13(tenants.id, tid));
             break;
           case "warehouseStock":
             changes.warehouseStock = await db.select().from(warehouseStock).where(
-              and7(
-                eq12(warehouseStock.tenantId, tid),
+              and8(
+                eq13(warehouseStock.tenantId, tid),
                 gte6(warehouseStock.updatedAt, sinceDate)
               )
             );
             break;
           case "inventoryBatches":
             changes.inventoryBatches = await db.select().from(inventoryBatches).where(
-              and7(
-                eq12(inventoryBatches.tenantId, tid),
+              and8(
+                eq13(inventoryBatches.tenantId, tid),
                 gte6(inventoryBatches.updatedAt, sinceDate)
               )
             );
             break;
           case "stockReservations":
             changes.stockReservations = await db.select().from(stockReservations).where(
-              and7(
-                eq12(stockReservations.tenantId, tid),
+              and8(
+                eq13(stockReservations.tenantId, tid),
                 gte6(stockReservations.updatedAt, sinceDate)
               )
             );
             break;
           case "cycleCounts":
             changes.cycleCounts = await db.select().from(cycleCounts).where(
-              and7(
-                eq12(cycleCounts.tenantId, tid),
+              and8(
+                eq13(cycleCounts.tenantId, tid),
                 gte6(cycleCounts.updatedAt, sinceDate)
               )
             );
             break;
           case "cycleCountLines":
             changes.cycleCountLines = await db.select().from(cycleCountLines).where(
-              and7(
-                eq12(cycleCountLines.tenantId, tid),
+              and8(
+                eq13(cycleCountLines.tenantId, tid),
                 gte6(cycleCountLines.updatedAt, sinceDate)
               )
             );
             break;
           case "inventoryValuationLayers":
             changes.inventoryValuationLayers = await db.select().from(inventoryValuationLayers).where(
-              and7(
-                eq12(inventoryValuationLayers.tenantId, tid),
+              and8(
+                eq13(inventoryValuationLayers.tenantId, tid),
                 gte6(inventoryValuationLayers.updatedAt, sinceDate)
               )
             );
@@ -37288,10 +37320,10 @@ ${analysisText}
     }),
     // Heartbeat: check server status and exchange device clocks
     heartbeat: tenantProcedure.input(
-      z7.object({
-        deviceId: z7.string(),
-        lastSyncAt: z7.number().optional(),
-        pendingCount: z7.number().optional()
+      z8.object({
+        deviceId: z8.string(),
+        lastSyncAt: z8.number().optional(),
+        pendingCount: z8.number().optional()
       })
     ).query(async ({ input }) => {
       const db = await getDb();
@@ -37317,11 +37349,11 @@ ${analysisText}
   // ─── Products & Inventory ──────────────────────────────────────
   products: router({
     list: tenantProcedure.input(
-      z7.object({
-        limit: z7.number().min(1).max(100).default(50),
-        offset: z7.number().min(0).default(0),
-        search: z7.string().optional(),
-        category: z7.string().optional()
+      z8.object({
+        limit: z8.number().min(1).max(100).default(50),
+        offset: z8.number().min(0).default(0),
+        search: z8.string().optional(),
+        category: z8.string().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -37330,8 +37362,8 @@ ${analysisText}
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const conditions = [
-        eq12(products.isActive, true),
-        eq12(products.tenantId, ctx.tenantId),
+        eq13(products.isActive, true),
+        eq13(products.tenantId, ctx.tenantId),
         isNull4(products.deletedAt)
       ];
       if (input?.search) {
@@ -37344,50 +37376,50 @@ ${analysisText}
         );
       }
       if (input?.category)
-        conditions.push(eq12(products.category, input.category));
-      const where = and7(...conditions);
+        conditions.push(eq13(products.category, input.category));
+      const where = and8(...conditions);
       const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(products).where(where);
       const items = await db.select().from(products).where(where).orderBy(asc5(products.code)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z7.object({
-        code: z7.string().min(1).transform((v) => v.trim()),
-        name: z7.string().min(1).transform((v) => v.trim()),
-        nameAr: z7.string().optional(),
-        type: z7.enum(["goods", "service"]).default("goods"),
-        category: z7.string().optional().transform((v) => v?.trim() || void 0),
-        unit: z7.string().default("\u0642\u0637\u0639\u0629"),
-        purchasePrice: z7.string().default("0").refine((v) => {
+      z8.object({
+        code: z8.string().min(1).transform((v) => v.trim()),
+        name: z8.string().min(1).transform((v) => v.trim()),
+        nameAr: z8.string().optional(),
+        type: z8.enum(["goods", "service"]).default("goods"),
+        category: z8.string().optional().transform((v) => v?.trim() || void 0),
+        unit: z8.string().default("\u0642\u0637\u0639\u0629"),
+        purchasePrice: z8.string().default("0").refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && isFinite(n) && n >= 0;
         }, "\u0633\u0639\u0631 \u0627\u0644\u0634\u0631\u0627\u0621 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        salePrice: z7.string().default("0").refine((v) => {
+        salePrice: z8.string().default("0").refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && isFinite(n) && n >= 0;
         }, "\u0633\u0639\u0631 \u0627\u0644\u0628\u064A\u0639 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        minStock: z7.number().int().min(0).default(0),
-        barcode: z7.string().optional(),
-        description: z7.string().optional(),
+        minStock: z8.number().int().min(0).default(0),
+        barcode: z8.string().optional(),
+        description: z8.string().optional(),
         // ─── Inventory / unit flexibility ────────────────
-        unitOfMeasure: z7.string().default("\u0642\u0637\u0639\u0629"),
-        secondaryUnit: z7.string().optional(),
-        conversionFactor: z7.string().default("1"),
+        unitOfMeasure: z8.string().default("\u0642\u0637\u0639\u0629"),
+        secondaryUnit: z8.string().optional(),
+        conversionFactor: z8.string().default("1"),
         // ─── Composite / bundled ────────────────────────
-        isComposite: z7.boolean().default(false),
-        bom: z7.string().optional(),
-        alternativeIds: z7.string().optional(),
-        attachmentUrl: z7.string().optional(),
+        isComposite: z8.boolean().default(false),
+        bom: z8.string().optional(),
+        alternativeIds: z8.string().optional(),
+        attachmentUrl: z8.string().optional(),
         // ─── Service costing & pricing ──────────────────
-        costMethod: z7.string().default("average"),
-        directCost: z7.string().default("0"),
-        indirectCost: z7.string().default("0"),
-        productionMinutes: z7.number().int().optional(),
-        priceMode: z7.enum(["direct", "costPlus"]).default("direct"),
-        marginPct: z7.string().default("0"),
-        salesAccountId: z7.number().int().optional(),
-        cogsAccountId: z7.number().int().optional(),
-        inventoryAccountId: z7.number().int().optional()
+        costMethod: z8.string().default("average"),
+        directCost: z8.string().default("0"),
+        indirectCost: z8.string().default("0"),
+        productionMinutes: z8.number().int().optional(),
+        priceMode: z8.enum(["direct", "costPlus"]).default("direct"),
+        marginPct: z8.string().default("0"),
+        salesAccountId: z8.number().int().optional(),
+        cogsAccountId: z8.number().int().optional(),
+        inventoryAccountId: z8.number().int().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -37404,38 +37436,38 @@ ${analysisText}
       return { success: true };
     }),
     update: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        name: z7.string().optional().transform((v) => v?.trim()),
-        salePrice: z7.string().optional().refine(
+      z8.object({
+        id: z8.number(),
+        name: z8.string().optional().transform((v) => v?.trim()),
+        salePrice: z8.string().optional().refine(
           (v) => v === void 0 || !isNaN(parseFloat(v)) && isFinite(parseFloat(v)) && parseFloat(v) >= 0,
           "\u0633\u0639\u0631 \u0627\u0644\u0628\u064A\u0639 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"
         ),
-        purchasePrice: z7.string().optional().refine(
+        purchasePrice: z8.string().optional().refine(
           (v) => v === void 0 || !isNaN(parseFloat(v)) && isFinite(parseFloat(v)) && parseFloat(v) >= 0,
           "\u0633\u0639\u0631 \u0627\u0644\u0634\u0631\u0627\u0621 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"
         ),
-        minStock: z7.number().int().min(0).optional(),
-        barcode: z7.string().optional(),
+        minStock: z8.number().int().min(0).optional(),
+        barcode: z8.string().optional(),
         // ─── Inventory / unit flexibility ────────────────
-        unitOfMeasure: z7.string().optional(),
-        secondaryUnit: z7.string().optional(),
-        conversionFactor: z7.string().optional(),
+        unitOfMeasure: z8.string().optional(),
+        secondaryUnit: z8.string().optional(),
+        conversionFactor: z8.string().optional(),
         // ─── Composite / bundled ────────────────────────
-        isComposite: z7.boolean().optional(),
-        bom: z7.string().optional(),
-        alternativeIds: z7.string().optional(),
-        attachmentUrl: z7.string().optional(),
+        isComposite: z8.boolean().optional(),
+        bom: z8.string().optional(),
+        alternativeIds: z8.string().optional(),
+        attachmentUrl: z8.string().optional(),
         // ─── Service costing & pricing ──────────────────
-        costMethod: z7.string().optional(),
-        directCost: z7.string().optional(),
-        indirectCost: z7.string().optional(),
-        productionMinutes: z7.number().int().optional(),
-        priceMode: z7.enum(["direct", "costPlus"]).optional(),
-        marginPct: z7.string().optional(),
-        salesAccountId: z7.number().int().optional(),
-        cogsAccountId: z7.number().int().optional(),
-        inventoryAccountId: z7.number().int().optional()
+        costMethod: z8.string().optional(),
+        directCost: z8.string().optional(),
+        indirectCost: z8.string().optional(),
+        productionMinutes: z8.number().int().optional(),
+        priceMode: z8.enum(["direct", "costPlus"]).optional(),
+        marginPct: z8.string().optional(),
+        salesAccountId: z8.number().int().optional(),
+        cogsAccountId: z8.number().int().optional(),
+        inventoryAccountId: z8.number().int().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -37443,25 +37475,25 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const { id, ...data } = input;
       await db.update(products).set(data).where(
-        and7(eq12(products.id, id), eq12(products.tenantId, ctx.tenantId))
+        and8(eq13(products.id, id), eq13(products.tenantId, ctx.tenantId))
       );
       return { success: true };
     }),
     adjustStock: tenantProcedure.input(
-      z7.object({
-        productId: z7.number(),
-        quantity: z7.number().int().min(1, "\u0627\u0644\u0643\u0645\u064A\u0629 \u064A\u062C\u0628 \u0623\u0646 \u062A\u0643\u0648\u0646 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 1"),
-        type: z7.enum(["in", "out", "adjustment"]),
-        notes: z7.string().optional()
+      z8.object({
+        productId: z8.number(),
+        quantity: z8.number().int().min(1, "\u0627\u0644\u0643\u0645\u064A\u0629 \u064A\u062C\u0628 \u0623\u0646 \u062A\u0643\u0648\u0646 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644 1"),
+        type: z8.enum(["in", "out", "adjustment"]),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const product = await db.select().from(products).where(
-        and7(
-          eq12(products.id, input.productId),
-          eq12(products.tenantId, ctx.tenantId)
+        and8(
+          eq13(products.id, input.productId),
+          eq13(products.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (product.length === 0) throw new Error("\u0627\u0644\u0645\u0646\u062A\u062C \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
@@ -37483,13 +37515,13 @@ ${analysisText}
         if (input.type === "in") {
           await tx.update(products).set({
             currentStock: sql8`${products.currentStock} + ${input.quantity}`
-          }).where(eq12(products.id, input.productId));
+          }).where(eq13(products.id, input.productId));
         } else if (input.type === "out") {
           const done = await tx.update(products).set({
             currentStock: sql8`${products.currentStock} - ${input.quantity}`
           }).where(
-            and7(
-              eq12(products.id, input.productId),
+            and8(
+              eq13(products.id, input.productId),
               gte6(products.currentStock, input.quantity)
             )
           ).returning({ id: products.id });
@@ -37498,12 +37530,12 @@ ${analysisText}
               `\u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u063A\u064A\u0631 \u0643\u0627\u0641\u064D \u2014 \u0627\u0644\u0645\u062A\u0648\u0641\u0631 \u0627\u0644\u062D\u0627\u0644\u064A \u0623\u0642\u0644 \u0645\u0646 ${input.quantity}`
             );
         } else {
-          await tx.update(products).set({ currentStock: input.quantity }).where(eq12(products.id, input.productId));
+          await tx.update(products).set({ currentStock: input.quantity }).where(eq13(products.id, input.productId));
         }
         const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(
-          and7(
-            eq12(warehouses.tenantId, ctx.tenantId),
-            eq12(warehouses.isActive, true)
+          and8(
+            eq13(warehouses.tenantId, ctx.tenantId),
+            eq13(warehouses.isActive, true)
           )
         ).orderBy(asc5(warehouses.code)).limit(1);
         const warehouseId = defaultWarehouse[0]?.id;
@@ -37536,10 +37568,10 @@ ${analysisText}
               availableQty: sql8`${warehouseStock.availableQty} - ${input.quantity}`,
               lastMovementAt: /* @__PURE__ */ new Date()
             }).where(
-              and7(
-                eq12(warehouseStock.tenantId, ctx.tenantId),
-                eq12(warehouseStock.productId, input.productId),
-                eq12(warehouseStock.warehouseId, warehouseId),
+              and8(
+                eq13(warehouseStock.tenantId, ctx.tenantId),
+                eq13(warehouseStock.productId, input.productId),
+                eq13(warehouseStock.warehouseId, warehouseId),
                 gte6(warehouseStock.availableQty, input.quantity)
               )
             );
@@ -37613,32 +37645,32 @@ ${analysisText}
     }),
     // Set an explicit opening/physical stock count
     setOpeningStock: tenantProcedure.input(
-      z7.object({
-        productId: z7.number(),
-        quantity: z7.number().int().min(0),
-        notes: z7.string().optional()
+      z8.object({
+        productId: z8.number(),
+        quantity: z8.number().int().min(0),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const prod = await db.select().from(products).where(
-        and7(
-          eq12(products.id, input.productId),
-          eq12(products.tenantId, ctx.tenantId)
+        and8(
+          eq13(products.id, input.productId),
+          eq13(products.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (!prod.length) throw new Error("\u0627\u0644\u0645\u0646\u062A\u062C \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const previous = prod[0].currentStock || 0;
       const defaultWarehouse = await db.select({ id: warehouses.id }).from(warehouses).where(
-        and7(
-          eq12(warehouses.tenantId, ctx.tenantId),
-          eq12(warehouses.isActive, true)
+        and8(
+          eq13(warehouses.tenantId, ctx.tenantId),
+          eq13(warehouses.isActive, true)
         )
       ).orderBy(asc5(warehouses.code)).limit(1);
       const warehouseId = defaultWarehouse[0]?.id;
       await db.transaction(async (tx) => {
-        await tx.update(products).set({ currentStock: input.quantity }).where(eq12(products.id, input.productId));
+        await tx.update(products).set({ currentStock: input.quantity }).where(eq13(products.id, input.productId));
         if (warehouseId) {
           await tx.insert(warehouseStock).values({
             tenantId: ctx.tenantId,
@@ -37706,12 +37738,12 @@ ${analysisText}
     }),
     // Transfer stock between warehouses (logged; global on-hand unchanged)
     transferStock: tenantProcedure.input(
-      z7.object({
-        productId: z7.number(),
-        fromWarehouseId: z7.number(),
-        toWarehouseId: z7.number(),
-        quantity: z7.number().int().min(1),
-        notes: z7.string().optional()
+      z8.object({
+        productId: z8.number(),
+        fromWarehouseId: z8.number(),
+        toWarehouseId: z8.number(),
+        quantity: z8.number().int().min(1),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -37720,10 +37752,10 @@ ${analysisText}
       if (input.fromWarehouseId === input.toWarehouseId)
         throw new Error("\u064A\u062C\u0628 \u0627\u062E\u062A\u064A\u0627\u0631 \u0645\u062E\u0632\u0646\u064A\u0646 \u0645\u062E\u062A\u0644\u0641\u064A\u0646");
       const [fromStock] = await db.select({ available: warehouseStock.availableQty }).from(warehouseStock).where(
-        and7(
-          eq12(warehouseStock.tenantId, ctx.tenantId),
-          eq12(warehouseStock.productId, input.productId),
-          eq12(warehouseStock.warehouseId, input.fromWarehouseId)
+        and8(
+          eq13(warehouseStock.tenantId, ctx.tenantId),
+          eq13(warehouseStock.productId, input.productId),
+          eq13(warehouseStock.warehouseId, input.fromWarehouseId)
         )
       ).limit(1);
       if (!fromStock || (fromStock.available || 0) < input.quantity) {
@@ -37746,10 +37778,10 @@ ${analysisText}
           availableQty: sql8`${warehouseStock.availableQty} - ${input.quantity}`,
           lastMovementAt: /* @__PURE__ */ new Date()
         }).where(
-          and7(
-            eq12(warehouseStock.tenantId, ctx.tenantId),
-            eq12(warehouseStock.productId, input.productId),
-            eq12(warehouseStock.warehouseId, input.fromWarehouseId)
+          and8(
+            eq13(warehouseStock.tenantId, ctx.tenantId),
+            eq13(warehouseStock.productId, input.productId),
+            eq13(warehouseStock.warehouseId, input.fromWarehouseId)
           )
         );
         await tx.insert(warehouseStock).values({
@@ -37797,17 +37829,17 @@ ${analysisText}
       return { success: true };
     }),
     // ─── Analytical / detailed / aggregate / evaluative reports ──────
-    stockCard: tenantProcedure.input(z7.object({ productId: z7.number() })).query(async ({ input, ctx }) => {
+    stockCard: tenantProcedure.input(z8.object({ productId: z8.number() })).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { product: null, movements: [] };
       const tid = requireTenantId(ctx);
       const [product] = await db.select().from(products).where(
-        and7(eq12(products.id, input.productId), eq12(products.tenantId, tid))
+        and8(eq13(products.id, input.productId), eq13(products.tenantId, tid))
       ).limit(1);
       const movements = await db.select().from(inventoryMovements).where(
-        and7(
-          eq12(inventoryMovements.tenantId, tid),
-          eq12(inventoryMovements.productId, input.productId)
+        and8(
+          eq13(inventoryMovements.tenantId, tid),
+          eq13(inventoryMovements.productId, input.productId)
         )
       ).orderBy(inventoryMovements.createdAt);
       let bal = 0;
@@ -37823,9 +37855,9 @@ ${analysisText}
       if (!db) return [];
       const tid = requireTenantId(ctx);
       return await db.select().from(products).where(
-        and7(
-          eq12(products.tenantId, tid),
-          eq12(products.isActive, true),
+        and8(
+          eq13(products.tenantId, tid),
+          eq13(products.isActive, true),
           isNull4(products.deletedAt),
           // currentStock <= minStock
           sql8`${products.currentStock} <= ${products.minStock}`
@@ -37837,9 +37869,9 @@ ${analysisText}
       if (!db) return { items: [], totalValue: 0, totalRetail: 0 };
       const tid = requireTenantId(ctx);
       const rows = await db.select().from(products).where(
-        and7(
-          eq12(products.tenantId, tid),
-          eq12(products.isActive, true),
+        and8(
+          eq13(products.tenantId, tid),
+          eq13(products.isActive, true),
           isNull4(products.deletedAt)
         )
       );
@@ -37878,9 +37910,9 @@ ${analysisText}
         };
       const tid = requireTenantId(ctx);
       const rows = await db.select().from(products).where(
-        and7(
-          eq12(products.tenantId, tid),
-          eq12(products.isActive, true),
+        and8(
+          eq13(products.tenantId, tid),
+          eq13(products.isActive, true),
           isNull4(products.deletedAt)
         )
       );
@@ -37918,8 +37950,8 @@ ${analysisText}
       };
     }),
     movements: tenantProcedure.input(
-      z7.object({
-        productId: z7.number().optional()
+      z8.object({
+        productId: z8.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -37927,30 +37959,30 @@ ${analysisText}
       const tid = requireTenantId(ctx);
       if (input?.productId) {
         return await db.select().from(inventoryMovements).where(
-          and7(
-            eq12(inventoryMovements.tenantId, tid),
-            eq12(inventoryMovements.productId, input.productId)
+          and8(
+            eq13(inventoryMovements.tenantId, tid),
+            eq13(inventoryMovements.productId, input.productId)
           )
         ).orderBy(desc5(inventoryMovements.createdAt));
       }
-      return await db.select().from(inventoryMovements).where(eq12(inventoryMovements.tenantId, tid)).orderBy(desc5(inventoryMovements.createdAt));
+      return await db.select().from(inventoryMovements).where(eq13(inventoryMovements.tenantId, tid)).orderBy(desc5(inventoryMovements.createdAt));
     }),
     // ─── Warehouse Stock (Per-location inventory) ─────────────────────
     warehouseStockList: tenantProcedure.input(
-      z7.object({
-        warehouseId: z7.number().optional(),
-        productId: z7.number().optional(),
-        lowStockOnly: z7.boolean().optional()
+      z8.object({
+        warehouseId: z8.number().optional(),
+        productId: z8.number().optional(),
+        lowStockOnly: z8.boolean().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      const conditions = [eq12(warehouseStock.tenantId, tid)];
+      const conditions = [eq13(warehouseStock.tenantId, tid)];
       if (input?.warehouseId)
-        conditions.push(eq12(warehouseStock.warehouseId, input.warehouseId));
+        conditions.push(eq13(warehouseStock.warehouseId, input.warehouseId));
       if (input?.productId)
-        conditions.push(eq12(warehouseStock.productId, input.productId));
+        conditions.push(eq13(warehouseStock.productId, input.productId));
       if (input?.lowStockOnly) {
         conditions.push(
           sql8`${warehouseStock.availableQty} <= (SELECT minStock FROM products WHERE products.id = ${warehouseStock.productId})`
@@ -37970,41 +38002,41 @@ ${analysisText}
         minStock: products.minStock,
         warehouseCode: warehouses.code,
         warehouseName: warehouses.name
-      }).from(warehouseStock).leftJoin(products, eq12(warehouseStock.productId, products.id)).leftJoin(warehouses, eq12(warehouseStock.warehouseId, warehouses.id)).where(and7(...conditions)).orderBy(asc5(warehouses.code), asc5(products.code));
+      }).from(warehouseStock).leftJoin(products, eq13(warehouseStock.productId, products.id)).leftJoin(warehouses, eq13(warehouseStock.warehouseId, warehouses.id)).where(and8(...conditions)).orderBy(asc5(warehouses.code), asc5(products.code));
     }),
-    warehouseStockGet: tenantProcedure.input(z7.object({ productId: z7.number(), warehouseId: z7.number() })).query(async ({ input, ctx }) => {
+    warehouseStockGet: tenantProcedure.input(z8.object({ productId: z8.number(), warehouseId: z8.number() })).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return null;
       const tid = requireTenantId(ctx);
       const [row] = await db.select().from(warehouseStock).where(
-        and7(
-          eq12(warehouseStock.tenantId, tid),
-          eq12(warehouseStock.productId, input.productId),
-          eq12(warehouseStock.warehouseId, input.warehouseId)
+        and8(
+          eq13(warehouseStock.tenantId, tid),
+          eq13(warehouseStock.productId, input.productId),
+          eq13(warehouseStock.warehouseId, input.warehouseId)
         )
       ).limit(1);
       return row || { quantity: 0, reservedQty: 0, availableQty: 0 };
     }),
     // ─── Inventory Batches (Traceability) ─────────────────────────────
     batchList: tenantProcedure.input(
-      z7.object({
-        productId: z7.number().optional(),
-        warehouseId: z7.number().optional(),
-        expiringSoon: z7.boolean().optional(),
-        daysAhead: z7.number().optional()
+      z8.object({
+        productId: z8.number().optional(),
+        warehouseId: z8.number().optional(),
+        expiringSoon: z8.boolean().optional(),
+        daysAhead: z8.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
       const conditions = [
-        eq12(inventoryBatches.tenantId, tid),
-        eq12(inventoryBatches.isActive, true)
+        eq13(inventoryBatches.tenantId, tid),
+        eq13(inventoryBatches.isActive, true)
       ];
       if (input?.productId)
-        conditions.push(eq12(inventoryBatches.productId, input.productId));
+        conditions.push(eq13(inventoryBatches.productId, input.productId));
       if (input?.warehouseId)
-        conditions.push(eq12(inventoryBatches.warehouseId, input.warehouseId));
+        conditions.push(eq13(inventoryBatches.warehouseId, input.warehouseId));
       if (input?.expiringSoon) {
         const days = input.daysAhead || 30;
         const futureDate = /* @__PURE__ */ new Date();
@@ -38030,35 +38062,35 @@ ${analysisText}
         productName: products.name,
         warehouseCode: warehouses.code,
         warehouseName: warehouses.name
-      }).from(inventoryBatches).leftJoin(products, eq12(inventoryBatches.productId, products.id)).leftJoin(warehouses, eq12(inventoryBatches.warehouseId, warehouses.id)).where(and7(...conditions)).orderBy(
+      }).from(inventoryBatches).leftJoin(products, eq13(inventoryBatches.productId, products.id)).leftJoin(warehouses, eq13(inventoryBatches.warehouseId, warehouses.id)).where(and8(...conditions)).orderBy(
         asc5(inventoryBatches.expiryDate),
         asc5(inventoryBatches.batchNumber)
       );
     }),
     batchCreate: tenantProcedure.input(
-      z7.object({
-        productId: z7.number(),
-        warehouseId: z7.number(),
-        batchNumber: z7.string().min(1),
-        lotNumber: z7.string().optional(),
-        serialNumber: z7.string().optional(),
-        manufacturingDate: z7.string().optional(),
-        expiryDate: z7.string().optional(),
-        quantity: z7.number().int().min(1),
-        unitCost: z7.string().optional(),
-        purchaseInvoiceId: z7.number().optional(),
-        notes: z7.string().optional()
+      z8.object({
+        productId: z8.number(),
+        warehouseId: z8.number(),
+        batchNumber: z8.string().min(1),
+        lotNumber: z8.string().optional(),
+        serialNumber: z8.string().optional(),
+        manufacturingDate: z8.string().optional(),
+        expiryDate: z8.string().optional(),
+        quantity: z8.number().int().min(1),
+        unitCost: z8.string().optional(),
+        purchaseInvoiceId: z8.number().optional(),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(inventoryBatches).where(
-        and7(
-          eq12(inventoryBatches.tenantId, ctx.tenantId),
-          eq12(inventoryBatches.productId, input.productId),
-          eq12(inventoryBatches.warehouseId, input.warehouseId),
-          eq12(inventoryBatches.batchNumber, input.batchNumber)
+        and8(
+          eq13(inventoryBatches.tenantId, ctx.tenantId),
+          eq13(inventoryBatches.productId, input.productId),
+          eq13(inventoryBatches.warehouseId, input.warehouseId),
+          eq13(inventoryBatches.batchNumber, input.batchNumber)
         )
       ).limit(1);
       if (existing.length > 0)
@@ -38082,28 +38114,28 @@ ${analysisText}
     }),
     // ─── Stock Reservations ──────────────────────────────────────────
     reservationList: tenantProcedure.input(
-      z7.object({
-        productId: z7.number().optional(),
-        warehouseId: z7.number().optional(),
-        status: z7.string().optional(),
-        source: z7.string().optional(),
-        sourceId: z7.number().optional()
+      z8.object({
+        productId: z8.number().optional(),
+        warehouseId: z8.number().optional(),
+        status: z8.string().optional(),
+        source: z8.string().optional(),
+        sourceId: z8.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      const conditions = [eq12(stockReservations.tenantId, tid)];
+      const conditions = [eq13(stockReservations.tenantId, tid)];
       if (input?.productId)
-        conditions.push(eq12(stockReservations.productId, input.productId));
+        conditions.push(eq13(stockReservations.productId, input.productId));
       if (input?.warehouseId)
-        conditions.push(eq12(stockReservations.warehouseId, input.warehouseId));
+        conditions.push(eq13(stockReservations.warehouseId, input.warehouseId));
       if (input?.status)
-        conditions.push(eq12(stockReservations.status, input.status));
+        conditions.push(eq13(stockReservations.status, input.status));
       if (input?.source)
-        conditions.push(eq12(stockReservations.source, input.source));
+        conditions.push(eq13(stockReservations.source, input.source));
       if (input?.sourceId)
-        conditions.push(eq12(stockReservations.sourceId, input.sourceId));
+        conditions.push(eq13(stockReservations.sourceId, input.sourceId));
       return await db.select({
         id: stockReservations.id,
         productId: stockReservations.productId,
@@ -38123,26 +38155,26 @@ ${analysisText}
         warehouseCode: warehouses.code,
         warehouseName: warehouses.name,
         batchNumber: inventoryBatches.batchNumber
-      }).from(stockReservations).leftJoin(products, eq12(stockReservations.productId, products.id)).leftJoin(
+      }).from(stockReservations).leftJoin(products, eq13(stockReservations.productId, products.id)).leftJoin(
         warehouses,
-        eq12(stockReservations.warehouseId, warehouses.id)
+        eq13(stockReservations.warehouseId, warehouses.id)
       ).leftJoin(
         inventoryBatches,
-        eq12(stockReservations.batchId, inventoryBatches.id)
-      ).where(and7(...conditions)).orderBy(desc5(stockReservations.createdAt));
+        eq13(stockReservations.batchId, inventoryBatches.id)
+      ).where(and8(...conditions)).orderBy(desc5(stockReservations.createdAt));
     }),
     reservationCreate: tenantProcedure.input(
-      z7.object({
-        productId: z7.number(),
-        warehouseId: z7.number().optional(),
-        batchId: z7.number().optional(),
-        quantity: z7.number().int().min(1),
-        source: z7.string().default("manual"),
-        sourceId: z7.number().optional(),
-        sourceType: z7.string().optional(),
-        customerId: z7.number().optional(),
-        expiresAt: z7.string().optional(),
-        notes: z7.string().optional()
+      z8.object({
+        productId: z8.number(),
+        warehouseId: z8.number().optional(),
+        batchId: z8.number().optional(),
+        quantity: z8.number().int().min(1),
+        source: z8.string().default("manual"),
+        sourceId: z8.number().optional(),
+        sourceType: z8.string().optional(),
+        customerId: z8.number().optional(),
+        expiresAt: z8.string().optional(),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -38151,19 +38183,19 @@ ${analysisText}
       const tid = ctx.tenantId;
       let availableQty;
       if (input.batchId) {
-        const [batch] = await db.select().from(inventoryBatches).where(eq12(inventoryBatches.id, input.batchId)).limit(1);
+        const [batch] = await db.select().from(inventoryBatches).where(eq13(inventoryBatches.id, input.batchId)).limit(1);
         if (!batch) throw new Error("\u0627\u0644\u062F\u0641\u0639\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
         availableQty = (batch.quantity || 0) - (batch.reservedQty || 0);
       } else {
         const whConditions = [
-          eq12(warehouseStock.tenantId, tid),
-          eq12(warehouseStock.productId, input.productId)
+          eq13(warehouseStock.tenantId, tid),
+          eq13(warehouseStock.productId, input.productId)
         ];
         if (input.warehouseId)
           whConditions.push(
-            eq12(warehouseStock.warehouseId, input.warehouseId)
+            eq13(warehouseStock.warehouseId, input.warehouseId)
           );
-        const stockRows = await db.select({ available: warehouseStock.availableQty }).from(warehouseStock).where(and7(...whConditions));
+        const stockRows = await db.select({ available: warehouseStock.availableQty }).from(warehouseStock).where(and8(...whConditions));
         availableQty = stockRows.reduce(
           (sum, s) => sum + (s.available || 0),
           0
@@ -38178,16 +38210,16 @@ ${analysisText}
         if (input.batchId) {
           await tx.update(inventoryBatches).set({
             reservedQty: sql8`${inventoryBatches.reservedQty} + ${input.quantity}`
-          }).where(eq12(inventoryBatches.id, input.batchId));
+          }).where(eq13(inventoryBatches.id, input.batchId));
         } else if (input.warehouseId) {
           await tx.update(warehouseStock).set({
             reservedQty: sql8`${warehouseStock.reservedQty} + ${input.quantity}`,
             availableQty: sql8`${warehouseStock.availableQty} - ${input.quantity}`
           }).where(
-            and7(
-              eq12(warehouseStock.tenantId, tid),
-              eq12(warehouseStock.productId, input.productId),
-              eq12(warehouseStock.warehouseId, input.warehouseId)
+            and8(
+              eq13(warehouseStock.tenantId, tid),
+              eq13(warehouseStock.productId, input.productId),
+              eq13(warehouseStock.warehouseId, input.warehouseId)
             )
           );
         }
@@ -38208,15 +38240,15 @@ ${analysisText}
       });
       return { success: true };
     }),
-    reservationRelease: tenantProcedure.input(z7.object({ id: z7.number(), reason: z7.string().optional() })).mutation(async ({ input, ctx }) => {
+    reservationRelease: tenantProcedure.input(z8.object({ id: z8.number(), reason: z8.string().optional() })).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
       const [res] = await db.select().from(stockReservations).where(
-        and7(
-          eq12(stockReservations.id, input.id),
-          eq12(stockReservations.tenantId, tid)
+        and8(
+          eq13(stockReservations.id, input.id),
+          eq13(stockReservations.tenantId, tid)
         )
       ).limit(1);
       if (!res) throw new Error("\u0627\u0644\u062D\u062C\u0632 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
@@ -38225,16 +38257,16 @@ ${analysisText}
         if (res.batchId) {
           await tx.update(inventoryBatches).set({
             reservedQty: sql8`${inventoryBatches.reservedQty} - ${res.quantity}`
-          }).where(eq12(inventoryBatches.id, res.batchId));
+          }).where(eq13(inventoryBatches.id, res.batchId));
         } else if (res.warehouseId) {
           await tx.update(warehouseStock).set({
             reservedQty: sql8`${warehouseStock.reservedQty} - ${res.quantity}`,
             availableQty: sql8`${warehouseStock.availableQty} + ${res.quantity}`
           }).where(
-            and7(
-              eq12(warehouseStock.tenantId, tid),
-              eq12(warehouseStock.productId, res.productId),
-              eq12(warehouseStock.warehouseId, res.warehouseId)
+            and8(
+              eq13(warehouseStock.tenantId, tid),
+              eq13(warehouseStock.productId, res.productId),
+              eq13(warehouseStock.warehouseId, res.warehouseId)
             )
           );
         }
@@ -38242,19 +38274,19 @@ ${analysisText}
           status: "released",
           releasedAt: /* @__PURE__ */ new Date(),
           notes: input.reason || null
-        }).where(eq12(stockReservations.id, input.id));
+        }).where(eq13(stockReservations.id, input.id));
       });
       return { success: true };
     }),
-    reservationFulfill: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
+    reservationFulfill: tenantProcedure.input(z8.object({ id: z8.number() })).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
       const [res] = await db.select().from(stockReservations).where(
-        and7(
-          eq12(stockReservations.id, input.id),
-          eq12(stockReservations.tenantId, tid)
+        and8(
+          eq13(stockReservations.id, input.id),
+          eq13(stockReservations.tenantId, tid)
         )
       ).limit(1);
       if (!res) throw new Error("\u0627\u0644\u062D\u062C\u0632 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
@@ -38264,38 +38296,38 @@ ${analysisText}
           await tx.update(inventoryBatches).set({
             quantity: sql8`${inventoryBatches.quantity} - ${res.quantity}`,
             reservedQty: sql8`${inventoryBatches.reservedQty} - ${res.quantity}`
-          }).where(eq12(inventoryBatches.id, res.batchId));
+          }).where(eq13(inventoryBatches.id, res.batchId));
         } else if (res.warehouseId) {
           await tx.update(warehouseStock).set({
             quantity: sql8`${warehouseStock.quantity} - ${res.quantity}`,
             reservedQty: sql8`${warehouseStock.reservedQty} - ${res.quantity}`
           }).where(
-            and7(
-              eq12(warehouseStock.tenantId, tid),
-              eq12(warehouseStock.productId, res.productId),
-              eq12(warehouseStock.warehouseId, res.warehouseId)
+            and8(
+              eq13(warehouseStock.tenantId, tid),
+              eq13(warehouseStock.productId, res.productId),
+              eq13(warehouseStock.warehouseId, res.warehouseId)
             )
           );
         }
-        await tx.update(stockReservations).set({ status: "fulfilled", fulfilledAt: /* @__PURE__ */ new Date() }).where(eq12(stockReservations.id, input.id));
+        await tx.update(stockReservations).set({ status: "fulfilled", fulfilledAt: /* @__PURE__ */ new Date() }).where(eq13(stockReservations.id, input.id));
       });
       return { success: true };
     }),
     // ─── Cycle Counting ───────────────────────────────────────────────
     cycleCountList: tenantProcedure.input(
-      z7.object({
-        status: z7.string().optional(),
-        warehouseId: z7.number().optional()
+      z8.object({
+        status: z8.string().optional(),
+        warehouseId: z8.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return [];
       const tid = requireTenantId(ctx);
-      const conditions = [eq12(cycleCounts.tenantId, tid)];
+      const conditions = [eq13(cycleCounts.tenantId, tid)];
       if (input?.status)
-        conditions.push(eq12(cycleCounts.status, input.status));
+        conditions.push(eq13(cycleCounts.status, input.status));
       if (input?.warehouseId)
-        conditions.push(eq12(cycleCounts.warehouseId, input.warehouseId));
+        conditions.push(eq13(cycleCounts.warehouseId, input.warehouseId));
       return await db.select({
         id: cycleCounts.id,
         countNumber: cycleCounts.countNumber,
@@ -38309,21 +38341,21 @@ ${analysisText}
         varianceThreshold: cycleCounts.varianceThreshold,
         warehouseCode: warehouses.code,
         warehouseName: warehouses.name
-      }).from(cycleCounts).leftJoin(warehouses, eq12(cycleCounts.warehouseId, warehouses.id)).where(and7(...conditions)).orderBy(desc5(cycleCounts.plannedDate));
+      }).from(cycleCounts).leftJoin(warehouses, eq13(cycleCounts.warehouseId, warehouses.id)).where(and8(...conditions)).orderBy(desc5(cycleCounts.plannedDate));
     }),
     cycleCountCreate: tenantProcedure.input(
-      z7.object({
-        warehouseId: z7.number(),
-        plannedDate: z7.string(),
-        assignedToId: z7.number().optional(),
-        varianceThreshold: z7.string().optional(),
-        notes: z7.string().optional()
+      z8.object({
+        warehouseId: z8.number(),
+        plannedDate: z8.string(),
+        assignedToId: z8.number().optional(),
+        varianceThreshold: z8.string().optional(),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
-      const seq = await db.select({ c: sql8`count(*)` }).from(cycleCounts).where(eq12(cycleCounts.tenantId, ctx.tenantId));
+      const seq = await db.select({ c: sql8`count(*)` }).from(cycleCounts).where(eq13(cycleCounts.tenantId, ctx.tenantId));
       const countNumber = `CC-${ctx.tenantId}-${Number(seq[0]?.c || 0) + 1}`;
       const [row] = await db.insert(cycleCounts).values({
         tenantId: ctx.tenantId,
@@ -38336,13 +38368,13 @@ ${analysisText}
       }).returning();
       return row;
     }),
-    cycleCountStart: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
+    cycleCountStart: tenantProcedure.input(z8.object({ id: z8.number() })).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
       const [cc] = await db.select().from(cycleCounts).where(
-        and7(eq12(cycleCounts.id, input.id), eq12(cycleCounts.tenantId, tid))
+        and8(eq13(cycleCounts.id, input.id), eq13(cycleCounts.tenantId, tid))
       ).limit(1);
       if (!cc) throw new Error("\u0627\u0644\u062C\u0631\u062F \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (cc.status !== "planned") throw new Error("\u0627\u0644\u062C\u0631\u062F \u0644\u064A\u0633 \u0641\u064A \u062D\u0627\u0644\u0629 \u0645\u062E\u0637\u0637");
@@ -38351,14 +38383,14 @@ ${analysisText}
         warehouseId: warehouseStock.warehouseId,
         systemQty: warehouseStock.quantity,
         unitCost: products.purchasePrice
-      }).from(warehouseStock).leftJoin(products, eq12(warehouseStock.productId, products.id)).where(
-        and7(
-          eq12(warehouseStock.tenantId, tid),
-          eq12(warehouseStock.warehouseId, cc.warehouseId)
+      }).from(warehouseStock).leftJoin(products, eq13(warehouseStock.productId, products.id)).where(
+        and8(
+          eq13(warehouseStock.tenantId, tid),
+          eq13(warehouseStock.warehouseId, cc.warehouseId)
         )
       );
       await db.transaction(async (tx) => {
-        await tx.update(cycleCounts).set({ status: "in_progress", startedAt: /* @__PURE__ */ new Date() }).where(eq12(cycleCounts.id, input.id));
+        await tx.update(cycleCounts).set({ status: "in_progress", startedAt: /* @__PURE__ */ new Date() }).where(eq13(cycleCounts.id, input.id));
         if (stockRows.length > 0) {
           await tx.insert(cycleCountLines).values(
             stockRows.map((s) => ({
@@ -38376,13 +38408,13 @@ ${analysisText}
       return { success: true };
     }),
     cycleCountRecord: tenantProcedure.input(
-      z7.object({
-        cycleCountId: z7.number(),
-        productId: z7.number(),
-        warehouseId: z7.number(),
-        batchId: z7.number().optional(),
-        countedQty: z7.number().int().min(0),
-        notes: z7.string().optional()
+      z8.object({
+        cycleCountId: z8.number(),
+        productId: z8.number(),
+        warehouseId: z8.number(),
+        batchId: z8.number().optional(),
+        countedQty: z8.number().int().min(0),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -38390,18 +38422,18 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
       const [line] = await db.select().from(cycleCountLines).where(
-        and7(
-          eq12(cycleCountLines.cycleCountId, input.cycleCountId),
-          eq12(cycleCountLines.productId, input.productId),
-          eq12(cycleCountLines.warehouseId, input.warehouseId),
-          eq12(cycleCountLines.batchId, input.batchId || 0)
+        and8(
+          eq13(cycleCountLines.cycleCountId, input.cycleCountId),
+          eq13(cycleCountLines.productId, input.productId),
+          eq13(cycleCountLines.warehouseId, input.warehouseId),
+          eq13(cycleCountLines.batchId, input.batchId || 0)
         )
       ).limit(1);
       if (!line) throw new Error("\u0633\u0637\u0631 \u0627\u0644\u062C\u0631\u062F \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const [cc] = await db.select().from(cycleCounts).where(
-        and7(
-          eq12(cycleCounts.id, input.cycleCountId),
-          eq12(cycleCounts.tenantId, ctx.tenantId)
+        and8(
+          eq13(cycleCounts.id, input.cycleCountId),
+          eq13(cycleCounts.tenantId, ctx.tenantId)
         )
       ).limit(1);
       const varianceQty = input.countedQty - (line.systemQty || 0);
@@ -38418,32 +38450,32 @@ ${analysisText}
         countedById: ctx.user.id,
         countedAt: /* @__PURE__ */ new Date(),
         notes: input.notes || null
-      }).where(eq12(cycleCountLines.id, line.id));
+      }).where(eq13(cycleCountLines.id, line.id));
       return { success: true, varianceQty, variancePct, varianceValue };
     }),
-    cycleCountComplete: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
+    cycleCountComplete: tenantProcedure.input(z8.object({ id: z8.number() })).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
       const [cc] = await db.select().from(cycleCounts).where(
-        and7(eq12(cycleCounts.id, input.id), eq12(cycleCounts.tenantId, tid))
+        and8(eq13(cycleCounts.id, input.id), eq13(cycleCounts.tenantId, tid))
       ).limit(1);
       if (!cc) throw new Error("\u0627\u0644\u062C\u0631\u062F \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (cc.status !== "in_progress")
         throw new Error("\u0627\u0644\u062C\u0631\u062F \u0644\u064A\u0633 \u0642\u064A\u062F \u0627\u0644\u062A\u0646\u0641\u064A\u0630");
-      const lines = await db.select().from(cycleCountLines).where(eq12(cycleCountLines.cycleCountId, input.id));
+      const lines = await db.select().from(cycleCountLines).where(eq13(cycleCountLines.cycleCountId, input.id));
       const pendingLines = lines.filter((l) => l.status === "pending");
       if (pendingLines.length > 0) {
         throw new Error(`\u064A\u0648\u062C\u062F ${pendingLines.length} \u0635\u0646\u0641 \u0644\u0645 \u064A\u062A\u0645 \u062C\u0631\u062F\u0647\u0627 \u0628\u0639\u062F`);
       }
-      await db.update(cycleCounts).set({ status: "completed", completedAt: /* @__PURE__ */ new Date() }).where(eq12(cycleCounts.id, input.id));
+      await db.update(cycleCounts).set({ status: "completed", completedAt: /* @__PURE__ */ new Date() }).where(eq13(cycleCounts.id, input.id));
       return { success: true };
     }),
     cycleCountApprove: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        applyAdjustments: z7.boolean().default(false)
+      z8.object({
+        id: z8.number(),
+        applyAdjustments: z8.boolean().default(false)
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -38451,14 +38483,14 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const tid = ctx.tenantId;
       const [cc] = await db.select().from(cycleCounts).where(
-        and7(eq12(cycleCounts.id, input.id), eq12(cycleCounts.tenantId, tid))
+        and8(eq13(cycleCounts.id, input.id), eq13(cycleCounts.tenantId, tid))
       ).limit(1);
       if (!cc) throw new Error("\u0627\u0644\u062C\u0631\u062F \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (cc.status !== "completed") throw new Error("\u0627\u0644\u062C\u0631\u062F \u0644\u0645 \u064A\u0643\u062A\u0645\u0644 \u0628\u0639\u062F");
       if (input.applyAdjustments) {
         const varianceLines = await db.select().from(cycleCountLines).where(
-          and7(
-            eq12(cycleCountLines.cycleCountId, input.id),
+          and8(
+            eq13(cycleCountLines.cycleCountId, input.id),
             ne3(cycleCountLines.varianceQty, 0)
           )
         );
@@ -38472,10 +38504,10 @@ ${analysisText}
               availableQty: sql8`${warehouseStock.availableQty} + ${adjustmentQty}`,
               lastMovementAt: /* @__PURE__ */ new Date()
             }).where(
-              and7(
-                eq12(warehouseStock.tenantId, tid),
-                eq12(warehouseStock.productId, line.productId),
-                eq12(warehouseStock.warehouseId, line.warehouseId)
+              and8(
+                eq13(warehouseStock.tenantId, tid),
+                eq13(warehouseStock.productId, line.productId),
+                eq13(warehouseStock.warehouseId, line.warehouseId)
               )
             );
             await tx.insert(inventoryMovements).values({
@@ -38505,15 +38537,15 @@ ${analysisText}
         status: "approved",
         approvedAt: /* @__PURE__ */ new Date(),
         approvedById: ctx.user.id
-      }).where(eq12(cycleCounts.id, input.id));
+      }).where(eq13(cycleCounts.id, input.id));
       return { success: true };
     }),
     // ─── Inventory Valuation (FIFO/LIFO/Weighted Average) ──────────────
     valuationLayers: tenantProcedure.input(
-      z7.object({
-        productId: z7.number(),
-        warehouseId: z7.number().optional(),
-        asOfDate: z7.string().optional()
+      z8.object({
+        productId: z8.number(),
+        warehouseId: z8.number().optional(),
+        asOfDate: z8.string().optional()
       })
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -38522,16 +38554,16 @@ ${analysisText}
       const tid = requireTenantId(ctx);
       const asOf = input.asOfDate ? new Date(input.asOfDate) : /* @__PURE__ */ new Date();
       const conditions = [
-        eq12(inventoryValuationLayers.tenantId, tid),
-        eq12(inventoryValuationLayers.productId, input.productId),
-        eq12(inventoryValuationLayers.isActive, true),
+        eq13(inventoryValuationLayers.tenantId, tid),
+        eq13(inventoryValuationLayers.productId, input.productId),
+        eq13(inventoryValuationLayers.isActive, true),
         lte5(inventoryValuationLayers.layerDate, asOf)
       ];
       if (input.warehouseId)
         conditions.push(
-          eq12(inventoryValuationLayers.warehouseId, input.warehouseId)
+          eq13(inventoryValuationLayers.warehouseId, input.warehouseId)
         );
-      const layers = await db.select().from(inventoryValuationLayers).where(and7(...conditions)).orderBy(asc5(inventoryValuationLayers.layerDate));
+      const layers = await db.select().from(inventoryValuationLayers).where(and8(...conditions)).orderBy(asc5(inventoryValuationLayers.layerDate));
       const totalQty = layers.reduce((s, l) => s + (l.remainingQty || 0), 0);
       const totalValue = layers.reduce(
         (s, l) => s + parseFloat(String(l.unitCost)) * (l.remainingQty || 0),
@@ -38545,26 +38577,26 @@ ${analysisText}
       };
     }),
     fifoValuation: tenantProcedure.input(
-      z7.object({
-        productId: z7.number(),
-        warehouseId: z7.number().optional(),
-        quantity: z7.number().int().min(1)
+      z8.object({
+        productId: z8.number(),
+        warehouseId: z8.number().optional(),
+        quantity: z8.number().int().min(1)
       })
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { layers: [], totalCost: 0, remainingQty: 0 };
       const tid = requireTenantId(ctx);
       const conditions = [
-        eq12(inventoryValuationLayers.tenantId, tid),
-        eq12(inventoryValuationLayers.productId, input.productId),
-        eq12(inventoryValuationLayers.isActive, true),
+        eq13(inventoryValuationLayers.tenantId, tid),
+        eq13(inventoryValuationLayers.productId, input.productId),
+        eq13(inventoryValuationLayers.isActive, true),
         sql8`${inventoryValuationLayers.remainingQty} > 0`
       ];
       if (input.warehouseId)
         conditions.push(
-          eq12(inventoryValuationLayers.warehouseId, input.warehouseId)
+          eq13(inventoryValuationLayers.warehouseId, input.warehouseId)
         );
-      const layers = await db.select().from(inventoryValuationLayers).where(and7(...conditions)).orderBy(asc5(inventoryValuationLayers.layerDate));
+      const layers = await db.select().from(inventoryValuationLayers).where(and8(...conditions)).orderBy(asc5(inventoryValuationLayers.layerDate));
       let remaining = input.quantity;
       const usedLayers = [];
       let totalCost = 0;
@@ -38579,26 +38611,26 @@ ${analysisText}
       return { layers: usedLayers, totalCost, remainingQty: remaining };
     }),
     lifoValuation: tenantProcedure.input(
-      z7.object({
-        productId: z7.number(),
-        warehouseId: z7.number().optional(),
-        quantity: z7.number().int().min(1)
+      z8.object({
+        productId: z8.number(),
+        warehouseId: z8.number().optional(),
+        quantity: z8.number().int().min(1)
       })
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) return { layers: [], totalCost: 0, remainingQty: 0 };
       const tid = requireTenantId(ctx);
       const conditions = [
-        eq12(inventoryValuationLayers.tenantId, tid),
-        eq12(inventoryValuationLayers.productId, input.productId),
-        eq12(inventoryValuationLayers.isActive, true),
+        eq13(inventoryValuationLayers.tenantId, tid),
+        eq13(inventoryValuationLayers.productId, input.productId),
+        eq13(inventoryValuationLayers.isActive, true),
         sql8`${inventoryValuationLayers.remainingQty} > 0`
       ];
       if (input.warehouseId)
         conditions.push(
-          eq12(inventoryValuationLayers.warehouseId, input.warehouseId)
+          eq13(inventoryValuationLayers.warehouseId, input.warehouseId)
         );
-      const layers = await db.select().from(inventoryValuationLayers).where(and7(...conditions)).orderBy(desc5(inventoryValuationLayers.layerDate));
+      const layers = await db.select().from(inventoryValuationLayers).where(and8(...conditions)).orderBy(desc5(inventoryValuationLayers.layerDate));
       let remaining = input.quantity;
       const usedLayers = [];
       let totalCost = 0;
@@ -38613,29 +38645,29 @@ ${analysisText}
       return { layers: usedLayers, totalCost, remainingQty: remaining };
     }),
     importCsv: tenantProcedure.input(
-      z7.object({
-        rows: z7.array(
-          z7.object({
-            code: z7.string().min(1).transform((v) => v.trim()),
-            name: z7.string().min(1).transform((v) => v.trim()),
-            type: z7.enum(["goods", "service"]).default("goods"),
-            category: z7.string().optional().transform((v) => v?.trim() || void 0),
-            unit: z7.string().default("\u0642\u0637\u0639\u0629"),
-            purchasePrice: z7.string().default("0").refine((v) => {
+      z8.object({
+        rows: z8.array(
+          z8.object({
+            code: z8.string().min(1).transform((v) => v.trim()),
+            name: z8.string().min(1).transform((v) => v.trim()),
+            type: z8.enum(["goods", "service"]).default("goods"),
+            category: z8.string().optional().transform((v) => v?.trim() || void 0),
+            unit: z8.string().default("\u0642\u0637\u0639\u0629"),
+            purchasePrice: z8.string().default("0").refine((v) => {
               const n = parseFloat(v);
               return !isNaN(n) && isFinite(n) && n >= 0;
             }, "\u0633\u0639\u0631 \u0627\u0644\u0634\u0631\u0627\u0621 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-            salePrice: z7.string().default("0").refine((v) => {
+            salePrice: z8.string().default("0").refine((v) => {
               const n = parseFloat(v);
               return !isNaN(n) && isFinite(n) && n >= 0;
             }, "\u0633\u0639\u0631 \u0627\u0644\u0628\u064A\u0639 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-            wholesalePrice: z7.string().default("0").refine((v) => {
+            wholesalePrice: z8.string().default("0").refine((v) => {
               const n = parseFloat(v);
               return !isNaN(n) && isFinite(n) && n >= 0;
             }, "\u0633\u0639\u0631 \u0627\u0644\u062C\u0645\u0644\u0629 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-            minStock: z7.number().int().min(0).default(0),
-            currentStock: z7.number().int().min(0).default(0),
-            barcode: z7.string().optional()
+            minStock: z8.number().int().min(0).default(0),
+            currentStock: z8.number().int().min(0).default(0),
+            barcode: z8.string().optional()
           })
         ).min(1).max(500)
       })
@@ -38660,7 +38692,7 @@ ${analysisText}
           }
           seen.add(r.code);
           await db.transaction(async (tx) => {
-            const existing = await tx.select().from(products).where(eq12(products.code, r.code)).limit(1);
+            const existing = await tx.select().from(products).where(eq13(products.code, r.code)).limit(1);
             const values = {
               name: r.name,
               type: r.type,
@@ -38674,12 +38706,12 @@ ${analysisText}
               isActive: true
             };
             if (existing.length > 0) {
-              await tx.update(products).set(values).where(eq12(products.id, existing[0].id));
+              await tx.update(products).set(values).where(eq13(products.id, existing[0].id));
               const prevStock = existing[0].currentStock || 0;
               if (r.currentStock !== prevStock) {
                 await tx.update(products).set({
                   currentStock: sql8`${products.currentStock} + ${r.currentStock - prevStock}`
-                }).where(eq12(products.id, existing[0].id));
+                }).where(eq13(products.id, existing[0].id));
                 await tx.insert(inventoryMovements).values({
                   tenantId: ctx.tenantId,
                   productId: existing[0].id,
@@ -38708,29 +38740,29 @@ ${analysisText}
       });
       return { created, updated, errors };
     }),
-    byBarcode: tenantProcedure.input(z7.object({ barcode: z7.string().min(1) })).query(async ({ input, ctx }) => {
+    byBarcode: tenantProcedure.input(z8.object({ barcode: z8.string().min(1) })).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return null;
       const db = await getDb();
       if (!db) return null;
       const [row] = await db.select().from(products).where(
-        and7(
-          eq12(products.tenantId, ctx.tenantId),
-          eq12(products.barcode, input.barcode),
-          eq12(products.isActive, true),
+        and8(
+          eq13(products.tenantId, ctx.tenantId),
+          eq13(products.barcode, input.barcode),
+          eq13(products.isActive, true),
           isNull4(products.deletedAt)
         )
       ).limit(1);
       return row || null;
     }),
-    byCode: tenantProcedure.input(z7.object({ code: z7.string().min(1) })).query(async ({ input, ctx }) => {
+    byCode: tenantProcedure.input(z8.object({ code: z8.string().min(1) })).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return null;
       const db = await getDb();
       if (!db) return null;
       const [row] = await db.select().from(products).where(
-        and7(
-          eq12(products.tenantId, ctx.tenantId),
-          eq12(products.code, input.code),
-          eq12(products.isActive, true),
+        and8(
+          eq13(products.tenantId, ctx.tenantId),
+          eq13(products.code, input.code),
+          eq13(products.isActive, true),
           isNull4(products.deletedAt)
         )
       ).limit(1);
@@ -38740,10 +38772,10 @@ ${analysisText}
   // ─── Customers ──────────────────────────────────────────────────
   customers: router({
     list: tenantProcedure.input(
-      z7.object({
-        limit: z7.number().min(1).max(100).default(50),
-        offset: z7.number().min(0).default(0),
-        search: z7.string().optional()
+      z8.object({
+        limit: z8.number().min(1).max(100).default(50),
+        offset: z8.number().min(0).default(0),
+        search: z8.string().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -38752,8 +38784,8 @@ ${analysisText}
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const conditions = [
-        eq12(customers.isActive, true),
-        eq12(customers.tenantId, ctx.tenantId),
+        eq13(customers.isActive, true),
+        eq13(customers.tenantId, ctx.tenantId),
         isNull4(customers.deletedAt)
       ];
       if (input?.search) {
@@ -38765,22 +38797,22 @@ ${analysisText}
           )
         );
       }
-      const where = and7(...conditions);
+      const where = and8(...conditions);
       const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(customers).where(where);
       const items = await db.select().from(customers).where(where).orderBy(asc5(customers.code)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z7.object({
-        code: z7.string().min(1),
-        name: z7.string().min(1),
-        phone: z7.string().optional(),
-        email: z7.string().optional(),
-        address: z7.string().optional(),
-        city: z7.string().optional(),
-        taxNumber: z7.string().optional(),
-        creditLimit: z7.string().default("0"),
-        notes: z7.string().optional()
+      z8.object({
+        code: z8.string().min(1),
+        name: z8.string().min(1),
+        phone: z8.string().optional(),
+        email: z8.string().optional(),
+        address: z8.string().optional(),
+        city: z8.string().optional(),
+        taxNumber: z8.string().optional(),
+        creditLimit: z8.string().default("0"),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -38794,12 +38826,12 @@ ${analysisText}
       return { success: true };
     }),
     update: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        name: z7.string().optional(),
-        phone: z7.string().optional(),
-        email: z7.string().optional(),
-        address: z7.string().optional()
+      z8.object({
+        id: z8.number(),
+        name: z8.string().optional(),
+        phone: z8.string().optional(),
+        email: z8.string().optional(),
+        address: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -38807,7 +38839,7 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const { id, ...data } = input;
       await db.update(customers).set(data).where(
-        and7(eq12(customers.id, id), eq12(customers.tenantId, ctx.tenantId))
+        and8(eq13(customers.id, id), eq13(customers.tenantId, ctx.tenantId))
       );
       return { success: true };
     })
@@ -38815,10 +38847,10 @@ ${analysisText}
   // ─── Suppliers ──────────────────────────────────────────────────
   suppliers: router({
     list: tenantProcedure.input(
-      z7.object({
-        limit: z7.number().min(1).max(100).default(50),
-        offset: z7.number().min(0).default(0),
-        search: z7.string().optional()
+      z8.object({
+        limit: z8.number().min(1).max(100).default(50),
+        offset: z8.number().min(0).default(0),
+        search: z8.string().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -38827,8 +38859,8 @@ ${analysisText}
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const conditions = [
-        eq12(suppliers.isActive, true),
-        eq12(suppliers.tenantId, ctx.tenantId),
+        eq13(suppliers.isActive, true),
+        eq13(suppliers.tenantId, ctx.tenantId),
         isNull4(suppliers.deletedAt)
       ];
       if (input?.search) {
@@ -38840,21 +38872,21 @@ ${analysisText}
           )
         );
       }
-      const where = and7(...conditions);
+      const where = and8(...conditions);
       const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(suppliers).where(where);
       const items = await db.select().from(suppliers).where(where).orderBy(asc5(suppliers.code)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z7.object({
-        code: z7.string().min(1),
-        name: z7.string().min(1),
-        phone: z7.string().optional(),
-        email: z7.string().optional(),
-        address: z7.string().optional(),
-        city: z7.string().optional(),
-        taxNumber: z7.string().optional(),
-        notes: z7.string().optional()
+      z8.object({
+        code: z8.string().min(1),
+        name: z8.string().min(1),
+        phone: z8.string().optional(),
+        email: z8.string().optional(),
+        address: z8.string().optional(),
+        city: z8.string().optional(),
+        taxNumber: z8.string().optional(),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -38868,11 +38900,11 @@ ${analysisText}
       return { success: true };
     }),
     update: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        name: z7.string().optional(),
-        phone: z7.string().optional(),
-        email: z7.string().optional()
+      z8.object({
+        id: z8.number(),
+        name: z8.string().optional(),
+        phone: z8.string().optional(),
+        email: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -38880,7 +38912,7 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       const { id, ...data } = input;
       await db.update(suppliers).set(data).where(
-        and7(eq12(suppliers.id, id), eq12(suppliers.tenantId, ctx.tenantId))
+        and8(eq13(suppliers.id, id), eq13(suppliers.tenantId, ctx.tenantId))
       );
       return { success: true };
     })
@@ -38888,11 +38920,11 @@ ${analysisText}
   // ─── Sales & POS ────────────────────────────────────────────────
   sales: router({
     list: tenantProcedure.input(
-      z7.object({
-        limit: z7.number().min(1).max(100).default(50),
-        offset: z7.number().min(0).default(0),
-        status: z7.enum(["draft", "confirmed", "paid", "partial", "cancelled"]).optional(),
-        customerId: z7.number().optional()
+      z8.object({
+        limit: z8.number().min(1).max(100).default(50),
+        offset: z8.number().min(0).default(0),
+        status: z8.enum(["draft", "confirmed", "paid", "partial", "cancelled"]).optional(),
+        customerId: z8.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -38900,18 +38932,18 @@ ${analysisText}
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const conditions = [eq12(salesInvoices.tenantId, ctx.tenantId)];
+      const conditions = [eq13(salesInvoices.tenantId, ctx.tenantId)];
       if (input?.status)
-        conditions.push(eq12(salesInvoices.status, input.status));
+        conditions.push(eq13(salesInvoices.status, input.status));
       if (input?.customerId)
-        conditions.push(eq12(salesInvoices.customerId, input.customerId));
-      const where = and7(...conditions);
+        conditions.push(eq13(salesInvoices.customerId, input.customerId));
+      const where = and8(...conditions);
       const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(salesInvoices).where(where);
       const items = await db.select().from(salesInvoices).where(where).orderBy(desc5(salesInvoices.createdAt)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     // Daily sales summary for the POS "daily report" / end-of-day cash-out.
-    dailySummary: tenantProcedure.input(z7.object({ date: z7.string().optional() }).optional()).query(async ({ input, ctx }) => {
+    dailySummary: tenantProcedure.input(z8.object({ date: z8.string().optional() }).optional()).query(async ({ input, ctx }) => {
       const empty = () => ({
         date: (/* @__PURE__ */ new Date()).toISOString().slice(0, 10),
         invoiceCount: 0,
@@ -38932,8 +38964,8 @@ ${analysisText}
       const start = new Date(y, m, d, 0, 0, 0, 0);
       const end = new Date(y, m, d, 23, 59, 59, 999);
       const invs = await db.select().from(salesInvoices).where(
-        and7(
-          eq12(salesInvoices.tenantId, ctx.tenantId),
+        and8(
+          eq13(salesInvoices.tenantId, ctx.tenantId),
           gte6(salesInvoices.createdAt, start),
           lte5(salesInvoices.createdAt, end)
         )
@@ -38994,8 +39026,8 @@ ${analysisText}
         total: salesInvoices.total,
         status: salesInvoices.status
       }).from(salesInvoices).where(
-        and7(
-          eq12(salesInvoices.tenantId, ctx.tenantId),
+        and8(
+          eq13(salesInvoices.tenantId, ctx.tenantId),
           gte6(salesInvoices.createdAt, prevStart),
           lte5(salesInvoices.createdAt, prevEnd)
         )
@@ -39012,50 +39044,50 @@ ${analysisText}
         previousDayTotal
       };
     }),
-    getInvoiceDetails: tenantProcedure.input(z7.object({ id: z7.number() })).query(async ({ input, ctx }) => {
+    getInvoiceDetails: tenantProcedure.input(z8.object({ id: z8.number() })).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return null;
       const db = await getDb();
       if (!db) return null;
       const [invoice] = await db.select().from(salesInvoices).where(
-        and7(
-          eq12(salesInvoices.id, input.id),
-          eq12(salesInvoices.tenantId, ctx.tenantId)
+        and8(
+          eq13(salesInvoices.id, input.id),
+          eq13(salesInvoices.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (!invoice) return null;
-      const customer = invoice.customerId ? (await db.select().from(customers).where(eq12(customers.id, invoice.customerId)).limit(1))[0] ?? null : null;
-      const items = await db.select().from(salesInvoiceItems).where(eq12(salesInvoiceItems.invoiceId, invoice.id)).orderBy(asc5(salesInvoiceItems.id));
+      const customer = invoice.customerId ? (await db.select().from(customers).where(eq13(customers.id, invoice.customerId)).limit(1))[0] ?? null : null;
+      const items = await db.select().from(salesInvoiceItems).where(eq13(salesInvoiceItems.invoiceId, invoice.id)).orderBy(asc5(salesInvoiceItems.id));
       return { invoice, customer, items };
     }),
     create: tenantProcedure.input(
-      z7.object({
-        customerId: z7.number().optional(),
-        items: z7.array(
-          z7.object({
-            productId: z7.number(),
-            productName: z7.string().min(1),
-            quantity: z7.number().int().min(1),
-            unitPrice: z7.string().refine(
+      z8.object({
+        customerId: z8.number().optional(),
+        items: z8.array(
+          z8.object({
+            productId: z8.number(),
+            productName: z8.string().min(1),
+            quantity: z8.number().int().min(1),
+            unitPrice: z8.string().refine(
               (v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0,
               "\u0627\u0644\u0633\u0639\u0631 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B"
             ),
-            discount: z7.string().default("0")
+            discount: z8.string().default("0")
           })
         ).min(1, "\u064A\u062C\u0628 \u0625\u0636\u0627\u0641\u0629 \u0635\u0646\u0641 \u0648\u0627\u062D\u062F \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644"),
-        discount: z7.string().default("0"),
-        taxRate: z7.string().default("0"),
-        paymentMethod: z7.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
-        paidAmount: z7.string().default("0"),
-        notes: z7.string().optional(),
-        country: z7.string().optional(),
-        workSiteId: z7.number().optional(),
-        deviceId: z7.number().optional(),
-        lat: z7.string().optional(),
-        lng: z7.string().optional(),
-        salesRepId: z7.string().optional(),
+        discount: z8.string().default("0"),
+        taxRate: z8.string().default("0"),
+        paymentMethod: z8.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
+        paidAmount: z8.string().default("0"),
+        notes: z8.string().optional(),
+        country: z8.string().optional(),
+        workSiteId: z8.number().optional(),
+        deviceId: z8.number().optional(),
+        lat: z8.string().optional(),
+        lng: z8.string().optional(),
+        salesRepId: z8.string().optional(),
         // ─── Multi-currency (Module B) ──────────────────────────────
-        currency: z7.string().optional(),
-        currencyRate: z7.string().optional()
+        currency: z8.string().optional(),
+        currencyRate: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -39073,8 +39105,8 @@ ${analysisText}
       const invoiceNumber = `SI-${datePart}-${randPart}`;
       const productIds = input.items.map((i) => i.productId);
       const productRows = await db.select().from(products).where(
-        and7(
-          eq12(products.tenantId, ctx.tenantId),
+        and8(
+          eq13(products.tenantId, ctx.tenantId),
           inArray3(products.id, productIds),
           isNull4(products.deletedAt)
         )
@@ -39101,8 +39133,8 @@ ${analysisText}
       if (paidAmount > total + 0.01)
         throw new Error("\u0627\u0644\u0645\u0628\u0644\u063A \u0627\u0644\u0645\u062F\u0641\u0648\u0639 \u064A\u062A\u062C\u0627\u0648\u0632 \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629");
       const initialStatus = paidAmount >= total - 0.01 ? "paid" : paidAmount > 0 ? "partial" : "draft";
-      const [settingsRow] = await db.select().from(settings).where(eq12(settings.tenantId, ctx.tenantId)).limit(1);
-      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq12(tenants.id, ctx.tenantId)).limit(1);
+      const [settingsRow] = await db.select().from(settings).where(eq13(settings.tenantId, ctx.tenantId)).limit(1);
+      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq13(tenants.id, ctx.tenantId)).limit(1);
       const country = input.country || settingsRow?.country || tenantRow?.country || "\u0627\u0644\u064A\u0645\u0646";
       const globalCode = genGlobalCode({
         country,
@@ -39175,11 +39207,11 @@ ${analysisText}
           if (prod?.type === "service") continue;
           await tx.update(products).set({
             currentStock: sql8`${products.currentStock} - ${item.quantity}`
-          }).where(eq12(products.id, item.productId));
+          }).where(eq13(products.id, item.productId));
           const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(
-            and7(
-              eq12(warehouses.tenantId, ctx.tenantId),
-              eq12(warehouses.isActive, true)
+            and8(
+              eq13(warehouses.tenantId, ctx.tenantId),
+              eq13(warehouses.isActive, true)
             )
           ).orderBy(asc5(warehouses.code)).limit(1);
           const warehouseId = defaultWarehouse[0]?.id;
@@ -39189,19 +39221,19 @@ ${analysisText}
               availableQty: sql8`${warehouseStock.availableQty} - ${item.quantity}`,
               lastMovementAt: /* @__PURE__ */ new Date()
             }).where(
-              and7(
-                eq12(warehouseStock.tenantId, ctx.tenantId),
-                eq12(warehouseStock.productId, item.productId),
-                eq12(warehouseStock.warehouseId, warehouseId),
+              and8(
+                eq13(warehouseStock.tenantId, ctx.tenantId),
+                eq13(warehouseStock.productId, item.productId),
+                eq13(warehouseStock.warehouseId, warehouseId),
                 gte6(warehouseStock.availableQty, item.quantity)
               )
             );
             const layers = await tx.select().from(inventoryValuationLayers).where(
-              and7(
-                eq12(inventoryValuationLayers.tenantId, ctx.tenantId),
-                eq12(inventoryValuationLayers.productId, item.productId),
-                eq12(inventoryValuationLayers.warehouseId, warehouseId),
-                eq12(inventoryValuationLayers.isActive, true),
+              and8(
+                eq13(inventoryValuationLayers.tenantId, ctx.tenantId),
+                eq13(inventoryValuationLayers.productId, item.productId),
+                eq13(inventoryValuationLayers.warehouseId, warehouseId),
+                eq13(inventoryValuationLayers.isActive, true),
                 sql8`${inventoryValuationLayers.remainingQty} > 0`
               )
             ).orderBy(asc5(inventoryValuationLayers.layerDate));
@@ -39211,7 +39243,7 @@ ${analysisText}
               const consumeQty = Math.min(remainingQty, layer.remainingQty);
               await tx.update(inventoryValuationLayers).set({
                 remainingQty: sql8`${inventoryValuationLayers.remainingQty} - ${consumeQty}`
-              }).where(eq12(inventoryValuationLayers.id, layer.id));
+              }).where(eq13(inventoryValuationLayers.id, layer.id));
               remainingQty -= consumeQty;
             }
           }
@@ -39230,9 +39262,9 @@ ${analysisText}
           const unpaidAmount = total - paidAmount;
           if (unpaidAmount > 0) {
             await tx.update(customers).set({ balance: sql8`${customers.balance} + ${unpaidAmount}` }).where(
-              and7(
-                eq12(customers.id, input.customerId),
-                eq12(customers.tenantId, ctx.tenantId)
+              and8(
+                eq13(customers.id, input.customerId),
+                eq13(customers.tenantId, ctx.tenantId)
               )
             );
           }
@@ -39278,9 +39310,9 @@ ${analysisText}
       return { success: true, ...result };
     }),
     updateStatus: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        status: z7.enum([
+      z8.object({
+        id: z8.number(),
+        status: z8.enum([
           "draft",
           "confirmed",
           "paid",
@@ -39292,9 +39324,9 @@ ${analysisText}
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(salesInvoices).where(
-        and7(
-          eq12(salesInvoices.id, input.id),
-          eq12(salesInvoices.tenantId, ctx.tenantId)
+        and8(
+          eq13(salesInvoices.id, input.id),
+          eq13(salesInvoices.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
@@ -39305,11 +39337,11 @@ ${analysisText}
       if (inv.status === input.status)
         return { success: true, unchanged: true };
       const cancelFlow = input.status === "cancelled" && inv.status !== "draft";
-      const items = cancelFlow ? await db.select().from(salesInvoiceItems).where(eq12(salesInvoiceItems.invoiceId, inv.id)) : [];
+      const items = cancelFlow ? await db.select().from(salesInvoiceItems).where(eq13(salesInvoiceItems.invoiceId, inv.id)) : [];
       const itemPayments = cancelFlow ? await db.select().from(payments).where(
-        and7(
-          eq12(payments.source, "sales"),
-          eq12(payments.invoiceId, inv.id)
+        and8(
+          eq13(payments.source, "sales"),
+          eq13(payments.invoiceId, inv.id)
         )
       ) : [];
       await db.transaction(async (tx) => {
@@ -39317,7 +39349,7 @@ ${analysisText}
           for (const item of items) {
             await tx.update(products).set({
               currentStock: sql8`${products.currentStock} + ${item.quantity}`
-            }).where(eq12(products.id, item.productId));
+            }).where(eq13(products.id, item.productId));
             await tx.insert(inventoryMovements).values({
               tenantId: ctx.tenantId,
               productId: item.productId,
@@ -39333,11 +39365,11 @@ ${analysisText}
             if (reversedUnpaid > 0) {
               await tx.update(customers).set({
                 balance: sql8`${customers.balance} - ${reversedUnpaid}`
-              }).where(eq12(customers.id, inv.customerId));
+              }).where(eq13(customers.id, inv.customerId));
             }
           }
           for (const p of itemPayments) {
-            await tx.update(payments).set({ notes: `\u0645\u0633\u062A\u0631\u062F\u0629 \u2014 \u0625\u0644\u063A\u0627\u0621 \u0641\u0627\u062A\u0648\u0631\u0629 ${inv.invoiceNumber}` }).where(eq12(payments.id, p.id));
+            await tx.update(payments).set({ notes: `\u0645\u0633\u062A\u0631\u062F\u0629 \u2014 \u0625\u0644\u063A\u0627\u0621 \u0641\u0627\u062A\u0648\u0631\u0629 ${inv.invoiceNumber}` }).where(eq13(payments.id, p.id));
           }
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
@@ -39345,7 +39377,7 @@ ${analysisText}
             details: `\u062A\u0645 \u0639\u0643\u0633 \u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u0648\u0627\u0644\u0623\u0631\u0635\u062F\u0629 \u0627\u0644\u0645\u0631\u062A\u0628\u0637\u0629 \u0628\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629`
           });
         }
-        await tx.update(salesInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(salesInvoices.id, inv.id));
+        await tx.update(salesInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(salesInvoices.id, inv.id));
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
           action: `\u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0628\u064A\u0639\u0627\u062A ${inv.invoiceNumber} \u0625\u0644\u0649 "${input.status}"`
@@ -39354,31 +39386,31 @@ ${analysisText}
       return { success: true };
     }),
     getItems: tenantProcedure.input(
-      z7.object({
-        invoiceId: z7.number()
+      z8.object({
+        invoiceId: z8.number()
       })
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
       const [invoice] = await db.select({ id: salesInvoices.id }).from(salesInvoices).where(
-        and7(
-          eq12(salesInvoices.id, input.invoiceId),
-          eq12(salesInvoices.tenantId, ctx.tenantId)
+        and8(
+          eq13(salesInvoices.id, input.invoiceId),
+          eq13(salesInvoices.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (!invoice) return [];
-      return await db.select().from(salesInvoiceItems).where(eq12(salesInvoiceItems.invoiceId, input.invoiceId));
+      return await db.select().from(salesInvoiceItems).where(eq13(salesInvoiceItems.invoiceId, input.invoiceId));
     })
   }),
   // ─── Purchases ──────────────────────────────────────────────────
   purchases: router({
     list: tenantProcedure.input(
-      z7.object({
-        limit: z7.number().min(1).max(100).default(50),
-        offset: z7.number().min(0).default(0),
-        status: z7.enum(["draft", "confirmed", "paid", "partial", "cancelled"]).optional(),
-        supplierId: z7.number().optional()
+      z8.object({
+        limit: z8.number().min(1).max(100).default(50),
+        offset: z8.number().min(0).default(0),
+        status: z8.enum(["draft", "confirmed", "paid", "partial", "cancelled"]).optional(),
+        supplierId: z8.number().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return { items: [], total: 0 };
@@ -39387,42 +39419,42 @@ ${analysisText}
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       const conditions = [
-        eq12(purchaseInvoices.tenantId, ctx.tenantId)
+        eq13(purchaseInvoices.tenantId, ctx.tenantId)
       ];
       if (input?.status)
-        conditions.push(eq12(purchaseInvoices.status, input.status));
+        conditions.push(eq13(purchaseInvoices.status, input.status));
       if (input?.supplierId)
-        conditions.push(eq12(purchaseInvoices.supplierId, input.supplierId));
-      const where = and7(...conditions);
+        conditions.push(eq13(purchaseInvoices.supplierId, input.supplierId));
+      const where = and8(...conditions);
       const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(purchaseInvoices).where(where);
       const items = await db.select().from(purchaseInvoices).where(where).orderBy(desc5(purchaseInvoices.createdAt)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z7.object({
-        supplierId: z7.number().optional(),
-        items: z7.array(
-          z7.object({
-            productId: z7.number(),
-            productName: z7.string().min(1),
-            quantity: z7.number().int().min(1),
-            unitPrice: z7.string().refine(
+      z8.object({
+        supplierId: z8.number().optional(),
+        items: z8.array(
+          z8.object({
+            productId: z8.number(),
+            productName: z8.string().min(1),
+            quantity: z8.number().int().min(1),
+            unitPrice: z8.string().refine(
               (v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0,
               "\u0627\u0644\u0633\u0639\u0631 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B"
             ),
-            discount: z7.string().default("0")
+            discount: z8.string().default("0")
           })
         ).min(1, "\u064A\u062C\u0628 \u0625\u0636\u0627\u0641\u0629 \u0635\u0646\u0641 \u0648\u0627\u062D\u062F \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644"),
-        discount: z7.string().default("0"),
-        taxRate: z7.string().default("0"),
-        paymentMethod: z7.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
-        paidAmount: z7.string().default("0"),
-        notes: z7.string().optional(),
-        country: z7.string().optional(),
-        workSiteId: z7.number().optional(),
-        deviceId: z7.number().optional(),
-        lat: z7.string().optional(),
-        lng: z7.string().optional()
+        discount: z8.string().default("0"),
+        taxRate: z8.string().default("0"),
+        paymentMethod: z8.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
+        paidAmount: z8.string().default("0"),
+        notes: z8.string().optional(),
+        country: z8.string().optional(),
+        workSiteId: z8.number().optional(),
+        deviceId: z8.number().optional(),
+        lat: z8.string().optional(),
+        lng: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -39440,7 +39472,7 @@ ${analysisText}
       const invoiceNumber = `PI-${datePart}-${randPart}`;
       const productIds = input.items.map((i) => i.productId);
       const productRows = await db.select().from(products).where(
-        and7(inArray3(products.id, productIds), isNull4(products.deletedAt))
+        and8(inArray3(products.id, productIds), isNull4(products.deletedAt))
       );
       const productMap = new Map(productRows.map((p) => [p.id, p]));
       for (const item of input.items) {
@@ -39459,8 +39491,8 @@ ${analysisText}
       if (paidAmount > total + 0.01)
         throw new Error("\u0627\u0644\u0645\u0628\u0644\u063A \u0627\u0644\u0645\u062F\u0641\u0648\u0639 \u064A\u062A\u062C\u0627\u0648\u0632 \u0625\u062C\u0645\u0627\u0644\u064A \u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629");
       const initialStatus = paidAmount >= total - 0.01 ? "paid" : paidAmount > 0 ? "partial" : "draft";
-      const [settingsRow] = await db.select().from(settings).where(eq12(settings.tenantId, ctx.tenantId)).limit(1);
-      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq12(tenants.id, ctx.tenantId)).limit(1);
+      const [settingsRow] = await db.select().from(settings).where(eq13(settings.tenantId, ctx.tenantId)).limit(1);
+      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq13(tenants.id, ctx.tenantId)).limit(1);
       const country = input.country || settingsRow?.country || tenantRow?.country || "\u0627\u0644\u064A\u0645\u0646";
       const globalCode = genGlobalCode({
         country,
@@ -39529,11 +39561,11 @@ ${analysisText}
         for (const item of input.items) {
           await tx.update(products).set({
             currentStock: sql8`${products.currentStock} + ${item.quantity}`
-          }).where(eq12(products.id, item.productId));
+          }).where(eq13(products.id, item.productId));
           const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(
-            and7(
-              eq12(warehouses.tenantId, ctx.tenantId),
-              eq12(warehouses.isActive, true)
+            and8(
+              eq13(warehouses.tenantId, ctx.tenantId),
+              eq13(warehouses.isActive, true)
             )
           ).orderBy(asc5(warehouses.code)).limit(1);
           const warehouseId = defaultWarehouse[0]?.id;
@@ -39590,9 +39622,9 @@ ${analysisText}
           const unpaidAmount = total - paidAmount;
           if (unpaidAmount > 0) {
             await tx.update(suppliers).set({ balance: sql8`${suppliers.balance} + ${unpaidAmount}` }).where(
-              and7(
-                eq12(suppliers.id, input.supplierId),
-                eq12(suppliers.tenantId, ctx.tenantId)
+              and8(
+                eq13(suppliers.id, input.supplierId),
+                eq13(suppliers.tenantId, ctx.tenantId)
               )
             );
           }
@@ -39617,9 +39649,9 @@ ${analysisText}
       return { success: true, ...result };
     }),
     updateStatus: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        status: z7.enum([
+      z8.object({
+        id: z8.number(),
+        status: z8.enum([
           "draft",
           "confirmed",
           "paid",
@@ -39631,9 +39663,9 @@ ${analysisText}
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(purchaseInvoices).where(
-        and7(
-          eq12(purchaseInvoices.id, input.id),
-          eq12(purchaseInvoices.tenantId, ctx.tenantId)
+        and8(
+          eq13(purchaseInvoices.id, input.id),
+          eq13(purchaseInvoices.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
@@ -39644,17 +39676,17 @@ ${analysisText}
       if (inv.status === input.status)
         return { success: true, unchanged: true };
       const cancelFlow = input.status === "cancelled" && inv.status !== "draft";
-      const items = cancelFlow ? await db.select().from(purchaseInvoiceItems).where(eq12(purchaseInvoiceItems.invoiceId, inv.id)) : [];
+      const items = cancelFlow ? await db.select().from(purchaseInvoiceItems).where(eq13(purchaseInvoiceItems.invoiceId, inv.id)) : [];
       await db.transaction(async (tx) => {
         if (cancelFlow) {
           for (const item of items) {
             await tx.update(products).set({
               currentStock: sql8`${products.currentStock} - ${item.quantity}`
-            }).where(eq12(products.id, item.productId));
+            }).where(eq13(products.id, item.productId));
             const defaultWarehouse = await tx.select({ id: warehouses.id }).from(warehouses).where(
-              and7(
-                eq12(warehouses.tenantId, ctx.tenantId),
-                eq12(warehouses.isActive, true)
+              and8(
+                eq13(warehouses.tenantId, ctx.tenantId),
+                eq13(warehouses.isActive, true)
               )
             ).orderBy(asc5(warehouses.code)).limit(1);
             const warehouseId = defaultWarehouse[0]?.id;
@@ -39664,19 +39696,19 @@ ${analysisText}
                 availableQty: sql8`${warehouseStock.availableQty} - ${item.quantity}`,
                 lastMovementAt: /* @__PURE__ */ new Date()
               }).where(
-                and7(
-                  eq12(warehouseStock.tenantId, ctx.tenantId),
-                  eq12(warehouseStock.productId, item.productId),
-                  eq12(warehouseStock.warehouseId, warehouseId)
+                and8(
+                  eq13(warehouseStock.tenantId, ctx.tenantId),
+                  eq13(warehouseStock.productId, item.productId),
+                  eq13(warehouseStock.warehouseId, warehouseId)
                 )
               );
               await tx.update(inventoryValuationLayers).set({ isActive: false, updatedAt: /* @__PURE__ */ new Date() }).where(
-                and7(
-                  eq12(inventoryValuationLayers.tenantId, ctx.tenantId),
-                  eq12(inventoryValuationLayers.productId, item.productId),
-                  eq12(inventoryValuationLayers.warehouseId, warehouseId),
-                  eq12(inventoryValuationLayers.sourceType, "purchase"),
-                  eq12(inventoryValuationLayers.sourceId, inv.id)
+                and8(
+                  eq13(inventoryValuationLayers.tenantId, ctx.tenantId),
+                  eq13(inventoryValuationLayers.productId, item.productId),
+                  eq13(inventoryValuationLayers.warehouseId, warehouseId),
+                  eq13(inventoryValuationLayers.sourceType, "purchase"),
+                  eq13(inventoryValuationLayers.sourceId, inv.id)
                 )
               );
             }
@@ -39696,7 +39728,7 @@ ${analysisText}
             if (reversedUnpaid > 0) {
               await tx.update(suppliers).set({
                 balance: sql8`${suppliers.balance} - ${reversedUnpaid}`
-              }).where(eq12(suppliers.id, inv.supplierId));
+              }).where(eq13(suppliers.id, inv.supplierId));
             }
           }
           await tx.insert(activityLogs).values({
@@ -39705,7 +39737,7 @@ ${analysisText}
             details: `\u062A\u0645 \u0639\u0643\u0633 \u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u0648\u0627\u0644\u0623\u0631\u0635\u062F\u0629 \u0627\u0644\u0645\u0631\u062A\u0628\u0637\u0629 \u0628\u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629`
           });
         }
-        await tx.update(purchaseInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq12(purchaseInvoices.id, inv.id));
+        await tx.update(purchaseInvoices).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(eq13(purchaseInvoices.id, inv.id));
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
           action: `\u062A\u062D\u062F\u064A\u062B \u062D\u0627\u0644\u0629 \u0641\u0627\u062A\u0648\u0631\u0629 \u0627\u0644\u0645\u0634\u062A\u0631\u064A\u0627\u062A ${inv.invoiceNumber} \u0625\u0644\u0649 "${input.status}"`
@@ -39714,21 +39746,21 @@ ${analysisText}
       return { success: true };
     }),
     getItems: tenantProcedure.input(
-      z7.object({
-        invoiceId: z7.number()
+      z8.object({
+        invoiceId: z8.number()
       })
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
       const [invoice] = await db.select({ id: purchaseInvoices.id }).from(purchaseInvoices).where(
-        and7(
-          eq12(purchaseInvoices.id, input.invoiceId),
-          eq12(purchaseInvoices.tenantId, ctx.tenantId)
+        and8(
+          eq13(purchaseInvoices.id, input.invoiceId),
+          eq13(purchaseInvoices.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (!invoice) return [];
-      return await db.select().from(purchaseInvoiceItems).where(eq12(purchaseInvoiceItems.invoiceId, input.invoiceId));
+      return await db.select().from(purchaseInvoiceItems).where(eq13(purchaseInvoiceItems.invoiceId, input.invoiceId));
     })
   }),
   // ─── Orders & Distribution ──────────────────────────────────────
@@ -39737,8 +39769,8 @@ ${analysisText}
     // reference number or the guest's own phone number. Never exposes the
     // full order list or other customers' data to anonymous visitors.
     track: publicProcedure.input(
-      z7.object({
-        query: z7.string().min(6, "\u0623\u062F\u062E\u0644 \u0631\u0642\u0645 \u0637\u0644\u0628 \u0623\u0648 \u0647\u0627\u062A\u0641 \u0635\u062D\u064A\u062D").max(50)
+      z8.object({
+        query: z8.string().min(6, "\u0623\u062F\u062E\u0644 \u0631\u0642\u0645 \u0637\u0644\u0628 \u0623\u0648 \u0647\u0627\u062A\u0641 \u0635\u062D\u064A\u062D").max(50)
       })
     ).query(async ({ input, ctx }) => {
       const ip = ctx.req.ip || "unknown";
@@ -39765,9 +39797,9 @@ ${analysisText}
         deliveryAddress: orders.deliveryAddress,
         deliveryNotes: orders.deliveryNotes,
         assignedTo: orders.assignedTo
-      }).from(orders).leftJoin(customers, eq12(orders.customerId, customers.id)).where(
-        and7(
-          eq12(orders.tenantId, tid),
+      }).from(orders).leftJoin(customers, eq13(orders.customerId, customers.id)).where(
+        and8(
+          eq13(orders.tenantId, tid),
           or4(
             ilike5(orders.orderNumber, `%${q}%`),
             ilike5(customers.phone, `%${q}%`)
@@ -39778,10 +39810,10 @@ ${analysisText}
     }),
     // Tenant-scoped listing — consumed by the authenticated Commercial page.
     list: tenantProcedure.input(
-      z7.object({
-        limit: z7.number().min(1).max(100).default(50),
-        offset: z7.number().min(0).default(0),
-        status: z7.enum([
+      z8.object({
+        limit: z8.number().min(1).max(100).default(50),
+        offset: z8.number().min(0).default(0),
+        status: z8.enum([
           "pending",
           "confirmed",
           "processing",
@@ -39796,36 +39828,36 @@ ${analysisText}
       if (!db) return { items: [], total: 0 };
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
-      const conditions = [eq12(orders.tenantId, ctx.tenantId)];
-      if (input?.status) conditions.push(eq12(orders.status, input.status));
-      const where = and7(...conditions);
+      const conditions = [eq13(orders.tenantId, ctx.tenantId)];
+      if (input?.status) conditions.push(eq13(orders.status, input.status));
+      const where = and8(...conditions);
       const [countResult] = await db.select({ count: sql8`count(*)::int` }).from(orders).where(where);
       const items = await db.select().from(orders).where(where).orderBy(desc5(orders.createdAt)).limit(limit).offset(offset);
       return { items, total: countResult?.count ?? 0 };
     }),
     create: tenantProcedure.input(
-      z7.object({
-        customerId: z7.number().optional(),
-        items: z7.array(
-          z7.object({
-            productId: z7.number(),
-            productName: z7.string().min(1),
-            quantity: z7.number().int().min(1),
-            unitPrice: z7.string().refine(
+      z8.object({
+        customerId: z8.number().optional(),
+        items: z8.array(
+          z8.object({
+            productId: z8.number(),
+            productName: z8.string().min(1),
+            quantity: z8.number().int().min(1),
+            unitPrice: z8.string().refine(
               (v) => !isNaN(parseFloat(v)) && parseFloat(v) >= 0,
               "\u0627\u0644\u0633\u0639\u0631 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B"
             )
           })
         ).min(1, "\u064A\u062C\u0628 \u0625\u0636\u0627\u0641\u0629 \u0635\u0646\u0641 \u0648\u0627\u062D\u062F \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644"),
-        deliveryAddress: z7.string().optional(),
-        deliveryDate: z7.string().optional(),
-        deliveryNotes: z7.string().optional(),
-        assignedTo: z7.string().optional(),
-        country: z7.string().optional(),
-        workSiteId: z7.number().optional(),
-        deviceId: z7.number().optional(),
-        lat: z7.string().optional(),
-        lng: z7.string().optional()
+        deliveryAddress: z8.string().optional(),
+        deliveryDate: z8.string().optional(),
+        deliveryNotes: z8.string().optional(),
+        assignedTo: z8.string().optional(),
+        country: z8.string().optional(),
+        workSiteId: z8.number().optional(),
+        deviceId: z8.number().optional(),
+        lat: z8.string().optional(),
+        lng: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -39850,7 +39882,7 @@ ${analysisText}
       );
       const productIds = effectiveItems.map((i) => i.productId);
       const productRows = await db.select().from(products).where(
-        and7(inArray3(products.id, productIds), isNull4(products.deletedAt))
+        and8(inArray3(products.id, productIds), isNull4(products.deletedAt))
       );
       if (productRows.length !== productIds.length)
         throw new Error("\u0648\u0627\u062D\u062F \u0623\u0648 \u0623\u0643\u062B\u0631 \u0645\u0646 \u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
@@ -39862,8 +39894,8 @@ ${analysisText}
       const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
       const randPart = Math.random().toString(36).substring(2, 7).toUpperCase();
       const orderNumber = `ORD-${datePart}-${randPart}`;
-      const [settingsRow] = await db.select().from(settings).where(eq12(settings.tenantId, ctx.tenantId)).limit(1);
-      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq12(tenants.id, ctx.tenantId)).limit(1);
+      const [settingsRow] = await db.select().from(settings).where(eq13(settings.tenantId, ctx.tenantId)).limit(1);
+      const [tenantRow] = await db.select({ country: tenants.country }).from(tenants).where(eq13(tenants.id, ctx.tenantId)).limit(1);
       const country = input.country || settingsRow?.country || tenantRow?.country || "\u0627\u0644\u064A\u0645\u0646";
       const globalCode = genGlobalCode({
         country,
@@ -39902,8 +39934,8 @@ ${analysisText}
           const updated = await tx.update(products).set({
             currentStock: sql8`${products.currentStock} - ${item.quantity}`
           }).where(
-            and7(
-              eq12(products.id, item.productId),
+            and8(
+              eq13(products.id, item.productId),
               gte6(products.currentStock, item.quantity)
             )
           ).returning({ id: products.id });
@@ -39931,9 +39963,9 @@ ${analysisText}
       return { success: true, ...result };
     }),
     updateStatus: tenantProcedure.input(
-      z7.object({
-        id: z7.number(),
-        status: z7.enum([
+      z8.object({
+        id: z8.number(),
+        status: z8.enum([
           "pending",
           "confirmed",
           "processing",
@@ -39946,7 +39978,7 @@ ${analysisText}
       const db = await getDb();
       if (!db) throw new Error("Database not available");
       const existing = await db.select().from(orders).where(
-        and7(eq12(orders.id, input.id), eq12(orders.tenantId, ctx.tenantId))
+        and8(eq13(orders.id, input.id), eq13(orders.tenantId, ctx.tenantId))
       ).limit(1);
       if (existing.length === 0) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       const currentStatus = existing[0].status;
@@ -39958,16 +39990,16 @@ ${analysisText}
       }
       const result = await db.transaction(async (tx) => {
         await tx.update(orders).set({ status: input.status, updatedAt: /* @__PURE__ */ new Date() }).where(
-          and7(eq12(orders.id, input.id), eq12(orders.tenantId, ctx.tenantId))
+          and8(eq13(orders.id, input.id), eq13(orders.tenantId, ctx.tenantId))
         );
         if (input.status === "cancelled") {
           const linked = await tx.select().from(salesInvoices).where(ilike5(salesInvoices.notes, `%${existing[0].orderNumber}%`)).limit(1);
           if (linked.length === 0) {
-            const items = await tx.select().from(orderItems).where(eq12(orderItems.orderId, input.id));
+            const items = await tx.select().from(orderItems).where(eq13(orderItems.orderId, input.id));
             for (const it of items) {
               await tx.update(products).set({
                 currentStock: sql8`${products.currentStock} + ${it.quantity}`
-              }).where(eq12(products.id, it.productId));
+              }).where(eq13(products.id, it.productId));
               await tx.insert(inventoryMovements).values({
                 tenantId: ctx.tenantId,
                 productId: it.productId,
@@ -39991,15 +40023,15 @@ ${analysisText}
     // Convert a (web/store) order into an official sales invoice + auto-posting GL entries
     // Stock was already reserved at order time — no second deduction happens here.
     createSaleInvoice: tenantProcedure.input(
-      z7.object({
-        orderId: z7.number(),
-        paymentMethod: z7.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
-        paidAmount: z7.string().default("0").refine((v) => {
+      z8.object({
+        orderId: z8.number(),
+        paymentMethod: z8.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
+        paidAmount: z8.string().default("0").refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && isFinite(n) && n >= 0;
         }, "\u0627\u0644\u0645\u0628\u0644\u063A \u0627\u0644\u0645\u062F\u0641\u0648\u0639 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
-        notes: z7.string().optional(),
-        salesRepId: z7.string().optional()
+        notes: z8.string().optional(),
+        salesRepId: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -40007,15 +40039,15 @@ ${analysisText}
       if (!db) throw new Error("Database not available");
       await seedDefaultAccountsForTenant(ctx.tenantId);
       const [order2] = await db.select().from(orders).where(
-        and7(
-          eq12(orders.id, input.orderId),
-          eq12(orders.tenantId, ctx.tenantId)
+        and8(
+          eq13(orders.id, input.orderId),
+          eq13(orders.tenantId, ctx.tenantId)
         )
       ).limit(1);
       if (!order2) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
       if (order2.status === "cancelled")
         throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u062D\u0648\u064A\u0644\u0647");
-      const items = await db.select().from(orderItems).where(eq12(orderItems.orderId, order2.id));
+      const items = await db.select().from(orderItems).where(eq13(orderItems.orderId, order2.id));
       if (items.length === 0) throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0644\u0627 \u064A\u062D\u062A\u0648\u064A \u0623\u0635\u0646\u0627\u0641\u0627\u064B");
       const subtotal = items.reduce(
         (s, it) => s + parseFloat(it.unitPrice || "0") * it.quantity,
@@ -40036,7 +40068,7 @@ ${analysisText}
           throw new Error(
             `\u062A\u0645 \u062A\u062D\u0648\u064A\u0644 \u0627\u0644\u0637\u0644\u0628 \u0645\u0633\u0628\u0642\u0627\u064B \u0625\u0644\u0649 \u0641\u0627\u062A\u0648\u0631\u0629 ${prior[0].invoiceNumber}`
           );
-        const fresh = await tx.select().from(orders).where(eq12(orders.id, order2.id)).limit(1);
+        const fresh = await tx.select().from(orders).where(eq13(orders.id, order2.id)).limit(1);
         if (fresh.length === 0 || fresh[0].status === "cancelled")
           throw new Error("\u0627\u0644\u0637\u0644\u0628 \u0645\u064F\u0644\u063A\u0649 \u0648\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u062D\u0648\u064A\u0644\u0647");
         const [invoice] = await tx.insert(salesInvoices).values({
@@ -40066,7 +40098,7 @@ ${analysisText}
         await tx.insert(salesInvoiceItems).values(itemValues);
         const unpaid = total - paidAmount;
         if (order2.customerId && unpaid > 9e-3) {
-          await tx.update(customers).set({ balance: sql8`${customers.balance} + ${unpaid}` }).where(eq12(customers.id, order2.customerId));
+          await tx.update(customers).set({ balance: sql8`${customers.balance} + ${unpaid}` }).where(eq13(customers.id, order2.customerId));
         }
         await postInvoiceGlEntries(tx, {
           kind: "sale",
@@ -40079,7 +40111,7 @@ ${analysisText}
           tenantId: ctx.tenantId
         });
         if (fresh[0].status === "pending") {
-          await tx.update(orders).set({ status: "confirmed", updatedAt: /* @__PURE__ */ new Date() }).where(eq12(orders.id, order2.id));
+          await tx.update(orders).set({ status: "confirmed", updatedAt: /* @__PURE__ */ new Date() }).where(eq13(orders.id, order2.id));
         }
         await tx.insert(activityLogs).values({
           userId: ctx.user.id,
@@ -40092,13 +40124,13 @@ ${analysisText}
     }),
     // Authenticated only — order line items may reference internal pricing.
     getItems: protectedProcedure.input(
-      z7.object({
-        orderId: z7.number()
+      z8.object({
+        orderId: z8.number()
       })
     ).query(async ({ input }) => {
       const db = await getDb();
       if (!db) return [];
-      return await db.select().from(orderItems).where(eq12(orderItems.orderId, input.orderId));
+      return await db.select().from(orderItems).where(eq13(orderItems.orderId, input.orderId));
     })
   }),
   // ─── Commercial Dashboard Stats ────────────────────────────────
@@ -40134,9 +40166,9 @@ ${analysisText}
           }
         };
       const allProducts = await db.select().from(products).where(
-        and7(
-          eq12(products.isActive, true),
-          eq12(products.tenantId, ctx.tenantId),
+        and8(
+          eq13(products.isActive, true),
+          eq13(products.tenantId, ctx.tenantId),
           isNull4(products.deletedAt)
         )
       );
@@ -40151,8 +40183,8 @@ ${analysisText}
       const [salesAgg] = await db.select({
         total: sql8`coalesce(sum(${salesInvoices.total}), '0')`
       }).from(salesInvoices).where(
-        and7(
-          eq12(salesInvoices.tenantId, ctx.tenantId),
+        and8(
+          eq13(salesInvoices.tenantId, ctx.tenantId),
           gte6(salesInvoices.invoiceDate, monthStart2),
           ne3(salesInvoices.status, "cancelled")
         )
@@ -40160,61 +40192,61 @@ ${analysisText}
       const [purchasesAgg] = await db.select({
         total: sql8`coalesce(sum(${purchaseInvoices.total}), '0')`
       }).from(purchaseInvoices).where(
-        and7(
-          eq12(purchaseInvoices.tenantId, ctx.tenantId),
+        and8(
+          eq13(purchaseInvoices.tenantId, ctx.tenantId),
           gte6(purchaseInvoices.invoiceDate, monthStart2),
           ne3(purchaseInvoices.status, "cancelled")
         )
       );
       const [ordersAgg] = await db.select({ count: sql8`count(*)::int` }).from(orders).where(
-        and7(
-          eq12(orders.tenantId, ctx.tenantId),
+        and8(
+          eq13(orders.tenantId, ctx.tenantId),
           gte6(orders.createdAt, monthStart2)
         )
       );
       const [productsCount] = await db.select({ count: sql8`count(*)::int` }).from(products).where(
-        and7(
-          eq12(products.isActive, true),
-          eq12(products.tenantId, ctx.tenantId),
+        and8(
+          eq13(products.isActive, true),
+          eq13(products.tenantId, ctx.tenantId),
           isNull4(products.deletedAt)
         )
       );
       const [customersCount] = await db.select({ count: sql8`count(*)::int` }).from(customers).where(
-        and7(
-          eq12(customers.isActive, true),
-          eq12(customers.tenantId, ctx.tenantId),
+        and8(
+          eq13(customers.isActive, true),
+          eq13(customers.tenantId, ctx.tenantId),
           isNull4(customers.deletedAt)
         )
       );
       const [suppliersCount] = await db.select({ count: sql8`count(*)::int` }).from(suppliers).where(
-        and7(
-          eq12(suppliers.isActive, true),
-          eq12(suppliers.tenantId, ctx.tenantId),
+        and8(
+          eq13(suppliers.isActive, true),
+          eq13(suppliers.tenantId, ctx.tenantId),
           isNull4(suppliers.deletedAt)
         )
       );
       const [salesCount] = await db.select({ count: sql8`count(*)::int` }).from(salesInvoices).where(
-        and7(
-          eq12(salesInvoices.tenantId, ctx.tenantId),
+        and8(
+          eq13(salesInvoices.tenantId, ctx.tenantId),
           ne3(salesInvoices.status, "cancelled")
         )
       );
       const [purchasesCount] = await db.select({ count: sql8`count(*)::int` }).from(purchaseInvoices).where(
-        and7(
-          eq12(purchaseInvoices.tenantId, ctx.tenantId),
+        and8(
+          eq13(purchaseInvoices.tenantId, ctx.tenantId),
           ne3(purchaseInvoices.status, "cancelled")
         )
       );
       const [ordersCount] = await db.select({ count: sql8`count(*)::int` }).from(orders).where(
-        and7(
-          eq12(orders.tenantId, ctx.tenantId),
+        and8(
+          eq13(orders.tenantId, ctx.tenantId),
           ne3(orders.status, "cancelled")
         )
       );
       const topCustomers = await db.select().from(customers).where(
-        and7(
-          eq12(customers.tenantId, ctx.tenantId),
-          eq12(customers.isActive, true),
+        and8(
+          eq13(customers.tenantId, ctx.tenantId),
+          eq13(customers.isActive, true),
           isNull4(customers.deletedAt),
           sql8`${customers.balance} > 0`
         )
@@ -40255,9 +40287,9 @@ ${analysisText}
   // ─── Public Storefront (website integration) ────────────────────
   store: router({
     catalog: publicProcedure.input(
-      z7.object({
-        search: z7.string().optional(),
-        category: z7.string().optional()
+      z8.object({
+        search: z8.string().optional(),
+        category: z8.string().optional()
       }).optional()
     ).query(async ({ input, ctx }) => {
       const db = await getDb();
@@ -40293,33 +40325,33 @@ ${analysisText}
   }),
   payments: router({
     list: tenantProcedure.input(
-      z7.object({
-        source: z7.enum(["sales", "purchases"]),
-        invoiceId: z7.number()
+      z8.object({
+        source: z8.enum(["sales", "purchases"]),
+        invoiceId: z8.number()
       })
     ).query(async ({ input, ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
       return await db.select().from(payments).where(
-        and7(
-          eq12(payments.tenantId, ctx.tenantId),
-          eq12(payments.source, input.source),
-          eq12(payments.invoiceId, input.invoiceId)
+        and8(
+          eq13(payments.tenantId, ctx.tenantId),
+          eq13(payments.source, input.source),
+          eq13(payments.invoiceId, input.invoiceId)
         )
       ).orderBy(desc5(payments.paymentDate));
     }),
     create: tenantProcedure.input(
-      z7.object({
-        source: z7.enum(["sales", "purchases"]),
-        invoiceId: z7.number(),
-        amount: z7.string().refine((v) => {
+      z8.object({
+        source: z8.enum(["sales", "purchases"]),
+        invoiceId: z8.number(),
+        amount: z8.string().refine((v) => {
           const n = parseFloat(v);
           return !isNaN(n) && n > 0 && n < 1e9;
         }, "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0631\u0642\u0645\u0627\u064B \u0645\u0648\u062C\u0628\u0627\u064B"),
-        paymentMethod: z7.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
-        paymentDate: z7.string().optional(),
-        notes: z7.string().optional()
+        paymentMethod: z8.enum(["cash", "card", "transfer", "credit", "online"]).default("cash"),
+        paymentDate: z8.string().optional(),
+        notes: z8.string().optional()
       })
     ).mutation(async ({ input, ctx }) => {
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
@@ -40328,9 +40360,9 @@ ${analysisText}
       const paymentAmount = parseFloat(input.amount);
       if (input.source === "sales") {
         const invoices = await db.select().from(salesInvoices).where(
-          and7(
-            eq12(salesInvoices.id, input.invoiceId),
-            eq12(salesInvoices.tenantId, ctx.tenantId)
+          and8(
+            eq13(salesInvoices.id, input.invoiceId),
+            eq13(salesInvoices.tenantId, ctx.tenantId)
           )
         ).limit(1);
         if (invoices.length === 0)
@@ -40360,16 +40392,16 @@ ${analysisText}
             status: newStatus,
             updatedAt: /* @__PURE__ */ new Date()
           }).where(
-            and7(
-              eq12(salesInvoices.id, input.invoiceId),
-              eq12(salesInvoices.tenantId, ctx.tenantId)
+            and8(
+              eq13(salesInvoices.id, input.invoiceId),
+              eq13(salesInvoices.tenantId, ctx.tenantId)
             )
           );
           if (inv.customerId) {
             await tx.update(customers).set({ balance: sql8`${customers.balance} - ${paymentAmount}` }).where(
-              and7(
-                eq12(customers.id, inv.customerId),
-                eq12(customers.tenantId, ctx.tenantId)
+              and8(
+                eq13(customers.id, inv.customerId),
+                eq13(customers.tenantId, ctx.tenantId)
               )
             );
           }
@@ -40382,9 +40414,9 @@ ${analysisText}
         });
       } else {
         const invoices = await db.select().from(purchaseInvoices).where(
-          and7(
-            eq12(purchaseInvoices.id, input.invoiceId),
-            eq12(purchaseInvoices.tenantId, ctx.tenantId)
+          and8(
+            eq13(purchaseInvoices.id, input.invoiceId),
+            eq13(purchaseInvoices.tenantId, ctx.tenantId)
           )
         ).limit(1);
         if (invoices.length === 0)
@@ -40414,16 +40446,16 @@ ${analysisText}
             status: newStatus,
             updatedAt: /* @__PURE__ */ new Date()
           }).where(
-            and7(
-              eq12(purchaseInvoices.id, input.invoiceId),
-              eq12(purchaseInvoices.tenantId, ctx.tenantId)
+            and8(
+              eq13(purchaseInvoices.id, input.invoiceId),
+              eq13(purchaseInvoices.tenantId, ctx.tenantId)
             )
           );
           if (inv.supplierId) {
             await tx.update(suppliers).set({ balance: sql8`${suppliers.balance} - ${paymentAmount}` }).where(
-              and7(
-                eq12(suppliers.id, inv.supplierId),
-                eq12(suppliers.tenantId, ctx.tenantId)
+              and8(
+                eq13(suppliers.id, inv.supplierId),
+                eq13(suppliers.tenantId, ctx.tenantId)
               )
             );
           }
@@ -40437,7 +40469,8 @@ ${analysisText}
       }
       return { success: true };
     })
-  })
+  }),
+  costCenters: costCentersRouter
 });
 
 // server/_core/context.ts
@@ -40626,7 +40659,7 @@ function createApp() {
       dbAvailable,
       service: "alhusainia-platform",
       institution: "\u0645\u062C\u0645\u0648\u0639\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u2014 \u062D\u0644\u0648\u0644 \u0627\u0644\u0623\u0639\u0645\u0627\u0644 \u0648\u0627\u0644\u0647\u0646\u062F\u0633\u0629 \u0648\u0627\u0644\u0645\u0639\u0631\u0641\u0629",
-      version: true ? "2.8.1" : (
+      version: true ? "2.9.0" : (
         // dev (tsx) runs without the esbuild define
         "dev"
       ),
