@@ -4,6 +4,16 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.9.1] — 2026-08-28 · UX Precision — اكتمال تلقائي وتحقق وسلامة وترابط
+
+### Added
+
+- **اكتمال تلقائي** `client/src/components/BeneficiaryAutocomplete.tsx:1` بحث موحد عملاء+موردين مع فلترة محلية فورية، عرض كود/هاتف/دولة، وترابط مع `sync.getFullSnapshot` — كتابة 2 أحرف تظهر الاقتراحات
+- **تحقق ذكي** `server/services/validation.ts:1` هاتف حسب الدولة (YE/SA/AE/EG/JO + دولي)، بريد RFC، ضريبي حسب الدولة (SA 15)، اسم 2-120 — يمنع الحفظ الخاطئ
+- **عدم تكرار** `server/services/deduplication.ts:1` فحص تطبيعي (كود/هاتف مجرد/بريد/ضريبي) قبل كل إنشاء — ضمان سلامة البيانات
+- **سجل موحد** `server/beneficiariesRouter.ts:1` `search` (عملاء+موردين معاً) + `upsert` مع تحقق وتطبيع + `client/src/pages/Beneficiaries.tsx:1` صفحة موحدة شخص/جهة/أي دولة مع ترابط حسابات وطلبات
+- **ترابط** كل طلب يُنشأ عبر `BeneficiaryAutocomplete` يضمن `customerId` واحد — لا تكرار، وحدة سجل العميل
+
 ## [2.9.0] — 2026-08-28 · Subscriber Management — بورك فلو تهيئة ذكي + مراكز تكلفة + ZATCA
 
 ### Added

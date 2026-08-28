@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v10) — سد فجوة المفضلة وحالات الفراغ.
+// ALHUSAINIA service worker (v11) — دقة متناهية: اكتمال وتحقق وترابط.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v10";
+const CACHE = "alhusainia-v11";
 const SHELL = [
   "/",
   "/index.html",

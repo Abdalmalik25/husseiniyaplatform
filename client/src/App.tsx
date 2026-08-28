@@ -68,6 +68,7 @@ const Billing = lazy(() => import("@/pages/Billing"));
 const SubscriberOnboarding = lazy(() => import("@/pages/SubscriberOnboarding"));
 const CostCenters = lazy(() => import("@/pages/CostCenters"));
 const ZatcaIntegration = lazy(() => import("@/pages/ZatcaIntegration"));
+const Beneficiaries = lazy(() => import("@/pages/Beneficiaries"));
 
 /**
  * Unified Route Loader — Single lightweight circular progress for all lazy loads.
@@ -317,6 +318,11 @@ function Router() {
                 <ZatcaIntegration />
               </RequireAuth>
             </Route>
+            <Route path={"/beneficiaries"}>
+              <RequireAuth>
+                <Beneficiaries />
+              </RequireAuth>
+            </Route>
             <Route path={"/404"} component={NotFound} />
             <Route component={NotFound} />
           </Switch>
@@ -377,6 +383,7 @@ function App() {
       () => import("@/pages/SubscriberOnboarding"),
       () => import("@/pages/CostCenters"),
       () => import("@/pages/ZatcaIntegration"),
+      () => import("@/pages/Beneficiaries"),
     ];
 
     let i = 0;
