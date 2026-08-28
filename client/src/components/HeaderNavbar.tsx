@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Layers,
   Compass,
+  Phone,
 } from "lucide-react";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -169,17 +170,23 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
 
   return (
     <header
-      className={`text-white sticky top-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-ink/85 backdrop-blur-2xl border-b border-white/10 shadow-2xl shadow-black/40"
-          : "bg-gradient-to-b from-ink/95 to-ink/80 backdrop-blur-md border-b border-transparent"
-      }`}
+      className="text-white sticky top-0 z-50"
       dir="rtl"
     >
+      {/* Top bar — institutional descriptor (world-class subtle) */}
+      <div className="hidden lg:flex items-center justify-between px-4 py-1.5 bg-ink-deep/90 backdrop-blur border-b border-white/5 text-[11px] text-white/50">
+        <span className="font-mono tracking-widest">مجموعة الحسينية — حلول متكاملة للأعمال والهندسة والمعرفة</span>
+        <span className="flex items-center gap-3">
+          <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-brand-300" /> +967 778 343 988</span>
+          <span className="w-px h-3 bg-white/10" />
+          <span className="font-mono text-brand-300">Uamex_erp v2.6.1</span>
+        </span>
+      </div>
+      <div className={`bg-ink/75 backdrop-blur-2xl border-b transition-all duration-500 ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}>
       {/* ── Scroll progress indicator ── */}
       <motion.div
         style={{ scaleX: progress, transformOrigin: "100% 50%" }}
-        className="absolute top-0 inset-x-0 h-[3px] z-20 bg-gradient-to-l from-[#b87945] via-[#e2b17a] to-[#38bdf8]"
+        className="absolute top-0 inset-x-0 h-[2px] z-20 bg-gradient-to-l from-brand via-[#e2b17a] to-brand"
       />
 
       <div
@@ -440,6 +447,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
             )}
           </Button>
         </div>
+      </div>
       </div>
 
       {/* ── Mobile Drawer — لوحة منزلقة متحركة فوق خلفية معتمة ── */}

@@ -4,6 +4,15 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.6.1] — 2026-08-28 · Unified Content & Identity & Modern Header
+
+### Fixed
+
+- **تضارب المحتوى** `client/src/pages/Landing.tsx:295` هيرو من 3 CTAs متضاربة إلى صوت واحد: `ابدأ تجربة Uamex_erp مجاناً` أساسي + `تحدث إلى خبير` ثانوي + `اسأل الياس` رابط خفي — يزيل التشتت ويوحد القرار
+- **هوية مشتتة** `brand.ts:416` Pillars من 4 متكررة (محاسبي/تجاري/مكتبة منفصلة) إلى 3 قطاعات موحدة: `قطاع الأعمال المؤسسية — Uamex_erp` / `قطاع الهندسة` / `المركز المعرفي` — مصدر واحد
+- **أيقونات غير مضبوطة** `Landing.tsx:1013` بطاقات المعرفي `sky-500/10` → `brand/10` + `sky-600` → `brand` + CTA `from-sky-800 to-blue-950` → `from-ink to-ink-deep` — توحيد لوحة `ink/bronze` بلا تشتت لوني
+- **شريط تقليدي** `HeaderNavbar.tsx:170` إعادة بناء فاخرة: شريط علوي `مجموعة الحسينية — حلول متكاملة` + `backdrop-blur-2xl` + `border-white/10` + `progress 2px` + إغلاق `</div>` مصحح
+
 ## [2.6.0] — 2026-08-28 · World-Class Content Ordering & Expert Messaging
 
 ### Changed

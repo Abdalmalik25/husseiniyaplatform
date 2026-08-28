@@ -292,14 +292,14 @@ export default function Landing() {
             <strong className="text-brand-300 font-black">Uamex_erp</strong> مصدر الحقيقة الوحيد.
           </p>
 
-          {/* الـ CTAs */}
+          {/* الـ CTAs — صوت واحد، قرار واحد */}
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button
-              onClick={() => setLocation("/about")}
+              onClick={() => goLogin()}
               className="bg-brand hover:bg-brand-deep text-ink font-black text-sm sm:text-base h-12 px-8 shadow-2xl rounded-2xl flex items-center gap-2 transition-all hover:scale-105"
             >
               <Zap className="w-5 h-5 fill-current" />
-              اكتشف الحل المناسب لك
+              ابدأ تجربة Uamex_erp مجاناً — 14 يوماً
             </Button>
             <a
               href={uamexDemoLink()}
@@ -308,19 +308,19 @@ export default function Landing() {
               className="inline-flex items-center gap-2 border border-white/20 bg-white/5 hover:bg-white/10 text-white text-sm h-12 px-6 rounded-2xl font-medium transition-all"
             >
               <MessageSquare className="w-5 h-5 text-brand-300" />
-              تحدث إلى خبير الآن
+              تحدث إلى خبير — مجاناً
             </a>
             <button
               onClick={() =>
                 window.dispatchEvent(new CustomEvent("alias:open"))
               }
-              className="inline-flex items-center gap-2 border border-[#d4a574]/40 bg-[#d4a574]/10 hover:bg-[#d4a574]/20 text-[#e8c9a0] text-sm h-12 px-6 rounded-2xl font-bold transition-all hover:scale-105"
+              className="hidden sm:inline-flex items-center gap-2 text-white/60 hover:text-white text-xs underline-offset-4 hover:underline transition-colors"
             >
               <img
                 src="/elias-avatar-sm.jpg"
                 alt=""
                 decoding="async"
-                className="w-7 h-7 rounded-full object-cover ring-1 ring-[#d4a574]/60"
+                className="w-5 h-5 rounded-full object-cover ring-1 ring-white/20"
               />
               اسأل ألياس — الذكاء الاصطناعي
             </button>
@@ -975,7 +975,7 @@ export default function Landing() {
       <section id="library" className="py-20 px-4 scroll-mt-20">
         <div className="max-w-7xl mx-auto">
           <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
-            <Badge className="bg-sky-500/10 text-sky-700 dark:text-sky-400 border border-sky-500/30 font-bold text-xs px-3 py-1">
+            <Badge className="bg-brand/10 text-brand border border-brand/30 font-bold text-xs px-3 py-1">
               ٤ · الخدمات المعرفية والطباعة الاحترافية
             </Badge>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
@@ -1012,8 +1012,8 @@ export default function Landing() {
                   className="reveal surface rounded-2xl p-5 text-center hover:-translate-y-1 hover:shadow-xl transition-all group"
                   data-reveal-delay={i * 80}
                 >
-                  <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-sky-500/20 transition-colors">
-                    <Icon className="w-6 h-6 text-sky-600 dark:text-sky-400" />
+                  <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-4 group-hover:bg-brand/20 transition-colors">
+                    <Icon className="w-6 h-6 text-brand" />
                   </div>
                   <p className="font-bold text-foreground text-xs mb-3 leading-snug">
                     {item.q}
@@ -1030,38 +1030,37 @@ export default function Landing() {
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 reveal">
             <div className="lg:col-span-3 surface rounded-3xl p-8">
               <h3 className="font-bold text-foreground text-lg mb-5 flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-sky-600" />
-                قائمة الخدمات الطلابية والمكتبية
+                <GraduationCap className="w-5 h-5 text-brand" />
+                قائمة الخدمات المعرفية
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {brand.divisions.library.services.map((s, i) => (
                   <div
                     key={i}
-                    className="flex items-center gap-2 text-xs text-muted-foreground bg-sky-500/5 border border-sky-500/10 rounded-xl px-3 py-2.5"
+                    className="flex items-center gap-2 text-xs text-muted-foreground bg-brand/5 border border-brand/10 rounded-xl px-3 py-2.5"
                   >
-                    <CheckCircle2 className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+                    <CheckCircle2 className="w-3.5 h-3.5 text-brand shrink-0" />
                     {s}
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="lg:col-span-2 bg-gradient-to-br from-sky-800 to-blue-950 rounded-3xl p-8 text-white flex flex-col justify-between">
+            <div className="lg:col-span-2 bg-gradient-to-br from-ink to-ink-deep rounded-3xl p-8 text-white flex flex-col justify-between border border-white/10">
               <div>
-                <GraduationCap className="w-10 h-10 mb-4 text-sky-300" />
+                <GraduationCap className="w-10 h-10 mb-4 text-brand-300" />
                 <h3 className="font-black text-xl mb-3">احجز خدمتك الآن</h3>
                 <p className="text-sm text-white/70 leading-relaxed">
-                  نُنجز طلبك في الوقت المحدد. طباعة، تحليل، تصميم، صيانة — بجودة
-                  وأمانة.
+                  مسار واحد — من البحث إلى النشر — بمعايير الجامعة وضمان التسليم.
                 </p>
               </div>
               <a
                 href={whatsappLink(
-                  "السلام عليكم، أود الاستفسار عن الخدمات الطلابية والمكتبية."
+                  "السلام عليكم، مركز الحسينية للخدمات المعرفية، أود الاستفسار عن خدمة معرفية."
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 flex items-center justify-center gap-2 bg-sky-400 hover:bg-sky-300 text-sky-900 font-black py-3 rounded-xl text-sm transition-all"
+                className="mt-6 flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black py-3 rounded-xl text-sm transition-all"
               >
                 <MessageSquare className="w-4 h-4" />
                 تواصل عبر واتساب
