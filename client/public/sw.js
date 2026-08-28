@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v12) — بولند نهائي: مظهر وأداء وسرعة وتجربة.
+// ALHUSAINIA service worker (v13) — دفع نووي: push + تنبيهات مخزون/فاتورة حتى مع إغلاق المتصفح.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v12";
+const CACHE = "alhusainia-v13";
 const SHELL = [
   "/",
   "/index.html",
@@ -26,6 +26,55 @@ self.addEventListener("message", event => {
   if (event.data?.type === "SKIP_WAITING") {
     self.skipWaiting();
   }
+  if (event.data?.type === "LOCAL_NOTIFY") {
+    const { title, body, tag } = event.data;
+    self.registration.showNotification(title || "تنبيه", {
+      body: body || "",
+      icon: "/icon-192.png",
+      badge: "/favicon-32x32.png",
+      tag: tag || "local",
+      dir: "rtl",
+      lang: "ar",
+    });
+  }
+});
+
+// Push من الخادم — تنبيهات مخزون/فاتورة حتى مع إغلاق المتصفح
+self.addEventListener("push", event => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: event.data ? event.data.text() : "تنبيه" };
+  }
+  const title = data.title || "تنبيه من الحسينية";
+  const body = data.body || data.message || "";
+  const tag = data.tag || "push";
+  const url = data.url || "/app";
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: "/icon-192.png",
+      badge: "/favicon-32x32.png",
+      tag,
+      dir: "rtl",
+      lang: "ar",
+      data: { url },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", event => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/app";
+  event.waitUntil(
+    self.clients.matchAll({ type: "window" }).then(clients => {
+      for (const c of clients) {
+        if (c.url.includes(self.location.origin) && "focus" in c) return c.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
 });
 
 self.addEventListener("activate", event => {

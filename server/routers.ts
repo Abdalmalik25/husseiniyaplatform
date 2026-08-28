@@ -10,6 +10,7 @@ import {
 } from "./_core/systemRouter";
 import { hashPassword, verifyPassword } from "./_core/password";
 import { getClientIp, geolocate, parseDevice } from "./_core/geo";
+import { generateSecret, verifyToken, otpauthUrl } from "./_core/totp";
 import {
   genGlobalCode,
   isSaudiCountry,
@@ -994,6 +995,11 @@ export const appRouter = router({
           });
         }
 
+        // OWASP A07: إذا كان 2FA مفعل، لا ننشئ جلسة حتى التحقق الثاني
+        if ((user as any).mfaEnabled && (user as any).mfaSecret) {
+          return { mfaRequired: true as const, userId: user.id };
+        }
+
         await recordAttempt(true, {
           userId: user.id,
           tenantId: user.tenantId,
@@ -1018,6 +1024,70 @@ export const appRouter = router({
           },
         };
       }),
+
+    verifyMfa: publicProcedure
+      .input(z.object({ username: z.string().min(1), token: z.string().min(6).max(6) }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+        const uname = input.username.trim();
+        const user = (await db.select().from(users).where(eq(users.username, uname)).limit(1))[0];
+        if (!user || !(user as any).mfaSecret) throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم غير موجود" });
+        const ok = verifyToken((user as any).mfaSecret, input.token);
+        if (!ok) throw new TRPCError({ code: "UNAUTHORIZED", message: "رمز التحقق غير صحيح" });
+        const ip = getClientIp(ctx.req);
+        const geo = await geolocate(ip);
+        const ua = ctx.req.headers["user-agent"];
+        const device = parseDevice(ua);
+        try {
+          await db.insert(loginAttempts).values({
+            username: uname,
+            success: true,
+            ip: ip || null,
+            userAgent: ua || null,
+            device,
+            country: geo.country,
+            city: geo.city,
+            lat: geo.lat != null ? String(geo.lat) : null,
+            lng: geo.lng != null ? String(geo.lng) : null,
+            userId: user.id,
+            tenantId: user.tenantId,
+          });
+        } catch {}
+        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || uname });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_MONTH_MS });
+        return { ok: true as const, user: { id: user.id, name: user.name, tenantId: user.tenantId, role: user.role } };
+      }),
+
+    setupMfa: tenantProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.user) throw new TRPCError({ code: "UNAUTHORIZED", message: "غير مصرح" });
+      const secret = generateSecret();
+      const url = otpauthUrl(secret, ctx.user.username || ctx.user.name || "user");
+      // احفظ مؤقتاً — لن يُفعل حتى يتحقق المستخدم برمز
+      await db.update(users).set({ mfaSecret: secret } as any).where(eq(users.id, ctx.user.id));
+      return { secret, otpauthUrl: url };
+    }),
+
+    verifySetupMfa: tenantProcedure.input(z.object({ token: z.string().min(6).max(6) })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.user) throw new TRPCError({ code: "UNAUTHORIZED", message: "غير مصرح" });
+      const row = (await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1))[0];
+      const secret = (row as any)?.mfaSecret;
+      if (!secret) throw new TRPCError({ code: "BAD_REQUEST", message: "لم يتم إنشاء سر" });
+      const ok = verifyToken(secret, input.token);
+      if (!ok) throw new TRPCError({ code: "UNAUTHORIZED", message: "رمز غير صحيح" });
+      await db.update(users).set({ mfaEnabled: true } as any).where(eq(users.id, ctx.user.id));
+      return { ok: true as const };
+    }),
+
+    disableMfa: tenantProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.user) throw new TRPCError({ code: "UNAUTHORIZED", message: "غير مصرح" });
+      await db.update(users).set({ mfaEnabled: false, mfaSecret: null } as any).where(eq(users.id, ctx.user.id));
+      return { ok: true as const };
+    }),
 
     // ── Self-serve signup: creates a new organisation + admin user ──
     register: publicProcedure

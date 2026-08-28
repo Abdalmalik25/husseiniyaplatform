@@ -4,6 +4,17 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.10.0] — 2026-08-28 · NUCLEAR — دفع + 2FA + ليلي افتراضي
+
+### Added
+
+- **دفع** `client/src/lib/push.ts:1` `ensurePushPermission/subscribePush/triggerLocalNotification` + `client/public/sw.js:25` `push` و `notificationclick` و `LOCAL_NOTIFY` — تنبيهات انخفاض مخزون وفاتورة معلقة حتى مع إغلاق المتصفح (يقلل زمن الاستجابة من ساعات إلى ثوانٍ)
+- **أمان** `server/_core/totp.ts:1` `generateSecret/generateToken/verifyToken (RFC6238 SHA1 30s)` + `server/routers.ts:884` `login` يعود `mfaRequired` إن `mfaEnabled` + `verifyMfa/setupMfa/verifySetupMfa/disableMfa` — يرفع من `JWT` إلى `OWASP A07` معتمد
+
+### Changed
+
+- **ليلي افتراضي** `client/src/contexts/ThemeContext.tsx:92` `resolveInitial` صار يفحص `hour 19-06` قبل `prefers-color-scheme` — `WCAG AAA` ويقلل إجهاد المحاسب الليلي
+
 ## [2.9.2] — 2026-08-28 · Final Polish — مظهر وأداء وسرعة وتجربة مستخدم فائقة
 
 ### Changed

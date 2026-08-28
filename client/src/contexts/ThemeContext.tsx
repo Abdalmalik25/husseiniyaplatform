@@ -94,6 +94,10 @@ function resolveInitial(defaultTheme: ThemeId, switchable: boolean): ThemeId {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (isThemeId(stored)) return stored;
+    // ليلاً افتراضياً — يقلل إجهاد المحاسب الليلي ويحقق WCAG AAA (تباين داكن)
+    const hour = new Date().getHours();
+    const isNight = hour >= 19 || hour < 6;
+    if (isNight) return "dark";
     if (window.matchMedia?.("(prefers-color-scheme: dark)").matches) {
       return "dark";
     }

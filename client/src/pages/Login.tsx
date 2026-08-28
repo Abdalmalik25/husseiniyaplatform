@@ -204,6 +204,9 @@ export default function Login() {
   const [password, setPassword] = useState("");
   const [notFound, setNotFound] = useState(false);
   const [locked, setLocked] = useState<string | null>(null);
+  const [mfaRequired, setMfaRequired] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
+  const [mfaUsername, setMfaUsername] = useState("");
 
   // Simplified Registration States
   const [regName, setRegName] = useState("");
@@ -218,7 +221,15 @@ export default function Login() {
   };
 
   const login = trpc.auth.login.useMutation({
-    onSuccess: () => goApp(),
+    onSuccess: (data: any) => {
+      if (data?.mfaRequired) {
+        setMfaRequired(true);
+        setMfaUsername(username.trim());
+        toast.info("الحساب محمي بتحقق ثنائي — أدخل رمز 6 أرقام");
+        return;
+      }
+      goApp();
+    },
     onError: (err: any) => {
       const code = err?.data?.code || err?.code;
       const msg = err?.message || "";
@@ -234,6 +245,14 @@ export default function Login() {
       }
       toast.error(msg || "تعذر تسجيل الدخول");
     },
+  });
+
+  const verifyMfa = trpc.auth.verifyMfa.useMutation({
+    onSuccess: () => {
+      toast.success("تم التحقق الثنائي بنجاح");
+      goApp();
+    },
+    onError: (err: any) => toast.error(err?.message || "رمز غير صحيح"),
   });
 
   const register = trpc.auth.register.useMutation({
@@ -425,7 +444,39 @@ export default function Login() {
                     </div>
                   )}
 
-                  <form onSubmit={handleLogin} className="space-y-4">
+                  {mfaRequired && (
+                    <div className="space-y-3 p-4 rounded-xl bg-brand/10 border border-brand/30 animate-in fade-in">
+                      <p className="text-xs font-black text-brand-300 flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4" /> التحقق الثنائي مطلوب — OWASP A07
+                      </p>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">أدخل رمز 6 أرقام من تطبيق Authenticator (Google/Microsoft Authenticator) المرتبط بحسابك</p>
+                      <Input
+                        value={mfaCode}
+                        onChange={e => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        placeholder="000000"
+                        className="h-11 bg-ink border-white/15 text-white text-center font-mono text-lg tracking-[0.3em]"
+                        maxLength={6}
+                        inputMode="numeric"
+                        autoFocus
+                      />
+                      <div className="flex gap-2">
+                        <Button type="button" variant="outline" onClick={() => { setMfaRequired(false); setMfaCode(""); }} className="flex-1 border-white/15 text-white/70 h-10">
+                          رجوع
+                        </Button>
+                        <Button
+                          type="button"
+                          disabled={verifyMfa.isPending || mfaCode.length !== 6}
+                          onClick={() => verifyMfa.mutate({ username: mfaUsername, token: mfaCode })}
+                          className="flex-1 bg-brand hover:bg-brand-deep text-ink font-black h-10"
+                        >
+                          {verifyMfa.isPending ? "جاري التحقق…" : "تحقق ودخول"}
+                        </Button>
+                      </div>
+                      <p className="text-[10px] text-white/30 text-center">الرمز يتغير كل 30 ثانية — لا تشاركه</p>
+                    </div>
+                  )}
+
+                  {!mfaRequired && <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-1.5">
                       <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
                         <KeyRound className="w-3.5 h-3.5 text-brand-300" /> اسم
@@ -493,7 +544,7 @@ export default function Login() {
                       }}
                       isPending={login.isPending}
                     />
-                  </form>
+                  </form>}
                 </div>
               )}
 

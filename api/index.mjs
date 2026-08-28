@@ -29186,6 +29186,64 @@ async function geolocate(ip) {
   }
 }
 
+// server/_core/totp.ts
+import { createHmac, randomBytes as randomBytes2 } from "crypto";
+var ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
+function base32Encode(buf) {
+  let bits = 0, value = 0, out = "";
+  for (const byte of buf) {
+    value = value << 8 | byte;
+    bits += 8;
+    while (bits >= 5) {
+      out += ALPHABET[value >>> bits - 5 & 31];
+      bits -= 5;
+    }
+  }
+  if (bits > 0) out += ALPHABET[value << 5 - bits & 31];
+  while (out.length % 8 !== 0) out += "=";
+  return out;
+}
+function base32Decode(str) {
+  const clean = str.toUpperCase().replace(/=+$/, "").replace(/[^A-Z2-7]/g, "");
+  let bits = 0, value = 0;
+  const bytes = [];
+  for (const ch of clean) {
+    const idx = ALPHABET.indexOf(ch);
+    if (idx === -1) continue;
+    value = value << 5 | idx;
+    bits += 5;
+    if (bits >= 8) {
+      bytes.push(value >>> bits - 8 & 255);
+      bits -= 8;
+    }
+  }
+  return Buffer.from(bytes);
+}
+function generateSecret(bytes = 20) {
+  return base32Encode(randomBytes2(bytes));
+}
+function generateToken(secret, timeStep = 30, counterOffset = 0) {
+  const counter = Math.floor(Date.now() / 1e3 / timeStep) + counterOffset;
+  const buf = Buffer.alloc(8);
+  buf.writeBigUInt64BE(BigInt(counter));
+  const key = base32Decode(secret);
+  const hmac = createHmac("sha1", key).update(buf).digest();
+  const offset = hmac[hmac.length - 1] & 15;
+  const code = (hmac[offset] & 127) << 24 | hmac[offset + 1] << 16 | hmac[offset + 2] << 8 | hmac[offset + 3];
+  return String(code % 1e6).padStart(6, "0");
+}
+function verifyToken(secret, token, window = 1) {
+  const t2 = token.trim();
+  if (!/^\d{6}$/.test(t2)) return false;
+  for (let i = -window; i <= window; i++) {
+    if (generateToken(secret, 30, i) === t2) return true;
+  }
+  return false;
+}
+function otpauthUrl(secret, account, issuer = "ALHUSAINIA") {
+  return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
+}
+
 // server/_core/governance.ts
 import { randomUUID, createHash } from "crypto";
 function genGlobalCode(opts) {
@@ -33135,7 +33193,7 @@ import {
   createCipheriv,
   createDecipheriv,
   createHash as createHash2,
-  randomBytes as randomBytes2,
+  randomBytes as randomBytes3,
   scryptSync
 } from "crypto";
 import { gzipSync, gunzipSync } from "zlib";
@@ -33274,8 +33332,8 @@ function sha256Hex(data) {
   return createHash2("sha256").update(data).digest("hex");
 }
 function encryptPayload(plain, secret) {
-  const salt = randomBytes2(SALT_LEN);
-  const iv = randomBytes2(IV_LEN);
+  const salt = randomBytes3(SALT_LEN);
+  const iv = randomBytes3(IV_LEN);
   const key = deriveKey(secret, salt);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
   const ct = Buffer.concat([cipher.update(plain), cipher.final()]);
@@ -33340,7 +33398,7 @@ async function runBackup(tenantId) {
   const plain = Buffer.from(payload, "utf8");
   const compressed = gzipSync(plain);
   const blob = encryptPayload(compressed, secret);
-  const id = `${Date.now()}-${randomBytes2(4).toString("hex")}`;
+  const id = `${Date.now()}-${randomBytes3(4).toString("hex")}`;
   const manifest = {
     id,
     createdAt: startedAt,
@@ -34572,6 +34630,9 @@ var appRouter = router({
           message: "\u0643\u0644\u0645\u0629 \u0627\u0644\u0645\u0631\u0648\u0631 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629"
         });
       }
+      if (user.mfaEnabled && user.mfaSecret) {
+        return { mfaRequired: true, userId: user.id };
+      }
       await recordAttempt(true, {
         userId: user.id,
         tenantId: user.tenantId
@@ -34593,6 +34654,64 @@ var appRouter = router({
           role: user.role
         }
       };
+    }),
+    verifyMfa: publicProcedure.input(z9.object({ username: z9.string().min(1), token: z9.string().min(6).max(6) })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db) throw new TRPCError6({ code: "INTERNAL_SERVER_ERROR", message: "\u0642\u0627\u0639\u062F\u0629 \u0627\u0644\u0628\u064A\u0627\u0646\u0627\u062A \u063A\u064A\u0631 \u0645\u062A\u0627\u062D\u0629" });
+      const uname = input.username.trim();
+      const user = (await db.select().from(users).where(eq15(users.username, uname)).limit(1))[0];
+      if (!user || !user.mfaSecret) throw new TRPCError6({ code: "NOT_FOUND", message: "\u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F" });
+      const ok = verifyToken(user.mfaSecret, input.token);
+      if (!ok) throw new TRPCError6({ code: "UNAUTHORIZED", message: "\u0631\u0645\u0632 \u0627\u0644\u062A\u062D\u0642\u0642 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D" });
+      const ip = getClientIp(ctx.req);
+      const geo = await geolocate(ip);
+      const ua = ctx.req.headers["user-agent"];
+      const device = parseDevice(ua);
+      try {
+        await db.insert(loginAttempts).values({
+          username: uname,
+          success: true,
+          ip: ip || null,
+          userAgent: ua || null,
+          device,
+          country: geo.country,
+          city: geo.city,
+          lat: geo.lat != null ? String(geo.lat) : null,
+          lng: geo.lng != null ? String(geo.lng) : null,
+          userId: user.id,
+          tenantId: user.tenantId
+        });
+      } catch {
+      }
+      const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || uname });
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_MONTH_MS });
+      return { ok: true, user: { id: user.id, name: user.name, tenantId: user.tenantId, role: user.role } };
+    }),
+    setupMfa: tenantProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.user) throw new TRPCError6({ code: "UNAUTHORIZED", message: "\u063A\u064A\u0631 \u0645\u0635\u0631\u062D" });
+      const secret = generateSecret();
+      const url = otpauthUrl(secret, ctx.user.username || ctx.user.name || "user");
+      await db.update(users).set({ mfaSecret: secret }).where(eq15(users.id, ctx.user.id));
+      return { secret, otpauthUrl: url };
+    }),
+    verifySetupMfa: tenantProcedure.input(z9.object({ token: z9.string().min(6).max(6) })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.user) throw new TRPCError6({ code: "UNAUTHORIZED", message: "\u063A\u064A\u0631 \u0645\u0635\u0631\u062D" });
+      const row = (await db.select().from(users).where(eq15(users.id, ctx.user.id)).limit(1))[0];
+      const secret = row?.mfaSecret;
+      if (!secret) throw new TRPCError6({ code: "BAD_REQUEST", message: "\u0644\u0645 \u064A\u062A\u0645 \u0625\u0646\u0634\u0627\u0621 \u0633\u0631" });
+      const ok = verifyToken(secret, input.token);
+      if (!ok) throw new TRPCError6({ code: "UNAUTHORIZED", message: "\u0631\u0645\u0632 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D" });
+      await db.update(users).set({ mfaEnabled: true }).where(eq15(users.id, ctx.user.id));
+      return { ok: true };
+    }),
+    disableMfa: tenantProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.user) throw new TRPCError6({ code: "UNAUTHORIZED", message: "\u063A\u064A\u0631 \u0645\u0635\u0631\u062D" });
+      await db.update(users).set({ mfaEnabled: false, mfaSecret: null }).where(eq15(users.id, ctx.user.id));
+      return { ok: true };
     }),
     // ── Self-serve signup: creates a new organisation + admin user ──
     register: publicProcedure.input(
@@ -40797,7 +40916,7 @@ function createApp() {
       dbAvailable,
       service: "alhusainia-platform",
       institution: "\u0645\u062C\u0645\u0648\u0639\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u2014 \u062D\u0644\u0648\u0644 \u0627\u0644\u0623\u0639\u0645\u0627\u0644 \u0648\u0627\u0644\u0647\u0646\u062F\u0633\u0629 \u0648\u0627\u0644\u0645\u0639\u0631\u0641\u0629",
-      version: true ? "2.9.2" : (
+      version: true ? "2.10.0" : (
         // dev (tsx) runs without the esbuild define
         "dev"
       ),
