@@ -895,9 +895,9 @@ export default function Home() {
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold font-display">مجموعة الحسينية</h3>
+            <h3 className="text-sm font-bold font-display">الحسينية لخدمات الأعمال</h3>
             <p className="text-[11px] text-white/70">
-              قطاع الأعمال المؤسسية (Uamex_erp) · قطاع الهندسة والمساحة · مركز الخدمات المعرفية
+              الحلول المؤسسية Uamex_erp · الحلول الهندسية · الخدمات المعرفية
             </p>
           </div>
         </div>

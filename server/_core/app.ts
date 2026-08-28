@@ -177,7 +177,7 @@ export function createApp(): Express {
       ok: true,
       dbAvailable,
       service: "alhusainia-platform",
-      institution: "مجموعة الحسينية — حلول الأعمال والهندسة والمعرفة",
+      institution: "الحسينية لخدمات الأعمال",
       version:
         typeof __APP_VERSION__ !== "undefined"
           ? __APP_VERSION__

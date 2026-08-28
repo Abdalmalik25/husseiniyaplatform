@@ -176,7 +176,7 @@ export default function Reports() {
                 المشترك الأول والافتراضي المعتمد
               </Badge>
               <h1 className="text-xl sm:text-2xl font-bold font-display text-white">
-                مجموعة الحسينية — التقارير والقوائم المالية الموحدة
+                الحسينية لخدمات الأعمال — التقارير والقوائم المالية
               </h1>
               <p className="text-xs text-slate-300 mt-1">
                 تقرير موحد لكل القطاعات — مختوم إلكترونياً بـ QR وخاضع لضوابط IFRS ومسار تدقيق COSO

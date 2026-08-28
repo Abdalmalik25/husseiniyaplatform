@@ -11,15 +11,16 @@
  */
 
 export const brand = {
-  /** الأسماء الرسمية — هيكلة مؤسسية غير سطحية */
+  /** الأسماء الرسمية — الاسم العام الموحد */
   names: {
     arabic: "الحسينية",
+    siteName: "الحسينية لخدمات الأعمال",
     commercial: "ALHUSAINIA",
-    group: "مجموعة الحسينية",
-    groupDesc: "حلول متكاملة — أعمال وهندسة ومعرفة",
-    legal: "مؤسسة الحسينية لخدمات الأعمال",
-    legalFull: "مؤسسة الحسينية لخدمات الأعمال",
-    english: "ALHUSAINIA Group — Business, Engineering & Knowledge Solutions",
+    group: "الحسينية لخدمات الأعمال",
+    groupDesc: "الحسينية لخدمات الأعمال",
+    legal: "الحسينية لخدمات الأعمال",
+    legalFull: "الحسينية لخدمات الأعمال",
+    english: "ALHUSAINIA Business Services",
     library: "مركز الحسينية للخدمات المعرفية",
     libraryAlias: "مكتبة الحسينية الحديثة",
     /** اسم نظام ERP الخاص بالمنصة */

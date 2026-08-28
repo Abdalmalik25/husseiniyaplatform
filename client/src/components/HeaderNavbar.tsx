@@ -175,7 +175,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
     >
       {/* Top bar — institutional descriptor (world-class subtle) */}
       <div className="hidden lg:flex items-center justify-between px-4 py-1.5 bg-ink-deep/90 backdrop-blur border-b border-white/5 text-[11px] text-white/50">
-        <span className="font-mono tracking-widest">مجموعة الحسينية — حلول متكاملة للأعمال والهندسة والمعرفة</span>
+        <span className="font-mono tracking-widest">الحسينية لخدمات الأعمال — Uamex_erp</span>
         <span className="flex items-center gap-3">
           <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-brand-300" /> +967 778 343 988</span>
           <span className="w-px h-3 bg-white/10" />

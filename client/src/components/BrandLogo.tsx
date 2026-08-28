@@ -140,16 +140,16 @@ export function BrandLogo({
       {withWordmark && (
         <span className="flex flex-col leading-none">
           <span
-            className={`font-display font-black tracking-tight text-[15px] ${wordColor}`}
+            className={`font-display font-black tracking-tight text-[13px] leading-tight ${wordColor}`}
           >
-            منصة الحسينية
+            الحسينية لخدمات الأعمال
           </span>
           <span
-            className={`font-mono font-bold tracking-[0.2em] text-[8.5px] mt-0.5 ${
+            className={`font-mono font-bold tracking-[0.2em] text-[8px] mt-0.5 ${
               onDark ? "text-[#d4a574]" : "text-[#b87945]"
             }`}
           >
-            ALHUSAINIA
+            ALHUSAINIA BUSINESS SERVICES
           </span>
         </span>
       )}

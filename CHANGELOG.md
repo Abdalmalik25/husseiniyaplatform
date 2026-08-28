@@ -4,6 +4,13 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.10.1] — 2026-08-28 · Unified Site Name — الحسينية لخدمات الأعمال
+
+### Changed
+
+- **الاسم العام الموحد** `الحسينية لخدمات الأعمال` فقط — `BrandLogo.tsx:143` wordmark من `منصة الحسينية` → `الحسينية لخدمات الأعمال` + `brand.ts:17` `siteName/group` موحد + `app.ts:175` health institution + `Home.tsx:898` + `Reports.tsx:178` + `HeaderNavbar.tsx:170` + `index.html:25` title + `manifest.webmanifest:3` + `og:title` — إزالة كل تكرار وسطحية في التسمية، واعتماد الشعار الحديث `BrandMark` SVG (كتاب مفتوح + مسار دفتر) كشعار موحد
+- **الشعار الحديث** `public/favicon.ico` (v2.10.1) منبع الأيقونات — `client/public/favicon.ico` `icon-192/512` `uamex/elias` كلها من ذات المنظومة الحديثة
+
 ## [2.10.0] — 2026-08-28 · NUCLEAR — دفع + 2FA + ليلي افتراضي
 
 ### Added

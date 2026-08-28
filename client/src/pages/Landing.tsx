@@ -257,10 +257,10 @@ export default function Landing() {
         </div>
 
         <div className="max-w-6xl mx-auto text-center relative z-10 px-4 pt-16 pb-24 space-y-8">
-          {/* الوسم الرئيسي — هوية مؤسسية عالمية */}
+          {/* الوسم الرئيسي — هوية مؤسسية عالمية — بلا سطحية، بأدلة */}
           <div className="inline-flex items-center gap-2 bg-white/[0.06] backdrop-blur-xl border border-white/10 text-white/80 px-4 py-1.5 rounded-full text-xs font-bold shadow-xl">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow shadow-emerald-400/40" />
-            مؤسسة الحسينية — بيت الخبرة المؤسسية منذ 2008
+            تشخيص 48 ساعة • تصميم أسبوع • قياس شهري
             <span className="hidden sm:inline-flex items-center gap-1.5 mr-2 pr-2 border-r border-white/10 text-[10px] font-mono tracking-widest text-white/50">
               IFRS • COSO • PMBOK • ISO 9001
             </span>

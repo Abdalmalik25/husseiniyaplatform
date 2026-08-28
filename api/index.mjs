@@ -40915,8 +40915,8 @@ function createApp() {
       ok: true,
       dbAvailable,
       service: "alhusainia-platform",
-      institution: "\u0645\u062C\u0645\u0648\u0639\u0629 \u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u2014 \u062D\u0644\u0648\u0644 \u0627\u0644\u0623\u0639\u0645\u0627\u0644 \u0648\u0627\u0644\u0647\u0646\u062F\u0633\u0629 \u0648\u0627\u0644\u0645\u0639\u0631\u0641\u0629",
-      version: true ? "2.10.0" : (
+      institution: "\u0627\u0644\u062D\u0633\u064A\u0646\u064A\u0629 \u0644\u062E\u062F\u0645\u0627\u062A \u0627\u0644\u0623\u0639\u0645\u0627\u0644",
+      version: true ? "2.10.1" : (
         // dev (tsx) runs without the esbuild define
         "dev"
       ),
