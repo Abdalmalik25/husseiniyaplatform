@@ -52,49 +52,62 @@ export interface NavItem {
  *           store page, settings) — never in the primary navigation.
  */
 
-/** Public marketing site navigation — shown to visitors in the top bar. */
+/** Public marketing site navigation — خبير عالمي: الأقسام الرئيسية بارزة، الأدوات في قائمة */
 export const MARKETING_NAV: NavItem[] = [
   {
     path: "/",
     label: "الرئيسية",
     icon: HomeIcon,
-    description: "نظرة شاملة على المنصة والخدمات",
+    description: "نظرة شاملة — من القيد إلى القرار",
   },
   {
-    path: "/solutions",
-    label: "الحلول البرمجية",
+    path: "/#uamex",
+    label: "المنصة الموحدة",
     icon: Cpu,
-    description: "أنظمة محاسبية وتجارية جاهزة للعمل فوراً",
+    description: "Uamex_erp — مصدر حقيقة واحد بمعايير IFRS/COSO",
+  },
+  {
+    path: "/#corporate",
+    label: "الاستشارات المؤسسية",
+    icon: Building2,
+    description: "حوكمة بمعايير COSO — من التشخيص إلى القياس",
   },
   {
     path: "/#engineering",
-    label: "الخدمات الهندسية",
+    label: "الهندسة والمساحة",
     icon: Info,
-    description: "رفع مساحي، جداول BOQ، وحلول المقاولات",
+    description: "تقدير NRM/POMI يُحتَج به أمام الممول",
   },
   {
-    path: "/insights",
-    label: "مركز المعرفة",
+    path: "/#library",
+    label: "الخدمات المعرفية",
     icon: BookOpen,
-    description: "مقالات وأدلة عملية ودورات متخصصة",
-  },
-  {
-    path: "/tools",
-    label: "حاسبات ذكية",
-    icon: Calculator,
-    description: "حسابات مقاولات وفواتير ورواتب فورية",
+    description: "SPSS v28 + APA 7th — من البحث إلى النشر",
   },
   {
     path: "/pricing",
     label: "الأسعار",
     icon: CreditCard,
-    description: "باقات مرنة تنمو مع مؤسستك",
+    description: "باقات تنمو معك — 14 يوماً مجاناً بلا بطاقة",
   },
   {
     path: "/contact",
     label: "تواصل",
     icon: Phone,
-    description: "فريق الدعم جاهز للإجابة خلال دقائق",
+    description: "استشارة أولية مجانية خلال 24 ساعة",
+  },
+  // الأدوات — تُعرض في قائمة واحدة ذكية
+  {
+    path: "/tools",
+    label: "حاسبات ذكية",
+    icon: Calculator,
+    description: "BOQ، رواتب، وفوترة — حاسبة فورية",
+  },
+  {
+    path: "/insights",
+    label: "مركز المعرفة",
+    icon: BookOpen,
+    description: "أدلة IFRS/COSO/PMBOK وتشخيصات عملية",
   },
 ];
 

@@ -22,7 +22,7 @@ import { useI18n } from "@/lib/i18n";
 import { BrandLogo } from "@/components/BrandLogo";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { MARKETING_NAV, type NavItem } from "@/lib/nav";
+import { MARKETING_NAV, UTILITY_LINKS, type NavItem } from "@/lib/nav";
 import { Zap, ArrowLeft, MessageSquare } from "lucide-react";
 import { uamexDemoLink } from "@/lib/brand";
 
@@ -32,8 +32,8 @@ interface HeaderNavbarProps {
 }
 
 /**
- * مجموعات القائمة المنسدلة (Mega Menu) — نمط SaaS العالمي:
- * تجميع الروابط في عنقودين غنيين بدل سبعة أزرار مسطّحة (Hick's Law).
+ * مجموعات القائمة المنسدلة — خبير عالمي: الأقسام الرئيسية بارزة، الأدوات في قائمة واحدة
+ * Hick's Law: 3 روابط مباشرة + 2 عنقود غني (حلول + أدوات) = 5 عناصر علوية فقط
  */
 const MEGA_CLUSTERS: ReadonlyArray<{
   key: string;
@@ -42,21 +42,21 @@ const MEGA_CLUSTERS: ReadonlyArray<{
   paths: string[];
 }> = [
   {
-    key: "products",
-    label: "المنتجات",
+    key: "solutions",
+    label: "الحلول",
     icon: Layers,
-    paths: ["/solutions", "/#engineering"],
+    paths: ["/#uamex", "/#corporate", "/#engineering", "/#library"],
   },
   {
-    key: "resources",
-    label: "الموارد",
+    key: "tools",
+    label: "الأدوات",
     icon: Compass,
-    paths: ["/insights", "/tools"],
+    paths: ["/tools", "/insights", "/portal", "/integrate", "/download"],
   },
 ];
-/** روابط مباشرة تُعرض كأزرار علوية. */
+/** روابط مباشرة — الأقسام الرئيسية فقط */
 const DIRECT_NAV_PATHS = ["/", "/pricing", "/contact"];
-const NAV_BY_PATH = new Map(MARKETING_NAV.map(item => [item.path, item]));
+const NAV_BY_PATH = new Map([...MARKETING_NAV, ...UTILITY_LINKS].map(item => [item.path, item]));
 
 /**
  * جلب مسبق عند النية (Hover/Focus Intent Prefetch):
@@ -69,6 +69,9 @@ const ROUTE_PREFETCHERS: Record<string, () => Promise<unknown>> = {
   "/tools": () => import("@/pages/InteractiveCalculators"),
   "/pricing": () => import("@/pages/Pricing"),
   "/contact": () => import("@/pages/Contact"),
+  "/portal": () => import("@/pages/Portal"),
+  "/integrate": () => import("@/pages/Integrate"),
+  "/download": () => import("@/pages/Download"),
 };
 const prefetchedRoutes = new Set<string>();
 function prefetchRoute(path: string) {
@@ -179,7 +182,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
         <span className="flex items-center gap-3">
           <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-brand-300" /> +967 778 343 988</span>
           <span className="w-px h-3 bg-white/10" />
-          <span className="font-mono text-brand-300">Uamex_erp v2.10.0</span>
+          <span className="font-mono text-brand-300">Uamex_erp v2.10.2</span>
         </span>
       </div>
       <div className={`bg-ink/75 backdrop-blur-2xl border-b transition-all duration-500 ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}>

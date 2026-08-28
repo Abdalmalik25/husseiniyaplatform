@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v13) — دفع نووي: push + تنبيهات مخزون/فاتورة حتى مع إغلاق المتصفح.
+// ALHUSAINIA service worker (v14) — شريط ذكي + صفحة خبيرة بلا سطحية.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v13";
+const CACHE = "alhusainia-v14";
 const SHELL = [
   "/",
   "/index.html",
