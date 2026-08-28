@@ -4,6 +4,14 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.11.2] — 2026-08-28 · Login Multi-Tenant Fix + Modern Icon + Header Logic
+
+### Fixed
+
+- **دخول مخالف** `Login.tsx:44` DEMO_ACCOUNTS كانت تُظهر `مكتبة الحسينية — المالك` كأن المكتبة مستأجر مميز — الآن `المالك — وصول كامل (تجربة)` عامة بلا تفضيل، وتعليق `مبدأ تعدد المستأجرين: لا تفضيل` + placeholder `شركة الأفق للتجارة`
+- **أيقونة قديمة** `public/ALHUSAINIALOGO.png` (1363960) اعتُمدت كأصل حديث — نُسخت إلى `public/favicon-32x32.png` و `client/public` — `BrandLogo.tsx:143` wordmark صار `الحسينية لخدمات الأعمال` فقط
+- **شريط عشوائي** `HeaderNavbar.tsx:40` أعيد ترتيبه بمنطق خبير هرمي: 3 مباشر + 2 عنقود (حلول: Uamex/مؤسسية/هندسة/معرفية + أدوات: حاسبات/معرفة/تتبع/تكامل/تحميل) — الأقسام بارزة والأدوات في قائمة واحدة
+
 ## [2.11.1] — 2026-08-28 · Precise Identity Audit — مراجعة دقيقة واعتماد نهائي
 
 ### Changed

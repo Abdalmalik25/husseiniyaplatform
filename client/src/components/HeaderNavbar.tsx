@@ -182,7 +182,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
         <span className="flex items-center gap-3">
           <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-brand-300" /> +967 778 343 988</span>
           <span className="w-px h-3 bg-white/10" />
-          <span className="font-mono text-brand-300">Uamex_erp v2.11.1</span>
+          <span className="font-mono text-brand-300">Uamex_erp v2.11.2</span>
         </span>
       </div>
       <div className={`bg-ink/75 backdrop-blur-2xl border-b transition-all duration-500 ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}>

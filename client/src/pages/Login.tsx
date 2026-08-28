@@ -41,7 +41,8 @@ const CURRENCIES = [
   { code: "EGP", label: "جنيه مصري (EGP)" },
 ];
 
-// ── حسابات تجريبية منظمة حسب الدور — تجربة استكشافية موجهة بالسياق
+// ── حسابات تجريبية — كلها لمستأجر تجريبي واحد (كمثال)، والمكتبة مشترك كغيرها
+// مبدأ تعدد المستأجرين: لا تفضيل لمستأجر على آخر — هذه مجرد أدوار للتجربة
 const DEMO_ACCOUNTS: Array<{
   username: string;
   password: string;
@@ -54,8 +55,8 @@ const DEMO_ACCOUNTS: Array<{
   {
     username: "library_owner",
     password: "Library@2024",
-    label: "مكتبة الحسينية — المالك",
-    role: "مالك · وصول كامل",
+    label: "المالك — وصول كامل (تجربة)",
+    role: "مالك · كل الصلاحيات",
     icon: Building2,
     color: "text-brand-300",
     featured: true,
@@ -63,7 +64,7 @@ const DEMO_ACCOUNTS: Array<{
   {
     username: "admin",
     password: "admin123",
-    label: "المدير العام — التجربة السريعة",
+    label: "المدير — تجربة سريعة",
     role: "مدير · لوحة كاملة",
     icon: ShieldCheck,
     color: "text-emerald-400",
@@ -72,7 +73,7 @@ const DEMO_ACCOUNTS: Array<{
   {
     username: "mohamed_accounting",
     password: "Mohamed@2024",
-    label: "محمد — مدير الحسابات",
+    label: "مدير الحسابات — تجربة",
     role: "محاسب · قيود وتقارير",
     icon: Briefcase,
     color: "text-amber-400",
@@ -558,7 +559,7 @@ export default function Login() {
                       </Label>
                       <Input
                         required
-                        placeholder="مثال: مكتبة الحسينية الحديثة"
+                        placeholder="مثال: شركة الأفق للتجارة — أو أي نشاط"
                         value={regName}
                         onChange={e => setRegName(e.target.value)}
                         className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl"
