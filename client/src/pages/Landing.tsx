@@ -39,6 +39,7 @@ import {
   Wifi,
   Package,
   FileText,
+  Search,
   ChevronDown,
   Play,
   ArrowUpRight,
@@ -265,19 +266,19 @@ export default function Landing() {
             </span>
           </div>
 
-          {/* العنوان الرئيسي — مستوى استشاري عالمي */}
-          <div className="space-y-4">
-            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-[-0.02em] leading-[1.05] text-balance">
+          {/* العنوان الرئيسي — مستوى استشاري عالمي فاخر */}
+          <div className="space-y-5">
+            <h1 className="text-hero text-4xl sm:text-5xl md:text-6xl text-balance">
               إذا كنت{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-l from-brand via-brand-300 to-[#e7c9a6] border-b-2 border-brand/30 pb-1">
                 {heroPhrase}
                 <span className="animate-pulse text-brand">|</span>
               </span>
             </h1>
-            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-[1.1] text-white">
+            <h2 className="text-hero text-3xl sm:text-4xl md:text-5xl text-white">
               فقرارك يستحق وضوحاً يُدقّق
             </h2>
-            <div className="flex items-center justify-center gap-2 text-[11px] font-mono tracking-widest text-white/40">
+            <div className="flex items-center justify-center gap-2 text-[11px] font-mono tracking-[0.2em] text-white/40">
               <span className="h-px w-8 bg-white/10" /> نشخّص — نصمّم — ننفّذ — نقيس <span className="h-px w-8 bg-white/10" />
             </div>
           </div>
@@ -373,6 +374,55 @@ export default function Landing() {
           ))}
         </div>
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════
+          منهجية الحسينية — 4 أطوار استشارية بمستوى Big Four
+      ═══════════════════════════════════════════════════════════ */}
+      <section className="py-16 px-4 bg-gradient-to-b from-background via-muted/20 to-background border-y border-border/50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-10 reveal">
+            <Badge className="bg-ink text-brand-300 border border-brand/20 font-bold text-xs px-3 py-1">
+              المنهجية — من التشخيص إلى القياس
+            </Badge>
+            <h2 className="text-hero text-2xl sm:text-3xl text-foreground">نشخّص — نصمّم — ننفّذ — نقيس</h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">منهجية الحسينية بأربعة أطوار على ثلاثة أطر: IFRS للتقارير، COSO للرقابة، PMBOK للحوكمة — كل طور يسلّم أثراً قابلاً للقياس.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="reveal glass-premium p-5 rounded-2xl text-center">
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
+                <Search className="w-5 h-5 text-brand" />
+              </div>
+              <h3 className="font-black text-foreground text-sm mb-1">١ · نشخّص</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">تحليل انحرافات وفجوات — نكتشف أين تتبخر السيولة ولماذا.</p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">Variance · Gap Analysis</p>
+            </div>
+            <div className="reveal glass-premium p-5 rounded-2xl text-center" data-reveal-delay={100}>
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
+                <Layers className="w-5 h-5 text-brand" />
+              </div>
+              <h3 className="font-black text-foreground text-sm mb-1">٢ · نصمّم</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">نصمم KPIs وضوابط COSO ومخططات NRM — على مقاس قطاعك.</p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">KPIs · COSO · NRM</p>
+            </div>
+            <div className="reveal glass-premium p-5 rounded-2xl text-center" data-reveal-delay={200}>
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
+                <Zap className="w-5 h-5 text-brand" />
+              </div>
+              <h3 className="font-black text-foreground text-sm mb-1">٣ · ننفّذ</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">ننفذ Uamex_erp كمصدر حقيقة واحد — ترحيل آلي ومزامنة بلا ورق.</p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">Uamex_erp · Single Source</p>
+            </div>
+            <div className="reveal glass-premium p-5 rounded-2xl text-center" data-reveal-delay={300}>
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
+                <BarChart3 className="w-5 h-5 text-brand" />
+              </div>
+              <h3 className="font-black text-foreground text-sm mb-1">٤ · نقيس</h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">نقيس الأثر: زمن الإغلاق، دقة التقدير، وقابلية المراجعة — كل شهر.</p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">Close · Accuracy · Audit</p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ═══════════════════════════════════════════════════════════
           قسم: الخسارة الصامتة — Cost of Inaction (تسويق كمّي استشاري)
@@ -557,15 +607,15 @@ export default function Landing() {
             <p className="text-sm text-white/50 leading-relaxed max-w-2xl mx-auto">
               {brand.uamex.promise}
             </p>
-            {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات مضبوطة v2.7.1 */}
+            {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات مضبوطة v2.8.0 */}
             <div className="flex items-center justify-center gap-6 pt-4">
               <span className="flex flex-col items-center gap-1">
-                <img src="/favicon-32x32.png?v=2.7.1" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
+                <img src="/favicon-32x32.png?v=2.8.0" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
                 <span className="text-[10px] text-white/60 font-bold">المؤسسة</span>
               </span>
               <span className="w-px h-8 bg-white/10" />
               <span className="flex flex-col items-center gap-1">
-                <img src="/uamex-favicon-32.png?v=2.7.1" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
+                <img src="/uamex-favicon-32.png?v=2.8.0" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
                 <span className="text-[10px] text-brand-300 font-bold">Uamex_erp</span>
               </span>
               <span className="w-px h-8 bg-white/10" />

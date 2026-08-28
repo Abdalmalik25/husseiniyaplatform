@@ -4,6 +4,13 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.8.0] — 2026-08-28 · World-Class Design & Consulting — مصمم واستشاري تسويق مؤسسي
+
+### Added
+
+- **نظام تصميم فاخر** `client/src/index.css:502` `glass-premium` بلمعان `blur20 saturate1.2` وظل `0 8px 32px` + `text-hero` بحدة `-0.03em` وسطر `1.05` — طباعة مؤسسية فاخرة
+- **منهجية 4 أطوار** `Landing.tsx:377` قسم `نشخّص — نصمّم — ننفّذ — نقيس` بأربع بطاقات زجاجية: Variance/COSO/Uamex/Audit مع `IFRS/COSO/PMBOK` وشريط `Variance·Gap` `KPIs·COSO·NRM` — funnel استشاري على مستوى Big Four
+
 ## [2.7.1] — 2026-08-28 · Glass Identity — هوية ومظهر وتصاميم وألوان وبطاقات زجاجية
 
 ### Changed

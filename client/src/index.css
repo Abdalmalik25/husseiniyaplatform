@@ -508,6 +508,31 @@ html[data-theme="ocean"] {
     background-color: color-mix(in srgb, var(--card) 70%, transparent);
   }
 
+  /* Premium glass — world-class depth for hero and methodology cards */
+  .glass-premium {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--card) 85%, transparent) 0%,
+      color-mix(in srgb, var(--card) 65%, transparent) 100%
+    );
+    backdrop-filter: blur(20px) saturate(1.2);
+    -webkit-backdrop-filter: blur(20px) saturate(1.2);
+    border: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
+    box-shadow:
+      0 4px 24px rgba(14, 42, 43, 0.08),
+      0 1px 2px rgba(14, 42, 43, 0.04),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* Hero premium typography — institutional consulting */
+  .text-hero {
+    font-family: var(--font-display);
+    font-weight: 900;
+    letter-spacing: -0.03em;
+    line-height: 1.05;
+    text-wrap: balance;
+  }
+
   /* Modern elevated surface with subtle border. */
   .surface-elevated {
     background-color: var(--card);
