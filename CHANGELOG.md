@@ -4,6 +4,13 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.11.0] — 2026-08-28 · Identity Adoption — الصور الجديدة هوية أساسية
+
+### Added
+
+- **صور جديدة عالية الدقة** — `public/ALHUSAINIALOGO.png` (1363960) للمنصة → `client/public/platform-logo.png`، `public/UAMEX_ERP/UAMEX_ERPLOGO.png` (2121972) للنظام → `client/public/uamex-erp.png`، `public/Elias AI ico/Elias AI.jpg` (2614002) للتطبيق → `client/public/elias-avatar.jpg` — كلها معتمدة كأساس افتراضي رسمي في `brand.ts:17` `platformLogo/systemLogo/appLogo`
+- **وثائق** `docs/CONSTITUTION.md:1` دستور المنصة (16 مبدأ) + `docs/REFERENCE.md:1` تحديث هيكل الملفات والهوية + نسخ إلى `public/REFERENCE.md` و `public/CONSTITUTION.md` للمرجعية العامة
+
 ## [2.10.4] — 2026-08-28 · Component Upgrade & Debt Settlement — اعتماد تحديثات
 
 ### Changed

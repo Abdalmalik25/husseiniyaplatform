@@ -23,6 +23,10 @@ export const brand = {
     english: "ALHUSAINIA Business Services",
     library: "مركز الحسينية للخدمات المعرفية",
     libraryAlias: "مكتبة الحسينية الحديثة",
+    /** الصور الرسمية الجديدة — المنصة/النظام/التطبيق */
+    platformLogo: "/platform-logo.png",
+    systemLogo: "/uamex-erp.png",
+    appLogo: "/elias-avatar.jpg",
     /** اسم نظام ERP الخاص بالمنصة */
     erp: "Uamex_erp",
     erpFull: "Uamex_erp — Unified Asset Management & Enterprise Exchange",

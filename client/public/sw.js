@@ -1,7 +1,7 @@
-// ALHUSAINIA service worker (v16) — اعتماد تحديثات وترقية مكونات وسداد ديون.
+// ALHUSAINIA service worker (v17) — هوية جديدة معتمدة كأساس.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v16";
+const CACHE = "alhusainia-v17";
 const SHELL = [
   "/",
   "/index.html",
