@@ -39,7 +39,6 @@ import {
   Wifi,
   Package,
   FileText,
-  Star,
   ChevronDown,
   Play,
   ArrowUpRight,
@@ -1072,52 +1071,74 @@ export default function Landing() {
 
 
       {/* ═══════════════════════════════════════════════════════════
-          الشهادات
+          المنهجية المعتمدة — أدلة لا شهادات
       ═══════════════════════════════════════════════════════════ */}
-      <section className="py-20 px-4">
+      <section className="py-20 px-4 bg-ink text-white">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-3 max-w-2xl mx-auto mb-12 reveal">
-            <Badge className="bg-brand/10 text-brand border border-brand/30 font-bold text-xs px-3 py-1">
-              من عملائنا
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
+            <Badge className="bg-white/10 text-brand-300 border border-brand/30 font-bold text-xs px-3 py-1">
+              المنهجية — لا وعود، بل معايير
             </Badge>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-foreground">
-              ماذا يقول من جرّبوا الخدمة؟
+            <h2 className="text-2xl sm:text-4xl font-black tracking-tight">
+              كل قرار يستند إلى معيار قابل للتدقيق
             </h2>
-            <p className="text-sm text-muted-foreground">
-              تجارب حقيقية من مديرين ومهندسين وطلاب في اليمن
+            <p className="text-sm text-white/60 leading-relaxed">
+              لا نقيس نجاحنا بعدد النجوم، بل بزمن إغلاق الدفاتر، ودقة التقدير، وقابلية المراجعة. أربعة أطر تشكل حوكمتنا.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {brand.testimonials.map((t, i) => (
-              <Card
-                key={i}
-                className="reveal surface p-6 rounded-2xl hover:-translate-y-1 hover:shadow-xl transition-all"
-                data-reveal-delay={i * 100}
-              >
-                <div className="flex items-center gap-1 text-brand mb-4">
-                  {[1, 2, 3, 4, 5].map(s => (
-                    <Star key={s} className="w-4 h-4 fill-current" />
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground leading-relaxed text-pretty mb-5">
-                  «{t.quote}»
-                </p>
-                <div className="border-t border-border pt-4 flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-brand to-brand-deep flex items-center justify-center text-ink font-black text-sm">
-                    {t.author.charAt(0)}
-                  </div>
-                  <div>
-                    <p className="text-xs font-bold text-foreground">
-                      {t.author}
-                    </p>
-                    <p className="text-[11px] text-muted-foreground">
-                      {t.role}
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            ))}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+            <div className="reveal surface bg-white/5 border-white/10 p-6 rounded-2xl">
+              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4">
+                <FileText className="w-5 h-5 text-brand-300" />
+              </div>
+              <h3 className="font-black text-white text-sm mb-2">IFRS — التقارير المالية</h3>
+              <p className="text-xs text-white/60 leading-relaxed">قوائم تُقرأ في 60 ثانية: قائمة دخل IAS 1، ميزانية IAS 1، وتدفقات IAS 7 — لا تقديرات، بل أثر نقدي.</p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3">IAS 1 · IAS 7 · IFRS 15</p>
+            </div>
+            <div className="reveal surface bg-white/5 border-white/10 p-6 rounded-2xl" data-reveal-delay={100}>
+              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4">
+                <ShieldCheck className="w-5 h-5 text-brand-300" />
+              </div>
+              <h3 className="font-black text-white text-sm mb-2">COSO — الرقابة الداخلية</h3>
+              <p className="text-xs text-white/60 leading-relaxed">مصفوفة ثلاثية: إنشاء / اعتماد / ترحيل + سجل تدقيق غير قابل للتعديل — رقابة بلا تعطيل.</p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3">COSO 2013 · 17 مبدأ</p>
+            </div>
+            <div className="reveal surface bg-white/5 border-white/10 p-6 rounded-2xl" data-reveal-delay={200}>
+              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4">
+                <FolderKanban className="w-5 h-5 text-brand-300" />
+              </div>
+              <h3 className="font-black text-white text-sm mb-2">PMBOK — حوكمة المشاريع</h3>
+              <p className="text-xs text-white/60 leading-relaxed">نطاق مضبوط، تقدير NRM/POMI، ومسار حرج CPM — من الفكرة إلى التسليم ضمن الميزانية.</p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3">PMBOK 7th · NRM2</p>
+            </div>
+            <div className="reveal surface bg-white/5 border-white/10 p-6 rounded-2xl" data-reveal-delay={300}>
+              <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4">
+                <Layers className="w-5 h-5 text-brand-300" />
+              </div>
+              <h3 className="font-black text-white text-sm mb-2">ISO — الجودة والاستمرارية</h3>
+              <p className="text-xs text-white/60 leading-relaxed">عمليات موثقة، نسخ AES-256 ليلية، واستمرارية تشغيل 99.9% — جودة تُدقّق، لا تُدّعى.</p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3">ISO 9001 · ISO 27001</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 reveal">
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-black text-brand-300 font-mono">14 يوم → 4 ساعات</p>
+              <p className="text-[11px] text-white/60 mt-1">زمن إغلاق الدفاتر السنوي</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-black text-brand-300 font-mono">±30% → ±5%</p>
+              <p className="text-[11px] text-white/60 mt-1">انحراف تقدير الكميات</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-black text-brand-300 font-mono">0 ورقة</p>
+              <p className="text-[11px] text-white/60 mt-1">دورة اعتماد رقمية كاملة</p>
+            </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-4 text-center">
+              <p className="text-2xl font-black text-brand-300 font-mono">60 ثانية</p>
+              <p className="text-[11px] text-white/60 mt-1">قراءة الميزان والتدفق</p>
+            </div>
           </div>
         </div>
       </section>

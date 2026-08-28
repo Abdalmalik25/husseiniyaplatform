@@ -4,6 +4,16 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.7.0] — 2026-08-28 · Content Re-engineering — إلغاء السطحية
+
+### Removed
+
+- **قسم `ماذا يقول من جرّبوا الخدمة؟`** `Landing.tsx:1074` — 3 بطاقات شهادات بنجوم واقتباسات عامة — ألغيت بالكامل لأنها سطحية وغير قابلة للتدقيق (تُستبدل بأدلة).
+
+### Added
+
+- **منهجية معتمدة** `Landing.tsx:1074` — قسم `المنهجية — لا وعود، بل معايير` بأربع بطاقات: `IFRS IAS1/7/IFRS15` / `COSO 2013 17 مبدأ` / `PMBOK 7th NRM2` / `ISO 9001/27001` + شريط نتائج قابلة للقياس `14 يوم → 4 ساعات` `±30% → ±5%` `0 ورقة` `60 ثانية` — لغة مجالس إدارة لا تسويق.
+
 ## [2.6.1] — 2026-08-28 · Unified Content & Identity & Modern Header
 
 ### Fixed
