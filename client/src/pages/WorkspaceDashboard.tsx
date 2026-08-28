@@ -597,10 +597,10 @@ export default function WorkspaceDashboard() {
                   <div className="flex items-center justify-between border-b border-border pb-3">
                     <div>
                       <Badge className="bg-[#0369a1] text-white font-bold text-xs mb-1">
-                        وحدة المكتبة والخدمات
+                        المركز المعرفي
                       </Badge>
                       <h2 className="text-xl font-bold font-display text-foreground">
-                        مكتبة الحسينية الحديثة وصيانة الأجهزة
+                        المركز المعرفي — الخدمات المعرفية والطباعة الاحترافية
                       </h2>
                     </div>
                     <Button

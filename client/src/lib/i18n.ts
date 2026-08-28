@@ -1,4 +1,4 @@
-import React, {
+﻿import React, {
   createContext,
   useContext,
   useState,
@@ -62,7 +62,7 @@ const translations: TranslationResources = {
     workspaceAccountingTitle: "النظام المحاسبي والمالي المتقدم",
     workspaceEngineeringTitle: "جناح الاستشارات الهندسية والمقاولات والأراضي",
     workspaceCommercialTitle: "إدارة العمليات التجارية والمخازن والعملاء",
-    workspaceLibraryTitle: "مكتبة الحسينية الحديثة وصيانة الأجهزة",
+    workspaceLibraryTitle: "المركز المعرفي للخدمات المعرفية والطباعة الاحترافية",
     // Footer
     footerSystem: "المنظومة",
     footerUnits: "الوحدات",
@@ -76,11 +76,11 @@ const translations: TranslationResources = {
     footerTrust3: "يعمل أوفلاين وسحابياً",
     footerTrust4: "دعم متعدد العملات والفروع",
     footerCopyright:
-      "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة — جميع الحقوق محفوظة",
+      "مجموعة الحسينية — جميع الحقوق محفوظة",
     footerPowered:
       "منظومة سحابية متعددة المؤسسات والفروع والعملات — مبنية ومُنشرة عبر GitHub & Vercel.",
     // About page
-    aboutHeroTitle: "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
+    aboutHeroTitle: "مجموعة الحسينية",
     aboutHeroSubtitle:
       "الخبراء المعتمدون للخدمات الهندسية، المقاولات، الأراضي، والمكتبية",
     aboutEngineeringTitle: "القطاع الهندسي والتطوير العقاري",
@@ -314,3 +314,4 @@ export const I18nProvider = ({ children }: { children: ReactNode }) => {
     children
   );
 };
+

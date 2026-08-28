@@ -172,7 +172,7 @@ export function createApp(): Express {
       ok: true,
       dbAvailable,
       service: "alhusainia-platform",
-      institution: "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
+      institution: "مجموعة الحسينية — حلول الأعمال والهندسة والمعرفة",
       version:
         typeof __APP_VERSION__ !== "undefined"
           ? __APP_VERSION__

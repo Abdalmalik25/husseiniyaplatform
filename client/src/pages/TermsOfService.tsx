@@ -1,4 +1,4 @@
-import { brand, whatsappLink } from "@/lib/brand";
+﻿import { brand, whatsappLink } from "@/lib/brand";
 
 export default function TermsOfService() {
   return (
@@ -40,7 +40,7 @@ export default function TermsOfService() {
           <dl className="rtl text-right space-y-4 mb-8">
             <div>
               <dt className="font-medium mb-2">المؤسسة</dt>
-              <dd>مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة</dd>
+              <dd>مجموعة الحسينية</dd>
             </div>
             <div>
               <dt className="font-medium mb-2">المنصة</dt>
@@ -137,3 +137,4 @@ export default function TermsOfService() {
     </section>
   );
 }
+

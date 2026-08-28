@@ -895,12 +895,9 @@ export default function Home() {
             <Building2 className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-sm font-bold font-display">
-              مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة
-            </h3>
+            <h3 className="text-sm font-bold font-display">مجموعة الحسينية</h3>
             <p className="text-[11px] text-white/70">
-              استشارات هندسية، تقنية، مؤسسية، وإدارية | خدمات طلابية ومكتبية،
-              تصاميم، بحوث، وصيانة الأجهزة
+              قطاع الأعمال المؤسسية (Uamex_erp) · قطاع الهندسة والمساحة · مركز الخدمات المعرفية
             </p>
           </div>
         </div>

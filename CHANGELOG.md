@@ -4,6 +4,13 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.4.2] — 2026-08-28 · Terminology Refinement — إزالة السطحية الكارثية
+
+### Fixed
+
+- **كارثة الربط بـ و** — `مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة` (تكرار الحسينية + ربط سطحي بكلمة و كأنها لافتة محل) استُبدلت بهيكلة مؤسسية: `مجموعة الحسينية` كمظلة، `مؤسسة الحسينية لخدمات الأعمال` ككيان قانوني، وقطاعات: `قطاع الأعمال المؤسسية — Uamex_erp` / `قطاع الهندسة والمساحة الرقمية` / `مركز الحسينية للخدمات المعرفية` (الاسم الجديد لـ المكتبة). تم إزالة التكرار في 10 مواضع (`server/_core/app.ts:175` health، `pdfInvoice`، `Home.tsx:898`، `Portal`، `i18n:79`، `pageTitles`، `BusinessLifecycleWizard`، `Terms`، `index.html`).
+- **مصطلحات سطحية** — `client/src/lib/brand.ts:15` أضيف `group/groupDesc/libraryAlias`، `brand.ts:189` عنوان المكتبة `الخدمات الطلابية...` → `الخدمات المعرفية والطباعة الاحترافية`، `i18n.ts:65` `workspaceLibraryTitle` مماثل، `Reports.tsx:178` `مكتبة الحسينية — التقارير` → `مجموعة الحسينية — التقارير الموحدة`، `WorkspaceDashboard.tsx:603` `مكتبة الحسينية` → `المركز المعرفي`.
+
 ## [2.4.1] — 2026-08-27 · Tech-Debt Settlement — RateLimit/Headers/UI Unification
 
 ### Fixed

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { Card, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -275,7 +275,7 @@ export function BusinessLifecycleWizard() {
                     invoiceDate: new Date().toISOString(),
                     customerName: "عميل المؤسسة والمنشأة",
                     institutionName:
-                      "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
+                      "مجموعة الحسينية",
                     currency: "ريال يمني (YER)",
                     items: [
                       {
@@ -335,3 +335,4 @@ export function BusinessLifecycleWizard() {
     </Card>
   );
 }
+

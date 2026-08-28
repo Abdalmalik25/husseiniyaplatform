@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,7 +56,7 @@ export default function Portal() {
       invoiceDate: order.createdAt?.toString?.() ?? new Date().toISOString(),
       customerName: "",
       customerPhone: "",
-      institutionName: "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة",
+      institutionName: "مجموعة الحسينية",
       currency: "ريال يمني (YER)",
       items: [
         {
@@ -268,3 +268,4 @@ export default function Portal() {
     </div>
   );
 }
+

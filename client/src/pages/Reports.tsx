@@ -176,11 +176,10 @@ export default function Reports() {
                 المشترك الأول والافتراضي المعتمد
               </Badge>
               <h1 className="text-xl sm:text-2xl font-bold font-display text-white">
-                مكتبة الحسينية الحديثة — التقارير والقوائم المالية الرسمية
+                مجموعة الحسينية — التقارير والقوائم المالية الموحدة
               </h1>
               <p className="text-xs text-slate-300 mt-1">
-                التقرير المالي المعاين والمختوم إلكترونياً بـ QR Code والقابل
-                للطباعة والمشاركة التلقائية.
+                تقرير موحد لكل القطاعات — مختوم إلكترونياً بـ QR وخاضع لضوابط IFRS ومسار تدقيق COSO
               </p>
             </div>
 
@@ -198,9 +197,8 @@ export default function Reports() {
                   openPrintableInvoiceWindow({
                     invoiceNumber: `REP-${activeReport.toUpperCase()}-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`,
                     invoiceDate: new Date().toISOString(),
-                    customerName: "مكتبة الحسينية الحديثة (المشترك الأول)",
-                    institutionName:
-                      "مكتبة الحسينية الحديثة للخدمات الطلابية والمكتبية والتصاميم وصيانة الأجهزة",
+                    customerName: "مجموعة الحسينية (الكيان الموحد)",
+                    institutionName: "مجموعة الحسينية — حلول الأعمال والهندسة والمعرفة",
                     currency: "ريال يمني (YER)",
                     items: [
                       {
@@ -231,7 +229,7 @@ export default function Reports() {
                         ? "قائمة الدخل"
                         : "الميزانية العمومية";
                   const text = encodeURIComponent(
-                    `السلام عليكم، التقرير المالي الرسمي لـ (مكتبة الحسينية الحديثة):\n- التقرير: ${repTitle}\n- الإيرادات: ${summaryData?.totalRevenue?.toLocaleString()} YER\n- المصروفات: ${summaryData?.totalExpense?.toLocaleString()} YER\n- صافي الدخل: ${summaryData?.netIncome?.toLocaleString()} YER\n- إجمالي الأصول: ${summaryData?.totalAssets?.toLocaleString()} YER\n- رابط التقرير: ${window.location.origin}/reports`
+                    `السلام عليكم، التقرير المالي الرسمي لـ (مجموعة الحسينية):\n- التقرير: ${repTitle}\n- الإيرادات: ${summaryData?.totalRevenue?.toLocaleString()} YER\n- المصروفات: ${summaryData?.totalExpense?.toLocaleString()} YER\n- صافي الدخل: ${summaryData?.netIncome?.toLocaleString()} YER\n- إجمالي الأصول: ${summaryData?.totalAssets?.toLocaleString()} YER\n- رابط التقرير: ${window.location.origin}/reports`
                   );
                   window.open(`https://wa.me/?text=${text}`, "_blank");
                 }}

@@ -27,7 +27,7 @@ export interface InvoiceData {
 export function generatePrintableInvoiceHtml(data: InvoiceData): string {
   const instName =
     data.institutionName ||
-    "مؤسسة الحسينية لخدمات الأعمال ومكتبة الحسينية الحديثة";
+    "مجموعة الحسينية — حلول الأعمال والهندسة والمعرفة";
   const currencyStr = data.currency || "ريال يمني (YER)";
   const formattedDate = data.invoiceDate
     ? new Date(data.invoiceDate).toLocaleDateString("ar-EG")

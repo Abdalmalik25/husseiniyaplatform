@@ -11,14 +11,17 @@
  */
 
 export const brand = {
-  /** الأسماء الرسمية */
+  /** الأسماء الرسمية — هيكلة مؤسسية غير سطحية */
   names: {
     arabic: "الحسينية",
     commercial: "ALHUSAINIA",
+    group: "مجموعة الحسينية",
+    groupDesc: "حلول متكاملة — أعمال وهندسة ومعرفة",
     legal: "مؤسسة الحسينية لخدمات الأعمال",
     legalFull: "مؤسسة الحسينية لخدمات الأعمال",
-    english: "ALHUSAINIA Business Services",
-    library: "مكتبة الحسينية الحديثة",
+    english: "ALHUSAINIA Group — Business, Engineering & Knowledge Solutions",
+    library: "مركز الحسينية للخدمات المعرفية",
+    libraryAlias: "مكتبة الحسينية الحديثة",
     /** اسم نظام ERP الخاص بالمنصة */
     erp: "Uamex_erp",
     erpFull: "Uamex_erp — Unified Asset Management & Enterprise Exchange",
@@ -185,8 +188,8 @@ export const brand = {
 
     library: {
       key: "library",
-      title: "الخدمات الطلابية والمبيعات والمكتبة والصيانة",
-      subtitle: "كل ما تحتاجه لإنجاز عملك الأكاديمي والتقني — تحت سقف واحد",
+      title: "الخدمات المعرفية والطباعة الاحترافية",
+      subtitle: "حلول معرفية متكاملة — من البحث الأكاديمي إلى الإخراج الطباعي الاحترافي",
       heroQuestion: "هل رسالة تخرجك في خطر بسبب مشاكل تقنية وتصميم؟",
       heroAnswer:
         "ندعم مسارك البحثي بمنهجية أكاديمية منضبطة: تحليل إحصائي موثق (SPSS) مع تفسير النتائج وفق أدبيات المنهج الكمي، وتوثيق وتنسيق يوازي أدلة النشر العالمية (APA)، وإخراج طباعي بمستوى المكتبات الأكاديمية.",
