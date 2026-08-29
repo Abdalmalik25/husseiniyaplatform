@@ -29,6 +29,8 @@ export const brand = {
     appLogo: "/elias-avatar.jpg",
     /** اسم نظام ERP الخاص بالمنصة */
     erp: "Uamex_erp",
+    /** إصدار المنتج المعروض — يُحدَّث يدوياً عند كل Release */
+    version: "2.12.0",
     erpFull: "Uamex_erp — Unified Asset Management & Enterprise Exchange",
     erpArabic: "يومكس — منظومة إدارة الأصول والأعمال الموحّدة",
     /** الشعار الرسمي لنظام Uamex_erp (نسخة الويب) */

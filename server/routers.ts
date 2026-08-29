@@ -24,6 +24,9 @@ import { aliasAiRouter } from "./aliasAiRouter";
 import { backupRouter } from "./backupRouter";
 import { costCentersRouter } from "./costCentersRouter";
 import { beneficiariesRouter } from "./beneficiariesRouter";
+import { financialReportsRouter } from "./financialReportsRouter";
+import { fiscalPeriodsRouter } from "./fiscalPeriodsRouter";
+import { assertPeriodOpen } from "./services/accountingEngine";
 import {
   publicProcedure,
   protectedProcedure,
@@ -78,6 +81,7 @@ import {
   accounts,
   transactions,
   journalEntries,
+  fiscalPeriods,
   settings,
   budgets,
   activityLogs,
@@ -129,7 +133,56 @@ import { z } from "zod";
 
 // Seed default accounts per-tenant (idempotent upserts)
 const _seededTenants = new Set<number>();
-async function seedDefaultAccountsForTenant(tenantId: number | null) {
+export function currencyDisplayName(code?: string): string {
+  switch ((code || "YER").toUpperCase()) {
+    case "SAR":
+      return "ريال سعودي (SAR)";
+    case "AED":
+      return "درهم إماراتي (AED)";
+    case "USD":
+      return "دولار أمريكي (USD)";
+    case "KWD":
+      return "دينار كويتي (KWD)";
+    case "QAR":
+      return "ريال قطري (QAR)";
+    case "BHD":
+      return "دينار بحريني (BHD)";
+    case "OMR":
+      return "ريال عماني (OMR)";
+    case "EGP":
+      return "جنيه مصري (EGP)";
+    case "JOD":
+      return "دينار أردني (JOD)";
+    case "EUR":
+      return "يورو (EUR)";
+    default:
+      return "ريال يمني (YER)";
+  }
+}
+
+function defaultCityForCountry(country?: string): string {
+  const c = (country || "").trim();
+  if (/السعودية|SA/i.test(c)) return "الرياض";
+  if (/الإمارات|الإمارات|AE/i.test(c)) return "دبي";
+  if (/الكويت|KW/i.test(c)) return "مدينة الكويت";
+  if (/قطر|QA/i.test(c)) return "الدوحة";
+  if (/البحرين|BH/i.test(c)) return "المنامة";
+  if (/عمان|سلطنة|OM/i.test(c)) return "مسقط";
+  if (/مصر|EG/i.test(c)) return "القاهرة";
+  if (/الأردن|JO/i.test(c)) return "عَمّان";
+  if (/اليمن|YE/i.test(c)) return "صنعاء";
+  return c || "الفرع الرئيسي";
+}
+
+async function seedDefaultAccountsForTenant(
+  tenantId: number | null,
+  overrides?: Partial<{
+    institutionName: string;
+    currency: string;
+    accountingPeriod: string;
+    managerName: string;
+  }>
+) {
   if (!tenantId) return;
   if (_seededTenants.has(tenantId)) return;
   const db = await getDb();
@@ -156,6 +209,13 @@ async function seedDefaultAccountsForTenant(tenantId: number | null) {
         type: "asset" as const,
         category: "الأصول المتداولة",
         description: "مستحقات المؤسسة لدى العملاء مقابل الخدمات",
+      },
+      {
+        code: "1060",
+        name: "مخزون البضاعة والمنتجات",
+        type: "asset" as const,
+        category: "الأصول المتداولة",
+        description: "قيمة البضاعة والمنتجات المتاحة للبيع بالمخزون",
       },
       {
         code: "2010",
@@ -243,10 +303,10 @@ async function seedDefaultAccountsForTenant(tenantId: number | null) {
     if (existingSettings.length === 0) {
       await db.insert(settings).values({
         tenantId,
-        institutionName: "مؤسسة الحسينية لخدمات الأعمال",
-        currency: "ريال يمني (YER)",
-        accountingPeriod: "السنة المالية 2026",
-        managerName: "إدارة المؤسسة",
+        institutionName: overrides?.institutionName ?? "مؤسسة الحسينية لخدمات الأعمال",
+        currency: overrides?.currency ?? "ريال يمني (YER)",
+        accountingPeriod: overrides?.accountingPeriod ?? "السنة المالية 2026",
+        managerName: overrides?.managerName ?? "إدارة المؤسسة",
         subscriptionStatus: "trial",
         trialEndsAt: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000),
         notes:
@@ -442,8 +502,8 @@ const DEFAULT_POSTING_RULES = {
   cashCode: "1010",
   receivablesCode: "1030",
   vatCode: "2010",
-  postInventory: false,
-  postCogs: false,
+  postInventory: true,
+  postCogs: true,
   vatRate: 0,
 };
 
@@ -663,20 +723,20 @@ async function postInvoiceGlEntries(
           const cogs = (parseFloat(String(it.cost)) || 0) * it.quantity;
           const cogsAcc = await findAccount(cfg.postingRules.cogsCode);
           const invAcc = await findAccount(cfg.postingRules.inventoryCode);
-          if (cogsAcc)
+          if (cogsAcc && invAcc) {
             await entry(
               cogsAcc.id,
               "debit",
               cogs,
               `تكلفة مبيعات — ${opts.invoiceNumber}`
             );
-          if (invAcc)
             await entry(
               invAcc.id,
               "credit",
               cogs,
               `تخفيض مخزون — ${opts.invoiceNumber}`
             );
+          }
         }
       }
       for (const [accId, amt] of Object.entries(byAcc)) {
@@ -775,6 +835,156 @@ async function postInvoiceGlEntries(
     for (const e of pending) {
       await tx.insert(transactions).values({ ...e, journalEntryId: je.id });
     }
+  }
+}
+
+/**
+ * Posts the double-entry GL movement for a recorded payment/installment.
+ *
+ * Closes the accounting loop that `postInvoiceGlEntries` intentionally leaves
+ * open: when an invoice is raised against receivables (AR) / payables (AP),
+ * the cash movement that actually settles it happens later via `payments.create`.
+ * That later settlement must be reflected in the ledger, otherwise AR/AP
+ * balances never get relieved and cash totals stay wrong. This mirrors the
+ * invoice auto-posting structure (single journal entry + transaction legs).
+ *
+ *  - Sales payment   → Dr <payment account> / Cr <AR>
+ *  - Purchase payment→ Cr <payment account> / Dr <AP>
+ */
+async function postPaymentGlEntries(
+  tx: any,
+  opts: {
+    kind: "sale" | "purchase";
+    invoiceId: number;
+    invoiceNumber: string;
+    amount: number;
+    paymentMethod: string;
+    tenantId: number;
+    paymentDate?: Date;
+    userId?: number | null;
+  }
+): Promise<void> {
+  const findAccount = async (code: string) => {
+    const rows = await tx
+      .select()
+      .from(accounts)
+      .where(and(eq(accounts.code, code), eq(accounts.tenantId, opts.tenantId)))
+      .limit(1);
+    return rows[0];
+  };
+
+  const cfg = await getTenantConfig(tx, opts.tenantId);
+  const pm = opts.paymentMethod || cfg.salesPolicy.defaultPayment || "cash";
+  const pmDef = (cfg.paymentMethods || []).find(
+    (m: any) => m.key === pm && m.enabled
+  );
+  const paymentAccountCode =
+    pmDef?.accountCode ||
+    (opts.kind === "sale" ? cfg.postingRules.cashCode : cfg.postingRules.cashCode);
+
+  const cashAcc = await findAccount(paymentAccountCode);
+  if (!cashAcc) return; // chart not seeded — skip auto-posting
+
+  const refCode = opts.kind === "sale" ? cfg.postingRules.receivablesCode : "2010";
+  const refAcc = await findAccount(refCode);
+  if (!refAcc) return;
+
+  const vault = await tx
+    .select()
+    .from(branches)
+    .where(eq(branches.tenantId, opts.tenantId))
+    .orderBy(desc(branches.isMain))
+    .limit(1);
+  const branchId = vault[0]?.id ?? null;
+
+  const narration =
+    opts.kind === "sale"
+      ? `تحصيل دفعة — فاتورة ${opts.invoiceNumber} (${pm})`
+      : `سداد دفعة — فاتورة مشتريات ${opts.invoiceNumber} (${pm})`;
+
+  const pending = [
+    opts.kind === "sale"
+      ? {
+          tenantId: opts.tenantId,
+          accountId: cashAcc.id,
+          branchId,
+          amount: opts.amount.toFixed(2),
+          type: "debit",
+          transactionDate: opts.paymentDate || new Date(),
+          narration,
+          lifecycleStatus: "posted",
+          referenceType: "sale",
+          referenceId: opts.invoiceId,
+          sourceModule: "sales",
+          userId: opts.userId || null,
+        }
+      : {
+          tenantId: opts.tenantId,
+          accountId: refAcc.id,
+          branchId,
+          amount: opts.amount.toFixed(2),
+          type: "debit",
+          transactionDate: opts.paymentDate || new Date(),
+          narration,
+          lifecycleStatus: "posted",
+          referenceType: "purchase",
+          referenceId: opts.invoiceId,
+          sourceModule: "purchases",
+          userId: opts.userId || null,
+        },
+    opts.kind === "sale"
+      ? {
+          tenantId: opts.tenantId,
+          accountId: refAcc.id,
+          branchId,
+          amount: opts.amount.toFixed(2),
+          type: "credit",
+          transactionDate: opts.paymentDate || new Date(),
+          narration,
+          lifecycleStatus: "posted",
+          referenceType: "sale",
+          referenceId: opts.invoiceId,
+          sourceModule: "sales",
+          userId: opts.userId || null,
+        }
+      : {
+          tenantId: opts.tenantId,
+          accountId: cashAcc.id,
+          branchId,
+          amount: opts.amount.toFixed(2),
+          type: "credit",
+          transactionDate: opts.paymentDate || new Date(),
+          narration,
+          lifecycleStatus: "posted",
+          referenceType: "purchase",
+          referenceId: opts.invoiceId,
+          sourceModule: "purchases",
+          userId: opts.userId || null,
+        },
+  ];
+
+  validateOrThrow(
+    pending.map(p => ({ type: p.type as "debit" | "credit", amount: p.amount })),
+    `دفعة فاتورة ${opts.invoiceNumber}`
+  );
+  const total = pending.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  const [je] = await tx
+    .insert(journalEntries)
+    .values({
+      tenantId: opts.tenantId,
+      branchId,
+      sourceModule: opts.kind === "sale" ? "sales" : "purchases",
+      sourceRefType: opts.kind === "sale" ? "sale" : "purchase",
+      sourceRefId: opts.invoiceId,
+      referenceNo: opts.invoiceNumber,
+      status: "posted",
+      totalAmount: total.toFixed(2),
+      createdById: opts.userId || null,
+      postedAt: new Date(),
+    })
+    .returning();
+  for (const e of pending) {
+    await tx.insert(transactions).values({ ...e, journalEntryId: je.id });
   }
 }
 
@@ -1058,7 +1268,9 @@ export const appRouter = router({
             userId: user.id,
             tenantId: user.tenantId,
           });
-        } catch {}
+        } catch {
+          // تسجيل محاولة الدخول اختياري — فشله لا يمنع الدخول
+        }
         const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || uname });
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_MONTH_MS });
@@ -1234,7 +1446,7 @@ export const appRouter = router({
             tenantId: tenant.id,
             name: "الفرع الرئيسي",
             code: "HQ-01",
-            city: "صنعاء",
+            city: defaultCityForCountry(input.country),
             isMain: true,
           })
           .returning();
@@ -1245,8 +1457,13 @@ export const appRouter = router({
           .set({ tenantId: tenant.id, role: "admin" })
           .where(eq(users.id, ctx.user.id));
 
-        // Seed default accounts for the new tenant
-        await seedDefaultAccountsForTenant(tenant.id);
+        // Seed default accounts for the new tenant (use the tenant's own identity,
+        // not the platform owner's, so settings/invoices/POS carry the right name)
+        await seedDefaultAccountsForTenant(tenant.id, {
+          institutionName: input.institutionName,
+          managerName: input.managerName,
+          currency: currencyDisplayName(input.currency),
+        });
 
         return { tenantId: tenant.id, branchId: branch.id };
       }),
@@ -3409,6 +3626,7 @@ export const appRouter = router({
           if (!db) throw new Error("Database not available");
           const asOf = input.asOfDate ? new Date(input.asOfDate) : new Date();
           const tid = requireTenantId(ctx);
+          await assertPeriodOpen(db, tid, asOf, input.periodName);
 
           const already = await db
             .select()
@@ -3598,6 +3816,34 @@ export const appRouter = router({
               retainedAccountId: retainedId,
             };
           });
+
+          // Link the closure to a matching fiscal period and lock it (additive:
+          // if no fiscal_period exists for this tenant, nothing changes).
+          const matchingPeriods = await db
+            .select()
+            .from(fiscalPeriods)
+            .where(
+              and(
+                eq(fiscalPeriods.tenantId, tid),
+                eq(fiscalPeriods.name, input.periodName)
+              )
+            )
+            .limit(1);
+          if (matchingPeriods.length > 0) {
+            const p = matchingPeriods[0];
+            if (p.status !== "closed") {
+              await db
+                .update(fiscalPeriods)
+                .set({
+                  status: "closed",
+                  closedAt: new Date(),
+                  closedById: ctx.user.id,
+                  closingEntryId: p.closingEntryId ?? null,
+                })
+                .where(eq(fiscalPeriods.id, p.id));
+            }
+          }
+
           return result;
         }),
     }),
@@ -4393,6 +4639,7 @@ ${analysisText}
                   .insert(accounts)
                   .values({
                     ...mutation.payload,
+                    tenantId: ctx.tenantId,
                     isCustom: true,
                   })
                   .returning();
@@ -4414,7 +4661,12 @@ ${analysisText}
                     isActive: mutation.payload.isActive,
                     parentAccountId: mutation.payload.parentAccountId,
                   })
-                  .where(eq(accounts.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(accounts.id, mutation.payload.id),
+                      eq(accounts.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               } else if (
                 mutation.operation === "delete" &&
@@ -4422,7 +4674,12 @@ ${analysisText}
               ) {
                 await db
                   .delete(accounts)
-                  .where(eq(accounts.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(accounts.id, mutation.payload.id),
+                      eq(accounts.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "transactions") {
@@ -4460,7 +4717,12 @@ ${analysisText}
                     notes: mutation.payload.notes,
                     lifecycleStatus: mutation.payload.lifecycleStatus,
                   })
-                  .where(eq(transactions.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(transactions.id, mutation.payload.id),
+                      eq(transactions.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               } else if (
                 mutation.operation === "delete" &&
@@ -4468,23 +4730,41 @@ ${analysisText}
               ) {
                 await db
                   .delete(transactions)
-                  .where(eq(transactions.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(transactions.id, mutation.payload.id),
+                      eq(transactions.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "settings") {
-              const existing = await db.select().from(settings).limit(1);
+              const existing = await db
+                .select()
+                .from(settings)
+                .where(eq(settings.tenantId, ctx.tenantId!))
+                .limit(1);
               if (existing.length > 0) {
                 await db
                   .update(settings)
-                  .set(mutation.payload)
-                  .where(eq(settings.id, existing[0].id));
+                  .set({ ...mutation.payload, tenantId: ctx.tenantId })
+                  .where(
+                    and(
+                      eq(settings.id, existing[0].id),
+                      eq(settings.tenantId, ctx.tenantId!)
+                    )
+                  );
               } else {
-                await db.insert(settings).values(mutation.payload);
+                await db
+                  .insert(settings)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId });
               }
               results.push({ recordId: mutation.recordId, status: "ok" });
             } else if (mutation.table === "budgets") {
               if (mutation.operation === "create") {
-                await db.insert(budgets).values(mutation.payload);
+                await db
+                  .insert(budgets)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId });
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "openingBalances") {
@@ -4497,6 +4777,7 @@ ${analysisText}
                   .from(openingBalances)
                   .where(
                     and(
+                      eq(openingBalances.tenantId, ctx.tenantId!),
                       eq(openingBalances.accountId, mutation.payload.accountId),
                       eq(
                         openingBalances.periodName,
@@ -4513,9 +4794,16 @@ ${analysisText}
                       type: mutation.payload.type,
                       notes: mutation.payload.notes,
                     })
-                    .where(eq(openingBalances.id, existing[0].id));
+                    .where(
+                      and(
+                        eq(openingBalances.id, existing[0].id),
+                        eq(openingBalances.tenantId, ctx.tenantId!)
+                      )
+                    );
                 } else {
-                  await db.insert(openingBalances).values(mutation.payload);
+                  await db
+                    .insert(openingBalances)
+                    .values({ ...mutation.payload, tenantId: ctx.tenantId });
                 }
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
@@ -4523,6 +4811,7 @@ ${analysisText}
               if (mutation.operation === "create") {
                 await db.insert(products).values({
                   ...mutation.payload,
+                  tenantId: ctx.tenantId,
                   currentStock: mutation.payload.currentStock ?? 0,
                 });
                 results.push({ recordId: mutation.recordId, status: "ok" });
@@ -4533,7 +4822,12 @@ ${analysisText}
                 await db
                   .update(products)
                   .set(mutation.payload)
-                  .where(eq(products.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(products.id, mutation.payload.id),
+                      eq(products.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               } else if (
                 mutation.operation === "delete" &&
@@ -4542,13 +4836,19 @@ ${analysisText}
                 await db
                   .update(products)
                   .set({ deletedAt: new Date() })
-                  .where(eq(products.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(products.id, mutation.payload.id),
+                      eq(products.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "customers") {
               if (mutation.operation === "create") {
                 await db.insert(customers).values({
                   ...mutation.payload,
+                  tenantId: ctx.tenantId,
                   balance: mutation.payload.balance ?? "0",
                 });
                 results.push({ recordId: mutation.recordId, status: "ok" });
@@ -4559,7 +4859,12 @@ ${analysisText}
                 await db
                   .update(customers)
                   .set(mutation.payload)
-                  .where(eq(customers.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(customers.id, mutation.payload.id),
+                      eq(customers.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               } else if (
                 mutation.operation === "delete" &&
@@ -4568,13 +4873,19 @@ ${analysisText}
                 await db
                   .update(customers)
                   .set({ deletedAt: new Date() })
-                  .where(eq(customers.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(customers.id, mutation.payload.id),
+                      eq(customers.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "suppliers") {
               if (mutation.operation === "create") {
                 await db.insert(suppliers).values({
                   ...mutation.payload,
+                  tenantId: ctx.tenantId,
                   balance: mutation.payload.balance ?? "0",
                 });
                 results.push({ recordId: mutation.recordId, status: "ok" });
@@ -4585,7 +4896,12 @@ ${analysisText}
                 await db
                   .update(suppliers)
                   .set(mutation.payload)
-                  .where(eq(suppliers.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(suppliers.id, mutation.payload.id),
+                      eq(suppliers.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               } else if (
                 mutation.operation === "delete" &&
@@ -4594,24 +4910,33 @@ ${analysisText}
                 await db
                   .update(suppliers)
                   .set({ deletedAt: new Date() })
-                  .where(eq(suppliers.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(suppliers.id, mutation.payload.id),
+                      eq(suppliers.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "warehouses") {
               if (mutation.operation === "create") {
-                await db.insert(warehouses).values(mutation.payload);
+                await db
+                  .insert(warehouses)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId });
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "inventoryMovements") {
               if (mutation.operation === "create") {
-                await db.insert(inventoryMovements).values(mutation.payload);
+                await db
+                  .insert(inventoryMovements)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId });
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "salesInvoices") {
               if (mutation.operation === "create") {
                 const inserted = await db
                   .insert(salesInvoices)
-                  .values(mutation.payload)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId })
                   .returning();
                 results.push({
                   recordId: mutation.recordId,
@@ -4625,19 +4950,26 @@ ${analysisText}
                 await db
                   .update(salesInvoices)
                   .set(mutation.payload)
-                  .where(eq(salesInvoices.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(salesInvoices.id, mutation.payload.id),
+                      eq(salesInvoices.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "salesInvoiceItems") {
               if (mutation.operation === "create") {
-                await db.insert(salesInvoiceItems).values(mutation.payload);
+                await db
+                  .insert(salesInvoiceItems)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId });
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "purchaseInvoices") {
               if (mutation.operation === "create") {
                 const inserted = await db
                   .insert(purchaseInvoices)
-                  .values(mutation.payload)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId })
                   .returning();
                 results.push({
                   recordId: mutation.recordId,
@@ -4651,19 +4983,26 @@ ${analysisText}
                 await db
                   .update(purchaseInvoices)
                   .set(mutation.payload)
-                  .where(eq(purchaseInvoices.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(purchaseInvoices.id, mutation.payload.id),
+                      eq(purchaseInvoices.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "purchaseInvoiceItems") {
               if (mutation.operation === "create") {
-                await db.insert(purchaseInvoiceItems).values(mutation.payload);
+                await db
+                  .insert(purchaseInvoiceItems)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId });
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "orders") {
               if (mutation.operation === "create") {
                 const inserted = await db
                   .insert(orders)
-                  .values(mutation.payload)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId })
                   .returning();
                 results.push({
                   recordId: mutation.recordId,
@@ -4677,22 +5016,33 @@ ${analysisText}
                 await db
                   .update(orders)
                   .set(mutation.payload)
-                  .where(eq(orders.id, mutation.payload.id));
+                  .where(
+                    and(
+                      eq(orders.id, mutation.payload.id),
+                      eq(orders.tenantId, ctx.tenantId!)
+                    )
+                  );
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "orderItems") {
               if (mutation.operation === "create") {
-                await db.insert(orderItems).values(mutation.payload);
+                await db
+                  .insert(orderItems)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId });
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "payments") {
               if (mutation.operation === "create") {
-                await db.insert(payments).values(mutation.payload);
+                await db
+                  .insert(payments)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId });
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             } else if (mutation.table === "branches") {
               if (mutation.operation === "create") {
-                await db.insert(branches).values(mutation.payload);
+                await db
+                  .insert(branches)
+                  .values({ ...mutation.payload, tenantId: ctx.tenantId });
                 results.push({ recordId: mutation.recordId, status: "ok" });
               }
             }
@@ -8953,15 +9303,27 @@ ${analysisText}
       }),
 
     // Authenticated only — order line items may reference internal pricing.
-    getItems: protectedProcedure
+    getItems: tenantProcedure
       .input(
         z.object({
           orderId: z.number(),
         })
       )
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return [];
         const db = await getDb();
         if (!db) return [];
+        const order = await db
+          .select({ id: orders.id })
+          .from(orders)
+          .where(
+            and(
+              eq(orders.id, input.orderId),
+              eq(orders.tenantId, ctx.tenantId)
+            )
+          )
+          .limit(1);
+        if (order.length === 0) return [];
         return await db
           .select()
           .from(orderItems)
@@ -9289,6 +9651,7 @@ ${analysisText}
             const [pay] = await tx
               .insert(payments)
               .values({
+                tenantId: ctx.tenantId!,
                 source: "sales",
                 invoiceId: input.invoiceId,
                 amount: input.amount,
@@ -9329,6 +9692,18 @@ ${analysisText}
                   )
                 );
             }
+            await postPaymentGlEntries(tx, {
+              kind: "sale",
+              invoiceId: input.invoiceId,
+              invoiceNumber: inv.invoiceNumber,
+              amount: paymentAmount,
+              paymentMethod: input.paymentMethod,
+              tenantId: ctx.tenantId!,
+              paymentDate: input.paymentDate
+                ? new Date(input.paymentDate)
+                : undefined,
+              userId: ctx.user.id,
+            });
             await tx.insert(activityLogs).values({
               userId: ctx.user.id,
               action: `تحصيل دفعة من فاتورة مبيعات ${inv.invoiceNumber}`,
@@ -9362,6 +9737,7 @@ ${analysisText}
             const [pay] = await tx
               .insert(payments)
               .values({
+                tenantId: ctx.tenantId!,
                 source: "purchases",
                 invoiceId: input.invoiceId,
                 amount: input.amount,
@@ -9402,6 +9778,18 @@ ${analysisText}
                   )
                 );
             }
+            await postPaymentGlEntries(tx, {
+              kind: "purchase",
+              invoiceId: input.invoiceId,
+              invoiceNumber: inv.invoiceNumber,
+              amount: paymentAmount,
+              paymentMethod: input.paymentMethod,
+              tenantId: ctx.tenantId!,
+              paymentDate: input.paymentDate
+                ? new Date(input.paymentDate)
+                : undefined,
+              userId: ctx.user.id,
+            });
             await tx.insert(activityLogs).values({
               userId: ctx.user.id,
               action: `تسجيل دفعة سداد على فاتورة مشتريات ${inv.invoiceNumber}`,
@@ -9416,6 +9804,8 @@ ${analysisText}
   }),
   costCenters: costCentersRouter,
   beneficiaries: beneficiariesRouter,
+  financialReports: financialReportsRouter,
+  fiscalPeriods: fiscalPeriodsRouter,
 });
 
 export type AppRouter = typeof appRouter;

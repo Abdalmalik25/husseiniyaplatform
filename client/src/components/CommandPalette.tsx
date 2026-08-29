@@ -4,16 +4,9 @@ import { withViewTransition } from "@/lib/viewTransition";
 import { Command } from "cmdk";
 import {
   Building2,
-  BarChart3,
-  Layers,
-  Search,
-  Settings,
-  Globe2,
-  Home as HomeIcon,
   Phone,
   FileText,
-  Zap,
-  CreditCard,
+  Search,
   Package,
   Users,
   type LucideIcon,
@@ -21,6 +14,7 @@ import {
   Clock,
 } from "lucide-react";
 import { MODULE_LIST } from "@/lib/design";
+import { APP_NAV, UTILITY_LINKS, MARKETING_NAV } from "@/lib/nav";
 import { whatsappLink } from "@/lib/brand";
 import { trpc } from "@/lib/trpc";
 
@@ -31,20 +25,24 @@ interface NavItem {
   hint?: string;
 }
 
+/** التنقل الكامل: صفحات عامة + مساحات العمل + أدوات مساعدة — يتبع nav.ts دائماً. */
 const NAV: NavItem[] = [
-  { label: "الرئيسية والتسويق", path: "/", icon: HomeIcon },
-  { label: "مساحات العمل والأنظمة", path: "/app", icon: Layers },
-  { label: "التعريف بالخدمات", path: "/about", icon: FileText },
-  { label: "الأسعار والباقات", path: "/pricing", icon: CreditCard },
-  { label: "تواصل معنا", path: "/contact", icon: Phone },
-  { label: "بوابة التتبع", path: "/portal", icon: Search },
-  { label: "العمليات التجارية", path: "/commercial", icon: Building2 },
-  { label: "التحليلات الذكية", path: "/analytics", icon: BarChart3 },
-  { label: "التقارير المالية", path: "/reports", icon: BarChart3 },
-  { label: "مركز التكامل", path: "/integrate", icon: Globe2 },
-  { label: "تحميل التطبيق", path: "/download", icon: Zap },
-  { label: "الاشتراك والفوترة", path: "/billing", icon: CreditCard },
-  { label: "إعدادات المؤسسة", path: "/settings", icon: Settings },
+  ...MARKETING_NAV.filter(i => !i.path.startsWith("/#")).map(i => ({
+    label: i.label,
+    path: i.path,
+    icon: i.icon as unknown as LucideIcon,
+    hint: i.description,
+  })),
+  ...APP_NAV.map(i => ({
+    label: i.label,
+    path: i.path,
+    icon: i.icon as unknown as LucideIcon,
+  })),
+  ...UTILITY_LINKS.map(i => ({
+    label: i.label,
+    path: i.path,
+    icon: i.icon as unknown as LucideIcon,
+  })),
 ];
 
 interface CommandPaletteFeature {
@@ -87,10 +85,10 @@ export function CommandPalette() {
 
   const QUICK_ACTIONS: CommandPaletteFeature[] = [
     {
-      label: "إنشاء فاتورة جديدة",
+      label: "إنشاء فاتورة مبيعات جديدة",
       icon: FileText,
-      action: () => go("/commercial/invoice/create"),
-      description: "إنشاء فاتورة مبيعات أو مشتريات جديدة",
+      action: () => go("/commercial?new=sale"),
+      description: "إنشاء فاتورة مبيعات جديدة",
     },
     {
       label: "عرض القائمة الكاملة",
@@ -107,14 +105,14 @@ export function CommandPalette() {
     {
       label: "فحص التنبيهات",
       icon: AlertCircle,
-      action: () => go("/support-quality"),
+      action: () => go("/support"),
       description: "عرض التنبيهات التنبؤية والحالة",
     },
     {
-      label: "الجداول المجدولة",
+      label: "التقارير المجدولة",
       icon: Clock,
-      action: () => go("/reports/scheduled"),
-      description: "عرض وإدارة الجداول المجدولة",
+      action: () => go("/reports"),
+      description: "عرض وإدارة التقارير والجداول المجدولة",
     },
   ];
 

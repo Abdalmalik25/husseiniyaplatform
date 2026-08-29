@@ -231,6 +231,13 @@ export function usePOSCart(options: UsePOSCartOptions = {}) {
           lineTotal: 0,
           lineNetTotal: 0,
           loyaltyPoints: product.loyaltyPoints || 0,
+
+          // Advanced inventory fields (defaults)
+          isSerialized: false,
+          isBatched: false,
+          isMatrix: false,
+          requiresSerialEntry: false,
+          requiresBatchEntry: false,
         };
 
         if (existingIndex >= 0) {
@@ -535,6 +542,16 @@ export function usePOSCart(options: UsePOSCartOptions = {}) {
       notes,
       loyaltyPointsRedeemed,
       holdId,
+      summary: {
+        subtotal: summary.subtotal,
+        totalDiscount: summary.totalDiscount,
+        totalTax: summary.totalTax,
+        total: summary.total,
+        itemCount: summary.itemCount,
+        totalQuantity: summary.totalQuantity,
+        loyaltyPointsEarned: summary.loyaltyPointsEarned,
+        loyaltyPointsRedeemed: summary.loyaltyPointsRedeemed,
+      },
     };
   }, [
     cart,

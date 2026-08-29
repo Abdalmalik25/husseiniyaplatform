@@ -43,7 +43,9 @@ export default function ZatcaIntegration() {
           phase: cfg.phase || "1",
           simulation: cfg.simulation ?? true,
         });
-      } catch {}
+      } catch {
+        // لا توجد إعدادات مسبقة — نبدأ بإعدادات افتراضية
+      }
     }
   }, [settings]);
 

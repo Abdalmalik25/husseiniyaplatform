@@ -454,7 +454,14 @@ export async function provisionGenericTenant(
       tenantId: tid,
       institutionName: opts.name,
       country,
-      currency: "ريال يمني (YER)",
+      currency:
+        (opts.currency || "YER").toUpperCase() === "SAR"
+          ? "ريال سعودي (SAR)"
+          : (opts.currency || "YER").toUpperCase() === "AED"
+          ? "درهم إماراتي (AED)"
+          : (opts.currency || "YER").toUpperCase() === "USD"
+          ? "دولار أمريكي (USD)"
+          : "ريال يمني (YER)",
       accountingPeriod: String(new Date().getFullYear()),
       managerName: opts.name,
     });

@@ -95,8 +95,8 @@ importers:
         specifier: ^17.2.2
         version: 17.2.3
       drizzle-orm:
-        specifier: ^0.44.5
-        version: 0.44.6(@neondatabase/serverless@1.1.0)(mysql2@3.15.1)
+        specifier: ^0.45.2
+        version: 0.45.2(@neondatabase/serverless@1.1.0)(mysql2@3.15.1)
       express:
         specifier: ^4.21.2
         version: 4.21.2
@@ -2467,8 +2467,8 @@ packages:
     resolution: {integrity: sha512-+CHgPFzuoTQTt7cOYCV6MOw2w8vqEn/ap1yv4bpZOWL03u7rlVRQhUY0WYT3rHsgVTXwYQDZaSUJSQrMBUKuWg==}
     hasBin: true
 
-  drizzle-orm@0.44.6:
-    resolution: {integrity: sha512-uy6uarrrEOc9K1u5/uhBFJbdF5VJ5xQ/Yzbecw3eAYOunv5FDeYkR2m8iitocdHBOHbvorviKOW5GVw0U1j4LQ==}
+  drizzle-orm@0.45.2:
+    resolution: {integrity: sha512-kY0BSaTNYWnoDMVoyY8uxmyHjpJW1geOmBMdSSicKo9CIIWkSxMIj2rkeSR51b8KAPB7m+qysjuHme5nKP+E5Q==}
     peerDependencies:
       '@aws-sdk/client-rds-data': '>=3'
       '@cloudflare/workers-types': '>=4'
@@ -6655,7 +6655,7 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  drizzle-orm@0.44.6(@neondatabase/serverless@1.1.0)(mysql2@3.15.1):
+  drizzle-orm@0.45.2(@neondatabase/serverless@1.1.0)(mysql2@3.15.1):
     optionalDependencies:
       '@neondatabase/serverless': 1.1.0
       mysql2: 3.15.1

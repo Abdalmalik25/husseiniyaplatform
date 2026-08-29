@@ -23,7 +23,7 @@ import {
   Download,
 } from "lucide-react";
 import { toast } from "sonner";
-
+import { downloadCsv } from "@/lib/csv";
 const formatNum = (n: number) =>
   new Intl.NumberFormat("en-US").format(Math.round(n * 100) / 100);
 
@@ -132,6 +132,32 @@ export function WarehouseStockPanel() {
             variant="outline"
             className="text-xs h-8"
             disabled={!selectedWarehouseId}
+            onClick={() => {
+              const n = downloadCsv(
+                `رصيد_المخزن_${selectedWarehouseId ?? "الكل"}_${new Date()
+                  .toISOString()
+                  .slice(0, 10)}.csv`,
+                [
+                  "رمز الصنف",
+                  "اسم الصنف",
+                  "النوع",
+                  "الرصيد",
+                  "المحجوز",
+                  "المتاح",
+                  "حد الإنذار",
+                ],
+                filteredStock.map(s => [
+                  s.productCode,
+                  s.productName,
+                  s.productType,
+                  s.quantity,
+                  s.reservedQty,
+                  s.availableQty,
+                  s.minStock,
+                ])
+              );
+              toast.success(`تم تصدير ${n} صف بتنسيق CSV`);
+            }}
           >
             <Download className="w-3 h-3 ml-1" /> تصدير
           </Button>

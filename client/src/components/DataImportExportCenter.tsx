@@ -85,6 +85,19 @@ export function DataImportExportCenter() {
     },
   });
 
+  const importAccounts = trpc.accounting.addAccount.useMutation({
+    onError: (err: any) =>
+      toast.error(err?.message || "تعذر استيراد الحسابات"),
+  });
+  const importOpeningBalances = trpc.accounting.saveOpeningBalances.useMutation({
+    onError: (err: any) =>
+      toast.error(err?.message || "تعذر حفظ الأرصدة الافتتاحية"),
+  });
+  const importOpeningStock = trpc.products.setOpeningStock.useMutation({
+    onError: (err: any) =>
+      toast.error(err?.message || "تعذر ضبط مخزون أول المدة"),
+  });
+
   // ── Template Generators ──────────────────────────────────────
   const handleDownloadTemplate = () => {
     if (activeTab === "accounts") {
@@ -190,7 +203,7 @@ export function DataImportExportCenter() {
     }
   };
 
-  const handleExecuteImport = () => {
+  const handleExecuteImport = async () => {
     if (previewRows.length === 0) {
       toast.error("الرجاء رفع ملف أو لصق بيانات CSV أولاً");
       return;
@@ -214,16 +227,121 @@ export function DataImportExportCenter() {
       }));
       importProducts.mutate({ rows: formattedRows });
     } else {
-      // Simulate successful account / balance import with real toast confirmation
-      setTimeout(() => {
-        setIsProcessing(false);
-        toast.success(
-          `تمت معالجة وتدقيق ${previewRows.length} سجل بنجاح في المنظومة!`
-        );
-        setCsvInput("");
-        setPreviewRows([]);
-        setOpen(false);
-      }, 900);
+      const run = async () => {
+        try {
+          if (activeTab === "accounts") {
+            const typeSet = new Set([
+              "asset",
+              "liability",
+              "equity",
+              "revenue",
+              "expense",
+            ]);
+            let created = 0;
+            let skipped = 0;
+            for (const r of previewRows) {
+              const type = String(r.type || "asset").trim().toLowerCase();
+              const code = String(r.code || "").trim();
+              const name = String(r.name || "").trim();
+              if (!code || !name) {
+                skipped++;
+                continue;
+              }
+              await importAccounts.mutateAsync({
+                code,
+                name,
+                type: typeSet.has(type) ? (type as any) : "asset",
+                ...(r.category ? { category: String(r.category).trim() } : {}),
+                ...(r.notes ? { description: String(r.notes).trim() } : {}),
+              });
+              created++;
+            }
+            toast.success(
+              `تم استيراد ${created} حساب بنجاح${
+                skipped ? ` — وتجاهل ${skipped} صفاً ناقصاً` : ""
+              }`
+            );
+          } else if (activeTab === "opening_accounts") {
+            if (!accountsList || accountsList.length === 0) {
+              throw new Error("لا توجد حسابات — قم باستيراد دليل الحسابات أولاً");
+            }
+            const idByCode = new Map(
+              accountsList.map(a => [String(a.code), a.id as number])
+            );
+            const balances: any[] = [];
+            let skipped = 0;
+            for (const r of previewRows) {
+              const code = String(r.accountCode || r.code || "").trim();
+              const id = idByCode.get(code);
+              const debit = parseFloat(String(r.debit || "0")) || 0;
+              const credit = parseFloat(String(r.credit || "0")) || 0;
+              const amount = Math.max(debit, credit);
+              if (!id || amount <= 0) {
+                skipped++;
+                continue;
+              }
+              balances.push({
+                accountId: id,
+                amount: String(amount),
+                type: debit >= credit ? "debit" : "credit",
+                notes: r.notes ? String(r.notes).trim() : undefined,
+              });
+            }
+            if (balances.length === 0) {
+              throw new Error("لا توجد أرصدة صالحة — تأكد من رموز الحسابات");
+            }
+            await importOpeningBalances.mutateAsync({
+              periodName: "أرصدة أول المدة",
+              balances,
+            });
+            toast.success(
+              `تم حفظ ${balances.length} رصيد افتتاحي${
+                skipped ? ` — وتجاهل ${skipped} صفاً` : ""
+              }`
+            );
+          } else if (activeTab === "opening_inventory") {
+            const invList = productsList?.items ?? [];
+            if (invList.length === 0) {
+              throw new Error("لا توجد منتجات — قم باستيراد الأصناف أولاً");
+            }
+            const idByCode = new Map<string, number>(
+              invList.map((p: any) => [String(p.code), Number(p.id)])
+            );
+            let updated = 0;
+            let skipped = 0;
+            for (const r of previewRows) {
+              const code = String(r.productCode || r.code || "").trim();
+              const id = idByCode.get(code);
+              const qty = parseInt(String(r.quantity || "0"), 10) || 0;
+              if (!id) {
+                skipped++;
+                continue;
+              }
+              await importOpeningStock.mutateAsync({
+                productId: id,
+                quantity: Math.max(0, qty),
+                notes: r.notes ? String(r.notes).trim() : undefined,
+              });
+              updated++;
+            }
+            toast.success(
+              `تم ضبط مخزون أول المدة لـ ${updated} صنف${
+                skipped ? ` — وتجاهل ${skipped} غير موجود` : ""
+              }`
+            );
+          }
+          utils.accounting.getAccounts.invalidate();
+          utils.products.list.invalidate();
+          setCsvInput("");
+          setPreviewRows([]);
+          setOpen(false);
+        } catch (err: any) {
+          toast.error(err?.message || "فشل الاستيراد، يرجى المحاولة مرة أخرى");
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+      run();
     }
   };
 

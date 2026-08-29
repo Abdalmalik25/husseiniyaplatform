@@ -59,7 +59,9 @@ export default function SubscriberOnboarding() {
       for (const c of chart.slice(0, 8)) {
         try {
           await createChart.mutateAsync({ code: c.code, name: c.name, type: c.type });
-        } catch {}
+        } catch {
+          // الحساب قد يكون موجوداً مسبقاً — نتخطاه ونكمل
+        }
       }
       toast.success("اكتملت التهيئة — دليلك ومراكزك وأدوارك جاهزة. انتقل إلى لوحة التحكم.");
       setLocation("/app");

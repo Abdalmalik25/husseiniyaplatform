@@ -2,6 +2,8 @@ import { useState } from "react";
 import { trpc } from "@/lib/trpc";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
+import { downloadCsv } from "@/lib/csv";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
@@ -165,8 +167,16 @@ export function InventoryDashboard() {
               variant="outline"
               size="sm"
               className="text-xs h-8 border-gray-600 text-white hover:bg-gray-800"
+              onClick={() => {
+                const n = downloadCsv(
+                  `جرد_الأصناف_${new Date().toISOString().slice(0, 10)}.csv`,
+                  ["الرمز", "الاسم", "النوع"],
+                  products.map(p => [p.code, p.name, p.type])
+                );
+                toast.success(`تم تصدير ${n} صنف بتنسيق CSV`);
+              }}
             >
-              <Download className="w-3 h-3 ml-1" /> تصدير PDF
+              <Download className="w-3 h-3 ml-1" /> تصدير CSV
             </Button>
           </div>
         </div>

@@ -22,12 +22,16 @@ export interface InvoiceData {
   paymentMethod?: string;
   notes?: string;
   status?: string;
+  report?: {
+    title: string;
+    columns: string[];
+    rows: (string | number)[][];
+  };
 }
 
 export function generatePrintableInvoiceHtml(data: InvoiceData): string {
   const instName =
-    data.institutionName ||
-    "مجموعة الحسينية — حلول الأعمال والهندسة والمعرفة";
+    data.institutionName || "الحسينية لخدمات الأعمال";
   const currencyStr = data.currency || "ريال يمني (YER)";
   const formattedDate = data.invoiceDate
     ? new Date(data.invoiceDate).toLocaleDateString("ar-EG")
@@ -46,6 +50,35 @@ export function generatePrintableInvoiceHtml(data: InvoiceData): string {
   `
     )
     .join("");
+
+  const reportTableHtml = data.report
+    ? `
+    <h3 style="text-align: center; margin: 4px 0 12px; font-size: 14px; color: #102a2b;">${data.report.title}</h3>
+    <table class="data-table">
+      <thead>
+        <tr>
+          ${data.report.columns
+            .map(c => `<th>${c}</th>`)
+            .join("")}
+        </tr>
+      </thead>
+      <tbody>
+        ${data.report.rows
+          .map(
+            (row, i) => `<tr>
+          ${row
+            .map(
+              (cell, ci) =>
+                `<td style="padding: 6px 8px; border-bottom: 1px solid #e2e8f0; text-align: ${ci === 0 ? "right" : "center"}; font-family: ${typeof cell === "number" ? "monospace" : "inherit"};">${cell}</td>`
+            )
+            .join("")}
+        </tr>`
+          )
+          .join("")}
+      </tbody>
+    </table>
+  `
+    : "";
 
   const qrText = encodeURIComponent(
     `ALHUSAINIA-INV:${data.invoiceNumber}|TOTAL:${data.total}|DATE:${data.invoiceDate}`
@@ -81,7 +114,7 @@ export function generatePrintableInvoiceHtml(data: InvoiceData): string {
   <table class="header-table">
     <tr>
       <td>
-        <div class="brand-logo">مؤسسة ومكتبة الحسينية الحديثة</div>
+        <div class="brand-logo">${instName}</div>
         <div class="brand-sub">الاستشارات الهندسية والمؤسسية | الخدمات الطلابية | صيانة الأجهزة</div>
       </td>
       <td class="inv-title">
@@ -107,7 +140,10 @@ export function generatePrintableInvoiceHtml(data: InvoiceData): string {
     </div>
   </div>
 
-  <table class="data-table">
+  ${
+    data.report
+      ? reportTableHtml
+      : `<table class="data-table">
     <thead>
       <tr>
         <th style="width: 40px; text-align: center;">#</th>
@@ -120,7 +156,8 @@ export function generatePrintableInvoiceHtml(data: InvoiceData): string {
     <tbody>
       ${itemsTableHtml}
     </tbody>
-  </table>
+  </table>`
+  }
 
   <div class="totals-area">
     <div class="totals-row">

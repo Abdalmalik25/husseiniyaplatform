@@ -32,15 +32,14 @@ export function BeneficiaryAutocomplete({ kind, label, placeholder, value, onSel
   // استخدم لقطة كاملة للمستأجر — تُفلتر محلياً بسرعة (لا استعلام جديد لكل حرف)
   const customers = trpc.sync.getFullSnapshot.useQuery(undefined, { staleTime: 60_000, select: (d: any) => d.customers as Beneficiary[] });
   const suppliers = trpc.sync.getFullSnapshot.useQuery(undefined, { staleTime: 60_000, select: (d: any) => d.suppliers as Beneficiary[] });
-  const list = (kind === "customer" ? customers.data : suppliers.data) ?? [];
-
   const filtered = useMemo(() => {
     const needle = q.trim().toLowerCase();
     if (!needle) return [];
+    const list = (kind === "customer" ? customers.data : suppliers.data) ?? [];
     return list
       .filter(b => b.name.toLowerCase().includes(needle) || b.code.toLowerCase().includes(needle) || (b.phone && b.phone.includes(needle)))
       .slice(0, 6);
-  }, [q, list]);
+  }, [q, kind, customers.data, suppliers.data]);
 
   const isUnified = filtered.length > 0;
   const countryMeta = COUNTRIES.find(c => c.code === country) ?? COUNTRIES[0];

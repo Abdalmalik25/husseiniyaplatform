@@ -115,6 +115,38 @@ export default function Commercial() {
     cogsAccountId: undefined as number | undefined,
     inventoryAccountId: undefined as number | undefined,
   });
+  const importProductsCsv = trpc.products.importCsv.useMutation({
+    onSuccess: () => {
+      toast.success(`تم استيراد ${importRows?.length ?? 0} صنفاً بنجاح`);
+      setShowImportDialog(false);
+      setImportRows(null);
+      setImportFileName("");
+      refetchProducts();
+    },
+    onError: e => toast.error(`فشل الاستيراد: ${e.message}`),
+  });
+
+  const handleImportProducts = () => {
+    if (!importRows || importRows.length === 0) {
+      toast.error("لا توجد صفوف للاستيراد");
+      return;
+    }
+    const formattedRows = importRows.map((r: any, idx: number) => ({
+      code: r.code || `ITM-${idx + 1}`,
+      name: r.name || "صنف بدون اسم",
+      type: (r.type === "service" ? "service" : "goods") as "goods" | "service",
+      category: r.category || undefined,
+      unit: r.unit || "قطعة",
+      purchasePrice: String(r.purchasePrice || "0"),
+      salePrice: String(r.salePrice || "0"),
+      wholesalePrice: String(r.wholesalePrice || "0"),
+      currentStock: parseInt(r.currentStock || "0", 10) || 0,
+      minStock: parseInt(r.minStock || "0", 10) || 0,
+      barcode: r.barcode || undefined,
+    }));
+    importProductsCsv.mutate({ rows: formattedRows });
+  };
+
   const createProduct = trpc.products.create.useMutation({
     onSuccess: () => {
       toast.success("تم إضافة المنتج");
@@ -3952,6 +3984,17 @@ export default function Commercial() {
               className="text-xs h-8"
             >
               إلغاء
+            </Button>
+            <Button
+              size="sm"
+              className="text-xs h-8 bg-brand text-white"
+              disabled={
+                !importRows || importRows.length === 0 || importProductsCsv.isPending
+              }
+              onClick={handleImportProducts}
+            >
+              <Upload className="w-3 h-3 ml-1" />
+              {importProductsCsv.isPending ? "جارٍ الاستيراد..." : "استيراد الآن"}
             </Button>
           </DialogFooter>
         </DialogContent>

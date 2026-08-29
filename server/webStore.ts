@@ -256,7 +256,9 @@ export async function placePublicOrder(
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    }).catch(() => {});
+    }).catch(e => {
+      console.warn("[webStore] order webhook failed:", e?.message || e);
+    });
   }
 
   return result;

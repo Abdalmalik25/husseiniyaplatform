@@ -24,7 +24,9 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     try {
       localStorage.setItem(KEY, JSON.stringify(items));
-    } catch {}
+    } catch {
+      // حجم التخزين ممتلئ أو غير متاح — نتجاهل بصمت
+    }
   }, [items]);
 
   const has = useCallback((id: number) => items.some(i => i.id === id), [items]);

@@ -2,6 +2,7 @@
  * خريطة عناوين كل صفحة — تُحدَّث document.title عند التنقل (تحسين SEO + UX):
  * الزائر يعرف أين هو، والألسنة التاريخية تصبح قابلة للقراءة والعودة إليها.
  */
+import { brand } from "@/lib/brand";
 
 const BRAND = "alhusainiaye";
 
@@ -48,6 +49,13 @@ export const PAGE_TITLES: Record<string, string> = {
   "/operations": "لوحة العمليات | alhusainiaye",
   "/analytics": "التحليلات الذكية | alhusainiaye",
   "/billing": "الاشتراك والفوترة | alhusainiaye",
+  "/onboarding": "تهيئة المشترك | alhusainiaye",
+  "/cost-centers": "مراكز التكلفة | alhusainiaye",
+  "/zatca": "الفوترة الإلكترونية (ZATCA) | alhusainiaye",
+  "/beneficiaries": "السجل الموحد للعملاء والمستفيدين | alhusainiaye",
+  "/financial-statements": "القوائم المالية | alhusainiaye",
+  "/fiscal-periods": "الفترات المالية والإقفال | alhusainiaye",
+
 
   // ── حالات الخطأ ──
   "/404": "الصفحة غير موجودة | alhusainiaye",
@@ -81,7 +89,7 @@ export function resolvePageTitle(path: string): string {
 }
 
 /** المسار الأساسي المطلق للموقع — يُستعمل في Canonical وOpenGraph. */
-export const SITE_URL = "https://alhusainiaye.vercel.app";
+export const SITE_URL = brand.contact.website;
 
 /** الوصف الافتراضي — يظهر في نتائج البحث وعند مشاركة روابط الموقع. */
 export const DEFAULT_META_DESCRIPTION =

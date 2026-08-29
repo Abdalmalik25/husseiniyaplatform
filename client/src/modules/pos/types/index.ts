@@ -53,6 +53,12 @@ export interface POSConfig {
   allowPartialPayment: boolean;
   roundingMethod: "none" | "round" | "floor" | "ceil";
   roundingPrecision: number;
+  // Hardware settings
+  receiptHeader?: string;
+  receiptFooter?: string;
+  printDensity?: number;
+  paperWidth?: string;
+  cutPaper?: boolean;
 }
 
 export interface SalesPolicy {
@@ -119,6 +125,24 @@ export interface CartLine {
   lineTotal: number;
   lineNetTotal: number;
   loyaltyPoints: number;
+
+  // Advanced inventory fields
+  variantId?: number;
+  variantName?: string;
+  variantAttributes?: Record<string, string>; // e.g., {color: "Red", size: "L"}
+  serialNumbers?: string[]; // For serialized items
+  batchId?: number;
+  batchNumber?: string;
+  batchExpiryDate?: string; // ISO date string
+  matrixId?: number;
+  matrixCombination?: string; // e.g., "Red-L", "Blue-M"
+  isSerialized: boolean;
+  isBatched: boolean;
+  isMatrix: boolean;
+  requiresSerialEntry: boolean;
+  requiresBatchEntry: boolean;
+  allocatedSerials?: string[]; // Serials allocated to this line
+  allocatedBatchQty?: number; // Quantity allocated from batch
 }
 
 export interface AppliedOffer {
@@ -127,6 +151,185 @@ export interface AppliedOffer {
   discountType: "percent" | "fixed" | "bogo" | "bundle";
   discountValue: number;
   appliedQuantity: number;
+}
+
+// ============================================
+// ADVANCED INVENTORY TYPES
+// ============================================
+
+export type InventoryTrackingType = "none" | "serial" | "batch" | "matrix";
+
+export interface ProductVariant {
+  id: number;
+  productId: number;
+  code: string;
+  name: string;
+  nameAr?: string;
+  attributes: Record<string, string>; // e.g., {color: "Red", size: "L"}
+  barcode?: string;
+  salePrice: number;
+  wholesalePrice: number;
+  currentStock: number;
+  minStock: number;
+  maxStock?: number;
+  costPrice?: number;
+  weight?: number;
+  dimensions?: { length: number; width: number; height: number };
+  imageUrl?: string;
+  isActive: boolean;
+  trackingType: InventoryTrackingType;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductBatch {
+  id: number;
+  productId: number;
+  variantId?: number;
+  batchNumber: string;
+  manufactureDate?: string;
+  expiryDate?: string;
+  receivedDate: string;
+  quantityReceived: number;
+  quantityRemaining: number;
+  unitCost: number;
+  supplierId?: number;
+  supplierName?: string;
+  purchaseOrderId?: number;
+  warehouseId: number;
+  location?: string; // Bin/rack location
+  status: "active" | "expired" | "recalled" | "consumed";
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProductSerial {
+  id: number;
+  productId: number;
+  variantId?: number;
+  batchId?: number;
+  serialNumber: string;
+  status: "available" | "sold" | "reserved" | "returned" | "damaged" | "stolen";
+  warehouseId: number;
+  location?: string;
+  soldAt?: string;
+  soldToInvoiceId?: number;
+  soldToCustomerId?: number;
+  costPrice?: number;
+  warrantyExpiryDate?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface MatrixDimension {
+  id: number;
+  name: string;
+  nameAr: string;
+  code: string;
+  displayOrder: number;
+  values: MatrixDimensionValue[];
+}
+
+export interface MatrixDimensionValue {
+  id: number;
+  dimensionId: number;
+  value: string;
+  valueAr: string;
+  code: string;
+  displayOrder: number;
+  colorCode?: string; // Hex color for UI
+}
+
+export interface MatrixItem {
+  id: number;
+  productId: number;
+  matrixId: number;
+  combinationCode: string; // e.g., "RED-L", "BLUE-M"
+  combinationName: string;
+  combinationNameAr?: string;
+  variantIds: number[]; // References to ProductVariant IDs
+  barcode?: string;
+  salePrice: number;
+  wholesalePrice: number;
+  currentStock: number;
+  minStock: number;
+  costPrice?: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InventoryAllocation {
+  id: string;
+  type: "serial" | "batch";
+  productId: number;
+  variantId?: number;
+  batchId?: number;
+  serialNumbers?: string[];
+  quantity: number;
+  cartLineId: string;
+  sessionId?: number;
+  allocatedAt: string;
+  releasedAt?: string;
+}
+
+export interface StockMovement {
+  id: number;
+  productId: number;
+  variantId?: number;
+  batchId?: number;
+  serialIds?: number[];
+  type: "in" | "out" | "transfer" | "adjustment" | "return" | "production" | "waste";
+  quantity: number;
+  unitCost: number;
+  referenceType: "sale" | "purchase" | "return" | "transfer" | "adjustment" | "production" | "opening";
+  referenceId?: number;
+  referenceNumber?: string;
+  fromWarehouseId?: number;
+  toWarehouseId?: number;
+  fromLocation?: string;
+  toLocation?: string;
+  notes?: string;
+  createdBy: number;
+  createdAt: string;
+}
+
+export interface SerialEntryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (serials: string[]) => void;
+  productName: string;
+  requiredQuantity: number;
+  existingSerials?: string[];
+  scannedSerials?: string[];
+  allowScan: boolean;
+  onScan: (serial: string) => void;
+}
+
+export interface BatchEntryModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSubmit: (batchId: number, quantity: number) => void;
+  productName: string;
+  requiredQuantity: number;
+  availableBatches: ProductBatch[];
+  selectedBatchId?: number;
+  selectedQuantity?: number;
+  allowMultipleBatches: boolean;
+}
+
+export interface VariantSelectorModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSelect: (variant: ProductVariant) => void;
+  productId: number;
+  productName: string;
+  variants: ProductVariant[];
+  selectedVariantId?: number;
+  showStock: boolean;
+  showPrice: boolean;
 }
 
 export interface CartSummary {
@@ -245,6 +448,22 @@ export interface SaleInvoiceItem {
   conversionFactor: number;
   costPrice?: number;
   appliedOffers: AppliedOffer[];
+
+  // Advanced inventory fields
+  variantId?: number;
+  variantName?: string;
+  variantAttributes?: Record<string, string>;
+  serialNumbers?: string[];
+  batchId?: number;
+  batchNumber?: string;
+  batchExpiryDate?: string;
+  matrixId?: number;
+  matrixCombination?: string;
+  isSerialized: boolean;
+  isBatched: boolean;
+  isMatrix: boolean;
+  allocatedSerials?: string[];
+  allocatedBatchQty?: number;
 }
 
 export interface SalePayment {
@@ -387,6 +606,21 @@ export interface POSReturnItem {
   total: number;
   restock: boolean;
   condition: "new" | "used" | "damaged";
+
+  // Advanced inventory fields
+  variantId?: number;
+  variantName?: string;
+  variantAttributes?: Record<string, string>;
+  serialNumbers?: string[];
+  batchId?: number;
+  batchNumber?: string;
+  matrixId?: number;
+  matrixCombination?: string;
+  isSerialized: boolean;
+  isBatched: boolean;
+  isMatrix: boolean;
+  returnedSerials?: string[];
+  returnedBatchQty?: number;
 }
 
 export interface StockAlert {

@@ -562,6 +562,45 @@ export const inventoryMovementTypeEnum = pgEnum("inventory_movement_type", [
   "adjustment",
 ]);
 
+// Advanced inventory enums
+export const inventoryTrackingTypeEnum = pgEnum("inventory_tracking_type", [
+  "none",
+  "serial",
+  "batch",
+  "matrix",
+]);
+
+export const batchStatusEnum = pgEnum("batch_status", [
+  "active",
+  "expired",
+  "recalled",
+  "consumed",
+]);
+
+export const serialStatusEnum = pgEnum("serial_status", [
+  "available",
+  "sold",
+  "reserved",
+  "returned",
+  "damaged",
+  "stolen",
+]);
+
+export const inventoryAllocationTypeEnum = pgEnum("inventory_allocation_type", [
+  "serial",
+  "batch",
+]);
+
+export const stockMovementTypeEnum = pgEnum("stock_movement_type", [
+  "in",
+  "out",
+  "transfer",
+  "adjustment",
+  "return",
+  "production",
+  "waste",
+]);
+
 // ─── Standard global governance columns ────────────────────────────
 // Reused across documents to provide audit, traceability, work-site/device
 // context, geo-coordinates, and a unified global numbering that is unique
@@ -820,6 +859,325 @@ export const inventoryMovements = pgTable(
 
 export type InventoryMovement = typeof inventoryMovements.$inferSelect;
 export type InsertInventoryMovement = typeof inventoryMovements.$inferInsert;
+
+// ============================================
+// ADVANCED INVENTORY TABLES
+// ============================================
+
+// Product Variants (e.g., Size, Color combinations)
+export const productVariants = pgTable(
+  "product_variants",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    productId: integer("productId").notNull(),
+    code: varchar("code", { length: 50 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    nameAr: varchar("nameAr", { length: 255 }),
+    attributes: jsonb("attributes").notNull(), // {color: "Red", size: "L"}
+    barcode: varchar("barcode", { length: 100 }),
+    salePrice: decimal("salePrice", { precision: 15, scale: 2 }).default("0").notNull(),
+    wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 }).default("0").notNull(),
+    costPrice: decimal("costPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+    currentStock: integer("currentStock").default(0).notNull(),
+    minStock: integer("minStock").default(0).notNull(),
+    maxStock: integer("maxStock"),
+    weight: decimal("weight", { precision: 10, scale: 3 }),
+    dimensions: jsonb("dimensions"), // {length, width, height}
+    imageUrl: text("imageUrl"),
+    trackingType: inventoryTrackingTypeEnum("trackingType").default("none").notNull(),
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    deletedAt: timestamp("deleted_at"),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_productVariants_tenant").on(t.tenantId),
+    index("idx_productVariants_product").on(t.productId),
+    unique("productVariants_code_tenant_unique").on(t.code, t.tenantId),
+    check("chk_productVariant_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+  ]
+);
+
+export type ProductVariant = typeof productVariants.$inferSelect;
+export type InsertProductVariant = typeof productVariants.$inferInsert;
+
+// Product Batches/Lots
+export const productBatches = pgTable(
+  "product_batches",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    productId: integer("productId").notNull(),
+    variantId: integer("variantId"),
+    batchNumber: varchar("batchNumber", { length: 100 }).notNull(),
+    manufactureDate: timestamp("manufactureDate"),
+    expiryDate: timestamp("expiryDate"),
+    receivedDate: timestamp("receivedDate").defaultNow().notNull(),
+    quantityReceived: integer("quantityReceived").notNull(),
+    quantityRemaining: integer("quantityRemaining").notNull(),
+    unitCost: decimal("unitCost", { precision: 15, scale: 2 }).notNull(),
+    supplierId: integer("supplierId"),
+    purchaseOrderId: integer("purchaseOrderId"),
+    warehouseId: integer("warehouseId").notNull(),
+    location: varchar("location", { length: 100 }), // Bin/rack location
+    status: batchStatusEnum("status").default("active").notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_productBatches_tenant").on(t.tenantId),
+    index("idx_productBatches_product").on(t.productId),
+    index("idx_productBatches_variant").on(t.variantId),
+    index("idx_productBatches_warehouse").on(t.warehouseId),
+    index("idx_productBatches_expiry").on(t.expiryDate),
+    unique("productBatches_number_tenant_unique").on(t.batchNumber, t.tenantId),
+    check("chk_productBatch_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+  ]
+);
+
+export type ProductBatch = typeof productBatches.$inferSelect;
+export type InsertProductBatch = typeof productBatches.$inferInsert;
+
+// Product Serial Numbers
+export const productSerials = pgTable(
+  "product_serials",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    productId: integer("productId").notNull(),
+    variantId: integer("variantId"),
+    batchId: integer("batchId"),
+    serialNumber: varchar("serialNumber", { length: 100 }).notNull(),
+    status: serialStatusEnum("status").default("available").notNull(),
+    warehouseId: integer("warehouseId").notNull(),
+    location: varchar("location", { length: 100 }),
+    soldAt: timestamp("soldAt"),
+    soldToInvoiceId: integer("soldToInvoiceId"),
+    soldToCustomerId: integer("soldToCustomerId"),
+    costPrice: decimal("costPrice", { precision: 15, scale: 2 }),
+    warrantyExpiryDate: timestamp("warrantyExpiryDate"),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_productSerials_tenant").on(t.tenantId),
+    index("idx_productSerials_product").on(t.productId),
+    index("idx_productSerials_variant").on(t.variantId),
+    index("idx_productSerials_batch").on(t.batchId),
+    index("idx_productSerials_warehouse").on(t.warehouseId),
+    index("idx_productSerials_status").on(t.status),
+    unique("productSerials_number_tenant_unique").on(t.serialNumber, t.tenantId),
+    check("chk_productSerial_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+  ]
+);
+
+export type ProductSerial = typeof productSerials.$inferSelect;
+export type InsertProductSerial = typeof productSerials.$inferInsert;
+
+// Matrix Dimensions (e.g., Color, Size)
+export const matrixDimensions = pgTable(
+  "matrix_dimensions",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    name: varchar("name", { length: 100 }).notNull(),
+    nameAr: varchar("nameAr", { length: 100 }),
+    code: varchar("code", { length: 50 }).notNull(),
+    displayOrder: integer("displayOrder").default(0).notNull(),
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_matrixDimensions_tenant").on(t.tenantId),
+    unique("matrixDimensions_code_tenant_unique").on(t.code, t.tenantId),
+    check("chk_matrixDimension_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+  ]
+);
+
+export type MatrixDimension = typeof matrixDimensions.$inferSelect;
+export type InsertMatrixDimension = typeof matrixDimensions.$inferInsert;
+
+// Matrix Dimension Values (e.g., Red, Blue / S, M, L)
+export const matrixDimensionValues = pgTable(
+  "matrix_dimension_values",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    dimensionId: integer("dimensionId").notNull(),
+    value: varchar("value", { length: 100 }).notNull(),
+    valueAr: varchar("valueAr", { length: 100 }),
+    code: varchar("code", { length: 50 }).notNull(),
+    displayOrder: integer("displayOrder").default(0).notNull(),
+    colorCode: varchar("colorCode", { length: 7 }), // Hex color for UI
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_matrixDimensionValues_tenant").on(t.tenantId),
+    index("idx_matrixDimensionValues_dimension").on(t.dimensionId),
+    unique("matrixDimensionValues_code_dimension_unique").on(t.code, t.dimensionId),
+    check("chk_matrixDimensionValue_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+  ]
+);
+
+export type MatrixDimensionValue = typeof matrixDimensionValues.$inferSelect;
+export type InsertMatrixDimensionValue = typeof matrixDimensionValues.$inferInsert;
+
+// Matrix Items (Pre-configured variant combinations)
+export const matrixItems = pgTable(
+  "matrix_items",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    productId: integer("productId").notNull(),
+    matrixId: integer("matrixId").notNull(),
+    combinationCode: varchar("combinationCode", { length: 50 }).notNull(), // e.g., "RED-L"
+    combinationName: varchar("combinationName", { length: 255 }).notNull(),
+    combinationNameAr: varchar("combinationNameAr", { length: 255 }),
+    variantIds: integer("variantIds").array().notNull(), // References to productVariants
+    barcode: varchar("barcode", { length: 100 }),
+    salePrice: decimal("salePrice", { precision: 15, scale: 2 }).default("0").notNull(),
+    wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 }).default("0").notNull(),
+    costPrice: decimal("costPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+    currentStock: integer("currentStock").default(0).notNull(),
+    minStock: integer("minStock").default(0).notNull(),
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    deletedAt: timestamp("deleted_at"),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_matrixItems_tenant").on(t.tenantId),
+    index("idx_matrixItems_product").on(t.productId),
+    index("idx_matrixItems_matrix").on(t.matrixId),
+    unique("matrixItems_combination_tenant_unique").on(t.combinationCode, t.tenantId),
+    check("chk_matrixItem_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+  ]
+);
+
+export type MatrixItem = typeof matrixItems.$inferSelect;
+export type InsertMatrixItem = typeof matrixItems.$inferInsert;
+
+// Inventory Allocations (for serial/batch tracking during POS)
+export const inventoryAllocations = pgTable(
+  "inventory_allocations",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    type: inventoryAllocationTypeEnum("type").notNull(), // serial | batch
+    productId: integer("productId").notNull(),
+    variantId: integer("variantId"),
+    batchId: integer("batchId"),
+    serialNumbers: text("serialNumbers").array(), // Array of serial numbers
+    quantity: integer("quantity").notNull(),
+    cartLineId: varchar("cartLineId", { length: 100 }).notNull(),
+    sessionId: integer("sessionId"),
+    allocatedAt: timestamp("allocatedAt").defaultNow().notNull(),
+    releasedAt: timestamp("releasedAt"),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_inventoryAllocations_tenant").on(t.tenantId),
+    index("idx_inventoryAllocations_product").on(t.productId),
+    index("idx_inventoryAllocations_session").on(t.sessionId),
+    index("idx_inventoryAllocations_cartLine").on(t.cartLineId),
+    check("chk_inventoryAllocation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+  ]
+);
+
+export type InventoryAllocation = typeof inventoryAllocations.$inferSelect;
+export type InsertInventoryAllocation = typeof inventoryAllocations.$inferInsert;
+
+// Enhanced Stock Movements with Serial/Batch tracking
+export const stockMovements = pgTable(
+  "stock_movements",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    productId: integer("productId").notNull(),
+    variantId: integer("variantId"),
+    batchId: integer("batchId"),
+    serialIds: integer("serialIds").array(),
+    type: stockMovementTypeEnum("type").notNull(),
+    quantity: integer("quantity").notNull(),
+    unitCost: decimal("unitCost", { precision: 15, scale: 2 }).notNull(),
+    referenceType: varchar("referenceType", { length: 50 }).notNull(),
+    referenceId: integer("referenceId"),
+    referenceNumber: varchar("referenceNumber", { length: 100 }),
+    fromWarehouseId: integer("fromWarehouseId"),
+    toWarehouseId: integer("toWarehouseId"),
+    fromLocation: varchar("fromLocation", { length: 100 }),
+    toLocation: varchar("toLocation", { length: 100 }),
+    notes: text("notes"),
+    createdBy: integer("createdBy").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_stockMovements_tenant").on(t.tenantId),
+    index("idx_stockMovements_product").on(t.productId),
+    index("idx_stockMovements_variant").on(t.variantId),
+    index("idx_stockMovements_batch").on(t.batchId),
+    index("idx_stockMovements_reference").on(t.referenceType, t.referenceId),
+    index("idx_stockMovements_created").on(t.createdAt),
+    check("chk_stockMovement_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check("chk_stockMovement_quantity_not_zero", sql`${t.quantity} != 0`),
+  ]
+);
+
+export type StockMovement = typeof stockMovements.$inferSelect;
+export type InsertStockMovement = typeof stockMovements.$inferInsert;
 
 // ─── Stock adjustments (audit log for manual corrections / openings) ──
 export const stockAdjustments = pgTable(

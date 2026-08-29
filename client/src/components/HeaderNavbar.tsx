@@ -24,7 +24,7 @@ import { TenantSwitcher } from "@/components/TenantSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 import { MARKETING_NAV, UTILITY_LINKS, type NavItem } from "@/lib/nav";
 import { Zap, ArrowLeft, MessageSquare } from "lucide-react";
-import { uamexDemoLink } from "@/lib/brand";
+import { uamexDemoLink, brand } from "@/lib/brand";
 
 interface HeaderNavbarProps {
   institutionName?: string;
@@ -178,11 +178,11 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
     >
       {/* Top bar — institutional descriptor (world-class subtle) */}
       <div className="hidden lg:flex items-center justify-between px-4 py-1.5 bg-ink-deep/90 backdrop-blur border-b border-white/5 text-[11px] text-white/50">
-        <span className="font-mono tracking-widest">الحسينية لخدمات الأعمال — Uamex_erp</span>
+        <span className="font-mono tracking-widest">{brand.names.siteName} — {brand.names.erp}</span>
         <span className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-brand-300" /> +967 778 343 988</span>
+          <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-brand-300" /> {brand.contact.phone}</span>
           <span className="w-px h-3 bg-white/10" />
-          <span className="font-mono text-brand-300">Uamex_erp v2.12.0</span>
+          <span className="font-mono text-brand-300">{brand.names.erp} v{brand.names.version}</span>
         </span>
       </div>
       <div className={`bg-ink/75 backdrop-blur-2xl border-b transition-all duration-500 ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}>

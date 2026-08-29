@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { goLogin } from "@/const";
 import { trpc } from "@/lib/trpc";
+import { downloadCsv } from "@/lib/csv";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -657,22 +658,19 @@ export default function Home() {
   };
 
   const handleExportExcel = () => {
-    toast.success("جاري تصدير التقارير بصيغة Excel (CSV) الرسمية");
-    let csv =
-      "data:text/csv;charset=utf-8,\uFEFFالتاريخ,الحساب,الكود,القيمة,البيان,الحالة\n";
-    filteredRecords.forEach(tx => {
-      csv += `${String(tx.transactionDate).split("T")[0]},${tx.accountName},${tx.accountCode},${tx.amount},${tx.narration || ""},${tx.lifecycleStatus}\n`;
-    });
-    const encodedUri = encodeURI(csv);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute(
-      "download",
-      `ALHUSAINIA_Report_${new Date().toISOString().split("T")[0]}.csv`
+    const n = downloadCsv(
+      `ALHUSAINIA_Report_${new Date().toISOString().split("T")[0]}.csv`,
+      ["التاريخ", "الحساب", "الكود", "القيمة", "البيان", "الحالة"],
+      filteredRecords.map(tx => [
+        String(tx.transactionDate).split("T")[0],
+        tx.accountName,
+        tx.accountCode,
+        tx.amount,
+        tx.narration || "",
+        tx.lifecycleStatus,
+      ])
     );
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    toast.success(`تم تصدير ${n} سجل كملف CSV`);
   };
 
   const handleExportPDF = () => {
@@ -2042,7 +2040,7 @@ export default function Home() {
                     onClick={handleExportExcel}
                     className="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5 ml-1" /> Excel
+                    <FileSpreadsheet className="w-3.5 h-3.5 ml-1" /> CSV
                   </Button>
                   <Button
                     size="sm"

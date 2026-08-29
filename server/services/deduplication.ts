@@ -13,7 +13,7 @@ export interface DuplicateCheck {
 }
 
 export function normalizeForCompare(s: string): string {
-  return s.trim().toLowerCase().replace(/\s+/g, " ").replace(/[\-_\s]/g, "");
+  return s.trim().toLowerCase().replace(/\s+/g, " ").replace(/[-_\s]/g, "");
 }
 
 /**

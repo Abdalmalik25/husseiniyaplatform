@@ -188,29 +188,99 @@ export default function Reports() {
               <Button
                 size="sm"
                 onClick={() => {
-                  const repTitle =
-                    activeReport === "trialBalance"
-                      ? "ميزان المراجعة العمومي"
-                      : activeReport === "incomeStatement"
-                        ? "قائمة الدخل والأرباح والخسائر"
-                        : "الميزانية العمومية";
+                  const fmt = (n?: number) =>
+                    n === undefined || n === null || isNaN(n)
+                      ? "0.00"
+                      : n.toLocaleString("en-US", {
+                          minimumFractionDigits: 2,
+                          maximumFractionDigits: 2,
+                        });
+                  const typeLabel = (t: string) =>
+                    t === "asset"
+                      ? "أصول"
+                      : t === "liability"
+                        ? "خصوم"
+                        : t === "equity"
+                          ? "حقوق ملكية"
+                          : t === "revenue"
+                            ? "إيرادات"
+                            : "مصروفات";
+                  let title: string;
+                  let columns: string[];
+                  let rows: (string | number)[][];
+                  if (activeReport === "trialBalance") {
+                    title = "ميزان المراجعة العمومي";
+                    columns = ["الرمز", "اسم الحساب", "النوع", "مدين", "دائن"];
+                    rows = trialBalance.accounts.map(a => [
+                      a.code ?? "",
+                      a.name,
+                      typeLabel(a.type),
+                      (a.balance ?? 0) > 0 ? fmt(a.balance) : "-",
+                      (a.balance ?? 0) < 0 ? fmt(Math.abs(a.balance ?? 0)) : "-",
+                    ]);
+                    rows.push([
+                      "",
+                      "الإجمالي",
+                      "",
+                      fmt(trialBalance.totalDebits),
+                      fmt(trialBalance.totalCredits),
+                    ]);
+                  } else if (activeReport === "incomeStatement") {
+                    title = "قائمة الدخل والأرباح والخسائر";
+                    columns = ["البيان", "المبلغ"];
+                    rows = incomeStatement.revenues.map(a => [
+                      a.name,
+                      fmt(a.balance),
+                    ]);
+                    rows.push([
+                      "إجمالي الإيرادات",
+                      fmt(incomeStatement.totalRevenue),
+                    ]);
+                    rows.push(["", ""]);
+                    rows.push(
+                      ...incomeStatement.expenses.map(a => [
+                        a.name,
+                        fmt(Math.abs(a.balance)),
+                      ])
+                    );
+                    rows.push([
+                      "إجمالي المصروفات",
+                      fmt(incomeStatement.totalExpenses),
+                    ]);
+                    rows.push(["صافي الدخل", fmt(incomeStatement.netIncome)]);
+                  } else {
+                    title = "الميزانية العمومية";
+                    columns = ["البيان", "المبلغ"];
+                    rows = balanceSheet.assets.map(a => [a.name, fmt(a.balance)]);
+                    rows.push(["إجمالي الأصول", fmt(balanceSheet.totalAssets)]);
+                    rows.push(["", ""]);
+                    rows.push(
+                      ...balanceSheet.liabilities.map(a => [
+                        a.name,
+                        fmt(Math.abs(a.balance)),
+                      ])
+                    );
+                    rows.push(
+                      ...balanceSheet.equity
+                        .filter(a => a.balance !== 0)
+                        .map(a => [a.name, fmt(a.balance)])
+                    );
+                    rows.push([
+                      "إجمالي الخصوم وحقوق الملكية",
+                      fmt(balanceSheet.totalLiabilities + balanceSheet.totalEquity),
+                    ]);
+                  }
                   openPrintableInvoiceWindow({
                     invoiceNumber: `REP-${activeReport.toUpperCase()}-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`,
                     invoiceDate: new Date().toISOString(),
                     customerName: "مجموعة الحسينية (الكيان الموحد)",
                     institutionName: "مجموعة الحسينية — حلول الأعمال والهندسة والمعرفة",
                     currency: "ريال يمني (YER)",
-                    items: [
-                      {
-                        description: `تقرير مالي رسمي: ${repTitle}`,
-                        quantity: 1,
-                        unitPrice: summaryData?.totalRevenue || 0,
-                        totalPrice: summaryData?.totalRevenue || 0,
-                      },
-                    ],
+                    items: [],
                     subtotal: summaryData?.totalRevenue || 0,
-                    total: summaryData?.totalRevenue || 0,
+                    total: summaryData?.netIncome || 0,
                     notes: `إجمالي الإيرادات: ${summaryData?.totalRevenue?.toLocaleString()} YER | المصروفات: ${summaryData?.totalExpense?.toLocaleString()} YER | صافي الدخل: ${summaryData?.netIncome?.toLocaleString()} YER`,
+                    report: { title, columns, rows },
                   });
                 }}
                 className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"

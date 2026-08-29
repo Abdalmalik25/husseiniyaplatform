@@ -19,7 +19,13 @@ export async function createNotification(
   db: any,
   input: CreateNotificationInput
 ): Promise<void> {
-  if (!db) return;
+  if (!db) {
+    console.warn("[notifications] createNotification skipped: no db available", {
+      tenantId: input.tenantId,
+      type: input.type,
+    });
+    return;
+  }
   await db.insert(notifications).values({
     tenantId: input.tenantId,
     userId: input.userId ?? null,

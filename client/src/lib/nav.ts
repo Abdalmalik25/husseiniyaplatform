@@ -29,6 +29,7 @@ import {
   History,
   ClipboardList,
   Calculator,
+  CalendarClock,
   Cpu,
 } from "lucide-react";
 
@@ -139,10 +140,15 @@ export const APP_NAV: NavItem[] = [
   { path: "/basic-data", label: "البيانات الأساسية", icon: Boxes },
   { path: "/journal", label: "القيود المحاسبية", icon: BookOpen },
   { path: "/manual-journal", label: "قيد يدوي ذكي", icon: Scale },
+  { path: "/cost-centers", label: "مراكز التكلفة", icon: Calculator },
+  { path: "/financial-statements", label: "القوائم المالية", icon: BarChart3, highlight: true },
+  { path: "/fiscal-periods", label: "الفترات والإقفال", icon: CalendarClock, highlight: true },
   { path: "/customization", label: "التخصيص والحقول", icon: SlidersHorizontal },
   { path: "/branches", label: "الفروع والصلاحيات", icon: Building2 },
+  { path: "/security", label: "أمان الحساب", icon: ShieldCheck },
   { path: "/audit", label: "سجل التدقيق", icon: History },
   { path: "/requisitions", label: "طلبات التوريد", icon: ClipboardList },
+  { path: "/beneficiaries", label: "السجل الموحد", icon: Users },
   { path: "/reports", label: "التقارير", icon: BarChart3 },
   { path: "/erp", label: "ERP", icon: LayoutGrid },
   { path: "/operations", label: "لوحة العمليات", icon: Gauge, highlight: true },
@@ -158,6 +164,7 @@ export const APP_NAV: NavItem[] = [
     icon: CreditCard,
     highlight: true,
   },
+  { path: "/zatca", label: "الفوترة الإلكترونية", icon: ShieldCheck },
   { path: "/settings", label: "الإعدادات", icon: Settings },
 ];
 
@@ -169,6 +176,7 @@ export const UTILITY_LINKS: NavItem[] = [
   { path: "/portal", label: "تتبع طلبك", icon: Search },
   { path: "/integrate", label: "مركز التكامل", icon: Globe2 },
   { path: "/download", label: "تحميل التطبيق", icon: Download },
+  { path: "/onboarding", label: "تهيئة المشترك", icon: Settings },
 ];
 
 /** @deprecated Legacy combined list — kept for backward compatibility. */

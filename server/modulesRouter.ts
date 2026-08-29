@@ -670,14 +670,59 @@ export const modulesRouter = router({
         .select()
         .from(salesReps)
         .where(eq(salesReps.tenantId, ctx.tenantId));
-      return reps.map(r => ({
-        id: r.id,
-        name: r.name,
-        phone: r.phone,
-        totalSales: 0,
-        commissionEarned: 0,
-        bonusEarned: 0,
-      }));
+      if (reps.length === 0) return [];
+      const repIds = reps.map(r => String(r.id));
+      const rows = await db
+        .select({
+          salesRepId: salesInvoices.salesRepId,
+          total: salesInvoices.total,
+        })
+        .from(salesInvoices)
+        .where(
+          and(
+            eq(salesInvoices.tenantId, ctx.tenantId),
+            inArray(salesInvoices.salesRepId, repIds),
+            sql`${salesInvoices.status} <> 'cancelled'`
+          )
+        );
+      const agg = new Map<
+        string,
+        { total: number; count: number }
+      >();
+      for (const r of rows) {
+        const key = r.salesRepId ?? "";
+        if (!key) continue;
+        const cur = agg.get(key) || { total: 0, count: 0 };
+        cur.total += parseFloat(r.total || "0");
+        cur.count += 1;
+        agg.set(key, cur);
+      }
+      return reps.map(r => {
+        const a = agg.get(String(r.id)) || { total: 0, count: 0 };
+        const value = parseFloat(r.commissionValue || "0");
+        const commissionEarned =
+          r.commissionType === "percent"
+            ? (a.total * value) / 100
+            : value * a.count;
+        const threshold = r.bonusThreshold
+          ? parseFloat(r.bonusThreshold)
+          : null;
+        const bonusEarned =
+          threshold != null && a.total >= threshold
+            ? parseFloat(r.bonusAmount || "0")
+            : 0;
+        return {
+          id: r.id,
+          name: r.name,
+          phone: r.phone,
+          totalSales: a.total,
+          invoicesCount: a.count,
+          commissionRate: value,
+          commissionType: r.commissionType,
+          commissionEarned,
+          bonusEarned,
+        };
+      });
     }),
     create: tenantProcedure
       .input(
@@ -1284,7 +1329,123 @@ export const modulesRouter = router({
       if (!ctx.tenantId) return defaultResult;
       const db = await getDb();
       if (!db) return defaultResult;
-      return defaultResult;
+
+      const [lowStockRows] = await db
+        .select({ n: count() })
+        .from(products)
+        .where(
+          and(
+            eq(products.tenantId, ctx.tenantId),
+            sql`${products.currentStock} <= ${products.minStock}`
+          )
+        );
+      const [unreadRows] = await db
+        .select({ n: count() })
+        .from(messages)
+        .where(
+          and(
+            eq(messages.tenantId, ctx.tenantId),
+            eq(messages.isRead, false)
+          )
+        );
+      const [pendingOrders] = await db
+        .select({ n: count() })
+        .from(salesInvoices)
+        .where(
+          and(
+            eq(salesInvoices.tenantId, ctx.tenantId),
+            inArray(salesInvoices.status, ["draft", "confirmed"])
+          )
+        );
+      const [pendingReqs] = await db
+        .select({ n: count() })
+        .from(purchaseInvoices)
+        .where(
+          and(
+            eq(purchaseInvoices.tenantId, ctx.tenantId),
+            inArray(purchaseInvoices.status, ["draft", "confirmed"])
+          )
+        );
+      const [activeOffers] = await db
+        .select({ n: count() })
+        .from(offers)
+        .where(
+          and(eq(offers.tenantId, ctx.tenantId), eq(offers.isActive, true))
+        );
+
+      const in7 = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      const overdueInvoices = await db
+        .select({ id: salesInvoices.id })
+        .from(salesInvoices)
+        .where(
+          and(
+            eq(salesInvoices.tenantId, ctx.tenantId),
+            lte(salesInvoices.dueDate, new Date()),
+            sql`${salesInvoices.status} NOT IN ('paid', 'cancelled')`
+          )
+        );
+      const dueScheduledInvoices = await db
+        .select({ id: salesInvoices.id })
+        .from(salesInvoices)
+        .where(
+          and(
+            eq(salesInvoices.tenantId, ctx.tenantId),
+            gte(salesInvoices.dueDate, new Date()),
+            lte(salesInvoices.dueDate, in7),
+            sql`${salesInvoices.status} NOT IN ('paid', 'cancelled')`
+          )
+        );
+
+      const reps = await db
+        .select()
+        .from(salesReps)
+        .where(eq(salesReps.tenantId, ctx.tenantId));
+      let topRep = null;
+      if (reps.length > 0) {
+        const repIds = reps.map(r => String(r.id));
+        const rrows = await db
+          .select({
+            salesRepId: salesInvoices.salesRepId,
+            total: salesInvoices.total,
+          })
+          .from(salesInvoices)
+          .where(
+            and(
+              eq(salesInvoices.tenantId, ctx.tenantId),
+              inArray(salesInvoices.salesRepId, repIds),
+              sql`${salesInvoices.status} <> 'cancelled'`
+            )
+          );
+        const agg = new Map<string, number>();
+        for (const rr of rrows) {
+          const k = rr.salesRepId ?? "";
+          if (!k) continue;
+          agg.set(k, (agg.get(k) || 0) + parseFloat(rr.total || "0"));
+        }
+        let best: { name: string; commission: number; salesTotal: number } | null =
+          null;
+        for (const r of reps) {
+          const total = agg.get(String(r.id)) || 0;
+          const val = parseFloat(r.commissionValue || "0");
+          const commission =
+            r.commissionType === "percent" ? (total * val) / 100 : val;
+          if (!best || commission > best.commission) {
+            best = { name: r.name, commission, salesTotal: total };
+          }
+        }
+        topRep = best;
+      }
+
+      return {
+        unread: Number(unreadRows?.n ?? 0),
+        lowStock: Number(lowStockRows?.n ?? 0),
+        pendingOrders: Number(pendingOrders?.n ?? 0),
+        pendingRequisitions: Number(pendingReqs?.n ?? 0),
+        dueScheduled: dueScheduledInvoices.length,
+        overdue: overdueInvoices.length,
+        activeOffers: Number(activeOffers?.n ?? 0),
+        topRep,
+      };
     }),
   }),
 
@@ -1312,44 +1473,142 @@ export const modulesRouter = router({
       const db = await getDb();
       if (!db) return emptyResult;
 
+      const monthKey = (x: unknown): string => {
+        if (!x) return "";
+        const d = x instanceof Date ? x : new Date(x as string);
+        if (isNaN(d.getTime())) return "";
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      };
+
       const sales = await db
-        .select({ total: salesInvoices.total })
+        .select({
+          total: salesInvoices.total,
+          invoiceDate: salesInvoices.invoiceDate,
+          status: salesInvoices.status,
+          branchId: salesInvoices.branchId,
+          customerId: salesInvoices.customerId,
+        })
         .from(salesInvoices)
         .where(eq(salesInvoices.tenantId, ctx.tenantId));
-      const totalSales = sales.reduce(
+      const activeSales = sales.filter(s => s.status !== "cancelled");
+      const totalSales = activeSales.reduce(
         (s, i) => s + parseFloat(i.total || "0"),
         0
       );
 
       const purchases = await db
-        .select({ total: purchaseInvoices.total })
+        .select({
+          total: purchaseInvoices.total,
+          invoiceDate: purchaseInvoices.invoiceDate,
+          status: purchaseInvoices.status,
+        })
         .from(purchaseInvoices)
         .where(eq(purchaseInvoices.tenantId, ctx.tenantId));
-      const totalPurchases = purchases.reduce(
+      const activePurchases = purchases.filter(p => p.status !== "cancelled");
+      const totalPurchases = activePurchases.reduce(
         (s, i) => s + parseFloat(i.total || "0"),
         0
       );
+
+      const now = new Date();
+      const monthsKeys: string[] = [];
+      for (let i = 11; i >= 0; i--) {
+        const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+        monthsKeys.push(
+          `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+        );
+      }
+      const months = monthsKeys.map(k => ({ month: k, revenue: 0, expense: 0 }));
+      const monthsIndex = new Map(monthsKeys.map((k, i) => [k, i]));
+      for (const s of activeSales) {
+        const i = monthsIndex.get(monthKey(s.invoiceDate));
+        if (i != null) months[i].revenue += parseFloat(s.total || "0");
+      }
+      for (const p of activePurchases) {
+        const i = monthsIndex.get(monthKey(p.invoiceDate));
+        if (i != null) months[i].expense += parseFloat(p.total || "0");
+      }
+
+      const curMonth = months.length ? months[months.length - 1].revenue : 0;
+      const prevMonth = months.length > 1 ? months[months.length - 2].revenue : 0;
+      const salesGrowth =
+        prevMonth > 0 ? ((curMonth - prevMonth) / prevMonth) * 100 : 0;
+
+      const customerRows = await db
+        .select({ id: customers.id })
+        .from(customers)
+        .where(eq(customers.tenantId, ctx.tenantId));
+      const customersCount = customerRows.length;
+
+      const items = await db
+        .select({
+          productId: salesInvoiceItems.productId,
+          productName: salesInvoiceItems.productName,
+          total: salesInvoiceItems.total,
+        })
+        .from(salesInvoiceItems)
+        .innerJoin(
+          salesInvoices,
+          eq(salesInvoiceItems.invoiceId, salesInvoices.id)
+        )
+        .where(
+          and(
+            eq(salesInvoices.tenantId, ctx.tenantId),
+            sql`${salesInvoices.status} <> 'cancelled'`
+          )
+        );
+      const topMap = new Map<number, { name: string; total: number }>();
+      for (const it of items) {
+        const cur = topMap.get(it.productId) || {
+          name: it.productName,
+          total: 0,
+        };
+        cur.total += parseFloat(it.total || "0");
+        topMap.set(it.productId, cur);
+      }
+      const topProducts = [...topMap.entries()]
+        .map(([id, v]) => ({
+          id,
+          name: v.name,
+          total: Math.round(v.total * 100) / 100,
+        }))
+        .sort((a, b) => b.total - a.total)
+        .slice(0, 10);
+
+      const branchRows = await db
+        .select({ id: branches.id, name: branches.name })
+        .from(branches)
+        .where(eq(branches.tenantId, ctx.tenantId));
+      const branchName = new Map(branchRows.map(b => [b.id, b.name]));
+      const branchAgg = new Map<number, number>();
+      for (const s of activeSales) {
+        if (s.branchId == null) continue;
+        branchAgg.set(
+          s.branchId,
+          (branchAgg.get(s.branchId) || 0) + parseFloat(s.total || "0")
+        );
+      }
+      const salesByBranch = [...branchAgg.entries()].map(([id, total]) => ({
+        branch: branchName.get(id) || `#${id}`,
+        total: Math.round(total * 100) / 100,
+      }));
 
       return {
         totalSales,
         totalPurchases,
         netProfit: totalSales - totalPurchases,
-        salesGrowth: 0,
-        invoicesCount: sales.length,
-        customersCount: 0,
-        months: [] as Array<{
-          month: string;
-          revenue: number;
-          expense: number;
-        }>,
+        salesGrowth: Math.round(salesGrowth * 100) / 100,
+        invoicesCount: activeSales.length,
+        customersCount,
+        months,
         totals: {
           revenue: totalSales,
           expense: totalPurchases,
           profit: totalSales - totalPurchases,
         },
-        note: null as string | null,
-        topProducts: [] as Array<{ id: number; name: string; total: number }>,
-        salesByBranch: [] as Array<{ branch: string; total: number }>,
+        note: null,
+        topProducts,
+        salesByBranch,
       };
     }),
   }),

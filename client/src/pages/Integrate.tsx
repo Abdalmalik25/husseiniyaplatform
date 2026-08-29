@@ -18,8 +18,9 @@ import {
   ShoppingCart,
 } from "lucide-react";
 import { toast } from "sonner";
+import { brand } from "@/lib/brand";
 
-const PLATFORM_URL = "https://alhusainiaye.vercel.app";
+const PLATFORM_URL = brand.contact.website;
 
 function CodeBlock({ code, lang = "html" }: { code: string; lang?: string }) {
   const [copied, setCopied] = useState(false);

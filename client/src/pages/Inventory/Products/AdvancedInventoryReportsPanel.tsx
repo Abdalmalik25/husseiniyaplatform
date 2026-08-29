@@ -28,6 +28,7 @@ import {
   Archive,
 } from "lucide-react";
 import { toast } from "sonner";
+import { downloadCsv } from "@/lib/csv";
 
 const formatNum = (n: number) =>
   new Intl.NumberFormat("en-US", {
@@ -394,7 +395,36 @@ export function AdvancedInventoryReportsPanel() {
             size="sm"
             variant="outline"
             className="text-xs h-8"
-            onClick={() => toast.info("ميزة التصدير قيد التطوير")}
+            onClick={() => {
+              const report = inventoryAging.length
+                ? { name: "تقادم المخزون", rows: inventoryAging }
+                : inventoryTurnover.length
+                  ? { name: "دوران المخزون", rows: inventoryTurnover }
+                  : abcAnalysis.length
+                    ? { name: "تحليل ABC", rows: abcAnalysis }
+                    : deadStock.length
+                      ? { name: "المخزون الكاسد", rows: deadStock }
+                      : null;
+              if (!report) {
+                toast.error("لا توجد بيانات للتصدير");
+                return;
+              }
+              const rows = report.rows as any[];
+              const headers = rows.length ? Object.keys(rows[0]) : [];
+              const n = downloadCsv(
+                `${report.name}_${new Date().toISOString().slice(0, 10)}.csv`,
+                headers,
+                rows.map(r =>
+                  headers.map(h => {
+                    const v = r[h];
+                    return v && typeof v === "object"
+                      ? JSON.stringify(v)
+                      : v;
+                  })
+                )
+              );
+              toast.success(`تم تصدير ${report.name}: ${n} صف`);
+            }}
           >
             <Download className="w-3 h-3 ml-1" /> تصدير
           </Button>

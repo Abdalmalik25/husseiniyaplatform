@@ -207,7 +207,7 @@ export const downloadOpeningBalancesTemplate = () => {
   a.download = "opening_balances_template.csv";
   a.click();
   URL.revokeObjectURL(a.href);
-  toast.success("تم تصديرemplate الحسابات والمخزون");
+  toast.success("تم تنزيل قالب الأرصدة الافتتاحية للحسابات والمخزون");
 };
 
 // ── Main Import CSV Parser ──────────────────────────────────────────
