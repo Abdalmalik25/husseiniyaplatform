@@ -34,6 +34,7 @@ import {
   Heart,
 } from "lucide-react";
 import { useWishlist } from "@/lib/wishlist";
+import { fmtYER } from "@/lib/format";
 
 interface CartItem {
   productId: number;
@@ -54,7 +55,11 @@ export default function Store() {
   const [placed, setPlaced] = useState<{ orderNumber: string } | null>(null);
   const [lastPhone, setLastPhone] = useState("");
   const [wishlistOpen, setWishlistOpen] = useState(false);
-  const { items: wishlistItems, has: hasWishlist, toggle: toggleWishlist } = useWishlist();
+  const {
+    items: wishlistItems,
+    has: hasWishlist,
+    toggle: toggleWishlist,
+  } = useWishlist();
 
   const catalog = trpc.store.catalog.useQuery(
     {
@@ -87,10 +92,7 @@ export default function Store() {
   );
 
   const fmt = (v: any) =>
-    Number(v ?? 0).toLocaleString("en-US", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    fmtYER(v);
 
   const addToCart = (p: any) => {
     const stock = p.currentStock ?? 0;
@@ -200,7 +202,7 @@ export default function Store() {
               {it.productName}
             </p>
             <p className="text-[10px] text-gray-500">
-              {fmt(it.salePrice)} ر.ي × {it.quantity}
+              {fmt(it.salePrice)} × {it.quantity}
             </p>
           </div>
           <div className="flex items-center gap-1 shrink-0">
@@ -238,7 +240,7 @@ export default function Store() {
         <div className="flex items-center justify-between pt-2 border-t">
           <span className="text-sm font-bold text-[#102a2b]">الإجمالي</span>
           <span className="text-sm font-bold text-[#b87945]">
-            {fmt(cartTotal)} ر.ي
+            {fmt(cartTotal)}{" "}
           </span>
         </div>
       )}
@@ -264,7 +266,9 @@ export default function Store() {
                 className="text-white border-white/30 h-7 text-xs bg-[#102a2b] hover:bg-[#1e3a3c] relative"
                 onClick={() => setWishlistOpen(true)}
               >
-                <Heart className={`w-3.5 h-3.5 ml-1 ${wishlistItems.length > 0 ? "fill-red-500 text-red-500" : ""}`} />
+                <Heart
+                  className={`w-3.5 h-3.5 ml-1 ${wishlistItems.length > 0 ? "fill-red-500 text-red-500" : ""}`}
+                />
                 <span>المفضلة</span>
                 {wishlistItems.length > 0 && (
                   <span className="absolute -top-1.5 -left-1.5 bg-red-500 text-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">
@@ -418,12 +422,23 @@ export default function Store() {
                         variant="outline"
                         className="w-7 h-7"
                         onClick={() => {
-                          toggleWishlist({ id: p.id, name: p.name, code: p.code, price: parseFloat(p.salePrice || "0") });
-                          toast.success(hasWishlist(p.id) ? "أُزيل من المفضلة" : "أُضيف إلى المفضلة");
+                          toggleWishlist({
+                            id: p.id,
+                            name: p.name,
+                            code: p.code,
+                            price: parseFloat(p.salePrice || "0"),
+                          });
+                          toast.success(
+                            hasWishlist(p.id)
+                              ? "أُزيل من المفضلة"
+                              : "أُضيف إلى المفضلة"
+                          );
                         }}
                         aria-label="المفضلة"
                       >
-                        <Heart className={`w-3.5 h-3.5 ${hasWishlist(p.id) ? "fill-red-500 text-red-500" : "text-gray-400"}`} />
+                        <Heart
+                          className={`w-3.5 h-3.5 ${hasWishlist(p.id) ? "fill-red-500 text-red-500" : "text-gray-400"}`}
+                        />
                       </Button>
                       <Button
                         size="sm"
@@ -489,7 +504,9 @@ export default function Store() {
                 <Heart className="w-4 h-4 text-red-500" />
                 المفضلة ({wishlistItems.length})
               </DialogTitle>
-              <DialogDescription className="text-xs">المنتجات التي حفظتها — محفوظة محلياً على جهازك</DialogDescription>
+              <DialogDescription className="text-xs">
+                المنتجات التي حفظتها — محفوظة محلياً على جهازك
+              </DialogDescription>
             </DialogHeader>
             {wishlistItems.length === 0 ? (
               <div className="text-center py-8">
@@ -499,12 +516,22 @@ export default function Store() {
             ) : (
               <div className="space-y-2 max-h-[50vh] overflow-y-auto">
                 {wishlistItems.map(it => (
-                  <div key={it.id} className="flex items-center justify-between p-2 bg-white rounded-lg border">
+                  <div
+                    key={it.id}
+                    className="flex items-center justify-between p-2 bg-white rounded-lg border"
+                  >
                     <div className="min-w-0">
                       <p className="font-bold text-xs truncate">{it.name}</p>
-                      <p className="text-[10px] text-gray-500">{it.code} • {it.price.toLocaleString()} ر.ي</p>
+                      <p className="text-[10px] text-gray-500">
+                        {it.code} • {fmtYER(it.price)}{" "}
+                      </p>
                     </div>
-                    <Button size="icon" variant="ghost" className="w-7 h-7 text-red-500" onClick={() => toggleWishlist(it)}>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="w-7 h-7 text-red-500"
+                      onClick={() => toggleWishlist(it)}
+                    >
                       <Trash2 className="w-3.5 h-3.5" />
                     </Button>
                   </div>
@@ -512,7 +539,13 @@ export default function Store() {
               </div>
             )}
             <DialogFooter>
-              <Button variant="outline" className="w-full text-xs" onClick={() => setWishlistOpen(false)}>إغلاق</Button>
+              <Button
+                variant="outline"
+                className="w-full text-xs"
+                onClick={() => setWishlistOpen(false)}
+              >
+                إغلاق
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
@@ -578,7 +611,7 @@ export default function Store() {
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-500">الإجمالي</span>
                   <span className="font-bold text-[#b87945]">
-                    {fmt(cartTotal)} ر.ي
+                    {fmt(cartTotal)}{" "}
                   </span>
                 </div>
               </div>

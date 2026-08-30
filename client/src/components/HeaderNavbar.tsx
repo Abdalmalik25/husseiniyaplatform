@@ -55,8 +55,10 @@ const MEGA_CLUSTERS: ReadonlyArray<{
   },
 ];
 /** روابط مباشرة — الأقسام الرئيسية فقط */
-const DIRECT_NAV_PATHS = ["/", "/pricing", "/contact"];
-const NAV_BY_PATH = new Map([...MARKETING_NAV, ...UTILITY_LINKS].map(item => [item.path, item]));
+const DIRECT_NAV_PATHS = ["/", "/about", "/pricing", "/contact"];
+const NAV_BY_PATH = new Map(
+  [...MARKETING_NAV, ...UTILITY_LINKS].map(item => [item.path, item])
+);
 
 /**
  * جلب مسبق عند النية (Hover/Focus Intent Prefetch):
@@ -64,6 +66,7 @@ const NAV_BY_PATH = new Map([...MARKETING_NAV, ...UTILITY_LINKS].map(item => [it
  * فيبدو التنقل فوريًا، بينما الزائر العادي لا يدفع بايتًا واحدًا إضافيًا.
  */
 const ROUTE_PREFETCHERS: Record<string, () => Promise<unknown>> = {
+  "/about": () => import("@/pages/About"),
   "/solutions": () => import("@/pages/TechSolutions"),
   "/insights": () => import("@/pages/KnowledgeHub"),
   "/tools": () => import("@/pages/InteractiveCalculators"),
@@ -172,279 +175,285 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
         : "text-white/75 hover:bg-white/5 hover:text-white border border-transparent";
 
   return (
-    <header
-      className="text-white sticky top-0 z-50"
-      dir="rtl"
-    >
+    <header className="text-white sticky top-0 z-50" dir="rtl">
       {/* Top bar — institutional descriptor (world-class subtle) */}
       <div className="hidden lg:flex items-center justify-between px-4 py-1.5 bg-ink-deep/90 backdrop-blur border-b border-white/5 text-[11px] text-white/50">
-        <span className="font-mono tracking-widest">{brand.names.siteName} — {brand.names.erp}</span>
+        <span className="font-mono tracking-widest">
+          {brand.names.siteName} — {brand.names.erp}
+        </span>
         <span className="flex items-center gap-3">
-          <span className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-brand-300" /> {brand.contact.phone}</span>
+          <span className="flex items-center gap-1.5">
+            <Phone className="w-3 h-3 text-brand-300" /> {brand.contact.phone}
+          </span>
           <span className="w-px h-3 bg-white/10" />
-          <span className="font-mono text-brand-300">{brand.names.erp} v{brand.names.version}</span>
+          <span className="font-mono text-brand-300">
+            {brand.names.erp} v{brand.names.version}
+          </span>
         </span>
       </div>
-      <div className={`bg-ink/75 backdrop-blur-2xl border-b transition-all duration-500 ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}>
-      {/* ── Scroll progress indicator ── */}
-      <motion.div
-        style={{ scaleX: progress, transformOrigin: "100% 50%" }}
-        className="absolute top-0 inset-x-0 h-[2px] z-20 bg-gradient-to-l from-brand via-[#e2b17a] to-brand"
-      />
-
       <div
-        className={`max-w-7xl mx-auto px-4 flex items-center justify-between gap-3 transition-all duration-300 ${
-          scrolled ? "py-1.5" : "py-2.5"
-        }`}
+        className={`bg-ink/75 backdrop-blur-2xl border-b transition-all duration-500 ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}
       >
-        {/* Brand — identity lockup */}
+        {/* ── Scroll progress indicator ── */}
+        <motion.div
+          style={{ scaleX: progress, transformOrigin: "100% 50%" }}
+          className="absolute top-0 inset-x-0 h-[2px] z-20 bg-gradient-to-l from-brand via-[#e2b17a] to-brand"
+        />
+
         <div
-          className="flex items-center gap-3 cursor-pointer group/brand shrink-0"
-          onClick={() => setLocation("/")}
-          role="link"
-          aria-label="alhusainiaye — الصفحة الرئيسية"
+          className={`max-w-7xl mx-auto px-4 flex items-center justify-between gap-3 transition-all duration-300 ${
+            scrolled ? "py-1.5" : "py-2.5"
+          }`}
         >
-          <BrandLogo
-            size={scrolled ? 32 : 38}
-            className="transition-transform duration-300 group-hover/brand:scale-105 drop-shadow-[0_2px_10px_rgba(184,121,69,0.35)]"
-          />
-          <div className="hidden lg:flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border font-mono font-bold text-[10px] transition-colors ${
-                isOnline
-                  ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-                  : "border-rose-400/30 bg-rose-400/10 text-rose-300"
-              }`}
-              title={
-                isOnline
-                  ? "متصل بالخادم"
-                  : "وضع عدم الاتصال — ستتم المزامنة تلقائياً"
-              }
-            >
-              {isSyncing ? (
-                <RefreshCw className="w-3 h-3 animate-spin" />
-              ) : (
-                <span
-                  className={`w-1.5 h-1.5 rounded-full ${
-                    isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-400"
-                  }`}
-                />
-              )}
-              {isSyncing ? "مزامنة…" : isOnline ? "متصل" : "أوفلاين"}
-            </span>
-            {isAuthenticated && (
-              <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border border-brand/30 bg-brand/10 text-brand-300 font-mono font-bold text-[10px]">
-                <ShieldCheck className="w-3 h-3" />
-                {user?.name || "مشرف المنصة"}
+          {/* Brand — identity lockup */}
+          <div
+            className="flex items-center gap-3 cursor-pointer group/brand shrink-0"
+            onClick={() => setLocation("/")}
+            role="link"
+            aria-label="alhusainiaye — الصفحة الرئيسية"
+          >
+            <BrandLogo
+              size={scrolled ? 32 : 38}
+              className="transition-transform duration-300 group-hover/brand:scale-105 drop-shadow-[0_2px_10px_rgba(184,121,69,0.35)]"
+            />
+            <div className="hidden lg:flex items-center gap-2">
+              <span
+                className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border font-mono font-bold text-[10px] transition-colors ${
+                  isOnline
+                    ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                    : "border-rose-400/30 bg-rose-400/10 text-rose-300"
+                }`}
+                title={
+                  isOnline
+                    ? "متصل بالخادم"
+                    : "وضع عدم الاتصال — ستتم المزامنة تلقائياً"
+                }
+              >
+                {isSyncing ? (
+                  <RefreshCw className="w-3 h-3 animate-spin" />
+                ) : (
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-400"
+                    }`}
+                  />
+                )}
+                {isSyncing ? "مزامنة…" : isOnline ? "متصل" : "أوفلاين"}
               </span>
-            )}
+              {isAuthenticated && (
+                <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border border-brand/30 bg-brand/10 text-brand-300 font-mono font-bold text-[10px]">
+                  <ShieldCheck className="w-3 h-3" />
+                  {user?.name || "مشرف المنصة"}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
 
-        {/* Helper tools — يسار الشريط وحده — أدوات مساعدة منفصلة عن التنقل الرئيسي */}
-        <div className="hidden lg:flex items-center gap-1.5 border-r border-white/10 pr-3 mr-1">
-          <button
-            onClick={() => window.dispatchEvent(new Event("alh:open-command"))}
-            className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 h-7 px-2.5 rounded-lg text-[11px] transition-colors"
-            aria-label="بحث شامل — اكتمال تلقائي"
-            title="بحث شامل (Ctrl+K)"
+          {/* Helper tools — يسار الشريط وحده — أدوات مساعدة منفصلة عن التنقل الرئيسي */}
+          <div className="hidden lg:flex items-center gap-1.5 border-r border-white/10 pr-3 mr-1">
+            <button
+              onClick={() =>
+                window.dispatchEvent(new Event("alh:open-command"))
+              }
+              className="flex items-center gap-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 h-7 px-2.5 rounded-lg text-[11px] transition-colors"
+              aria-label="بحث شامل — اكتمال تلقائي"
+              title="بحث شامل (Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-brand-300" />
+              <span className="hidden xl:inline">بحث</span>
+            </button>
+            <ThemeSwitcher compact />
+            <button
+              onClick={handleLanguageToggle}
+              className="flex items-center gap-1 text-white/50 hover:text-white h-7 px-2 rounded-lg hover:bg-white/5 text-[11px] transition-colors"
+              aria-label="تبديل اللغة"
+            >
+              <Globe className="w-3.5 h-3.5" />
+            </button>
+          </div>
+
+          {/* Desktop Navigation — عناقيد Mega Menu بأسلوب SaaS العالمي */}
+          <nav
+            className="hidden md:flex items-center gap-1"
+            aria-label="التنقل الرئيسي"
           >
-            <Search className="w-3.5 h-3.5 text-brand-300" />
-            <span className="hidden xl:inline">بحث</span>
-          </button>
-          <ThemeSwitcher compact />
-          <button
-            onClick={handleLanguageToggle}
-            className="flex items-center gap-1 text-white/50 hover:text-white h-7 px-2 rounded-lg hover:bg-white/5 text-[11px] transition-colors"
-            aria-label="تبديل اللغة"
-          >
-            <Globe className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* Desktop Navigation — عناقيد Mega Menu بأسلوب SaaS العالمي */}
-        <nav
-          className="hidden md:flex items-center gap-1"
-          aria-label="التنقل الرئيسي"
-        >
-          {DIRECT_NAV_PATHS.map(p => {
-            const item = NAV_BY_PATH.get(p);
-            if (!item) return null;
-            const Icon = item.icon;
-            const isActive = location === item.path;
-            return (
-              <Button
-                key={item.path}
-                variant="ghost"
-                size="sm"
-                onClick={() => navigateOrScroll(item.path)}
-                onMouseEnter={() => prefetchRoute(item.path)}
-                onFocus={() => prefetchRoute(item.path)}
-                aria-current={isActive ? "page" : undefined}
-                className={`${baseBtn} ${navClass(isActive, item.highlight)} group relative`}
-              >
-                <Icon className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-translate-y-0.5" />
-                {item.label}
-                <span
-                  className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-gradient-to-l from-[#b87945] to-[#e2b17a] transition-all duration-300 ${isActive ? "w-2/3" : "w-0 group-hover:w-2/3"}`}
-                />
-              </Button>
-            );
-          })}
-
-          {/* القوائم المنسدلة الغنية */}
-          {MEGA_CLUSTERS.map(cluster => {
-            const ClusterIcon = cluster.icon;
-            const items = cluster.paths
-              .map(p => NAV_BY_PATH.get(p))
-              .filter((i): i is NavItem => Boolean(i));
-            const isOpen = openCluster === cluster.key;
-            const containsActive = items.some(i => location === i.path);
-            return (
-              <div
-                key={cluster.key}
-                className="relative"
-                onMouseEnter={() => {
-                  setOpenCluster(cluster.key);
-                  cluster.paths.forEach(p => prefetchRoute(p));
-                }}
-                onMouseLeave={() => setOpenCluster(null)}
-              >
+            {DIRECT_NAV_PATHS.map(p => {
+              const item = NAV_BY_PATH.get(p);
+              if (!item) return null;
+              const Icon = item.icon;
+              const isActive = location === item.path;
+              return (
                 <Button
+                  key={item.path}
                   variant="ghost"
                   size="sm"
-                  onClick={() => setOpenCluster(isOpen ? null : cluster.key)}
-                  aria-haspopup="true"
-                  aria-expanded={isOpen}
-                  className={`${baseBtn} ${navClass(containsActive)} group`}
+                  onClick={() => navigateOrScroll(item.path)}
+                  onMouseEnter={() => prefetchRoute(item.path)}
+                  onFocus={() => prefetchRoute(item.path)}
+                  aria-current={isActive ? "page" : undefined}
+                  className={`${baseBtn} ${navClass(isActive, item.highlight)} group relative`}
                 >
-                  <ClusterIcon className="w-3.5 h-3.5 text-brand-300" />
-                  {cluster.label}
-                  <ChevronDown
-                    className={`w-3 h-3 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                  <Icon className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-translate-y-0.5" />
+                  {item.label}
+                  <span
+                    className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-gradient-to-l from-[#b87945] to-[#e2b17a] transition-all duration-300 ${isActive ? "w-2/3" : "w-0 group-hover:w-2/3"}`}
                   />
                 </Button>
-                <AnimatePresence>
-                  {isOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.97 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.97 }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
-                      className="absolute top-full right-0 mt-2 min-w-[320px] rounded-2xl border border-brand/25 bg-ink-deep/95 backdrop-blur-2xl shadow-2xl shadow-black/60 p-2 origin-top"
-                    >
-                      {items.map(item => {
-                        const Icon = item.icon;
-                        const isActive = location === item.path;
-                        return (
-                          <button
-                            key={item.path}
-                            onClick={() => navigateOrScroll(item.path)}
-                            onMouseEnter={() => prefetchRoute(item.path)}
-                            onFocus={() => prefetchRoute(item.path)}
-                            aria-current={isActive ? "page" : undefined}
-                            className={`w-full flex items-start gap-3 rounded-xl px-3 py-2.5 text-right transition-colors duration-200 group/item ${isActive ? "bg-brand/10" : "hover:bg-white/5"}`}
-                          >
-                            <span className="mt-0.5 w-9 h-9 shrink-0 rounded-lg bg-brand/10 border border-brand/25 text-brand-300 flex items-center justify-center transition-colors duration-300 group-hover/item:bg-brand group-hover/item:text-ink">
-                              <Icon className="w-4 h-4" />
-                            </span>
-                            <span className="flex flex-col gap-0.5">
-                              <span className="text-xs font-bold text-white flex items-center gap-2">
-                                {item.label}
-                                {item.highlight && (
-                                  <span className="text-[9px] bg-brand/20 text-brand-300 px-1.5 py-0.5 rounded-full font-black">
-                                    ERP
+              );
+            })}
+
+            {/* القوائم المنسدلة الغنية */}
+            {MEGA_CLUSTERS.map(cluster => {
+              const ClusterIcon = cluster.icon;
+              const items = cluster.paths
+                .map(p => NAV_BY_PATH.get(p))
+                .filter((i): i is NavItem => Boolean(i));
+              const isOpen = openCluster === cluster.key;
+              const containsActive = items.some(i => location === i.path);
+              return (
+                <div
+                  key={cluster.key}
+                  className="relative"
+                  onMouseEnter={() => {
+                    setOpenCluster(cluster.key);
+                    cluster.paths.forEach(p => prefetchRoute(p));
+                  }}
+                  onMouseLeave={() => setOpenCluster(null)}
+                >
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setOpenCluster(isOpen ? null : cluster.key)}
+                    aria-haspopup="true"
+                    aria-expanded={isOpen}
+                    className={`${baseBtn} ${navClass(containsActive)} group`}
+                  >
+                    <ClusterIcon className="w-3.5 h-3.5 text-brand-300" />
+                    {cluster.label}
+                    <ChevronDown
+                      className={`w-3 h-3 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+                    />
+                  </Button>
+                  <AnimatePresence>
+                    {isOpen && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: 10, scale: 0.97 }}
+                        transition={{ duration: 0.18, ease: "easeOut" }}
+                        className="absolute top-full right-0 mt-2 min-w-[320px] rounded-2xl border border-brand/25 bg-ink-deep/95 backdrop-blur-2xl shadow-2xl shadow-black/60 p-2 origin-top"
+                      >
+                        {items.map(item => {
+                          const Icon = item.icon;
+                          const isActive = location === item.path;
+                          return (
+                            <button
+                              key={item.path}
+                              onClick={() => navigateOrScroll(item.path)}
+                              onMouseEnter={() => prefetchRoute(item.path)}
+                              onFocus={() => prefetchRoute(item.path)}
+                              aria-current={isActive ? "page" : undefined}
+                              className={`w-full flex items-start gap-3 rounded-xl px-3 py-2.5 text-right transition-colors duration-200 group/item ${isActive ? "bg-brand/10" : "hover:bg-white/5"}`}
+                            >
+                              <span className="mt-0.5 w-9 h-9 shrink-0 rounded-lg bg-brand/10 border border-brand/25 text-brand-300 flex items-center justify-center transition-colors duration-300 group-hover/item:bg-brand group-hover/item:text-ink">
+                                <Icon className="w-4 h-4" />
+                              </span>
+                              <span className="flex flex-col gap-0.5">
+                                <span className="text-xs font-bold text-white flex items-center gap-2">
+                                  {item.label}
+                                  {item.highlight && (
+                                    <span className="text-[9px] bg-brand/20 text-brand-300 px-1.5 py-0.5 rounded-full font-black">
+                                      ERP
+                                    </span>
+                                  )}
+                                </span>
+                                {item.description && (
+                                  <span className="text-[10px] text-white/50 leading-relaxed">
+                                    {item.description}
                                   </span>
                                 )}
                               </span>
-                              {item.description && (
-                                <span className="text-[10px] text-white/50 leading-relaxed">
-                                  {item.description}
-                                </span>
-                              )}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            );
-          })}
+                            </button>
+                          );
+                        })}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
 
-          {/* Free Trial CTA — للزوار فقط */}
-          {!isAuthenticated && (
-            <a
-              href={uamexDemoLink()}
-              target="_blank"
-              rel="noopener"
-              className="hidden lg:inline-flex items-center gap-1.5 bg-white/5 hover:bg-brand/15 border border-brand/40 text-brand-300 hover:text-white font-bold h-9 px-4 rounded-xl text-xs transition-all mr-1 hover:border-brand/60 hover:shadow-[0_0_20px_rgba(184,121,69,0.25)]"
+            {/* Free Trial CTA — للزوار فقط */}
+            {!isAuthenticated && (
+              <a
+                href={uamexDemoLink()}
+                target="_blank"
+                rel="noopener"
+                className="hidden lg:inline-flex items-center gap-1.5 bg-white/5 hover:bg-brand/15 border border-brand/40 text-brand-300 hover:text-white font-bold h-9 px-4 rounded-xl text-xs transition-all mr-1 hover:border-brand/60 hover:shadow-[0_0_20px_rgba(184,121,69,0.25)]"
+              >
+                <MessageSquare className="w-3.5 h-3.5" />
+                ابدأ مجاناً
+              </a>
+            )}
+
+            {/* Primary CTA — تأثير Shine انسيابي عند المرور */}
+            <Button
+              onClick={() => setLocation("/app")}
+              className="relative overflow-hidden group/cta bg-brand hover:bg-brand-deep text-ink font-black h-9 px-4 rounded-xl shadow-lg shadow-brand/25 hover:shadow-brand/40 hover:-translate-y-px transition-all flex items-center gap-1.5 text-xs mr-1"
             >
-              <MessageSquare className="w-3.5 h-3.5" />
-              ابدأ مجاناً
-            </a>
-          )}
+              <span className="pointer-events-none absolute inset-0 -translate-x-full group-hover/cta:translate-x-full transition-transform duration-700 ease-out bg-gradient-to-l from-transparent via-white/40 to-transparent" />
+              <Zap className="w-4 h-4 fill-current" />
+              {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
+              <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-300 group-hover/cta:-translate-x-0.5" />
+            </Button>
+          </nav>
 
-          {/* Primary CTA — تأثير Shine انسيابي عند المرور */}
-          <Button
-            onClick={() => setLocation("/app")}
-            className="relative overflow-hidden group/cta bg-brand hover:bg-brand-deep text-ink font-black h-9 px-4 rounded-xl shadow-lg shadow-brand/25 hover:shadow-brand/40 hover:-translate-y-px transition-all flex items-center gap-1.5 text-xs mr-1"
-          >
-            <span className="pointer-events-none absolute inset-0 -translate-x-full group-hover/cta:translate-x-full transition-transform duration-700 ease-out bg-gradient-to-l from-transparent via-white/40 to-transparent" />
-            <Zap className="w-4 h-4 fill-current" />
-            {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
-            <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-300 group-hover/cta:-translate-x-0.5" />
-          </Button>
-        </nav>
+          {/* Actions — يمين الشريط: تنقل رئيسي فقط + إجراءات */}
+          <div className="flex items-center gap-2">
+            {/* Super-admin tenant switcher (owner only) */}
+            <TenantSwitcher />
 
-        {/* Actions — يمين الشريط: تنقل رئيسي فقط + إجراءات */}
-        <div className="flex items-center gap-2">
+            {/* Account security — login activity & map (signed-in users only) */}
+            {isAuthenticated && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation("/security")}
+                className="text-white/70 hover:text-white hover:bg-white/5 h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium hidden sm:flex"
+              >
+                <ShieldCheck className="w-3.5 h-3.5 text-brand-300" />
+                <span>الأمان</span>
+              </Button>
+            )}
 
-          {/* Super-admin tenant switcher (owner only) */}
-          <TenantSwitcher />
+            {onOpenSettings && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onOpenSettings}
+                className="bg-white/5 border-white/15 text-white h-8 text-xs px-2.5 hover:bg-white/10 hidden sm:flex items-center gap-1"
+              >
+                <Settings className="w-3.5 h-3.5" />
+                <span>إعدادات</span>
+              </Button>
+            )}
 
-          {/* Account security — login activity & map (signed-in users only) */}
-          {isAuthenticated && (
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setLocation("/security")}
-              className="text-white/70 hover:text-white hover:bg-white/5 h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium hidden sm:flex"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="md:hidden text-white p-2 h-9 w-9 hover:bg-white/5"
+              aria-label="فتح القائمة"
+              aria-expanded={mobileOpen}
             >
-              <ShieldCheck className="w-3.5 h-3.5 text-brand-300" />
-              <span>الأمان</span>
+              {mobileOpen ? (
+                <X className="w-5 h-5" />
+              ) : (
+                <Menu className="w-5 h-5" />
+              )}
             </Button>
-          )}
-
-          {onOpenSettings && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onOpenSettings}
-              className="bg-white/5 border-white/15 text-white h-8 text-xs px-2.5 hover:bg-white/10 hidden sm:flex items-center gap-1"
-            >
-              <Settings className="w-3.5 h-3.5" />
-              <span>إعدادات</span>
-            </Button>
-          )}
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setMobileOpen(!mobileOpen)}
-            className="md:hidden text-white p-2 h-9 w-9 hover:bg-white/5"
-            aria-label="فتح القائمة"
-            aria-expanded={mobileOpen}
-          >
-            {mobileOpen ? (
-              <X className="w-5 h-5" />
-            ) : (
-              <Menu className="w-5 h-5" />
-            )}
-          </Button>
+          </div>
         </div>
-      </div>
       </div>
 
       {/* ── Mobile Drawer — لوحة منزلقة متحركة فوق خلفية معتمة ── */}

@@ -360,6 +360,11 @@ export async function applyAuthSchema(
   const colAdds = [
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS "username" varchar(120)`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS "passwordHash" text`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "emailVerified" boolean DEFAULT false NOT NULL`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "verificationToken" varchar(128)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "verificationTokenExpiry" timestamp`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "resetToken" varchar(128)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "resetTokenExpiry" timestamp`,
     `ALTER TABLE tenants ALTER COLUMN "ownerUserId" DROP NOT NULL`,
   ];
   for (const stmt of colAdds) {
@@ -458,10 +463,10 @@ export async function provisionGenericTenant(
         (opts.currency || "YER").toUpperCase() === "SAR"
           ? "ريال سعودي (SAR)"
           : (opts.currency || "YER").toUpperCase() === "AED"
-          ? "درهم إماراتي (AED)"
-          : (opts.currency || "YER").toUpperCase() === "USD"
-          ? "دولار أمريكي (USD)"
-          : "ريال يمني (YER)",
+            ? "درهم إماراتي (AED)"
+            : (opts.currency || "YER").toUpperCase() === "USD"
+              ? "دولار أمريكي (USD)"
+              : "ريال يمني (YER)",
       accountingPeriod: String(new Date().getFullYear()),
       managerName: opts.name,
     });

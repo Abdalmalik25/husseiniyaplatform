@@ -58,6 +58,7 @@ import {
   downloadProductTemplate,
   parseProductCsv,
 } from "./commercial/lib/csv-helpers";
+import { fmtNum } from "@/lib/format";
 import {
   printPaymentReceipt,
   printSaleInvoice,
@@ -2765,12 +2766,10 @@ export default function Commercial() {
                         {item.productName}
                       </p>
                       <p className="text-[9px] text-gray-400">
-                        {(
-                          parseFloat(item.unitPrice) * item.quantity
-                        ).toLocaleString()}{" "}
+                        {fmtNum(parseFloat(item.unitPrice) * item.quantity)}{" "}
                         − خصم {item.discount || "0"} ={" "}
                         <span className="font-bold text-[#b87945]">
-                          {lineTotal.toLocaleString()} ر.ي
+                          {fmtNum(lineTotal)} ر.ي
                         </span>
                       </p>
                     </div>
@@ -2822,13 +2821,13 @@ export default function Commercial() {
                 <div className="flex justify-between">
                   <span className="text-gray-500">المجموع الفرعي</span>
                   <span className="font-bold">
-                    {saleTotal.toLocaleString()} ر.ي
+                    {fmtNum(saleTotal)} ر.ي
                   </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">إجمالي الخصم</span>
                   <span className="font-bold text-red-500">
-                    {saleDiscountTotal.toLocaleString()} ر.ي
+                    {fmtNum(saleDiscountTotal)} ر.ي
                   </span>
                 </div>
                 <div className="flex justify-between border-t pt-1">
@@ -2836,7 +2835,7 @@ export default function Commercial() {
                     الإجمالي النهائي
                   </span>
                   <span className="font-bold text-[#102a2b]">
-                    {saleGrandTotal.toLocaleString()} ر.ي
+                    {fmtNum(saleGrandTotal)} ر.ي
                   </span>
                 </div>
               </div>
@@ -3008,7 +3007,7 @@ export default function Commercial() {
               ))}
               <div className="flex justify-end pt-2 border-t">
                 <p className="text-sm font-bold text-[#102a2b]">
-                  الإجمالي: {purchaseTotal.toLocaleString()} ر.ي
+                  الإجمالي: {fmtNum(purchaseTotal)} ر.ي
                 </p>
               </div>
             </div>
@@ -3134,7 +3133,7 @@ export default function Commercial() {
               ))}
               <div className="flex justify-end pt-2 border-t">
                 <p className="text-sm font-bold text-[#102a2b]">
-                  الإجمالي: {orderTotal.toLocaleString()} ر.ي
+                  الإجمالي: {fmtNum(orderTotal)} ر.ي
                 </p>
               </div>
             </div>
@@ -3989,12 +3988,16 @@ export default function Commercial() {
               size="sm"
               className="text-xs h-8 bg-brand text-white"
               disabled={
-                !importRows || importRows.length === 0 || importProductsCsv.isPending
+                !importRows ||
+                importRows.length === 0 ||
+                importProductsCsv.isPending
               }
               onClick={handleImportProducts}
             >
               <Upload className="w-3 h-3 ml-1" />
-              {importProductsCsv.isPending ? "جارٍ الاستيراد..." : "استيراد الآن"}
+              {importProductsCsv.isPending
+                ? "جارٍ الاستيراد..."
+                : "استيراد الآن"}
             </Button>
           </DialogFooter>
         </DialogContent>

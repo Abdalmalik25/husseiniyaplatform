@@ -79,12 +79,20 @@ var users = pgTable(
     lockedUntil: timestamp("lockedUntil"),
     passwordChangedAt: timestamp("passwordChangedAt").defaultNow().notNull(),
     mfaEnabled: boolean("mfaEnabled").default(false).notNull(),
-    mfaSecret: varchar("mfaSecret", { length: 255 })
+    mfaSecret: varchar("mfaSecret", { length: 255 }),
+    // Email verification & password reset
+    emailVerified: boolean("emailVerified").default(false).notNull(),
+    verificationToken: varchar("verificationToken", { length: 128 }),
+    verificationTokenExpiry: timestamp("verificationTokenExpiry"),
+    resetToken: varchar("resetToken", { length: 128 }),
+    resetTokenExpiry: timestamp("resetTokenExpiry")
   },
   (t) => [
     // PERFORMANCE: Index for tenant-scoped user lookups
     index("idx_users_tenant").on(t.tenantId),
-    index("idx_users_session").on(t.currentSessionId)
+    index("idx_users_session").on(t.currentSessionId),
+    index("idx_users_email").on(t.email),
+    index("idx_users_username").on(t.username)
   ]
 );
 var loginAttempts = pgTable(
@@ -827,7 +835,10 @@ var productSerials = pgTable(
     index("idx_productSerials_batch").on(t.batchId),
     index("idx_productSerials_warehouse").on(t.warehouseId),
     index("idx_productSerials_status").on(t.status),
-    unique("productSerials_number_tenant_unique").on(t.serialNumber, t.tenantId),
+    unique("productSerials_number_tenant_unique").on(
+      t.serialNumber,
+      t.tenantId
+    ),
     check("chk_productSerial_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
   ]
 );
@@ -853,7 +864,10 @@ var matrixDimensions = pgTable(
   (t) => [
     index("idx_matrixDimensions_tenant").on(t.tenantId),
     unique("matrixDimensions_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_matrixDimension_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_matrixDimension_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    )
   ]
 );
 var matrixDimensionValues = pgTable(
@@ -881,8 +895,14 @@ var matrixDimensionValues = pgTable(
   (t) => [
     index("idx_matrixDimensionValues_tenant").on(t.tenantId),
     index("idx_matrixDimensionValues_dimension").on(t.dimensionId),
-    unique("matrixDimensionValues_code_dimension_unique").on(t.code, t.dimensionId),
-    check("chk_matrixDimensionValue_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    unique("matrixDimensionValues_code_dimension_unique").on(
+      t.code,
+      t.dimensionId
+    ),
+    check(
+      "chk_matrixDimensionValue_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    )
   ]
 );
 var matrixItems = pgTable(
@@ -919,7 +939,10 @@ var matrixItems = pgTable(
     index("idx_matrixItems_tenant").on(t.tenantId),
     index("idx_matrixItems_product").on(t.productId),
     index("idx_matrixItems_matrix").on(t.matrixId),
-    unique("matrixItems_combination_tenant_unique").on(t.combinationCode, t.tenantId),
+    unique("matrixItems_combination_tenant_unique").on(
+      t.combinationCode,
+      t.tenantId
+    ),
     check("chk_matrixItem_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
   ]
 );
@@ -952,7 +975,10 @@ var inventoryAllocations = pgTable(
     index("idx_inventoryAllocations_product").on(t.productId),
     index("idx_inventoryAllocations_session").on(t.sessionId),
     index("idx_inventoryAllocations_cartLine").on(t.cartLineId),
-    check("chk_inventoryAllocation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`)
+    check(
+      "chk_inventoryAllocation_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    )
   ]
 );
 var stockMovements = pgTable(
@@ -4073,15 +4099,26 @@ var ENV = {
     0
   ),
   /** Local directory for backup blobs when S3 is not configured. */
-  backupDir: process.env.BACKUP_DIR ?? ""
+  backupDir: process.env.BACKUP_DIR ?? "",
+  /** Sentry DSN for error tracking and performance monitoring. */
+  sentryDsn: process.env.SENTRY_DSN ?? "",
+  /** Vite-defined app version for health endpoint. */
+  appVersion: true ? "2.12.0" : "dev"
 };
 if (ENV.isProduction) {
   if (!ENV.databaseUrl) {
-    console.warn("[ENV] DATABASE_URL is not set \u2014 health checks will report degraded");
+    console.warn(
+      "[ENV] DATABASE_URL is not set \u2014 health checks will report degraded"
+    );
   }
   if (!ENV.backupEncryptionKey || ENV.backupEncryptionKey.length < 16) {
     console.warn(
       "[ENV] BACKUP_ENCRYPTION_KEY is missing or <16 chars \u2014 encrypted backups are disabled (fail-closed)"
+    );
+  }
+  if (!ENV.sentryDsn) {
+    console.warn(
+      "[ENV] SENTRY_DSN is not set \u2014 error tracking and performance monitoring disabled"
     );
   }
 }
@@ -4107,10 +4144,13 @@ import { desc as desc2, count, lt } from "drizzle-orm";
 // server/notifications.ts
 async function createNotification(db, input) {
   if (!db) {
-    console.warn("[notifications] createNotification skipped: no db available", {
-      tenantId: input.tenantId,
-      type: input.type
-    });
+    console.warn(
+      "[notifications] createNotification skipped: no db available",
+      {
+        tenantId: input.tenantId,
+        type: input.type
+      }
+    );
     return;
   }
   await db.insert(notifications).values({

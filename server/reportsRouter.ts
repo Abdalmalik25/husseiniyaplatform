@@ -57,15 +57,11 @@ export const reportsRouter = router({
     const [offersCount] = await db
       .select({ n: count() })
       .from(offers)
-      .where(
-        and(eq(offers.tenantId, ctx.tenantId), eq(offers.isActive, true))
-      );
+      .where(and(eq(offers.tenantId, ctx.tenantId), eq(offers.isActive, true)));
 
     const repIds = reps.map(r => String(r.id));
     const perf = reps.map(r => {
-      const sales = activeInvoices.filter(
-        i => i.salesRepId === String(r.id)
-      );
+      const sales = activeInvoices.filter(i => i.salesRepId === String(r.id));
       const salesTotal = sales.reduce(
         (s, i) => s + parseFloat(i.total || "0"),
         0
@@ -73,9 +69,7 @@ export const reportsRouter = router({
       const value = parseFloat(r.commissionValue || "0");
       const commission =
         r.commissionType === "percent" ? (salesTotal * value) / 100 : value;
-      const threshold = r.bonusThreshold
-        ? parseFloat(r.bonusThreshold)
-        : null;
+      const threshold = r.bonusThreshold ? parseFloat(r.bonusThreshold) : null;
       const bonus =
         threshold != null && salesTotal >= threshold
           ? parseFloat(r.bonusAmount || "0")

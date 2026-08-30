@@ -3,7 +3,12 @@ import { eq, and, or, ilike, asc } from "drizzle-orm";
 import { router, tenantProcedure } from "./_core/trpc";
 import { getDb } from "./db";
 import { customers, suppliers } from "../drizzle/schema";
-import { validatePhone, validateEmail, validateTaxNumber, validateName } from "./services/validation";
+import {
+  validatePhone,
+  validateEmail,
+  validateTaxNumber,
+  validateName,
+} from "./services/validation";
 import { checkCustomerDuplicate } from "./services/deduplication";
 
 /**
@@ -15,7 +20,13 @@ import { checkCustomerDuplicate } from "./services/deduplication";
  */
 export const beneficiariesRouter = router({
   search: tenantProcedure
-    .input(z.object({ q: z.string().min(1), kind: z.enum(["customer", "supplier", "all"]).default("all"), limit: z.number().min(1).max(20).default(8) }))
+    .input(
+      z.object({
+        q: z.string().min(1),
+        kind: z.enum(["customer", "supplier", "all"]).default("all"),
+        limit: z.number().min(1).max(20).default(8),
+      })
+    )
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db || !ctx.tenantId) return [];
@@ -26,7 +37,16 @@ export const beneficiariesRouter = router({
           : await db
               .select()
               .from(customers)
-              .where(and(eq(customers.tenantId, ctx.tenantId!), or(ilike(customers.name, needle), ilike(customers.code, needle), ilike(customers.phone, needle))))
+              .where(
+                and(
+                  eq(customers.tenantId, ctx.tenantId!),
+                  or(
+                    ilike(customers.name, needle),
+                    ilike(customers.code, needle),
+                    ilike(customers.phone, needle)
+                  )
+                )
+              )
               .limit(input.limit);
       const supp =
         input.kind === "customer"
@@ -34,9 +54,21 @@ export const beneficiariesRouter = router({
           : await db
               .select()
               .from(suppliers)
-              .where(and(eq(suppliers.tenantId, ctx.tenantId!), or(ilike(suppliers.name, needle), ilike(suppliers.code, needle), ilike(suppliers.phone, needle))))
+              .where(
+                and(
+                  eq(suppliers.tenantId, ctx.tenantId!),
+                  or(
+                    ilike(suppliers.name, needle),
+                    ilike(suppliers.code, needle),
+                    ilike(suppliers.phone, needle)
+                  )
+                )
+              )
               .limit(input.limit);
-      return [...cust.map(c => ({ ...c, kind: "customer" as const })), ...supp.map(s => ({ ...s, kind: "supplier" as const }))].slice(0, input.limit);
+      return [
+        ...cust.map(c => ({ ...c, kind: "customer" as const })),
+        ...supp.map(s => ({ ...s, kind: "supplier" as const })),
+      ].slice(0, input.limit);
     }),
 
   upsert: tenantProcedure
@@ -83,7 +115,9 @@ export const beneficiariesRouter = router({
       });
       if (dup.isDuplicate) throw new Error(dup.message || "السجل موجود مسبقاً");
 
-      const code = input.code?.trim() || `${input.kind === "customer" ? "CUST" : "SUPP"}-${Date.now().toString(36).toUpperCase()}`;
+      const code =
+        input.code?.trim() ||
+        `${input.kind === "customer" ? "CUST" : "SUPP"}-${Date.now().toString(36).toUpperCase()}`;
       const [row] = await db
         .insert(table)
         .values({
@@ -94,7 +128,9 @@ export const beneficiariesRouter = router({
           email: input.email?.trim().toLowerCase() || null,
           taxNumber: input.taxNumber?.trim() || null,
           city: input.city?.trim() || null,
-          address: input.country ? `${input.country} — ${input.city || ""}`.trim() : null,
+          address: input.country
+            ? `${input.country} — ${input.city || ""}`.trim()
+            : null,
         } as any)
         .returning();
       return row;

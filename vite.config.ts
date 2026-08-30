@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { defineConfig, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
+import { sentryVitePlugin } from "@sentry/bundler-plugins/vite";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -153,6 +154,19 @@ function vitePluginManusDebugCollector(): Plugin {
 const plugins = [
   react(),
   tailwindcss(),
+  // Sentry source map upload (production only)
+  ...(process.env.NODE_ENV === "production" && process.env.SENTRY_AUTH_TOKEN
+    ? [
+        sentryVitePlugin({
+          org: process.env.SENTRY_ORG,
+          project: process.env.SENTRY_PROJECT,
+          authToken: process.env.SENTRY_AUTH_TOKEN,
+          sourcemaps: {
+            assets: "./dist/public/**",
+          },
+        }) as any,
+      ]
+    : []),
   // Dev-only instrumentation — excluded from production builds
   ...(process.env.NODE_ENV === "production"
     ? []

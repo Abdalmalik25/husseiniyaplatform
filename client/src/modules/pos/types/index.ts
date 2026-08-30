@@ -281,10 +281,24 @@ export interface StockMovement {
   variantId?: number;
   batchId?: number;
   serialIds?: number[];
-  type: "in" | "out" | "transfer" | "adjustment" | "return" | "production" | "waste";
+  type:
+    | "in"
+    | "out"
+    | "transfer"
+    | "adjustment"
+    | "return"
+    | "production"
+    | "waste";
   quantity: number;
   unitCost: number;
-  referenceType: "sale" | "purchase" | "return" | "transfer" | "adjustment" | "production" | "opening";
+  referenceType:
+    | "sale"
+    | "purchase"
+    | "return"
+    | "transfer"
+    | "adjustment"
+    | "production"
+    | "opening";
   referenceId?: number;
   referenceNumber?: string;
   fromWarehouseId?: number;

@@ -88,7 +88,9 @@ export const fiscalPeriodsRouter = router({
 
   /** Mark a period closed (locks posting into its range). */
   close: adminProcedure
-    .input(z.object({ periodId: z.number(), closingEntryId: z.number().optional() }))
+    .input(
+      z.object({ periodId: z.number(), closingEntryId: z.number().optional() })
+    )
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db) throw new Error("Database not available");
@@ -125,7 +127,8 @@ export const fiscalPeriodsRouter = router({
         userId: ctx.user.id,
         userName: ctx.user.name,
         action: `إقفال الفترة المالية: ${period.name}`,
-        details: "تم قفل الفترة — لا يمكن الترحيل إليها دون إعادة فتح استثنائية",
+        details:
+          "تم قفل الفترة — لا يمكن الترحيل إليها دون إعادة فتح استثنائية",
       });
       return { success: true, status: "closed", name: period.name };
     }),

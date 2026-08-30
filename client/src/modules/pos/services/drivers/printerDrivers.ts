@@ -5,4 +5,4 @@
  */
 
 // Re-export all types and drivers from hardwareIntegration
-export * from '../hardwareIntegration';
+export * from "../hardwareIntegration";

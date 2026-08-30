@@ -10,9 +10,7 @@ export function downloadCsv(
   rows: unknown[][]
 ): number {
   const head = headers.map(escapeCell).join(",");
-  const body = rows
-    .map(r => r.map(escapeCell).join(","))
-    .join("\r\n");
+  const body = rows.map(r => r.map(escapeCell).join(",")).join("\r\n");
   const content = `\uFEFF${head}\r\n${body}`;
   const blob = new Blob([content], {
     type: "text/csv;charset=utf-8;",

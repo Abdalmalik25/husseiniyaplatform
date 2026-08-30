@@ -92,6 +92,12 @@ export const MARKETING_NAV: NavItem[] = [
     description: "باقات تنمو معك — 14 يوماً مجاناً بلا بطاقة",
   },
   {
+    path: "/about",
+    label: "من نحن",
+    icon: Building2,
+    description: "قصة الحسينية ورسالتها وخدماتها المؤسسية",
+  },
+  {
     path: "/contact",
     label: "تواصل",
     icon: Phone,
@@ -141,8 +147,18 @@ export const APP_NAV: NavItem[] = [
   { path: "/journal", label: "القيود المحاسبية", icon: BookOpen },
   { path: "/manual-journal", label: "قيد يدوي ذكي", icon: Scale },
   { path: "/cost-centers", label: "مراكز التكلفة", icon: Calculator },
-  { path: "/financial-statements", label: "القوائم المالية", icon: BarChart3, highlight: true },
-  { path: "/fiscal-periods", label: "الفترات والإقفال", icon: CalendarClock, highlight: true },
+  {
+    path: "/financial-statements",
+    label: "القوائم المالية",
+    icon: BarChart3,
+    highlight: true,
+  },
+  {
+    path: "/fiscal-periods",
+    label: "الفترات والإقفال",
+    icon: CalendarClock,
+    highlight: true,
+  },
   { path: "/customization", label: "التخصيص والحقول", icon: SlidersHorizontal },
   { path: "/branches", label: "الفروع والصلاحيات", icon: Building2 },
   { path: "/security", label: "أمان الحساب", icon: ShieldCheck },

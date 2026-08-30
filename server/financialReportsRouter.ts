@@ -28,6 +28,8 @@ import {
   suppliers,
   salesInvoices,
   purchaseInvoices,
+  payments,
+  costCenters,
 } from "../drizzle/schema";
 
 type Db = any;
@@ -57,7 +59,9 @@ async function accountBalances(
   const acctRows = (await db
     .select()
     .from(accounts)
-    .where(eq(accounts.tenantId, tenantId))) as unknown as (typeof accounts.$inferSelect)[];
+    .where(
+      eq(accounts.tenantId, tenantId)
+    )) as unknown as (typeof accounts.$inferSelect)[];
   const obRows = await db
     .select()
     .from(openingBalances)
@@ -82,11 +86,17 @@ async function accountBalances(
 
   for (const ob of obRows) {
     const v = toNum(ob.amount);
-    net.set(ob.accountId, (net.get(ob.accountId) ?? 0) + (ob.type === "debit" ? v : -v));
+    net.set(
+      ob.accountId,
+      (net.get(ob.accountId) ?? 0) + (ob.type === "debit" ? v : -v)
+    );
   }
   for (const tx of txRows) {
     const v = toNum(tx.amount);
-    net.set(tx.accountId, (net.get(tx.accountId) ?? 0) + (tx.type === "debit" ? v : -v));
+    net.set(
+      tx.accountId,
+      (net.get(tx.accountId) ?? 0) + (tx.type === "debit" ? v : -v)
+    );
     const l = ledger.get(tx.accountId) ?? { dr: 0, cr: 0 };
     if (tx.type === "debit") l.dr += v;
     else l.cr += v;
@@ -138,18 +148,35 @@ export const financialReportsRouter = router({
     .input(z.object({ asOf: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) return { revenues: [], expenses: [], totals: { revenue: 0, expense: 0, net: 0 } };
+      if (!db)
+        return {
+          revenues: [],
+          expenses: [],
+          totals: { revenue: 0, expense: 0, net: 0 },
+        };
       const tid = requireTenantId(ctx);
       const asOf = input?.asOf ? new Date(input.asOf) : undefined;
       const balances = await accountBalances(db, tid, asOf);
 
       const revenues = balances
-        .filter(r => r.account.type === "revenue" && Math.abs(r.balance) > 0.0001)
-        .map(r => ({ code: r.account.code, name: r.account.name, amount: r.balance }))
+        .filter(
+          r => r.account.type === "revenue" && Math.abs(r.balance) > 0.0001
+        )
+        .map(r => ({
+          code: r.account.code,
+          name: r.account.name,
+          amount: r.balance,
+        }))
         .sort((a, b) => a.code.localeCompare(b.code, "ar"));
       const expenses = balances
-        .filter(r => r.account.type === "expense" && Math.abs(r.balance) > 0.0001)
-        .map(r => ({ code: r.account.code, name: r.account.name, amount: Math.abs(r.balance) }))
+        .filter(
+          r => r.account.type === "expense" && Math.abs(r.balance) > 0.0001
+        )
+        .map(r => ({
+          code: r.account.code,
+          name: r.account.name,
+          amount: Math.abs(r.balance),
+        }))
         .sort((a, b) => a.code.localeCompare(b.code, "ar"));
 
       const revenueTotal = revenues.reduce((s, r) => s + r.amount, 0);
@@ -157,7 +184,11 @@ export const financialReportsRouter = router({
       return {
         revenues,
         expenses,
-        totals: { revenue: revenueTotal, expense: expenseTotal, net: revenueTotal - expenseTotal },
+        totals: {
+          revenue: revenueTotal,
+          expense: expenseTotal,
+          net: revenueTotal - expenseTotal,
+        },
       };
     }),
 
@@ -174,7 +205,11 @@ export const financialReportsRouter = router({
       const pick = (type: string, sign: 1 | -1) =>
         balances
           .filter(r => r.account.type === type && Math.abs(r.balance) > 0.0001)
-          .map(r => ({ code: r.account.code, name: r.account.name, amount: r.balance * sign }))
+          .map(r => ({
+            code: r.account.code,
+            name: r.account.name,
+            amount: r.balance * sign,
+          }))
           .sort((a, b) => a.code.localeCompare(b.code, "ar"));
 
       const assets = pick("asset", 1);
@@ -188,7 +223,12 @@ export const financialReportsRouter = router({
         assets,
         liabilities,
         equity,
-        totals: { assets: assetTotal, liabilities: liabTotal, equity: eqTotal, net: assetTotal - liabTotal - eqTotal },
+        totals: {
+          assets: assetTotal,
+          liabilities: liabTotal,
+          equity: eqTotal,
+          net: assetTotal - liabTotal - eqTotal,
+        },
       };
     }),
 
@@ -208,7 +248,9 @@ export const financialReportsRouter = router({
       const [acc] = await db
         .select()
         .from(accounts)
-        .where(and(eq(accounts.id, input.accountId), eq(accounts.tenantId, tid)))
+        .where(
+          and(eq(accounts.id, input.accountId), eq(accounts.tenantId, tid))
+        )
         .limit(1);
       if (!acc) return { account: null, lines: [], opening: 0, closing: 0 };
 
@@ -216,7 +258,10 @@ export const financialReportsRouter = router({
         .select()
         .from(openingBalances)
         .where(
-          and(eq(openingBalances.tenantId, tid), eq(openingBalances.accountId, input.accountId))
+          and(
+            eq(openingBalances.tenantId, tid),
+            eq(openingBalances.accountId, input.accountId)
+          )
         );
 
       const conditions = [
@@ -225,8 +270,12 @@ export const financialReportsRouter = router({
         eq(transactions.isReversed, false),
         inArray(transactions.lifecycleStatus, ACTIVE_LIFECYCLE),
       ];
-      if (input.from) conditions.push(gte(transactions.transactionDate, new Date(input.from)));
-      if (input.to) conditions.push(lte(transactions.transactionDate, new Date(input.to)));
+      if (input.from)
+        conditions.push(
+          gte(transactions.transactionDate, new Date(input.from))
+        );
+      if (input.to)
+        conditions.push(lte(transactions.transactionDate, new Date(input.to)));
       const txRows = await db
         .select()
         .from(transactions)
@@ -235,7 +284,8 @@ export const financialReportsRouter = router({
 
       const side = normalSide(acc.type);
       const opening = obRows.reduce(
-        (s, ob) => s + (ob.type === "debit" ? toNum(ob.amount) : -toNum(ob.amount)),
+        (s, ob) =>
+          s + (ob.type === "debit" ? toNum(ob.amount) : -toNum(ob.amount)),
         0
       );
       const openingNorm = opening * (side === "debit" ? 1 : -1);
@@ -267,7 +317,11 @@ export const financialReportsRouter = router({
     .input(z.object({ asOf: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) return { buckets: [], totals: { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 } };
+      if (!db)
+        return {
+          buckets: [],
+          totals: { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 },
+        };
       const tid = requireTenantId(ctx);
       const asOf = input?.asOf ? new Date(input.asOf) : new Date();
       const invRows = await db
@@ -286,7 +340,10 @@ export const financialReportsRouter = router({
       const custMap = new Map(custRows.map(c => [c.id, c.name]));
 
       const bucketOf = (due: Date): string => {
-        const days = Math.max(0, Math.floor((asOf.getTime() - due.getTime()) / 86400000));
+        const days = Math.max(
+          0,
+          Math.floor((asOf.getTime() - due.getTime()) / 86400000)
+        );
         if (days <= 0) return "current";
         if (days <= 30) return "d30";
         if (days <= 60) return "d60";
@@ -296,7 +353,10 @@ export const financialReportsRouter = router({
 
       const totals = { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 };
       const rows = invRows.map(inv => {
-        const outstanding = Math.max(0, toNum(inv.total) - toNum(inv.paidAmount));
+        const outstanding = Math.max(
+          0,
+          toNum(inv.total) - toNum(inv.paidAmount)
+        );
         const due = inv.dueDate ?? inv.invoiceDate;
         const bucket = bucketOf(due);
         totals[bucket as keyof typeof totals] += outstanding;
@@ -317,7 +377,11 @@ export const financialReportsRouter = router({
     .input(z.object({ asOf: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) return { rows: [], totals: { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 } };
+      if (!db)
+        return {
+          rows: [],
+          totals: { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 },
+        };
       const tid = requireTenantId(ctx);
       const asOf = input?.asOf ? new Date(input.asOf) : new Date();
       const invRows = await db
@@ -336,7 +400,10 @@ export const financialReportsRouter = router({
       const supMap = new Map(supRows.map(s => [s.id, s.name]));
 
       const bucketOf = (due: Date): string => {
-        const days = Math.max(0, Math.floor((asOf.getTime() - due.getTime()) / 86400000));
+        const days = Math.max(
+          0,
+          Math.floor((asOf.getTime() - due.getTime()) / 86400000)
+        );
         if (days <= 0) return "current";
         if (days <= 30) return "d30";
         if (days <= 60) return "d60";
@@ -346,7 +413,10 @@ export const financialReportsRouter = router({
 
       const totals = { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 };
       const rows = invRows.map(inv => {
-        const outstanding = Math.max(0, toNum(inv.total) - toNum(inv.paidAmount));
+        const outstanding = Math.max(
+          0,
+          toNum(inv.total) - toNum(inv.paidAmount)
+        );
         const due = inv.dueDate ?? inv.invoiceDate;
         const bucket = bucketOf(due);
         totals[bucket as keyof typeof totals] += outstanding;
@@ -365,7 +435,9 @@ export const financialReportsRouter = router({
   /** التدفقات النقدية — cash flow: net change by cash-asset account */
   cashFlow: tenantProcedure
     .input(
-      z.object({ from: z.string().optional(), to: z.string().optional() }).optional()
+      z
+        .object({ from: z.string().optional(), to: z.string().optional() })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
       const db = await getDb();
@@ -376,8 +448,12 @@ export const financialReportsRouter = router({
         eq(transactions.isReversed, false),
         inArray(transactions.lifecycleStatus, ACTIVE_LIFECYCLE),
       ];
-      if (input?.from) conditions.push(gte(transactions.transactionDate, new Date(input.from)));
-      if (input?.to) conditions.push(lte(transactions.transactionDate, new Date(input.to)));
+      if (input?.from)
+        conditions.push(
+          gte(transactions.transactionDate, new Date(input.from))
+        );
+      if (input?.to)
+        conditions.push(lte(transactions.transactionDate, new Date(input.to)));
       const txRows = await db
         .select()
         .from(transactions)
@@ -386,7 +462,10 @@ export const financialReportsRouter = router({
       const flows = new Map<number, number>();
       for (const tx of txRows) {
         const v = toNum(tx.amount);
-        flows.set(tx.accountId, (flows.get(tx.accountId) ?? 0) + (tx.type === "debit" ? v : -v));
+        flows.set(
+          tx.accountId,
+          (flows.get(tx.accountId) ?? 0) + (tx.type === "debit" ? v : -v)
+        );
       }
       const acctRows = await db
         .select()
@@ -410,5 +489,304 @@ export const financialReportsRouter = router({
         .sort((a, b) => a.code.localeCompare(b.code, "ar"));
 
       return { lines, net: lines.reduce((s, l) => s + l.net, 0) };
+    }),
+
+  /** كشف حساب عميل — customer statement (invoices + payments, running balance) */
+  customerStatement: tenantProcedure
+    .input(
+      z.object({
+        customerId: z.number(),
+        from: z.string().optional(),
+        to: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db)
+        return { customer: null, lines: [], totals: { debit: 0, credit: 0 } };
+      const tid = requireTenantId(ctx);
+
+      const custRows = await db
+        .select()
+        .from(customers)
+        .where(
+          and(eq(customers.id, input.customerId), eq(customers.tenantId, tid))
+        )
+        .limit(1);
+      if (custRows.length === 0) throw new Error("العميل غير موجود");
+
+      const invConditions = [
+        eq(salesInvoices.tenantId, tid),
+        eq(salesInvoices.customerId, input.customerId),
+      ];
+      if (input.from)
+        invConditions.push(
+          gte(salesInvoices.invoiceDate, new Date(input.from))
+        );
+      if (input.to)
+        invConditions.push(lte(salesInvoices.invoiceDate, new Date(input.to)));
+      const invRows = await db
+        .select()
+        .from(salesInvoices)
+        .where(and(...invConditions));
+      const invIds = invRows.map(i => i.id);
+
+      const payRows =
+        invIds.length > 0
+          ? await db
+              .select()
+              .from(payments)
+              .where(
+                and(
+                  eq(payments.tenantId, tid),
+                  eq(payments.source, "sales"),
+                  inArray(payments.invoiceId, invIds)
+                )
+              )
+          : [];
+      const payByInvoice = new Map<number, number>();
+      for (const p of payRows) {
+        payByInvoice.set(
+          p.invoiceId,
+          (payByInvoice.get(p.invoiceId) ?? 0) + toNum(p.amount)
+        );
+      }
+
+      type Line = {
+        date: Date;
+        doc: string;
+        description: string;
+        debit: number;
+        credit: number;
+        balance: number;
+      };
+      const lines: Line[] = [];
+      let running = 0;
+      for (const inv of invRows) {
+        const total = toNum(inv.total);
+        running += total; // customer owes us => debit
+        lines.push({
+          date: inv.invoiceDate,
+          doc: inv.invoiceNumber,
+          description: "فاتورة مبيعات",
+          debit: total,
+          credit: 0,
+          balance: running,
+        });
+        const paid = payByInvoice.get(inv.id) ?? 0;
+        if (paid > 0) {
+          running -= paid; // payment settles the receivable => credit
+          lines.push({
+            date: inv.invoiceDate,
+            doc: `${inv.invoiceNumber}-P`,
+            description: "دفعات مستلمة على الفاتورة",
+            debit: 0,
+            credit: paid,
+            balance: running,
+          });
+        }
+      }
+      lines.sort((a, b) => a.date.getTime() - b.date.getTime());
+      const debit = lines.reduce((s, l) => s + l.debit, 0);
+      const credit = lines.reduce((s, l) => s + l.credit, 0);
+      return {
+        customer: { id: custRows[0].id, name: custRows[0].name },
+        lines,
+        totals: { debit, credit, balance: running },
+      };
+    }),
+
+  /** كشف حساب مورد — supplier statement (invoices + payments, running balance) */
+  supplierStatement: tenantProcedure
+    .input(
+      z.object({
+        supplierId: z.number(),
+        from: z.string().optional(),
+        to: z.string().optional(),
+      })
+    )
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db)
+        return { supplier: null, lines: [], totals: { debit: 0, credit: 0 } };
+      const tid = requireTenantId(ctx);
+
+      const supRows = await db
+        .select()
+        .from(suppliers)
+        .where(
+          and(eq(suppliers.id, input.supplierId), eq(suppliers.tenantId, tid))
+        )
+        .limit(1);
+      if (supRows.length === 0) throw new Error("المورد غير موجود");
+
+      const invConditions = [
+        eq(purchaseInvoices.tenantId, tid),
+        eq(purchaseInvoices.supplierId, input.supplierId),
+      ];
+      if (input.from)
+        invConditions.push(
+          gte(purchaseInvoices.invoiceDate, new Date(input.from))
+        );
+      if (input.to)
+        invConditions.push(
+          lte(purchaseInvoices.invoiceDate, new Date(input.to))
+        );
+      const invRows = await db
+        .select()
+        .from(purchaseInvoices)
+        .where(and(...invConditions));
+      const invIds = invRows.map(i => i.id);
+
+      const payRows =
+        invIds.length > 0
+          ? await db
+              .select()
+              .from(payments)
+              .where(
+                and(
+                  eq(payments.tenantId, tid),
+                  eq(payments.source, "purchases"),
+                  inArray(payments.invoiceId, invIds)
+                )
+              )
+          : [];
+      const payByInvoice = new Map<number, number>();
+      for (const p of payRows) {
+        payByInvoice.set(
+          p.invoiceId,
+          (payByInvoice.get(p.invoiceId) ?? 0) + toNum(p.amount)
+        );
+      }
+
+      type Line = {
+        date: Date;
+        doc: string;
+        description: string;
+        debit: number;
+        credit: number;
+        balance: number;
+      };
+      const lines: Line[] = [];
+      let running = 0;
+      for (const inv of invRows) {
+        const total = toNum(inv.total);
+        running += total; // we owe the supplier => credit
+        lines.push({
+          date: inv.invoiceDate,
+          doc: inv.invoiceNumber,
+          description: "فاتورة مشتريات",
+          debit: 0,
+          credit: total,
+          balance: running,
+        });
+        const paid = payByInvoice.get(inv.id) ?? 0;
+        if (paid > 0) {
+          running -= paid; // payments reduce the payable => debit
+          lines.push({
+            date: inv.invoiceDate,
+            doc: `${inv.invoiceNumber}-P`,
+            description: "دفعات مسددة على الفاتورة",
+            debit: paid,
+            credit: 0,
+            balance: running,
+          });
+        }
+      }
+      lines.sort((a, b) => a.date.getTime() - b.date.getTime());
+      const debit = lines.reduce((s, l) => s + l.debit, 0);
+      const credit = lines.reduce((s, l) => s + l.credit, 0);
+      return {
+        supplier: { id: supRows[0].id, name: supRows[0].name },
+        lines,
+        totals: { debit, credit, balance: running },
+      };
+    }),
+
+  /**
+   * ملخص مراكز التكلفة — cost-center analytical summary.
+   * Revives the previously-dead costCenterId dimension: aggregates revenue
+   * and expense activity per analytical dimension for management reporting.
+   */
+  costCenterSummary: tenantProcedure
+    .input(
+      z
+        .object({ from: z.string().optional(), to: z.string().optional() })
+        .optional()
+    )
+    .query(async ({ ctx, input }) => {
+      const db = await getDb();
+      if (!db) return { rows: [], unassigned: 0 };
+      const tid = requireTenantId(ctx);
+      const conditions = [
+        eq(transactions.tenantId, tid),
+        eq(transactions.isReversed, false),
+        inArray(transactions.lifecycleStatus, ACTIVE_LIFECYCLE),
+      ];
+      if (input?.from)
+        conditions.push(
+          gte(transactions.transactionDate, new Date(input.from))
+        );
+      if (input?.to)
+        conditions.push(lte(transactions.transactionDate, new Date(input.to)));
+      const txRows = await db
+        .select({
+          costCenterId: transactions.costCenterId,
+          type: transactions.type,
+          amount: transactions.amount,
+          accountId: transactions.accountId,
+        })
+        .from(transactions)
+        .where(and(...conditions));
+
+      const acctRows = await db
+        .select({ id: accounts.id, type: accounts.type })
+        .from(accounts)
+        .where(eq(accounts.tenantId, tid));
+      const acctType = new Map(acctRows.map(a => [a.id, a.type]));
+
+      const agg = new Map<number, { revenue: number; expense: number; count: number }>();
+      let unassigned = 0;
+      for (const tx of txRows) {
+        const v = toNum(tx.amount);
+        const type = acctType.get(tx.accountId);
+        const isRevenue = type === "revenue";
+        if (!isRevenue && type !== "expense") continue; // BS accounts excluded
+        const key = tx.costCenterId ?? 0;
+        const entry = agg.get(key) ?? { revenue: 0, expense: 0, count: 0 };
+        if (isRevenue) {
+          entry.revenue += tx.type === "credit" ? v : -v;
+        } else {
+          entry.expense += tx.type === "debit" ? v : -v;
+        }
+        entry.count++;
+        agg.set(key, entry);
+        if (key === 0) unassigned += 1;
+      }
+
+      const ccRows = await db
+        .select({
+          id: costCenters.id,
+          code: costCenters.code,
+          name: costCenters.name,
+        })
+        .from(costCenters)
+        .where(eq(costCenters.tenantId, tid));
+      const ccMap = new Map(ccRows.map(c => [c.id, c]));
+
+      const rows = [...agg.entries()]
+        .map(([id, v]) => ({
+          costCenterId: id === 0 ? null : id,
+          code: id === 0 ? "—" : (ccMap.get(id)?.code ?? "؟"),
+          name:
+            id === 0 ? "بدون مركز تكلفة" : (ccMap.get(id)?.name ?? "مركز محذوف"),
+          revenue: v.revenue,
+          expense: v.expense,
+          net: v.revenue - v.expense,
+          count: v.count,
+        }))
+        .sort((a, b) => b.net - a.net);
+
+      return { rows, unassigned };
     }),
 });

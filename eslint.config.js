@@ -52,6 +52,27 @@ export default [
     },
   },
   {
+    // k6 load test scripts — use k6 globals (__ENV, console, http, check, sleep, group, etc.)
+    files: ["scripts/**/load-test.js"],
+    languageOptions: {
+      globals: {
+        __ENV: "readonly",
+        console: "readonly",
+        http: "readonly",
+        check: "readonly",
+        sleep: "readonly",
+        group: "readonly",
+        Rate: "readonly",
+        Trend: "readonly",
+        Counter: "readonly",
+      },
+    },
+    rules: {
+      "no-console": "off",
+      "no-undef": "off",
+    },
+  },
+  {
     // Server runtime + migration tooling: console IS the structured logger
     // here (JSON request lines, backup manifests, lifecycle warnings).
     files: ["server/**/*.ts", "scripts/**/*.ts", "shared/**/*.ts"],

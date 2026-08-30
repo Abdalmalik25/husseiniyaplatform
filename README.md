@@ -1,4 +1,4 @@
-#   لخدمات الأعمال الحسينية | ALHUSAINIA Platform
+# لخدمات الأعمال الحسينية | ALHUSAINIA Platform
 
 > لخدمات الأعمال الحسينية
 >
@@ -179,6 +179,6 @@ MIT License - راجع ملف [LICENSE](LICENSE) للتفاصيل.
 
 ## التواصل
 
-** الحسينية لخدمات الأعمال   **
+** الحسينية لخدمات الأعمال **
 
 - الموقع: [alhusainiaye.vercel.app](https://alhusainiaye.vercel.app)

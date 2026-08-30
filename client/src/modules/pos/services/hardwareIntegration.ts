@@ -10,14 +10,20 @@
 
 export interface HardwareDevice {
   id: string;
-  type: 'printer' | 'cash_drawer' | 'barcode_scanner' | 'customer_display' | 'pin_pad' | 'scale';
+  type:
+    | "printer"
+    | "cash_drawer"
+    | "barcode_scanner"
+    | "customer_display"
+    | "pin_pad"
+    | "scale";
   name: string;
   vendorId?: number;
   productId?: number;
-  connectionType: 'usb' | 'bluetooth' | 'network' | 'serial' | 'hid';
+  connectionType: "usb" | "bluetooth" | "network" | "serial" | "hid";
   devicePath?: string;
   capabilities: DeviceCapabilities;
-  status: 'connected' | 'disconnected' | 'error' | 'initializing';
+  status: "connected" | "disconnected" | "error" | "initializing";
   lastSeen: Date;
   firmwareVersion?: string;
   config: DeviceConfig;
@@ -31,31 +37,31 @@ export interface DeviceCapabilities {
   printWidth?: number; // mm
   printSpeed?: number; // mm/s
   dpi?: number;
-  
+
   // Cash drawer
   canOpenDrawer?: boolean;
   drawerSensors?: boolean;
-  
+
   // Barcode scanner
   supportedSymbologies?: string[];
   canScanFromScreen?: boolean;
-  
+
   // Customer display
   displayLines?: number;
   displayColumns?: number;
   canShowGraphics?: boolean;
   supportedEncodings?: string[];
-  
+
   // PIN Pad
   supportedPaymentSchemes?: string[];
   pinEntrySupport?: boolean;
   contactlessSupport?: boolean;
-  
+
   // Scale
   maxWeight?: number;
   precision?: number;
   units?: string[];
-  
+
   // Common
   isNetworkDevice?: boolean;
   supportsEncryption?: boolean;
@@ -65,50 +71,50 @@ export interface DeviceCapabilities {
 export interface DeviceConfig {
   // Printer
   printerName?: string;
-  paperSize?: '58mm' | '80mm' | 'a4' | 'label';
+  paperSize?: "58mm" | "80mm" | "a4" | "label";
   printDensity?: number;
   autoCut?: boolean;
   headerText?: string;
   footerText?: string;
   logoBase64?: string;
-  
+
   // Cash drawer
-  drawerTrigger?: 'printer' | 'direct' | 'network';
+  drawerTrigger?: "printer" | "direct" | "network";
   drawerPin?: string;
   printerId?: string;
-  
+
   // Network settings
   ipAddress?: string;
   port?: number;
-  connectionType?: 'usb' | 'bluetooth' | 'network' | 'serial' | 'hid';
-  
+  connectionType?: "usb" | "bluetooth" | "network" | "serial" | "hid";
+
   // Scanner
-  scanMode: 'trigger' | 'continuous' | 'presentation';
+  scanMode: "trigger" | "continuous" | "presentation";
   beepEnabled: boolean;
   vibrationEnabled: boolean;
   prefix?: string;
   suffix?: string;
-  
+
   // Customer display
-  displayMode: 'text' | 'html' | 'custom';
+  displayMode: "text" | "html" | "custom";
   brightness: number;
   timeout: number;
   showAds: boolean;
   adImages?: string[];
-  
+
   // PIN Pad
   terminalId: string;
   merchantId: string;
   supportedCardSchemes: string[];
   contactlessLimit: number;
-  
+
   // Scale
-  defaultUnit: 'kg' | 'g' | 'lb' | 'oz';
+  defaultUnit: "kg" | "g" | "lb" | "oz";
   tareEnabled: boolean;
   autoZero: boolean;
-  
+
   // Device identification (for creating from config)
-  deviceType?: HardwareDevice['type'];
+  deviceType?: HardwareDevice["type"];
   name?: string;
   vendorId?: number;
   productId?: number;
@@ -116,7 +122,7 @@ export interface DeviceConfig {
 }
 
 export interface HardwareEvent {
-  type: 'connected' | 'disconnected' | 'error' | 'data' | 'status_change';
+  type: "connected" | "disconnected" | "error" | "data" | "status_change";
   deviceId: string;
   deviceType: string;
   timestamp: Date;
@@ -126,20 +132,20 @@ export interface HardwareEvent {
 
 export interface PrintJob {
   id: string;
-  type: 'receipt' | 'label' | 'report' | 'kitchen' | 'kitchen_arabic';
+  type: "receipt" | "label" | "report" | "kitchen" | "kitchen_arabic";
   content: PrintContent;
   printerId?: string;
   copies: number;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
+  priority: "low" | "normal" | "high" | "urgent";
   options: PrintOptions;
   createdAt: Date;
-  status: 'pending' | 'printing' | 'completed' | 'failed';
+  status: "pending" | "printing" | "completed" | "failed";
   completedAt?: Date;
   error?: string;
 }
 
 export interface PrintContent {
-  type: 'receipt' | 'label' | 'kitchen' | 'report' | 'custom';
+  type: "receipt" | "label" | "kitchen" | "report" | "custom";
   data: any;
   template?: string;
   templateData?: Record<string, any>;
@@ -152,12 +158,12 @@ export interface PrintOptions {
   footer?: string;
   logoBase64?: string;
   width?: number; // mm
-  quality: 'draft' | 'normal' | 'high';
-  encoding: 'utf-8' | 'cp864' | 'cp1256';
+  quality: "draft" | "normal" | "high";
+  encoding: "utf-8" | "cp864" | "cp1256";
 }
 
 export interface CashDrawerEvent {
-  type: 'open' | 'close' | 'status_changed' | 'error';
+  type: "open" | "close" | "status_changed" | "error";
   drawerId: string;
   timestamp: Date;
   expectedAmount?: number;
@@ -178,13 +184,22 @@ export interface BarcodeScanResult {
 }
 
 export interface CustomerDisplayMessage {
-  type: 'welcome' | 'item_added' | 'subtotal' | 'total' | 'payment' | 'change' | 'thank_you' | 'custom' | 'advertisement';
+  type:
+    | "welcome"
+    | "item_added"
+    | "subtotal"
+    | "total"
+    | "payment"
+    | "change"
+    | "thank_you"
+    | "custom"
+    | "advertisement";
   lines: string[];
   amount?: number;
   currency?: string;
   duration?: number;
-  alignment?: 'left' | 'center' | 'right';
-  fontSize?: 'small' | 'medium' | 'large';
+  alignment?: "left" | "center" | "right";
+  fontSize?: "small" | "medium" | "large";
   showLogo?: boolean;
   logoBase64?: string;
   backgroundColor?: string;
@@ -192,7 +207,17 @@ export interface CustomerDisplayMessage {
 }
 
 export interface PaymentTerminalEvent {
-  type: 'transaction_started' | 'card_inserted' | 'pin_entry' | 'contactless_tap' | 'processing' | 'approved' | 'declined' | 'cancelled' | 'error' | 'timeout';
+  type:
+    | "transaction_started"
+    | "card_inserted"
+    | "pin_entry"
+    | "contactless_tap"
+    | "processing"
+    | "approved"
+    | "declined"
+    | "cancelled"
+    | "error"
+    | "timeout";
   terminalId: string;
   transactionId?: string;
   amount?: number;
@@ -231,14 +256,21 @@ export interface DeviceManagerEvents {
   onDeviceConnected: (device: HardwareDevice) => void;
   onDeviceDisconnected: (deviceId: string) => void;
   onDeviceError: (deviceId: string, error: string) => void;
-  onPrintJobStatus: (jobId: string, status: PrintJob['status'], error?: string) => void;
+  onPrintJobStatus: (
+    jobId: string,
+    status: PrintJob["status"],
+    error?: string
+  ) => void;
   onPrintJobProgress: (jobId: string, progress: number) => void;
   onCashDrawerEvent: (event: CashDrawerEvent) => void;
   onBarcodeScan: (result: BarcodeScanResult) => void;
   onCustomerDisplayUpdate: (message: CustomerDisplayMessage) => void;
   onPaymentTerminalEvent: (event: PaymentTerminalEvent) => void;
   onScaleReading: (reading: ScaleReading) => void;
-  onDeviceStatusChange: (deviceId: string, status: HardwareDevice['status']) => void;
+  onDeviceStatusChange: (
+    deviceId: string,
+    status: HardwareDevice["status"]
+  ) => void;
 }
 
 export class HardwareManager {
@@ -270,7 +302,7 @@ export class HardwareManager {
     // Generic ESC/POS Printer Driver
     class GenericESCPOSPrinterDriver implements PrinterDriver {
       async connect(device: HardwareDevice): Promise<void> {
-        console.log('Connecting to printer:', device.name);
+        console.log("Connecting to printer:", device.name);
       }
       async disconnect(device: HardwareDevice): Promise<void> {}
       async print(job: PrintJob, device: HardwareDevice): Promise<void> {
@@ -288,38 +320,62 @@ export class HardwareManager {
         );
       }
       async getStatus(device: HardwareDevice): Promise<PrinterStatus> {
-        return { online: true, paperStatus: 'ok', coverOpen: false, paperJam: false };
+        return {
+          online: true,
+          paperStatus: "ok",
+          coverOpen: false,
+          paperJam: false,
+        };
       }
-      async supportsReceiptPrinting(): Promise<boolean> { return true; }
-      supportsLabelPrinting(): boolean { return false; }
-      getSupportedPaperSizes(): string[] { return ['58mm', '80mm']; }
-      
+      async supportsReceiptPrinting(): Promise<boolean> {
+        return true;
+      }
+      supportsLabelPrinting(): boolean {
+        return false;
+      }
+      getSupportedPaperSizes(): string[] {
+        return ["58mm", "80mm"];
+      }
+
       private buildReceiptData(job: PrintJob): Uint8Array {
-        const ESC = 0x1B;
-        const GS = 0x1D;
+        const ESC = 0x1b;
+        const GS = 0x1d;
         const commands: number[] = [
-          ESC, 0x40, // Init
-          ESC, 0x61, 0x01, // Center align
+          ESC,
+          0x40, // Init
+          ESC,
+          0x61,
+          0x01, // Center align
         ];
         // Add header
         if (job.options.header) {
-          commands.push(...new TextEncoder().encode(job.options.header + '\n'));
+          commands.push(...new TextEncoder().encode(job.options.header + "\n"));
         }
         // Add items
         if (job.content.data.items) {
           for (const item of job.content.data.items) {
-            commands.push(...new TextEncoder().encode(`${item.productName} x${item.quantity} ${item.unitPrice}\n`));
+            commands.push(
+              ...new TextEncoder().encode(
+                `${item.productName} x${item.quantity} ${item.unitPrice}\n`
+              )
+            );
           }
         }
         // Add total
         if (job.content.data.totals) {
           commands.push(ESC, 0x45, 0x01); // Bold on
-          commands.push(...new TextEncoder().encode(`Total: ${job.content.data.totals.total}\n`));
+          commands.push(
+            ...new TextEncoder().encode(
+              `Total: ${job.content.data.totals.total}\n`
+            )
+          );
           commands.push(ESC, 0x45, 0x00); // Bold off
         }
         // Add footer
         if (job.options.footer) {
-          commands.push(...new TextEncoder().encode('\n' + job.options.footer + '\n'));
+          commands.push(
+            ...new TextEncoder().encode("\n" + job.options.footer + "\n")
+          );
         }
         // Cut paper
         if (job.options.cutPaper) {
@@ -341,12 +397,11 @@ export class HardwareManager {
         // bytes to the printer socket. The /print endpoint is the documented
         // local-bridge contract.
         const bridge =
-          (device.config as any).bridgeUrl ||
-          `http://${ip}:${port}`;
+          (device.config as any).bridgeUrl || `http://${ip}:${port}`;
         const res = await fetch(`${bridge}/print`, {
-          method: 'POST',
+          method: "POST",
           body: data as unknown as BodyInit,
-          headers: { 'Content-Type': 'application/octet-stream' },
+          headers: { "Content-Type": "application/octet-stream" },
         });
         if (!res.ok) {
           throw new Error(`Network print failed: HTTP ${res.status}`);
@@ -357,14 +412,15 @@ export class HardwareManager {
     // WebUSB Printer Driver
     class WebUSBPrinterDriver extends GenericESCPOSPrinterDriver {
       async printRaw(device: HardwareDevice, data: Uint8Array): Promise<void> {
-        if (!('usb' in navigator)) return;
+        if (!("usb" in navigator)) return;
         const navUsb = (navigator as any).usb;
         try {
           let usbDevice = null;
           const all = await navUsb.getDevices();
           usbDevice =
-            (all || []).find((d: any) => d.serialNumber === device.devicePath) ||
-            null;
+            (all || []).find(
+              (d: any) => d.serialNumber === device.devicePath
+            ) || null;
           if (!usbDevice && (device as any).usbDevice) {
             usbDevice = (device as any).usbDevice;
           }
@@ -375,12 +431,13 @@ export class HardwareManager {
           if (iface && !(iface.claimed || iface.isClaimed)) {
             await usbDevice.claimInterface(iface.interfaceNumber ?? 0);
           }
-          const ep =
-            iface?.alternate?.endpoints?.find((e: any) => e.direction === 'out');
+          const ep = iface?.alternate?.endpoints?.find(
+            (e: any) => e.direction === "out"
+          );
           await usbDevice.transferOut(ep?.endpointNumber ?? 1, data);
           await usbDevice.close();
         } catch (e) {
-          console.error('WebUSB print failed:', e);
+          console.error("WebUSB print failed:", e);
           throw e;
         }
       }
@@ -391,9 +448,9 @@ export class HardwareManager {
       async connect(device: HardwareDevice): Promise<void> {}
       async disconnect(device: HardwareDevice): Promise<void> {}
       async openDrawer(device: HardwareDevice): Promise<void> {
-        console.log('Opening cash drawer:', device.name);
+        console.log("Opening cash drawer:", device.name);
         // Send drawer kick command (ESC/POS: ESC p 0 25 250)
-        const ESC = 0x1B;
+        const ESC = 0x1b;
         const kickCommand = new Uint8Array([ESC, 0x70, 0x00, 25, 250]);
         // For printer-port connected drawers, the printer driver should handle this
         // This is a simplified implementation
@@ -402,7 +459,9 @@ export class HardwareManager {
       async getDrawerStatus(device: HardwareDevice): Promise<CashDrawerStatus> {
         return { open: false, locked: false, sensorWorking: true };
       }
-      async getCashAmount?(device: HardwareDevice): Promise<number> { return 0; }
+      async getCashAmount?(device: HardwareDevice): Promise<number> {
+        return 0;
+      }
     }
 
     class PrinterPortCashDrawerDriver extends GenericCashDrawerDriver {}
@@ -411,11 +470,14 @@ export class HardwareManager {
     // Barcode Scanner Drivers
     class GenericBarcodeScannerDriver implements BarcodeScannerDriver {
       private scanHandler?: (result: BarcodeScanResult) => void;
-      
+
       async connect(device: HardwareDevice): Promise<void> {}
       async disconnect(device: HardwareDevice): Promise<void> {}
-      async startScanning(device: HardwareDevice, options?: ScanOptions): Promise<void> {
-        console.log('Starting barcode scanner:', device.name);
+      async startScanning(
+        device: HardwareDevice,
+        options?: ScanOptions
+      ): Promise<void> {
+        console.log("Starting barcode scanner:", device.name);
         // For HID scanners, they act as keyboard input
         // For camera-based, we'd use the camera API
       }
@@ -426,9 +488,21 @@ export class HardwareManager {
       offScan(handler: (result: BarcodeScanResult) => void): void {
         if (this.scanHandler === handler) this.scanHandler = undefined;
       }
-      getSupportedFormats(): BarcodeFormat[] { return ['ean13', 'ean8', 'upc', 'code128', 'code39', 'qr'] as BarcodeFormat[]; }
-      async setScanMode(device: HardwareDevice, mode: 'trigger' | 'continuous' | 'presentation'): Promise<void> {}
-      
+      getSupportedFormats(): BarcodeFormat[] {
+        return [
+          "ean13",
+          "ean8",
+          "upc",
+          "code128",
+          "code39",
+          "qr",
+        ] as BarcodeFormat[];
+      }
+      async setScanMode(
+        device: HardwareDevice,
+        mode: "trigger" | "continuous" | "presentation"
+      ): Promise<void> {}
+
       // Simulate a scan for testing
       simulateScan(value: string, format: string, deviceId: string) {
         if (this.scanHandler) {
@@ -449,19 +523,38 @@ export class HardwareManager {
     class GenericDisplayDriver implements CustomerDisplayDriver {
       async connect(device: HardwareDevice): Promise<void> {}
       async disconnect(device: HardwareDevice): Promise<void> {}
-      async showMessage(device: HardwareDevice, message: CustomerDisplayMessage): Promise<void> {
-        console.log('Display message:', message);
+      async showMessage(
+        device: HardwareDevice,
+        message: CustomerDisplayMessage
+      ): Promise<void> {
+        console.log("Display message:", message);
       }
       async clear(device: HardwareDevice): Promise<void> {}
-      async setBrightness(device: HardwareDevice, level: number): Promise<void> {}
-      async showCustom(device: HardwareDevice, lines: string[], options?: DisplayOptions): Promise<void> {}
-      async showAdvertisement(device: HardwareDevice, imageBase64: string, duration: number): Promise<void> {}
+      async setBrightness(
+        device: HardwareDevice,
+        level: number
+      ): Promise<void> {}
+      async showCustom(
+        device: HardwareDevice,
+        lines: string[],
+        options?: DisplayOptions
+      ): Promise<void> {}
+      async showAdvertisement(
+        device: HardwareDevice,
+        imageBase64: string,
+        duration: number
+      ): Promise<void> {}
     }
 
     class WebDisplayDriver extends GenericDisplayDriver {
-      async showMessage(device: HardwareDevice, message: CustomerDisplayMessage): Promise<void> {
+      async showMessage(
+        device: HardwareDevice,
+        message: CustomerDisplayMessage
+      ): Promise<void> {
         // Emit event for web-based display
-        window.dispatchEvent(new CustomEvent('pos:display', { detail: message }));
+        window.dispatchEvent(
+          new CustomEvent("pos:display", { detail: message })
+        );
       }
     }
 
@@ -469,31 +562,59 @@ export class HardwareManager {
     class GenericPinPadDriver implements PinPadDriver {
       async connect(device: HardwareDevice): Promise<void> {}
       async disconnect(device: HardwareDevice): Promise<void> {}
-      async processPayment(device: HardwareDevice, amount: number, currency: string, options: any): Promise<PaymentTerminalEvent> {
-        console.log('Processing payment:', amount, currency);
+      async processPayment(
+        device: HardwareDevice,
+        amount: number,
+        currency: string,
+        options: any
+      ): Promise<PaymentTerminalEvent> {
+        console.log("Processing payment:", amount, currency);
         // Simulate approval for testing
         return {
-          type: 'approved',
+          type: "approved",
           terminalId: device.id,
-          transactionId: 'TXN-' + Date.now(),
+          transactionId: "TXN-" + Date.now(),
           amount,
           currency,
-          cardType: 'Visa',
-          maskedPan: '**** **** **** 1234',
-          authCode: 'AUTH' + Math.random().toString(36).substr(2, 6).toUpperCase(),
-          referenceNumber: 'REF' + Date.now(),
-          receiptData: 'Receipt data',
+          cardType: "Visa",
+          maskedPan: "**** **** **** 1234",
+          authCode:
+            "AUTH" + Math.random().toString(36).substr(2, 6).toUpperCase(),
+          referenceNumber: "REF" + Date.now(),
+          receiptData: "Receipt data",
           timestamp: new Date(),
         };
       }
-      async refund(device: HardwareDevice, amount: number, currency: string, originalTransactionId: string): Promise<PaymentTerminalEvent> {
-        return { type: 'approved', terminalId: device.id, amount, currency, timestamp: new Date() };
+      async refund(
+        device: HardwareDevice,
+        amount: number,
+        currency: string,
+        originalTransactionId: string
+      ): Promise<PaymentTerminalEvent> {
+        return {
+          type: "approved",
+          terminalId: device.id,
+          amount,
+          currency,
+          timestamp: new Date(),
+        };
       }
-      async voidTransaction(device: HardwareDevice, transactionId: string): Promise<PaymentTerminalEvent> {
-        return { type: 'cancelled', terminalId: device.id, timestamp: new Date() };
+      async voidTransaction(
+        device: HardwareDevice,
+        transactionId: string
+      ): Promise<PaymentTerminalEvent> {
+        return {
+          type: "cancelled",
+          terminalId: device.id,
+          timestamp: new Date(),
+        };
       }
-      async getBatteryLevel(device: HardwareDevice): Promise<number> { return 100; }
-      async getSignalStrength(device: HardwareDevice): Promise<number> { return 100; }
+      async getBatteryLevel(device: HardwareDevice): Promise<number> {
+        return 100;
+      }
+      async getSignalStrength(device: HardwareDevice): Promise<number> {
+        return 100;
+      }
     }
 
     class WebPinPadDriver extends GenericPinPadDriver {}
@@ -501,15 +622,26 @@ export class HardwareManager {
     // Scale Drivers
     class GenericScaleDriver implements ScaleDriver {
       private weightHandler?: (reading: ScaleReading) => void;
-      
+
       async connect(device: HardwareDevice): Promise<void> {}
       async disconnect(device: HardwareDevice): Promise<void> {}
       async readWeight(device: HardwareDevice): Promise<ScaleReading> {
-        return { weight: 0, unit: 'kg', stable: true, overload: false, underload: false, timestamp: new Date(), deviceId: device.id };
+        return {
+          weight: 0,
+          unit: "kg",
+          stable: true,
+          overload: false,
+          underload: false,
+          timestamp: new Date(),
+          deviceId: device.id,
+        };
       }
       async tare(device: HardwareDevice): Promise<void> {}
       async zero(device: HardwareDevice): Promise<void> {}
-      async calibrate(device: HardwareDevice, knownWeight: number): Promise<void> {}
+      async calibrate(
+        device: HardwareDevice,
+        knownWeight: number
+      ): Promise<void> {}
       async setUnit(device: HardwareDevice, unit: string): Promise<void> {}
       onWeightChange(handler: (reading: ScaleReading) => void): void {
         this.weightHandler = handler;
@@ -523,22 +655,28 @@ export class HardwareManager {
     class NetworkScaleDriver extends GenericScaleDriver {}
 
     // Register all drivers
-    this.registerPrinterDriver('generic_escpos', new GenericESCPOSPrinterDriver());
-    this.registerPrinterDriver('network', new NetworkPrinterDriver());
-    this.registerPrinterDriver('webusb', new WebUSBPrinterDriver());
+    this.registerPrinterDriver(
+      "generic_escpos",
+      new GenericESCPOSPrinterDriver()
+    );
+    this.registerPrinterDriver("network", new NetworkPrinterDriver());
+    this.registerPrinterDriver("webusb", new WebUSBPrinterDriver());
 
-    this.registerCashDrawerDriver('printer_port', new PrinterPortCashDrawerDriver());
-    this.registerCashDrawerDriver('network', new NetworkCashDrawerDriver());
+    this.registerCashDrawerDriver(
+      "printer_port",
+      new PrinterPortCashDrawerDriver()
+    );
+    this.registerCashDrawerDriver("network", new NetworkCashDrawerDriver());
 
-    this.registerScannerDriver('hid', new HIDBarcodeScannerDriver());
-    this.registerScannerDriver('camera', new CameraBarcodeScannerDriver());
+    this.registerScannerDriver("hid", new HIDBarcodeScannerDriver());
+    this.registerScannerDriver("camera", new CameraBarcodeScannerDriver());
 
-    this.registerDisplayDriver('web', new WebDisplayDriver());
+    this.registerDisplayDriver("web", new WebDisplayDriver());
 
-    this.registerPinPadDriver('web', new WebPinPadDriver());
+    this.registerPinPadDriver("web", new WebPinPadDriver());
 
-    this.registerScaleDriver('generic_hid', new HIDScaleDriver());
-    this.registerScaleDriver('network', new NetworkScaleDriver());
+    this.registerScaleDriver("generic_hid", new HIDScaleDriver());
+    this.registerScaleDriver("network", new NetworkScaleDriver());
   }
 
   // Driver registration
@@ -571,7 +709,7 @@ export class HardwareManager {
     const devices: HardwareDevice[] = [];
 
     // WebUSB devices
-    if ('usb' in navigator) {
+    if ("usb" in navigator) {
       try {
         const devices = await (navigator as any).usb.getDevices();
         for (const device of devices) {
@@ -579,22 +717,22 @@ export class HardwareManager {
           if (hwDevice) devices.push(hwDevice);
         }
       } catch (e) {
-        console.warn('WebUSB not available or permission denied:', e);
+        console.warn("WebUSB not available or permission denied:", e);
       }
     }
 
     // WebBluetooth devices
-    if ('bluetooth' in navigator) {
+    if ("bluetooth" in navigator) {
       try {
         // We can't enumerate paired devices without user gesture
         // But we can listen for advertisements if permitted
       } catch (e) {
-        console.warn('WebBluetooth not available:', e);
+        console.warn("WebBluetooth not available:", e);
       }
     }
 
     // WebSerial devices
-    if ('serial' in navigator) {
+    if ("serial" in navigator) {
       try {
         const ports = await (navigator as any).serial.getPorts();
         for (const port of ports) {
@@ -602,7 +740,7 @@ export class HardwareManager {
           if (device) devices.push(device);
         }
       } catch (e) {
-        console.warn('WebSerial not available:', e);
+        console.warn("WebSerial not available:", e);
       }
     }
 
@@ -625,99 +763,103 @@ export class HardwareManager {
     return devices;
   }
 
-  private async createDeviceFromUSB(device: any): Promise<HardwareDevice | null> {
+  private async createDeviceFromUSB(
+    device: any
+  ): Promise<HardwareDevice | null> {
     try {
       const deviceInfo = {
-        id: `usb_${device.vendorId}_${device.productId}_${device.serialNumber || 'unknown'}`,
+        id: `usb_${device.vendorId}_${device.productId}_${device.serialNumber || "unknown"}`,
         type: this.guessDeviceType(device),
         name: device.productName || `USB Device ${device.productId}`,
-        connectionType: 'usb' as const,
+        connectionType: "usb" as const,
         vendorId: device.vendorId,
         productId: device.productId,
         serialNumber: device.serialNumber,
         capabilities: await this.probeCapabilities(device),
-        status: 'connected' as const,
+        status: "connected" as const,
         lastSeen: new Date(),
         config: this.config.get(this.generateConfigKey(device)) || {
-          scanMode: 'trigger',
+          scanMode: "trigger",
           beepEnabled: true,
           vibrationEnabled: true,
-          displayMode: 'text',
+          displayMode: "text",
           brightness: 100,
           timeout: 30000,
           showAds: false,
-          terminalId: '',
-          merchantId: '',
+          terminalId: "",
+          merchantId: "",
           supportedCardSchemes: [],
           contactlessLimit: 0,
-          defaultUnit: 'kg',
+          defaultUnit: "kg",
           tareEnabled: true,
           autoZero: true,
         },
       };
-      return await this.openAndInitialize(device) ? deviceInfo : null;
+      return (await this.openAndInitialize(device)) ? deviceInfo : null;
     } catch (e) {
-      console.warn('Failed to create device from USB:', e);
+      console.warn("Failed to create device from USB:", e);
       return null;
     }
   }
 
-  private guessDeviceType(device: any): HardwareDevice['type'] {
+  private guessDeviceType(device: any): HardwareDevice["type"] {
     const classCode = device.deviceClass || device.classCode;
     // USB Class codes
-    if (classCode === 0x07) return 'printer'; // Printer class
-    if (classCode === 0x08) return 'barcode_scanner'; // Mass storage (often used by scanners)
-    if (classCode === 0x03) return 'barcode_scanner'; // HID (keyboard wedge scanners)
-    if (classCode === 0x0B) return 'scale'; // Smart card (sometimes scales)
-    
+    if (classCode === 0x07) return "printer"; // Printer class
+    if (classCode === 0x08) return "barcode_scanner"; // Mass storage (often used by scanners)
+    if (classCode === 0x03) return "barcode_scanner"; // HID (keyboard wedge scanners)
+    if (classCode === 0x0b) return "scale"; // Smart card (sometimes scales)
+
     // Check by vendor/product
     const vendorId = device.vendorId;
     const productId = device.productId;
-    
+
     // Known vendor IDs
-    const printerVendors = [0x04B8, 0x0519, 0x04E8, 0x04F9, 0x0DD4]; // Epson, Star, Bixolon, Custom
-    const scannerVendors = [0x05E0, 0x0C2E, 0x1A86, 0x05C0, 0x216F]; // Symbol, Metrologic, Honeywell, Datalogic, Newland
-    const scaleVendors = [0x0EB8, 0x0BA2, 0x0F9D]; // CAS, Bizerba, Mettler
-    
-    if (printerVendors.includes(vendorId)) return 'printer';
-    if (scannerVendors.includes(vendorId)) return 'barcode_scanner';
-    if (scaleVendors.includes(vendorId)) return 'scale';
-    
-    return 'printer'; // Default to printer
+    const printerVendors = [0x04b8, 0x0519, 0x04e8, 0x04f9, 0x0dd4]; // Epson, Star, Bixolon, Custom
+    const scannerVendors = [0x05e0, 0x0c2e, 0x1a86, 0x05c0, 0x216f]; // Symbol, Metrologic, Honeywell, Datalogic, Newland
+    const scaleVendors = [0x0eb8, 0x0ba2, 0x0f9d]; // CAS, Bizerba, Mettler
+
+    if (printerVendors.includes(vendorId)) return "printer";
+    if (scannerVendors.includes(vendorId)) return "barcode_scanner";
+    if (scaleVendors.includes(vendorId)) return "scale";
+
+    return "printer"; // Default to printer
   }
 
-  private async createDeviceFromSerialPort(port: any): Promise<HardwareDevice | null> {
+  private async createDeviceFromSerialPort(
+    port: any
+  ): Promise<HardwareDevice | null> {
     try {
       const deviceInfo: HardwareDevice = {
-        id: `serial_${port.getInfo?.().usbVendorId || 'unknown'}_${port.getInfo?.().usbProductId || 'unknown'}`,
-        type: 'printer', // Default, could be detected
-        name: `Serial Device ${port.getInfo?.().usbProductId || ''}`,
-        connectionType: 'serial' as const,
+        id: `serial_${port.getInfo?.().usbVendorId || "unknown"}_${port.getInfo?.().usbProductId || "unknown"}`,
+        type: "printer", // Default, could be detected
+        name: `Serial Device ${port.getInfo?.().usbProductId || ""}`,
+        connectionType: "serial" as const,
         vendorId: port.getInfo?.().usbVendorId,
         productId: port.getInfo?.().usbProductId,
         capabilities: {},
-        status: 'connected' as const,
+        status: "connected" as const,
         lastSeen: new Date(),
         config: {
-          scanMode: 'trigger',
+          scanMode: "trigger",
           beepEnabled: true,
           vibrationEnabled: true,
-          displayMode: 'text',
+          displayMode: "text",
           brightness: 100,
           timeout: 30000,
           showAds: false,
-          terminalId: '',
-          merchantId: '',
+          terminalId: "",
+          merchantId: "",
           supportedCardSchemes: [],
           contactlessLimit: 0,
-          defaultUnit: 'kg',
+          defaultUnit: "kg",
           tareEnabled: true,
           autoZero: true,
         },
       };
       return deviceInfo;
     } catch (e) {
-      console.warn('Failed to create device from serial port:', e);
+      console.warn("Failed to create device from serial port:", e);
       return null;
     }
   }
@@ -726,8 +868,8 @@ export class HardwareManager {
     // Probe device capabilities based on vendor/product ID
     const caps: DeviceCapabilities = {};
     const vendorId = device.vendorId;
-    
-    if (vendorId === 0x04B8 || vendorId === 0x0519 || vendorId === 0x04E8) {
+
+    if (vendorId === 0x04b8 || vendorId === 0x0519 || vendorId === 0x04e8) {
       caps.canPrintReceipt = true;
       caps.canCutPaper = true;
       caps.printWidth = 80;
@@ -749,12 +891,15 @@ export class HardwareManager {
     // This would typically use a library like bonjour or mdns
     // For now, we'll check known IPs from config
     for (const [deviceId, config] of this.config) {
-      if (config.connectionType === 'network' && config.ipAddress) {
+      if (config.connectionType === "network" && config.ipAddress) {
         try {
-          const response = await fetch(`http://${config.ipAddress}:${config.port || 9100}/status`, {
-            method: 'GET',
-            signal: AbortSignal.timeout(2000)
-          });
+          const response = await fetch(
+            `http://${config.ipAddress}:${config.port || 9100}/status`,
+            {
+              method: "GET",
+              signal: AbortSignal.timeout(2000),
+            }
+          );
           if (response.ok) {
             const device = await this.createDeviceFromConfig(deviceId, config);
             if (device) devices.push(device);
@@ -767,18 +912,27 @@ export class HardwareManager {
   }
 
   // Hardware event system
-  on<K extends keyof DeviceManagerEvents>(event: K, handler: DeviceManagerEvents[K]) {
+  on<K extends keyof DeviceManagerEvents>(
+    event: K,
+    handler: DeviceManagerEvents[K]
+  ) {
     (this.eventHandlers as any)[event] = handler;
   }
 
-  off<K extends keyof DeviceManagerEvents>(event: K, handler: DeviceManagerEvents[K]) {
+  off<K extends keyof DeviceManagerEvents>(
+    event: K,
+    handler: DeviceManagerEvents[K]
+  ) {
     // Remove handler — if it matches the current one, clear it
     if ((this.eventHandlers as any)[event] === handler) {
       delete (this.eventHandlers as any)[event];
     }
   }
 
-  emit<K extends keyof DeviceManagerEvents>(event: K, ...args: Parameters<DeviceManagerEvents[K]>) {
+  emit<K extends keyof DeviceManagerEvents>(
+    event: K,
+    ...args: Parameters<DeviceManagerEvents[K]>
+  ) {
     const handler = (this.eventHandlers as any)[event];
     if (handler) handler(...args);
   }
@@ -789,24 +943,25 @@ export class HardwareManager {
     if (!device) throw new Error(`Device ${deviceId} not found`);
 
     const driver = this.getDriverForDevice(device);
-    if (!driver) throw new Error(`No driver for device ${device.type} (${device.name})`);
+    if (!driver)
+      throw new Error(`No driver for device ${device.type} (${device.name})`);
 
-    device.status = 'initializing';
-    this.emit('onDeviceStatusChange', device.id, 'initializing');
+    device.status = "initializing";
+    this.emit("onDeviceStatusChange", device.id, "initializing");
 
     try {
       await driver.connect(device);
-      device.status = 'connected';
+      device.status = "connected";
       device.lastSeen = new Date();
-      
+
       // Start monitoring
       this.startDeviceMonitoring(device);
-      
-      this.emit('onDeviceConnected', device);
+
+      this.emit("onDeviceConnected", device);
       return device;
     } catch (error) {
-      device.status = 'error';
-      this.emit('onDeviceError', device.id, (error as Error).message);
+      device.status = "error";
+      this.emit("onDeviceError", device.id, (error as Error).message);
       throw error;
     }
   }
@@ -820,25 +975,31 @@ export class HardwareManager {
       await driver.disconnect(device);
     }
 
-    device.status = 'disconnected';
+    device.status = "disconnected";
     this.stopDeviceMonitoring(device);
-    this.emit('onDeviceDisconnected', deviceId);
+    this.emit("onDeviceDisconnected", deviceId);
   }
 
   private getDriverForDevice(device: HardwareDevice): DeviceDriver | null {
     switch (device.type) {
-      case 'printer':
-        return (this.printers.get(this.getDriverName(device)) || this.printers.get('generic_escpos')) as DeviceDriver | null;
-      case 'cash_drawer':
-        return (this.cashDrawers.get(this.getDriverName(device)) || this.cashDrawers.get('printer_port')) as DeviceDriver | null;
-      case 'barcode_scanner':
-        return (this.scanners.get(this.getDriverName(device)) || this.scanners.get('hid')) as DeviceDriver | null;
-      case 'customer_display':
-        return (this.displays.get(this.getDriverName(device)) || this.displays.get('generic_vfd')) as DeviceDriver | null;
-      case 'pin_pad':
-        return (this.pinPads.get(this.getDriverName(device)) || this.pinPads.get('web')) as DeviceDriver | null;
-      case 'scale':
-        return (this.scales.get(this.getDriverName(device)) || this.scales.get('generic_hid')) as DeviceDriver | null;
+      case "printer":
+        return (this.printers.get(this.getDriverName(device)) ||
+          this.printers.get("generic_escpos")) as DeviceDriver | null;
+      case "cash_drawer":
+        return (this.cashDrawers.get(this.getDriverName(device)) ||
+          this.cashDrawers.get("printer_port")) as DeviceDriver | null;
+      case "barcode_scanner":
+        return (this.scanners.get(this.getDriverName(device)) ||
+          this.scanners.get("hid")) as DeviceDriver | null;
+      case "customer_display":
+        return (this.displays.get(this.getDriverName(device)) ||
+          this.displays.get("generic_vfd")) as DeviceDriver | null;
+      case "pin_pad":
+        return (this.pinPads.get(this.getDriverName(device)) ||
+          this.pinPads.get("web")) as DeviceDriver | null;
+      case "scale":
+        return (this.scales.get(this.getDriverName(device)) ||
+          this.scales.get("generic_hid")) as DeviceDriver | null;
       default:
         return null;
     }
@@ -847,42 +1008,47 @@ export class HardwareManager {
   private getDriverName(device: HardwareDevice): string {
     // Determine driver based on device info
     const vendorId = device.vendorId?.toString(16);
-    if (vendorId === '04b8') return 'epson';
-    if (vendorId === '0519') return 'star';
-    if (vendorId === '04e8') return 'bixolon';
-    if (vendorId === '0dd4') return 'custom';
-    if (vendorId === '05e0' || device.vendorId === 0x0c2e) return 'honeywell';
-    if (vendorId === '1a86') return 'serial';
-    if (vendorId === '0eb8') return 'cas';
-    if (vendorId === '0ba2') return 'bizerba';
-    if (vendorId === '0f9d') return 'mettler_toledo';
-    if (vendorId === '05c0' || device.vendorId === 0x05c0) return 'datalogic';
-    if (vendorId === '04b8' && device.productId === 0x0e15) return 'epson';
-    return 'generic';
+    if (vendorId === "04b8") return "epson";
+    if (vendorId === "0519") return "star";
+    if (vendorId === "04e8") return "bixolon";
+    if (vendorId === "0dd4") return "custom";
+    if (vendorId === "05e0" || device.vendorId === 0x0c2e) return "honeywell";
+    if (vendorId === "1a86") return "serial";
+    if (vendorId === "0eb8") return "cas";
+    if (vendorId === "0ba2") return "bizerba";
+    if (vendorId === "0f9d") return "mettler_toledo";
+    if (vendorId === "05c0" || device.vendorId === 0x05c0) return "datalogic";
+    if (vendorId === "04b8" && device.productId === 0x0e15) return "epson";
+    return "generic";
   }
 
-  private async createDeviceFromConfig(deviceId: string, config: DeviceConfig): Promise<HardwareDevice | null> {
+  private async createDeviceFromConfig(
+    deviceId: string,
+    config: DeviceConfig
+  ): Promise<HardwareDevice | null> {
     // Create device object from stored config
     return {
       id: deviceId,
-      type: config.deviceType || 'printer',
-      name: config.name || 'Unknown Device',
-      connectionType: config.connectionType || 'usb',
+      type: config.deviceType || "printer",
+      name: config.name || "Unknown Device",
+      connectionType: config.connectionType || "usb",
       vendorId: config.vendorId,
       productId: config.productId,
       capabilities: config.capabilities || {},
-      status: 'disconnected',
+      status: "disconnected",
       lastSeen: new Date(),
       config: config,
     };
   }
 
   // Print queue management
-  async addPrintJob(jobData: Omit<PrintJob, 'id' | 'status' | 'createdAt'>): Promise<PrintJob> {
+  async addPrintJob(
+    jobData: Omit<PrintJob, "id" | "status" | "createdAt">
+  ): Promise<PrintJob> {
     const job: PrintJob = {
       ...jobData,
       id: crypto.randomUUID(),
-      status: 'pending',
+      status: "pending",
       createdAt: new Date(),
     };
     this.printQueue.push(job);
@@ -896,22 +1062,27 @@ export class HardwareManager {
 
     while (this.printQueue.length > 0) {
       const job = this.printQueue.shift()!;
-      job.status = 'printing';
-      this.emit('onPrintJobStatus', job.id, 'printing');
+      job.status = "printing";
+      this.emit("onPrintJobStatus", job.id, "printing");
 
       try {
         const printer = await this.getPrinterForJob(job);
-        if (!printer) throw new Error('No printer available');
+        if (!printer) throw new Error("No printer available");
 
         await printer.driver.print(job, printer.device);
-        job.status = 'completed';
+        job.status = "completed";
         job.completedAt = new Date();
-        this.emit('onPrintJobStatus', job.id, 'completed');
+        this.emit("onPrintJobStatus", job.id, "completed");
       } catch (error) {
-        job.status = 'failed';
+        job.status = "failed";
         job.error = (error as Error).message;
-        this.emit('onPrintJobStatus', job.id, 'failed', (error as Error).message);
-        
+        this.emit(
+          "onPrintJobStatus",
+          job.id,
+          "failed",
+          (error as Error).message
+        );
+
         // Retry logic
         if (job.copies > 1) {
           job.copies--;
@@ -940,7 +1111,7 @@ export class HardwareManager {
     }
     // Find default receipt printer
     for (const [id, device] of this.devices) {
-      if (device.type === 'printer' && device.status === 'connected') {
+      if (device.type === "printer" && device.status === "connected") {
         const driver = this.getPrinterDriver(device);
         if (driver && (await driver.supportsReceiptPrinting())) {
           return { driver, device };
@@ -951,33 +1122,48 @@ export class HardwareManager {
   }
 
   private getPrinterDriver(device: HardwareDevice): PrinterDriver | null {
-    return (this.printers.get(this.getDriverName(device)) || this.printers.get('generic_escpos')) as PrinterDriver | null;
+    return (this.printers.get(this.getDriverName(device)) ||
+      this.printers.get("generic_escpos")) as PrinterDriver | null;
   }
 
   private getCashDrawerDriver(device: HardwareDevice): CashDrawerDriver | null {
-    return (this.cashDrawers.get(this.getDriverName(device)) || this.cashDrawers.get('printer_port')) as CashDrawerDriver | null;
+    return (this.cashDrawers.get(this.getDriverName(device)) ||
+      this.cashDrawers.get("printer_port")) as CashDrawerDriver | null;
   }
 
-  private getScannerDriver(device: HardwareDevice): BarcodeScannerDriver | null {
-    return (this.scanners.get(this.getDriverName(device)) || this.scanners.get('hid')) as BarcodeScannerDriver | null;
+  private getScannerDriver(
+    device: HardwareDevice
+  ): BarcodeScannerDriver | null {
+    return (this.scanners.get(this.getDriverName(device)) ||
+      this.scanners.get("hid")) as BarcodeScannerDriver | null;
   }
 
-  private getDisplayDriver(device: HardwareDevice): CustomerDisplayDriver | null {
-    return (this.displays.get(this.getDriverName(device)) || this.displays.get('generic_vfd')) as CustomerDisplayDriver | null;
+  private getDisplayDriver(
+    device: HardwareDevice
+  ): CustomerDisplayDriver | null {
+    return (this.displays.get(this.getDriverName(device)) ||
+      this.displays.get("generic_vfd")) as CustomerDisplayDriver | null;
   }
 
   private getPinPadDriver(device: HardwareDevice): PinPadDriver | null {
-    return (this.pinPads.get(this.getDriverName(device)) || this.pinPads.get('web')) as PinPadDriver | null;
+    return (this.pinPads.get(this.getDriverName(device)) ||
+      this.pinPads.get("web")) as PinPadDriver | null;
   }
 
   private getScaleDriver(device: HardwareDevice): ScaleDriver | null {
-    return (this.scales.get(this.getDriverName(device)) || this.scales.get('generic_hid')) as ScaleDriver | null;
+    return (this.scales.get(this.getDriverName(device)) ||
+      this.scales.get("generic_hid")) as ScaleDriver | null;
   }
 
   // Cash drawer management
-  async openCashDrawer(drawerId: string, userId: string, expectedAmount?: number, reason?: string): Promise<CashDrawerEvent> {
+  async openCashDrawer(
+    drawerId: string,
+    userId: string,
+    expectedAmount?: number,
+    reason?: string
+  ): Promise<CashDrawerEvent> {
     const device = this.devices.get(drawerId);
-    if (!device || device.type !== 'cash_drawer') {
+    if (!device || device.type !== "cash_drawer") {
       throw new Error(`Cash drawer ${drawerId} not found`);
     }
 
@@ -985,7 +1171,7 @@ export class HardwareManager {
     if (!driver) throw new Error(`No driver for cash drawer`);
 
     const event: CashDrawerEvent = {
-      type: 'open',
+      type: "open",
       drawerId,
       timestamp: new Date(),
       expectedAmount,
@@ -995,22 +1181,25 @@ export class HardwareManager {
 
     try {
       await driver.openDrawer(device);
-      event.actualAmount = await driver.getCashAmount?.(device) ?? expectedAmount;
-      event.discrepancy = expectedAmount ? (event.actualAmount || 0) - expectedAmount : undefined;
-      
-      this.emit('onCashDrawerEvent', event);
+      event.actualAmount =
+        (await driver.getCashAmount?.(device)) ?? expectedAmount;
+      event.discrepancy = expectedAmount
+        ? (event.actualAmount || 0) - expectedAmount
+        : undefined;
+
+      this.emit("onCashDrawerEvent", event);
       return event;
     } catch (error) {
-      event.type = 'error';
+      event.type = "error";
       (event as any).error = (error as Error).message;
-      this.emit('onCashDrawerEvent', event);
+      this.emit("onCashDrawerEvent", event);
       throw error;
     }
   }
 
   async closeCashDrawer(drawerId: string): Promise<void> {
     const device = this.devices.get(drawerId);
-    if (!device || device.type !== 'cash_drawer') return;
+    if (!device || device.type !== "cash_drawer") return;
 
     const driver = this.getCashDrawerDriver(this.devices.get(drawerId)!);
     if (driver) {
@@ -1019,9 +1208,12 @@ export class HardwareManager {
   }
 
   // Barcode scanning
-  async startBarcodeScanner(scannerId: string, options?: { mode?: 'trigger' | 'continuous'; formats?: string[] }): Promise<void> {
+  async startBarcodeScanner(
+    scannerId: string,
+    options?: { mode?: "trigger" | "continuous"; formats?: string[] }
+  ): Promise<void> {
     const device = this.devices.get(scannerId);
-    if (!device || device.type !== 'barcode_scanner') {
+    if (!device || device.type !== "barcode_scanner") {
       throw new Error(`Scanner ${scannerId} not found`);
     }
 
@@ -1044,9 +1236,12 @@ export class HardwareManager {
   }
 
   // Customer display
-  async updateCustomerDisplay(displayId: string, message: CustomerDisplayMessage): Promise<void> {
+  async updateCustomerDisplay(
+    displayId: string,
+    message: CustomerDisplayMessage
+  ): Promise<void> {
     const device = this.devices.get(displayId);
-    if (!device || device.type !== 'customer_display') return;
+    if (!device || device.type !== "customer_display") return;
 
     const driver = this.getDisplayDriver(this.devices.get(displayId)!);
     if (!driver) throw new Error(`No driver for display ${displayId}`);
@@ -1055,31 +1250,43 @@ export class HardwareManager {
   }
 
   private formatCurrency(amount: number, currency: string): string {
-    return new Intl.NumberFormat('ar-YE', { style: 'currency', currency }).format(amount);
+    return new Intl.NumberFormat("ar-YE", {
+      style: "currency",
+      currency,
+    }).format(amount);
   }
 
   showWelcomeMessage(displayId: string): Promise<void> {
     return this.updateCustomerDisplay(displayId, {
-      type: 'welcome',
-      lines: ['الحسينية لخدمات الأعمال', 'مرحباً بكم'],
+      type: "welcome",
+      lines: ["الحسينية لخدمات الأعمال", "مرحباً بكم"],
       duration: 0,
     });
   }
 
-  showItemAdded(displayId: string, itemName: string, price: number, currency: string): Promise<void> {
+  showItemAdded(
+    displayId: string,
+    itemName: string,
+    price: number,
+    currency: string
+  ): Promise<void> {
     return this.updateCustomerDisplay(displayId, {
-      type: 'item_added',
-      lines: ['تم إضافة:', itemName, this.formatCurrency(price, currency)],
+      type: "item_added",
+      lines: ["تم إضافة:", itemName, this.formatCurrency(price, currency)],
       amount: price,
       currency,
       duration: 3000,
     });
   }
 
-  showSubtotal(displayId: string, subtotal: number, currency: string): Promise<void> {
+  showSubtotal(
+    displayId: string,
+    subtotal: number,
+    currency: string
+  ): Promise<void> {
     return this.updateCustomerDisplay(displayId, {
-      type: 'subtotal',
-      lines: ['المجموع الفرعي:', this.formatCurrency(subtotal, currency)],
+      type: "subtotal",
+      lines: ["المجموع الفرعي:", this.formatCurrency(subtotal, currency)],
       amount: subtotal,
       currency,
       duration: 3000,
@@ -1088,17 +1295,22 @@ export class HardwareManager {
 
   showTotal(displayId: string, total: number, currency: string): Promise<void> {
     return this.updateCustomerDisplay(displayId, {
-      type: 'total',
-      lines: ['الإجمالي:', this.formatCurrency(total, currency)],
+      type: "total",
+      lines: ["الإجمالي:", this.formatCurrency(total, currency)],
       amount: total,
       currency,
       duration: 5000,
     });
   }
 
-  showPayment(displayId: string, amount: number, method: string, currency: string): Promise<void> {
+  showPayment(
+    displayId: string,
+    amount: number,
+    method: string,
+    currency: string
+  ): Promise<void> {
     return this.updateCustomerDisplay(displayId, {
-      type: 'payment',
+      type: "payment",
       lines: [`الدفع: ${method}`, this.formatCurrency(amount, currency)],
       amount,
       currency,
@@ -1106,10 +1318,14 @@ export class HardwareManager {
     });
   }
 
-  showChange(displayId: string, change: number, currency: string): Promise<void> {
+  showChange(
+    displayId: string,
+    change: number,
+    currency: string
+  ): Promise<void> {
     return this.updateCustomerDisplay(displayId, {
-      type: 'change',
-      lines: ['الباقي:', this.formatCurrency(change, currency)],
+      type: "change",
+      lines: ["الباقي:", this.formatCurrency(change, currency)],
       amount: change,
       currency,
       duration: 5000,
@@ -1118,8 +1334,8 @@ export class HardwareManager {
 
   showThankYou(displayId: string): Promise<void> {
     return this.updateCustomerDisplay(displayId, {
-      type: 'thank_you',
-      lines: ['شكراً لتعاملكم معنا', 'نتمنى لكم يوماً سعيداً'],
+      type: "thank_you",
+      lines: ["شكراً لتعاملكم معنا", "نتمنى لكم يوماً سعيداً"],
       duration: 5000,
     });
   }
@@ -1127,7 +1343,7 @@ export class HardwareManager {
   // Payment terminal
   async connectPaymentTerminal(terminalId: string): Promise<void> {
     const device = this.devices.get(terminalId);
-    if (!device || device.type !== 'pin_pad') {
+    if (!device || device.type !== "pin_pad") {
       throw new Error(`Payment terminal ${terminalId} not found`);
     }
 
@@ -1135,18 +1351,23 @@ export class HardwareManager {
     if (!driver) throw new Error(`No driver for payment terminal`);
 
     await driver.connect(device);
-    device.status = 'connected';
-    this.emit('onDeviceConnected', this.devices.get(terminalId)!);
+    device.status = "connected";
+    this.emit("onDeviceConnected", this.devices.get(terminalId)!);
   }
 
-  async processPayment(terminalId: string, amount: number, currency: string, options: {
-    reference?: string;
-    callbackUrl?: string;
-    tipAmount?: number;
-    cashback?: number;
-  } = {}): Promise<PaymentTerminalEvent> {
+  async processPayment(
+    terminalId: string,
+    amount: number,
+    currency: string,
+    options: {
+      reference?: string;
+      callbackUrl?: string;
+      tipAmount?: number;
+      cashback?: number;
+    } = {}
+  ): Promise<PaymentTerminalEvent> {
     const device = this.devices.get(terminalId);
-    if (!device || device.type !== 'pin_pad') {
+    if (!device || device.type !== "pin_pad") {
       throw new Error(`Payment terminal ${terminalId} not found`);
     }
 
@@ -1154,20 +1375,25 @@ export class HardwareManager {
     if (!driver) throw new Error(`No driver for payment terminal`);
 
     const event: PaymentTerminalEvent = {
-      type: 'transaction_started',
+      type: "transaction_started",
       terminalId,
       amount,
       currency,
       timestamp: new Date(),
     };
 
-    this.emit('onPaymentTerminalEvent', event);
+    this.emit("onPaymentTerminalEvent", event);
 
     try {
-      const result = await driver.processPayment(device, amount, currency, options);
-      
+      const result = await driver.processPayment(
+        device,
+        amount,
+        currency,
+        options
+      );
+
       const resultEvent: PaymentTerminalEvent = {
-        type: result.type === 'approved' ? 'approved' : 'declined',
+        type: result.type === "approved" ? "approved" : "declined",
         terminalId,
         transactionId: result.transactionId,
         amount,
@@ -1182,17 +1408,17 @@ export class HardwareManager {
         timestamp: new Date(),
       };
 
-      this.emit('onPaymentTerminalEvent', resultEvent);
+      this.emit("onPaymentTerminalEvent", resultEvent);
       return resultEvent;
     } catch (error) {
       const errorEvent: PaymentTerminalEvent = {
-        type: 'error',
+        type: "error",
         terminalId,
         errorCode: (error as Error).message,
         errorMessage: (error as Error).message,
         timestamp: new Date(),
       };
-      this.emit('onPaymentTerminalEvent', errorEvent);
+      this.emit("onPaymentTerminalEvent", errorEvent);
       throw error;
     }
   }
@@ -1200,22 +1426,24 @@ export class HardwareManager {
   // Scale integration
   async connectScale(scaleId: string): Promise<void> {
     const device = this.devices.get(scaleId);
-    if (!device || device.type !== 'scale') throw new Error(`Scale ${scaleId} not found`);
+    if (!device || device.type !== "scale")
+      throw new Error(`Scale ${scaleId} not found`);
 
     const driver = this.getScaleDriver(this.devices.get(scaleId)!);
     if (!driver) throw new Error(`No driver for scale ${scaleId}`);
     await driver.connect(device);
-    device.status = 'connected';
+    device.status = "connected";
 
     // Start continuous reading
     driver.onWeightChange((reading: ScaleReading) => {
-      this.emit('onScaleReading', reading);
+      this.emit("onScaleReading", reading);
     });
   }
 
   async readScale(scaleId: string): Promise<ScaleReading> {
     const device = this.devices.get(scaleId);
-    if (!device || device.type !== 'scale') throw new Error(`Scale ${scaleId} not found`);
+    if (!device || device.type !== "scale")
+      throw new Error(`Scale ${scaleId} not found`);
 
     const driver = this.getScaleDriver(this.devices.get(scaleId)!);
     if (!driver) throw new Error(`No driver for scale ${scaleId}`);
@@ -1224,7 +1452,8 @@ export class HardwareManager {
 
   async tareScale(scaleId: string): Promise<void> {
     const device = this.devices.get(scaleId);
-    if (!device || device.type !== 'scale') throw new Error(`Scale ${scaleId} not found`);
+    if (!device || device.type !== "scale")
+      throw new Error(`Scale ${scaleId} not found`);
 
     const driver = this.getScaleDriver(this.devices.get(scaleId)!);
     if (!driver) throw new Error(`No driver for scale ${scaleId}`);
@@ -1235,7 +1464,9 @@ export class HardwareManager {
   private offlineQueue: Map<string, OfflineQueueItem> = new Map();
   private syncInProgress = false;
 
-  queueForSync(itemData: Omit<OfflineQueueItem, 'id' | 'timestamp' | 'retries'>): string {
+  queueForSync(
+    itemData: Omit<OfflineQueueItem, "id" | "timestamp" | "retries">
+  ): string {
     const item: OfflineQueueItem = {
       ...itemData,
       id: crypto.randomUUID(),
@@ -1249,10 +1480,11 @@ export class HardwareManager {
 
   async processOfflineQueue(): Promise<void> {
     if (this.syncInProgress || this.offlineQueue.size === 0) return;
-    
+
     this.syncInProgress = true;
-    const items = Array.from(this.offlineQueue.values())
-      .sort((a, b) => a.timestamp - b.timestamp);
+    const items = Array.from(this.offlineQueue.values()).sort(
+      (a, b) => a.timestamp - b.timestamp
+    );
 
     for (const item of items) {
       if (item.retries >= item.maxRetries) {
@@ -1274,21 +1506,21 @@ export class HardwareManager {
 
   private async processQueueItem(item: OfflineQueueItem): Promise<void> {
     switch (item.type) {
-      case 'sale':
+      case "sale":
         // await this.submitSaleOffline(item.payload);
-        console.log('Process offline sale:', item.payload);
+        console.log("Process offline sale:", item.payload);
         break;
-      case 'return':
+      case "return":
         // await this.processReturnOffline(item.payload);
-        console.log('Process offline return:', item.payload);
+        console.log("Process offline return:", item.payload);
         break;
-      case 'payment':
+      case "payment":
         // await this.processPaymentOffline(item.payload);
-        console.log('Process offline payment:', item.payload);
+        console.log("Process offline payment:", item.payload);
         break;
-      case 'stock_adjustment':
+      case "stock_adjustment":
         // await this.adjustStockOffline(item.payload);
-        console.log('Process offline stock adjustment:', item.payload);
+        console.log("Process offline stock adjustment:", item.payload);
         break;
     }
   }
@@ -1303,15 +1535,15 @@ export class HardwareManager {
 
       try {
         const driver = this.getDriverForDevice(device);
-        if (driver && 'ping' in driver) {
+        if (driver && "ping" in driver) {
           const alive = await (driver as any).ping(device);
-          if (!alive && device.status === 'connected') {
-            device.status = 'disconnected';
-            this.emit('onDeviceDisconnected', device.id);
+          if (!alive && device.status === "connected") {
+            device.status = "disconnected";
+            this.emit("onDeviceDisconnected", device.id);
             this.scheduleReconnect(device.id);
-          } else if (alive && device.status === 'disconnected') {
-            device.status = 'connected';
-            this.emit('onDeviceConnected', device);
+          } else if (alive && device.status === "disconnected") {
+            device.status = "connected";
+            this.emit("onDeviceConnected", device);
           }
           device.lastSeen = new Date();
         }
@@ -1337,7 +1569,7 @@ export class HardwareManager {
     const timer = setTimeout(async () => {
       this.reconnectTimers.delete(deviceId);
       const device = this.devices.get(deviceId);
-      if (device && device.status === 'disconnected') {
+      if (device && device.status === "disconnected") {
         try {
           await this.connectDevice(deviceId);
         } catch (e) {
@@ -1354,7 +1586,7 @@ export class HardwareManager {
   async dispose(): Promise<void> {
     // Disconnect all devices
     for (const device of this.devices.values()) {
-      if (device.status === 'connected') {
+      if (device.status === "connected") {
         await this.disconnectDevice(device.id);
       }
     }
@@ -1400,7 +1632,7 @@ export interface PrinterDriver extends DeviceDriver {
 
 export interface PrinterStatus {
   online: boolean;
-  paperStatus: 'ok' | 'low' | 'out' | 'unknown';
+  paperStatus: "ok" | "low" | "out" | "unknown";
   coverOpen: boolean;
   paperJam: boolean;
   temperature?: number;
@@ -1420,9 +1652,16 @@ export interface CashDrawerStatus {
   sensorWorking: boolean;
 }
 
-export type BarcodeFormat = 
-  | 'ean13' | 'ean8' | 'upc' | 'code128' | 'code39' 
-  | 'qr' | 'datamatrix' | 'pdf417' | 'aztec';
+export type BarcodeFormat =
+  | "ean13"
+  | "ean8"
+  | "upc"
+  | "code128"
+  | "code39"
+  | "qr"
+  | "datamatrix"
+  | "pdf417"
+  | "aztec";
 
 export interface BarcodeScannerDriver extends DeviceDriver {
   startScanning(device: HardwareDevice, options?: ScanOptions): Promise<void>;
@@ -1430,11 +1669,14 @@ export interface BarcodeScannerDriver extends DeviceDriver {
   onScan(handler: (result: BarcodeScanResult) => void): void;
   offScan(handler: (result: BarcodeScanResult) => void): void;
   getSupportedFormats(): BarcodeFormat[];
-  setScanMode(device: HardwareDevice, mode: 'trigger' | 'continuous' | 'presentation'): Promise<void>;
+  setScanMode(
+    device: HardwareDevice,
+    mode: "trigger" | "continuous" | "presentation"
+  ): Promise<void>;
 }
 
 export interface ScanOptions {
-  mode?: 'trigger' | 'continuous' | 'presentation';
+  mode?: "trigger" | "continuous" | "presentation";
   formats?: BarcodeFormat[];
   beepEnabled?: boolean;
   vibrationEnabled?: boolean;
@@ -1443,16 +1685,27 @@ export interface ScanOptions {
 }
 
 export interface CustomerDisplayDriver extends DeviceDriver {
-  showMessage(device: HardwareDevice, message: CustomerDisplayMessage): Promise<void>;
+  showMessage(
+    device: HardwareDevice,
+    message: CustomerDisplayMessage
+  ): Promise<void>;
   clear(device: HardwareDevice): Promise<void>;
   setBrightness(device: HardwareDevice, level: number): Promise<void>;
-  showCustom(device: HardwareDevice, lines: string[], options?: DisplayOptions): Promise<void>;
-  showAdvertisement(device: HardwareDevice, imageBase64: string, duration: number): Promise<void>;
+  showCustom(
+    device: HardwareDevice,
+    lines: string[],
+    options?: DisplayOptions
+  ): Promise<void>;
+  showAdvertisement(
+    device: HardwareDevice,
+    imageBase64: string,
+    duration: number
+  ): Promise<void>;
 }
 
 export interface DisplayOptions {
-  alignment?: 'left' | 'center' | 'right';
-  fontSize?: 'small' | 'medium' | 'large';
+  alignment?: "left" | "center" | "right";
+  fontSize?: "small" | "medium" | "large";
   scroll?: boolean;
   scrollSpeed?: number;
   backgroundColor?: string;
@@ -1463,14 +1716,27 @@ export interface DisplayOptions {
 export interface PinPadDriver extends DeviceDriver {
   connect(device: HardwareDevice): Promise<void>;
   disconnect(device: HardwareDevice): Promise<void>;
-  processPayment(device: HardwareDevice, amount: number, currency: string, options: {
-    reference?: string;
-    callbackUrl?: string;
-    tipAmount?: number;
-    cashback?: number;
-  }): Promise<PaymentTerminalEvent>;
-  refund(device: HardwareDevice, amount: number, currency: string, originalTransactionId: string): Promise<PaymentTerminalEvent>;
-  voidTransaction(device: HardwareDevice, transactionId: string): Promise<PaymentTerminalEvent>;
+  processPayment(
+    device: HardwareDevice,
+    amount: number,
+    currency: string,
+    options: {
+      reference?: string;
+      callbackUrl?: string;
+      tipAmount?: number;
+      cashback?: number;
+    }
+  ): Promise<PaymentTerminalEvent>;
+  refund(
+    device: HardwareDevice,
+    amount: number,
+    currency: string,
+    originalTransactionId: string
+  ): Promise<PaymentTerminalEvent>;
+  voidTransaction(
+    device: HardwareDevice,
+    transactionId: string
+  ): Promise<PaymentTerminalEvent>;
   getBatteryLevel(device: HardwareDevice): Promise<number>;
   getSignalStrength(device: HardwareDevice): Promise<number>;
 }
@@ -1487,7 +1753,7 @@ export interface ScaleDriver extends DeviceDriver {
 
 export interface PrinterStatus {
   online: boolean;
-  paperStatus: 'ok' | 'low' | 'out' | 'unknown';
+  paperStatus: "ok" | "low" | "out" | "unknown";
   coverOpen: boolean;
   paperJam: boolean;
   temperature?: number;
@@ -1501,7 +1767,7 @@ export interface CashDrawerStatus {
 }
 
 export interface ScanOptions {
-  mode?: 'trigger' | 'continuous' | 'presentation';
+  mode?: "trigger" | "continuous" | "presentation";
   formats?: BarcodeFormat[];
   beepEnabled?: boolean;
   vibrationEnabled?: boolean;
@@ -1510,8 +1776,8 @@ export interface ScanOptions {
 }
 
 export interface DisplayOptions {
-  alignment?: 'left' | 'center' | 'right';
-  fontSize?: 'small' | 'medium' | 'large';
+  alignment?: "left" | "center" | "right";
+  fontSize?: "small" | "medium" | "large";
   scroll?: boolean;
   scrollSpeed?: number;
   backgroundColor?: string;
@@ -1520,7 +1786,17 @@ export interface DisplayOptions {
 }
 
 export interface PaymentTerminalEvent {
-  type: 'transaction_started' | 'card_inserted' | 'pin_entry' | 'contactless_tap' | 'processing' | 'approved' | 'declined' | 'cancelled' | 'error' | 'timeout';
+  type:
+    | "transaction_started"
+    | "card_inserted"
+    | "pin_entry"
+    | "contactless_tap"
+    | "processing"
+    | "approved"
+    | "declined"
+    | "cancelled"
+    | "error"
+    | "timeout";
   terminalId: string;
   transactionId?: string;
   amount?: number;

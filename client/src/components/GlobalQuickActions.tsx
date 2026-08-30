@@ -1,6 +1,14 @@
 import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { Plus, FileText, ShoppingCart, Package, BarChart3, X, Keyboard } from "lucide-react";
+import {
+  Plus,
+  FileText,
+  ShoppingCart,
+  Package,
+  BarChart3,
+  X,
+  Keyboard,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 /**
@@ -10,10 +18,38 @@ import { Button } from "@/components/ui/button";
  * - a11y: aria-label، تركيز مرئي، إغلاق بـ Escape
  */
 const QUICK_ACTIONS = [
-  { key: "tx", label: "قيد سريع — إنشاء مباشر", icon: FileText, path: "/accounting?new=tx", accent: "bg-brand text-ink", shortcut: "Ctrl+N" },
-  { key: "sale", label: "فاتورة مبيعات — إنشاء مباشر", icon: ShoppingCart, path: "/commercial?new=sale", accent: "bg-emerald-600 text-white", shortcut: "Ctrl+Shift+S" },
-  { key: "purchase", label: "فاتورة مشتريات — إنشاء مباشر", icon: Package, path: "/commercial?new=purchase", accent: "bg-sky-700 text-white", shortcut: "Ctrl+Shift+P" },
-  { key: "report", label: "التقارير — عرض فوري", icon: BarChart3, path: "/reports", accent: "bg-ink text-white", shortcut: "Ctrl+R" },
+  {
+    key: "tx",
+    label: "قيد سريع — إنشاء مباشر",
+    icon: FileText,
+    path: "/accounting?new=tx",
+    accent: "bg-brand text-ink",
+    shortcut: "Ctrl+N",
+  },
+  {
+    key: "sale",
+    label: "فاتورة مبيعات — إنشاء مباشر",
+    icon: ShoppingCart,
+    path: "/commercial?new=sale",
+    accent: "bg-emerald-600 text-white",
+    shortcut: "Ctrl+Shift+S",
+  },
+  {
+    key: "purchase",
+    label: "فاتورة مشتريات — إنشاء مباشر",
+    icon: Package,
+    path: "/commercial?new=purchase",
+    accent: "bg-sky-700 text-white",
+    shortcut: "Ctrl+Shift+P",
+  },
+  {
+    key: "report",
+    label: "التقارير — عرض فوري",
+    icon: BarChart3,
+    path: "/reports",
+    accent: "bg-ink text-white",
+    shortcut: "Ctrl+R",
+  },
 ] as const;
 
 export function GlobalQuickActions() {
@@ -27,15 +63,27 @@ export function GlobalQuickActions() {
         e.preventDefault();
         window.dispatchEvent(new Event("alh:open-command"));
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "n" && !e.shiftKey) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key.toLowerCase() === "n" &&
+        !e.shiftKey
+      ) {
         e.preventDefault();
         setLocation("/accounting");
       }
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === "s") {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        e.key.toLowerCase() === "s"
+      ) {
         e.preventDefault();
         setLocation("/commercial");
       }
-      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "r" && !e.shiftKey) {
+      if (
+        (e.ctrlKey || e.metaKey) &&
+        e.key.toLowerCase() === "r" &&
+        !e.shiftKey
+      ) {
         e.preventDefault();
         setLocation("/reports");
       }
@@ -47,13 +95,24 @@ export function GlobalQuickActions() {
 
   // لا تظهر في الصفحات التسويقية العامة
   const [path] = useLocation();
-  const isOperational = ["/app", "/accounting", "/commercial", "/reports", "/analytics", "/store", "/pos"].some(p => path.startsWith(p));
+  const isOperational = [
+    "/app",
+    "/accounting",
+    "/commercial",
+    "/reports",
+    "/analytics",
+    "/store",
+    "/pos",
+  ].some(p => path.startsWith(p));
   if (!isOperational) return null;
 
   return (
     <>
       {/* زر عائم — 44px حد أدنى للوصولية (WCAG 2.5.5) */}
-      <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2" dir="rtl">
+      <div
+        className="fixed bottom-6 right-6 z-40 flex flex-col items-end gap-2"
+        dir="rtl"
+      >
         {open && (
           <div className="flex flex-col gap-2 p-2 rounded-2xl bg-ink-deep/95 backdrop-blur border border-white/10 shadow-2xl animate-in fade-in slide-in-from-bottom-2">
             {QUICK_ACTIONS.map(a => {
@@ -70,7 +129,9 @@ export function GlobalQuickActions() {
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <span>{a.label}</span>
-                  <span className="text-[10px] opacity-60 font-mono hidden sm:inline">{a.shortcut}</span>
+                  <span className="text-[10px] opacity-60 font-mono hidden sm:inline">
+                    {a.shortcut}
+                  </span>
                 </button>
               );
             })}
@@ -83,7 +144,11 @@ export function GlobalQuickActions() {
 
         <Button
           onClick={() => setOpen(v => !v)}
-          aria-label={open ? "إغلاق الإجراءات السريعة" : "فتح الإجراءات السريعة — إنشاء بنقرة واحدة"}
+          aria-label={
+            open
+              ? "إغلاق الإجراءات السريعة"
+              : "فتح الإجراءات السريعة — إنشاء بنقرة واحدة"
+          }
           aria-expanded={open}
           className={`h-12 w-12 rounded-full shadow-xl border border-white/20 p-0 flex items-center justify-center transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-ink ${open ? "bg-white text-ink" : "bg-brand text-ink hover:bg-brand-deep"}`}
         >

@@ -3,7 +3,9 @@ import { createHmac, randomBytes } from "crypto";
 const ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ234567";
 
 function base32Encode(buf: Buffer): string {
-  let bits = 0, value = 0, out = "";
+  let bits = 0,
+    value = 0,
+    out = "";
   for (const byte of buf) {
     value = (value << 8) | byte;
     bits += 8;
@@ -18,8 +20,12 @@ function base32Encode(buf: Buffer): string {
 }
 
 function base32Decode(str: string): Buffer {
-  const clean = str.toUpperCase().replace(/=+$/, "").replace(/[^A-Z2-7]/g, "");
-  let bits = 0, value = 0;
+  const clean = str
+    .toUpperCase()
+    .replace(/=+$/, "")
+    .replace(/[^A-Z2-7]/g, "");
+  let bits = 0,
+    value = 0;
   const bytes: number[] = [];
   for (const ch of clean) {
     const idx = ALPHABET.indexOf(ch);
@@ -38,18 +44,30 @@ export function generateSecret(bytes = 20): string {
   return base32Encode(randomBytes(bytes));
 }
 
-export function generateToken(secret: string, timeStep = 30, counterOffset = 0): string {
+export function generateToken(
+  secret: string,
+  timeStep = 30,
+  counterOffset = 0
+): string {
   const counter = Math.floor(Date.now() / 1000 / timeStep) + counterOffset;
   const buf = Buffer.alloc(8);
   buf.writeBigUInt64BE(BigInt(counter));
   const key = base32Decode(secret);
   const hmac = createHmac("sha1", key).update(buf).digest();
   const offset = hmac[hmac.length - 1] & 0x0f;
-  const code = ((hmac[offset] & 0x7f) << 24) | (hmac[offset + 1] << 16) | (hmac[offset + 2] << 8) | hmac[offset + 3];
+  const code =
+    ((hmac[offset] & 0x7f) << 24) |
+    (hmac[offset + 1] << 16) |
+    (hmac[offset + 2] << 8) |
+    hmac[offset + 3];
   return String(code % 1_000_000).padStart(6, "0");
 }
 
-export function verifyToken(secret: string, token: string, window = 1): boolean {
+export function verifyToken(
+  secret: string,
+  token: string,
+  window = 1
+): boolean {
   const t = token.trim();
   if (!/^\d{6}$/.test(t)) return false;
   for (let i = -window; i <= window; i++) {
@@ -58,6 +76,10 @@ export function verifyToken(secret: string, token: string, window = 1): boolean 
   return false;
 }
 
-export function otpauthUrl(secret: string, account: string, issuer = "ALHUSAINIA"): string {
+export function otpauthUrl(
+  secret: string,
+  account: string,
+  issuer = "ALHUSAINIA"
+): string {
   return `otpauth://totp/${encodeURIComponent(issuer)}:${encodeURIComponent(account)}?secret=${secret}&issuer=${encodeURIComponent(issuer)}&algorithm=SHA1&digits=6&period=30`;
 }

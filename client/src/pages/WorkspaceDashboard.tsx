@@ -253,7 +253,9 @@ export default function WorkspaceDashboard() {
             <div className="relative z-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="inline-flex items-center gap-1 bg-white/10 border border-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">{brand.names.erp} v{brand.names.version} · منصتك الموحدة</span>
+                  <span className="inline-flex items-center gap-1 bg-white/10 border border-white/20 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {brand.names.erp} v{brand.names.version} · منصتك الموحدة
+                  </span>
                   <span className="text-brand-300 text-xs font-bold">
                     {greetingByHour()}، {firstName} 👋
                   </span>
@@ -262,7 +264,8 @@ export default function WorkspaceDashboard() {
                   لوحة القيادة الموحّدة — كل وحداتك في نظرة واحدة
                 </h1>
                 <p className="text-xs text-white/70 mt-1 max-w-xl text-pretty">
-                  من القيد إلى التقرير إلى القرار — أدر محاسبتك وفروعك ومبيعاتك وخدماتك من مركز واحد آمن وموثوق.
+                  من القيد إلى التقرير إلى القرار — أدر محاسبتك وفروعك ومبيعاتك
+                  وخدماتك من مركز واحد آمن وموثوق.
                 </p>
               </div>
               <div className="flex items-center gap-2">

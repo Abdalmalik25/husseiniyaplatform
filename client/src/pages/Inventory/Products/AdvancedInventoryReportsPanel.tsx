@@ -417,9 +417,7 @@ export function AdvancedInventoryReportsPanel() {
                 rows.map(r =>
                   headers.map(h => {
                     const v = r[h];
-                    return v && typeof v === "object"
-                      ? JSON.stringify(v)
-                      : v;
+                    return v && typeof v === "object" ? JSON.stringify(v) : v;
                   })
                 )
               );

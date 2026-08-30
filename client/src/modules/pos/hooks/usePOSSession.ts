@@ -210,7 +210,10 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
   }, [openSessionMutation, sessionsData]);
 
   const updateFloat = useCallback(async () => {
-    // Not implemented in server yet
+    // Float adjustments are only valid at session close/reconcile (cash-out).
+    // There is intentionally no server procedure to mutate the float of an
+    // OPEN session — doing so would break the session's running cash invariant.
+    throw new Error("تعديل الرصيد يُسمح به فقط عند إنهاء الوردية");
   }, []);
 
   const getSessionSummary = useCallback(() => {

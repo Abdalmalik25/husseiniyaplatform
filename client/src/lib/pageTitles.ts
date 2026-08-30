@@ -1,72 +1,77 @@
-﻿/**
+/**
  * خريطة عناوين كل صفحة — تُحدَّث document.title عند التنقل (تحسين SEO + UX):
  * الزائر يعرف أين هو، والألسنة التاريخية تصبح قابلة للقراءة والعودة إليها.
+ *
+ * العلامة الموحدة مأخوذة من نظام الهوية المركزي (brand.ts) — "الحسينية".
  */
 import { brand } from "@/lib/brand";
 
-const BRAND = "alhusainiaye";
+/** العلامة الأساسية — العربية أولاً، متسقة مع brand.ts (وليس رومنة ثابتة). */
+const BRAND = brand.names.arabic;
+
+/** العنوان الافتراضي للصفحة الرئيسية — استعلام مباشر من أي مكان. */
+export const DEFAULT_PAGE_TITLE = `${BRAND} — منصة الحوكمة والأعمال الموحدة`;
 
 export const PAGE_TITLES: Record<string, string> = {
   // ── الصفحات العامة (الزائر) ──
-  "/": BRAND,
-  "/login": "تسجيل الدخول | alhusainiaye",
-  "/about": "التعريف بالخدمات | alhusainiaye",
-  "/portal": "بوابة تتبع الطلبات | alhusainiaye",
-  "/download": "تحميل تطبيق ALHUSAINIA | alhusainiaye",
-  "/pricing": "الأسعار والباقات | alhusainiaye",
-  "/contact": "تواصل معنا | alhusainiaye",
-  "/insights": "مركز المعرفة | alhusainiaye",
-  "/tools": "حاسبات ذكية | alhusainiaye",
-  "/solutions": "الحلول البرمجية | alhusainiaye",
-  "/governance": "حوكمة المشاريع | alhusainiaye",
-  "/integrate": "مركز التكامل | alhusainiaye",
+  "/": DEFAULT_PAGE_TITLE,
+  "/login": `تسجيل الدخول | ${BRAND}`,
+  "/about": `التعريف بالخدمات | ${BRAND}`,
+  "/portal": `بوابة تتبع الطلبات | ${BRAND}`,
+  "/download": `تحميل تطبيق ${BRAND} | ${BRAND}`,
+  "/pricing": `الأسعار والباقات | ${BRAND}`,
+  "/contact": `تواصل معنا | ${BRAND}`,
+  "/insights": `مركز المعرفة | ${BRAND}`,
+  "/tools": `حاسبات ذكية | ${BRAND}`,
+  "/solutions": `الحلول البرمجية | ${BRAND}`,
+  "/governance": `حوكمة المشاريع | ${BRAND}`,
+  "/integrate": `مركز التكامل | ${BRAND}`,
 
   // ── الصفحات التشغيلية (المشترك) ──
-  "/app": "لوحة التحكم | alhusainiaye",
-  "/accounting": "النظام المحاسبي | alhusainiaye",
-  "/commercial": "العمليات التجارية | alhusainiaye",
-  "/reports": "التقارير المالية | alhusainiaye",
-  "/settings": "إعدادات المؤسسة | alhusainiaye",
-  "/erp": "نظام Uamex_erp | alhusainiaye",
-  "/inventory": "إدارة المخزون | alhusainiaye",
-  "/store": "المتجر الإلكتروني | alhusainiaye",
-  "/security": "الأمان والصلاحيات | alhusainiaye",
-  "/procurement-workspace": "مساحة المشتريات | alhusainiaye",
-  "/supplier-analytics": "تحليل الموردين | alhusainiaye",
-  "/procurement": "المشتريات التنفيذية | alhusainiaye",
-  "/projects": "إدارة المشاريع | alhusainiaye",
-  "/hr": "الموارد البشرية | alhusainiaye",
-  "/support": "الدعم والجودة | alhusainiaye",
-  "/pos": "نقاط البيع | alhusainiaye",
-  "/permissions": "الصلاحيات | alhusainiaye",
-  "/basic-data": "البيانات الأساسية | alhusainiaye",
-  "/journal": "القيود المحاسبية | alhusainiaye",
-  "/manual-journal": "قيد يدوي ذكي | alhusainiaye",
-  "/customization": "التخصيص والحقول | alhusainiaye",
-  "/branches": "الفروع والصلاحيات | alhusainiaye",
-  "/audit": "سجل التدقيق | alhusainiaye",
-  "/requisitions": "طلبات التوريد | alhusainiaye",
-  "/operations": "لوحة العمليات | alhusainiaye",
-  "/analytics": "التحليلات الذكية | alhusainiaye",
-  "/billing": "الاشتراك والفوترة | alhusainiaye",
-  "/onboarding": "تهيئة المشترك | alhusainiaye",
-  "/cost-centers": "مراكز التكلفة | alhusainiaye",
-  "/zatca": "الفوترة الإلكترونية (ZATCA) | alhusainiaye",
-  "/beneficiaries": "السجل الموحد للعملاء والمستفيدين | alhusainiaye",
-  "/financial-statements": "القوائم المالية | alhusainiaye",
-  "/fiscal-periods": "الفترات المالية والإقفال | alhusainiaye",
-
+  "/app": `لوحة التحكم | ${BRAND}`,
+  "/accounting": `النظام المحاسبي | ${BRAND}`,
+  "/commercial": `العمليات التجارية | ${BRAND}`,
+  "/reports": `التقارير المالية | ${BRAND}`,
+  "/settings": `إعدادات المؤسسة | ${BRAND}`,
+  "/erp": `نظام ${brand.names.erp} | ${BRAND}`,
+  "/inventory": `إدارة المخزون | ${BRAND}`,
+  "/store": `المتجر الإلكتروني | ${BRAND}`,
+  "/security": `الأمان والصلاحيات | ${BRAND}`,
+  "/procurement-workspace": `مساحة المشتريات | ${BRAND}`,
+  "/supplier-analytics": `تحليل الموردين | ${BRAND}`,
+  "/procurement": `المشتريات التنفيذية | ${BRAND}`,
+  "/projects": `إدارة المشاريع | ${BRAND}`,
+  "/hr": `الموارد البشرية | ${BRAND}`,
+  "/support": `الدعم والجودة | ${BRAND}`,
+  "/pos": `نقاط البيع | ${BRAND}`,
+  "/permissions": `الصلاحيات | ${BRAND}`,
+  "/basic-data": `البيانات الأساسية | ${BRAND}`,
+  "/journal": `القيود المحاسبية | ${BRAND}`,
+  "/manual-journal": `قيد يدوي ذكي | ${BRAND}`,
+  "/customization": `التخصيص والحقول | ${BRAND}`,
+  "/branches": `الفروع والصلاحيات | ${BRAND}`,
+  "/audit": `سجل التدقيق | ${BRAND}`,
+  "/requisitions": `طلبات التوريد | ${BRAND}`,
+  "/operations": `لوحة العمليات | ${BRAND}`,
+  "/analytics": `التحليلات الذكية | ${BRAND}`,
+  "/billing": `الاشتراك والفوترة | ${BRAND}`,
+  "/onboarding": `تهيئة المشترك | ${BRAND}`,
+  "/cost-centers": `مراكز التكلفة | ${BRAND}`,
+  "/zatca": `الفوترة الإلكترونية (ZATCA) | ${BRAND}`,
+  "/beneficiaries": `السجل الموحد للعملاء والمستفيدين | ${BRAND}`,
+  "/financial-statements": `القوائم المالية | ${BRAND}`,
+  "/fiscal-periods": `الفترات المالية والإقفال | ${BRAND}`,
 
   // ── حالات الخطأ ──
-  "/404": "الصفحة غير موجودة | alhusainiaye",
+  "/404": `الصفحة غير موجودة | ${BRAND}`,
 };
 
 /** المسارات الديناميكية الفرعية (مثل /commercial/invoice/create) — بادئة → عنوان. */
 const DYNAMIC_PREFIXES: ReadonlyArray<readonly [string, string]> = [
-  ["/commercial/invoice/", "إنشاء فاتورة | alhusainiaye"],
-  ["/commercial/", "العمليات التجارية | alhusainiaye"],
-  ["/erp/", "نظام Uamex_erp | alhusainiaye"],
-  ["/pos/", "نقاط البيع | alhusainiaye"],
+  ["/commercial/invoice/", `إنشاء فاتورة | ${BRAND}`],
+  ["/commercial/", `العمليات التجارية | ${BRAND}`],
+  ["/erp/", `نظام ${brand.names.erp} | ${BRAND}`],
+  ["/pos/", `نقاط البيع | ${BRAND}`],
 ];
 
 export function resolvePageTitle(path: string): string {
@@ -85,7 +90,7 @@ export function resolvePageTitle(path: string): string {
     if (base) return base;
   }
 
-  return BRAND;
+  return DEFAULT_PAGE_TITLE;
 }
 
 /** المسار الأساسي المطلق للموقع — يُستعمل في Canonical وOpenGraph. */
@@ -93,7 +98,7 @@ export const SITE_URL = brand.contact.website;
 
 /** الوصف الافتراضي — يظهر في نتائج البحث وعند مشاركة روابط الموقع. */
 export const DEFAULT_META_DESCRIPTION =
-  "منصة الحسينية الموحدة — نظام الحسابات المتقدم، الاستشارات الهندسية والتقنية والمؤسسية، خدمات المقاولين والأراضي، المتجر الإلكتروني، الخدمات الطلابية، والتصاميم وصيانة الأجهزة.";
+  "منصة الحسينية الموحدة — نظام حسابات متقدم (Uamex_erp) بقيد مزدوج وقوائم مالية جاهزة للمراجع، استشارات هندسية ومؤسسية بمعايير COSO، إدارة مشاريع ومخزون، ومتجر إلكتروني — اخفض زمن الإغلاق من 14 يوماً إلى 4 ساعات.";
 
 /** وصف لكل صفحة (SEO): وصف موجز غني بالكلمات المفتاحية العربية. */
 export const PAGE_DESCRIPTIONS: Record<string, string> = {
@@ -167,7 +172,3 @@ export function resolvePageMeta(path: string): PageMeta {
     : null;
   return { title, description, canonical };
 }
-
-/** العنوان الافتراضي للصفحة الرئيسية — للاستعلام المباشر من أي مكان. */
-export const DEFAULT_PAGE_TITLE = BRAND;
-

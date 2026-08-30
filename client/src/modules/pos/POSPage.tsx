@@ -83,18 +83,8 @@ import {
   type PaymentTerminalEvent,
   type ScaleReading,
 } from "@/modules/pos/services/hardwareIntegration";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -327,10 +317,16 @@ export default function POSModule() {
   // Hardware Integration
   const hardwareManagerRef = useRef<HardwareManager | null>(null);
   const [hardwareDevices, setHardwareDevices] = useState<HardwareDevice[]>([]);
-  const [selectedPrinterId, setSelectedPrinterId] = useState<string | null>(null);
+  const [selectedPrinterId, setSelectedPrinterId] = useState<string | null>(
+    null
+  );
   const [selectedDrawerId, setSelectedDrawerId] = useState<string | null>(null);
-  const [selectedScannerId, setSelectedScannerId] = useState<string | null>(null);
-  const [selectedDisplayId, setSelectedDisplayId] = useState<string | null>(null);
+  const [selectedScannerId, setSelectedScannerId] = useState<string | null>(
+    null
+  );
+  const [selectedDisplayId, setSelectedDisplayId] = useState<string | null>(
+    null
+  );
   const [selectedPinPadId, setSelectedPinPadId] = useState<string | null>(null);
   const [selectedScaleId, setSelectedScaleId] = useState<string | null>(null);
   const [isDiscoveringDevices, setIsDiscoveringDevices] = useState(false);
@@ -340,68 +336,97 @@ export default function POSModule() {
   // Keep latest handlers for hardware event bus without re-binding the effect
   const handleBarcodeScanRef = useRef<(value: string) => void>(() => {});
   const discoverDevicesRef = useRef<() => Promise<void>>(async () => {});
-  const openCashDrawerRef = useRef<(reason?: string) => Promise<void>>(async () => {});
-  const printReceiptRef = useRef<(invoiceNumber: string, cartData: any) => Promise<void>>(async () => {});
+  const openCashDrawerRef = useRef<(reason?: string) => Promise<void>>(
+    async () => {}
+  );
+  const printReceiptRef = useRef<
+    (invoiceNumber: string, cartData: any) => Promise<void>
+  >(async () => {});
 
   // Initialize hardware manager
   useEffect(() => {
     hardwareManagerRef.current = new HardwareManager();
 
     // Set up event handlers
-    hardwareManagerRef.current.on('onDeviceConnected', (device: HardwareDevice) => {
-      setHardwareDevices(prev => {
-        const exists = prev.find(d => d.id === device.id);
-        if (exists) {
-          return prev.map(d => d.id === device.id ? device : d);
+    hardwareManagerRef.current.on(
+      "onDeviceConnected",
+      (device: HardwareDevice) => {
+        setHardwareDevices(prev => {
+          const exists = prev.find(d => d.id === device.id);
+          if (exists) {
+            return prev.map(d => (d.id === device.id ? device : d));
+          }
+          return [...prev, device];
+        });
+        toast.success(`جهاز متصل: ${device.name}`);
+      }
+    );
+
+    hardwareManagerRef.current.on(
+      "onDeviceDisconnected",
+      (deviceId: string) => {
+        setHardwareDevices(prev =>
+          prev.map(d =>
+            d.id === deviceId ? { ...d, status: "disconnected" as const } : d
+          )
+        );
+        toast.warning(`جهاز مفصول: ${deviceId}`);
+      }
+    );
+
+    hardwareManagerRef.current.on(
+      "onDeviceError",
+      (deviceId: string, error: string) => {
+        setHardwareDevices(prev =>
+          prev.map(d =>
+            d.id === deviceId ? { ...d, status: "error" as const } : d
+          )
+        );
+        toast.error(`خطأ في الجهاز ${deviceId}: ${error}`);
+      }
+    );
+
+    hardwareManagerRef.current.on(
+      "onBarcodeScan",
+      (result: BarcodeScanResult) => {
+        handleBarcodeScanRef.current(result.value);
+      }
+    );
+
+    hardwareManagerRef.current.on(
+      "onPrintJobStatus",
+      (jobId: string, status: string, error?: string) => {
+        if (status === "completed") {
+          toast.success("تمت الطباعة بنجاح");
+        } else if (status === "failed") {
+          toast.error(`فشل الطباعة: ${error}`);
         }
-        return [...prev, device];
-      });
-      toast.success(`جهاز متصل: ${device.name}`);
-    });
-
-    hardwareManagerRef.current.on('onDeviceDisconnected', (deviceId: string) => {
-      setHardwareDevices(prev => prev.map(d => 
-        d.id === deviceId ? { ...d, status: 'disconnected' as const } : d
-      ));
-      toast.warning(`جهاز مفصول: ${deviceId}`);
-    });
-
-    hardwareManagerRef.current.on('onDeviceError', (deviceId: string, error: string) => {
-      setHardwareDevices(prev => prev.map(d => 
-        d.id === deviceId ? { ...d, status: 'error' as const } : d
-      ));
-      toast.error(`خطأ في الجهاز ${deviceId}: ${error}`);
-    });
-
-    hardwareManagerRef.current.on('onBarcodeScan', (result: BarcodeScanResult) => {
-      handleBarcodeScanRef.current(result.value);
-    });
-
-    hardwareManagerRef.current.on('onPrintJobStatus', (jobId: string, status: string, error?: string) => {
-      if (status === 'completed') {
-        toast.success('تمت الطباعة بنجاح');
-      } else if (status === 'failed') {
-        toast.error(`فشل الطباعة: ${error}`);
       }
-    });
+    );
 
-    hardwareManagerRef.current.on('onCashDrawerEvent', (event: CashDrawerEvent) => {
-      if (event.type === 'open') {
-        toast.success('تم فتح درج النقود');
+    hardwareManagerRef.current.on(
+      "onCashDrawerEvent",
+      (event: CashDrawerEvent) => {
+        if (event.type === "open") {
+          toast.success("تم فتح درج النقود");
+        }
       }
-    });
+    );
 
-    hardwareManagerRef.current.on('onPaymentTerminalEvent', (event: PaymentTerminalEvent) => {
-      if (event.type === 'approved') {
-        toast.success(`تمت الموافقة على الدفع: ${event.authCode}`);
-      } else if (event.type === 'declined') {
-        toast.error(`تم رفض الدفع: ${event.errorMessage}`);
+    hardwareManagerRef.current.on(
+      "onPaymentTerminalEvent",
+      (event: PaymentTerminalEvent) => {
+        if (event.type === "approved") {
+          toast.success(`تمت الموافقة على الدفع: ${event.authCode}`);
+        } else if (event.type === "declined") {
+          toast.error(`تم رفض الدفع: ${event.errorMessage}`);
+        }
       }
-    });
+    );
 
     // Scale readings are wired for future weight-based (sell-by-weight) checkout.
     // Auto-add weighed item to cart when a scale product is selected.
-    hardwareManagerRef.current.on('onScaleReading', () => {
+    hardwareManagerRef.current.on("onScaleReading", () => {
       // No-op: reserved for scale-product flow
     });
 
@@ -421,22 +446,26 @@ export default function POSModule() {
       const devices = await hardwareManagerRef.current.discoverDevices();
       setHardwareDevices(devices);
       // Auto-select first device of each type
-      const byType = devices.reduce((acc, d) => {
-        if (!acc[d.type] && d.status === 'connected') acc[d.type] = d.id;
-        return acc;
-      }, {} as Record<string, string>);
-      
+      const byType = devices.reduce(
+        (acc, d) => {
+          if (!acc[d.type] && d.status === "connected") acc[d.type] = d.id;
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+
       if (byType.printer) setSelectedPrinterId(byType.printer);
       if (byType.cash_drawer) setSelectedDrawerId(byType.cash_drawer);
       if (byType.barcode_scanner) setSelectedScannerId(byType.barcode_scanner);
-      if (byType.customer_display) setSelectedDisplayId(byType.customer_display);
+      if (byType.customer_display)
+        setSelectedDisplayId(byType.customer_display);
       if (byType.pin_pad) setSelectedPinPadId(byType.pin_pad);
       if (byType.scale) setSelectedScaleId(byType.scale);
-      
+
       toast.success(`تم اكتشاف ${devices.length} جهاز`);
     } catch (error) {
       setHardwareError((error as Error).message);
-      toast.error('فشل اكتشاف الأجهزة');
+      toast.error("فشل اكتشاف الأجهزة");
     } finally {
       setIsDiscoveringDevices(false);
     }
@@ -460,80 +489,95 @@ export default function POSModule() {
     }
   }, []);
 
-  const printReceipt = useCallback(async (invoiceNumber: string, cartData: any) => {
-    if (!hardwareManagerRef.current || !selectedPrinterId) {
-      // Fallback to browser print
-      window.print();
-      return;
-    }
+  const printReceipt = useCallback(
+    async (invoiceNumber: string, cartData: any) => {
+      if (!hardwareManagerRef.current || !selectedPrinterId) {
+        // Fallback to browser print
+        window.print();
+        return;
+      }
 
-    const job: Omit<PrintJob, 'id' | 'status' | 'createdAt'> = {
-      type: 'receipt',
-      content: {
-        type: 'receipt',
-        data: {
-          invoiceNumber,
-          items: cartData.items,
-          totals: cartData.summary,
-          payments: cartData.payments,
-          customer: cartData.customer,
-          timestamp: new Date().toISOString(),
+      const job: Omit<PrintJob, "id" | "status" | "createdAt"> = {
+        type: "receipt",
+        content: {
+          type: "receipt",
+          data: {
+            invoiceNumber,
+            items: cartData.items,
+            totals: cartData.summary,
+            payments: cartData.payments,
+            customer: cartData.customer,
+            timestamp: new Date().toISOString(),
+          },
         },
-      },
-      printerId: selectedPrinterId,
-      copies: 1,
-      priority: 'high',
-      options: {
+        printerId: selectedPrinterId,
         copies: 1,
-        cutPaper: true,
-        header: settingsData?.institutionName || brand.names.siteName,
-        footer: 'شكراً لتعاملكم معنا',
-        quality: 'normal',
-        encoding: 'utf-8',
-      },
-    };
+        priority: "high",
+        options: {
+          copies: 1,
+          cutPaper: true,
+          header: settingsData?.institutionName || brand.names.siteName,
+          footer: "شكراً لتعاملكم معنا",
+          quality: "normal",
+          encoding: "utf-8",
+        },
+      };
 
-    await hardwareManagerRef.current.addPrintJob(job);
-  }, [selectedPrinterId, settingsData?.institutionName]);
+      await hardwareManagerRef.current.addPrintJob(job);
+    },
+    [selectedPrinterId, settingsData?.institutionName]
+  );
 
-  const openCashDrawer = useCallback(async (reason?: string) => {
-    if (!hardwareManagerRef.current || !selectedDrawerId) {
-      toast.warning('لا يوجد درج نقود متصل');
-      return;
-    }
+  const openCashDrawer = useCallback(
+    async (reason?: string) => {
+      if (!hardwareManagerRef.current || !selectedDrawerId) {
+        toast.warning("لا يوجد درج نقود متصل");
+        return;
+      }
 
-    const sessionSummary = session.getSessionSummary();
-    const operatorId = authUser?.openId || "unknown";
-    await hardwareManagerRef.current.openCashDrawer(
-      selectedDrawerId,
-      operatorId,
-      sessionSummary?.expectedFloat,
-      reason || 'إتمام عملية بيع'
-    );
-  }, [selectedDrawerId, session, authUser?.openId]);
+      const sessionSummary = session.getSessionSummary();
+      const operatorId = authUser?.openId || "unknown";
+      await hardwareManagerRef.current.openCashDrawer(
+        selectedDrawerId,
+        operatorId,
+        sessionSummary?.expectedFloat,
+        reason || "إتمام عملية بيع"
+      );
+    },
+    [selectedDrawerId, session, authUser?.openId]
+  );
 
-  const updateCustomerDisplay = useCallback(async (message: CustomerDisplayMessage) => {
-    if (!hardwareManagerRef.current || !selectedDisplayId) return;
-    await hardwareManagerRef.current.updateCustomerDisplay(selectedDisplayId, message);
-  }, [selectedDisplayId]);
+  const updateCustomerDisplay = useCallback(
+    async (message: CustomerDisplayMessage) => {
+      if (!hardwareManagerRef.current || !selectedDisplayId) return;
+      await hardwareManagerRef.current.updateCustomerDisplay(
+        selectedDisplayId,
+        message
+      );
+    },
+    [selectedDisplayId]
+  );
 
-  const processCardPayment = useCallback(async (amount: number, reference?: string) => {
-    if (!hardwareManagerRef.current || !selectedPinPadId) {
-      toast.warning('لا يوجد جهاز دفع متصل');
-      return null;
-    }
+  const processCardPayment = useCallback(
+    async (amount: number, reference?: string) => {
+      if (!hardwareManagerRef.current || !selectedPinPadId) {
+        toast.warning("لا يوجد جهاز دفع متصل");
+        return null;
+      }
 
-    return hardwareManagerRef.current.processPayment(
-      selectedPinPadId,
-      amount,
-      config.currency,
-      { reference }
-    );
-  }, [selectedPinPadId, config.currency]);
+      return hardwareManagerRef.current.processPayment(
+        selectedPinPadId,
+        amount,
+        config.currency,
+        { reference }
+      );
+    },
+    [selectedPinPadId, config.currency]
+  );
 
   const readScaleWeight = useCallback(async () => {
     if (!hardwareManagerRef.current || !selectedScaleId) {
-      toast.warning('لا يوجد ميزان متصل');
+      toast.warning("لا يوجد ميزان متصل");
       return null;
     }
     return hardwareManagerRef.current.readScale(selectedScaleId);
@@ -546,37 +590,62 @@ export default function POSModule() {
 
   const getDeviceTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
-      printer: 'طابعة',
-      cash_drawer: 'درج نقود',
-      barcode_scanner: 'قارئ باركود',
-      customer_display: 'شاشة عميل',
-      pin_pad: 'جهاز دفع',
-      scale: 'ميزان',
+      printer: "طابعة",
+      cash_drawer: "درج نقود",
+      barcode_scanner: "قارئ باركود",
+      customer_display: "شاشة عميل",
+      pin_pad: "جهاز دفع",
+      scale: "ميزان",
     };
     return labels[type] || type;
   };
 
   const getConnectionTypeIcon = (type: string) => {
     switch (type) {
-      case 'usb': return <Usb className="h-4 w-4" />;
-      case 'bluetooth': return <Bluetooth className="h-4 w-4" />;
-      case 'network': return <Wifi className="h-4 w-4" />;
-      case 'serial': return <HardDrive className="h-4 w-4" />;
-      case 'hid': return <Monitor className="h-4 w-4" />;
-      default: return <WifiOff className="h-4 w-4" />;
+      case "usb":
+        return <Usb className="h-4 w-4" />;
+      case "bluetooth":
+        return <Bluetooth className="h-4 w-4" />;
+      case "network":
+        return <Wifi className="h-4 w-4" />;
+      case "serial":
+        return <HardDrive className="h-4 w-4" />;
+      case "hid":
+        return <Monitor className="h-4 w-4" />;
+      default:
+        return <WifiOff className="h-4 w-4" />;
     }
   };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'connected':
-        return <Badge variant="default" className="gap-1 bg-emerald-100 text-emerald-800"><Wifi className="h-3 w-3" /> متصل</Badge>;
-      case 'disconnected':
-        return <Badge variant="secondary" className="gap-1"><WifiOff className="h-3 w-3" /> مفصول</Badge>;
-      case 'error':
-        return <Badge variant="destructive" className="gap-1"><AlertTriangle className="h-3 w-3" /> خطأ</Badge>;
-      case 'initializing':
-        return <Badge variant="outline" className="gap-1"><Loader2 className="h-3 w-3 animate-spin" /> جاري الاتصال...</Badge>;
+      case "connected":
+        return (
+          <Badge
+            variant="default"
+            className="gap-1 bg-emerald-100 text-emerald-800"
+          >
+            <Wifi className="h-3 w-3" /> متصل
+          </Badge>
+        );
+      case "disconnected":
+        return (
+          <Badge variant="secondary" className="gap-1">
+            <WifiOff className="h-3 w-3" /> مفصول
+          </Badge>
+        );
+      case "error":
+        return (
+          <Badge variant="destructive" className="gap-1">
+            <AlertTriangle className="h-3 w-3" /> خطأ
+          </Badge>
+        );
+      case "initializing":
+        return (
+          <Badge variant="outline" className="gap-1">
+            <Loader2 className="h-3 w-3 animate-spin" /> جاري الاتصال...
+          </Badge>
+        );
       default:
         return <Badge variant="outline">{status}</Badge>;
     }
@@ -598,15 +667,19 @@ export default function POSModule() {
 
       // Open cash drawer for cash payments
       const submission = cart.getCartForSubmission();
-      if (submission.paymentMethod === 'cash' || submission.paymentMethod === 'cash_yer' || submission.paymentMethod === 'cash_sar') {
-        openCashDrawer('إتمام عملية بيع نقدي');
+      if (
+        submission.paymentMethod === "cash" ||
+        submission.paymentMethod === "cash_yer" ||
+        submission.paymentMethod === "cash_sar"
+      ) {
+        openCashDrawer("إتمام عملية بيع نقدي");
       }
 
       // Show thank you on customer display
       if (selectedDisplayId) {
         updateCustomerDisplay({
-          type: 'thank_you',
-          lines: ['شكراً لتعاملكم معنا', 'نتمنى لكم يوماً سعيداً'],
+          type: "thank_you",
+          lines: ["شكراً لتعاملكم معنا", "نتمنى لكم يوماً سعيداً"],
           duration: 5000,
         });
       }
@@ -773,8 +846,11 @@ export default function POSModule() {
     // Show total on customer display before payment
     if (selectedDisplayId) {
       updateCustomerDisplay({
-        type: 'total',
-        lines: ['الإجمالي:', formatCurrency(submission.summary?.total || 0, config.currency)],
+        type: "total",
+        lines: [
+          "الإجمالي:",
+          formatCurrency(submission.summary?.total || 0, config.currency),
+        ],
         amount: submission.summary?.total || 0,
         currency: config.currency,
         duration: 5000,
@@ -795,7 +871,13 @@ export default function POSModule() {
       discount: String(submission.discount || 0),
       notes: submission.notes,
     });
-  }, [cart, createSaleMutation, selectedDisplayId, updateCustomerDisplay, config.currency]);
+  }, [
+    cart,
+    createSaleMutation,
+    selectedDisplayId,
+    updateCustomerDisplay,
+    config.currency,
+  ]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -849,13 +931,16 @@ export default function POSModule() {
         case "F11":
           e.preventDefault();
           if (selectedPrinterId) {
-            printReceiptRef.current('TEST-' + Date.now(), cart.getCartForSubmission());
+            printReceiptRef.current(
+              "TEST-" + Date.now(),
+              cart.getCartForSubmission()
+            );
           }
           break;
         case "F12":
           e.preventDefault();
           if (selectedDrawerId) {
-            openCashDrawerRef.current('اختبار يدوي');
+            openCashDrawerRef.current("اختبار يدوي");
           }
           break;
         case "Escape":
@@ -912,40 +997,66 @@ export default function POSModule() {
             {/* Hardware Status Indicators */}
             <div className="flex items-center gap-1 ml-2 md:ml-4 border-r border-border pr-2 md:pr-4 hidden sm:flex">
               {selectedPrinterId && (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-600" title="طابعة متصلة">
+                <span
+                  className="flex items-center gap-1 text-[10px] text-emerald-600"
+                  title="طابعة متصلة"
+                >
                   <Printer className="h-3.5 w-3.5" />
                 </span>
               )}
               {selectedDrawerId && (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-600" title="درج نقود متصل">
+                <span
+                  className="flex items-center gap-1 text-[10px] text-emerald-600"
+                  title="درج نقود متصل"
+                >
                   <HardDrive className="h-3.5 w-3.5" />
                 </span>
               )}
               {selectedScannerId && (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-600" title="قارئ باركود متصل">
+                <span
+                  className="flex items-center gap-1 text-[10px] text-emerald-600"
+                  title="قارئ باركود متصل"
+                >
                   <Barcode className="h-3.5 w-3.5" />
                 </span>
               )}
               {selectedDisplayId && (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-600" title="شاشة عميل متصلة">
+                <span
+                  className="flex items-center gap-1 text-[10px] text-emerald-600"
+                  title="شاشة عميل متصلة"
+                >
                   <Monitor className="h-3.5 w-3.5" />
                 </span>
               )}
               {selectedPinPadId && (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-600" title="جهاز دفع متصل">
+                <span
+                  className="flex items-center gap-1 text-[10px] text-emerald-600"
+                  title="جهاز دفع متصل"
+                >
                   <PinPadIcon className="h-3.5 w-3.5" />
                 </span>
               )}
               {selectedScaleId && (
-                <span className="flex items-center gap-1 text-[10px] text-emerald-600" title="ميزان متصل">
+                <span
+                  className="flex items-center gap-1 text-[10px] text-emerald-600"
+                  title="ميزان متصل"
+                >
                   <Scale className="h-3.5 w-3.5" />
                 </span>
               )}
-              {!selectedPrinterId && !selectedDrawerId && !selectedScannerId && !selectedDisplayId && !selectedPinPadId && !selectedScaleId && (
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground" title="لا توجد أجهزة متصلة">
-                  <WifiOff className="h-3.5 w-3.5" />
-                </span>
-              )}
+              {!selectedPrinterId &&
+                !selectedDrawerId &&
+                !selectedScannerId &&
+                !selectedDisplayId &&
+                !selectedPinPadId &&
+                !selectedScaleId && (
+                  <span
+                    className="flex items-center gap-1 text-[10px] text-muted-foreground"
+                    title="لا توجد أجهزة متصلة"
+                  >
+                    <WifiOff className="h-3.5 w-3.5" />
+                  </span>
+                )}
             </div>
 
             {lastInvoice && (
@@ -1211,7 +1322,7 @@ export default function POSModule() {
                 <TabsTrigger value="policy">سياسات</TabsTrigger>
                 <TabsTrigger value="hardware">الأجهزة</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="general" className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1303,7 +1414,10 @@ export default function POSModule() {
                       checked={config.soundEnabled}
                       onChange={e =>
                         updateSettingsMutation.mutate({
-                          posConfig: { ...config, soundEnabled: e.target.checked },
+                          posConfig: {
+                            ...config,
+                            soundEnabled: e.target.checked,
+                          },
                         } as any)
                       }
                       className="h-4 w-4"
@@ -1406,8 +1520,12 @@ export default function POSModule() {
                         disabled={isDiscoveringDevices}
                         className="gap-1"
                       >
-                        <RefreshCw className={`h-4 w-4 ${isDiscoveringDevices ? 'animate-spin' : ''}`} />
-                        {isDiscoveringDevices ? 'جاري البحث...' : 'إعادة اكتشاف'}
+                        <RefreshCw
+                          className={`h-4 w-4 ${isDiscoveringDevices ? "animate-spin" : ""}`}
+                        />
+                        {isDiscoveringDevices
+                          ? "جاري البحث..."
+                          : "إعادة اكتشاف"}
                       </Button>
                     </CardTitle>
                   </CardHeader>
@@ -1421,7 +1539,9 @@ export default function POSModule() {
                       <div className="text-center py-8 text-muted-foreground">
                         <Search className="h-12 w-12 mx-auto mb-2 opacity-50" />
                         <p>لم يتم اكتشاف أي أجهزة</p>
-                        <p className="text-xs mt-1">اضغط على "إعادة اكتشاف" للبحث عن الأجهزة المتصلة</p>
+                        <p className="text-xs mt-1">
+                          اضغط على "إعادة اكتشاف" للبحث عن الأجهزة المتصلة
+                        </p>
                       </div>
                     ) : (
                       <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -1441,16 +1561,27 @@ export default function POSModule() {
                                 <div className="text-xs text-muted-foreground flex items-center gap-2">
                                   <span>{getDeviceTypeLabel(device.type)}</span>
                                   <span>•</span>
-                                  <span>{device.connectionType.toUpperCase()}</span>
+                                  <span>
+                                    {device.connectionType.toUpperCase()}
+                                  </span>
                                   {device.vendorId && device.productId && (
-                                    <span>VID:{device.vendorId.toString(16).toUpperCase()} PID:{device.productId.toString(16).toUpperCase()}</span>
+                                    <span>
+                                      VID:
+                                      {device.vendorId
+                                        .toString(16)
+                                        .toUpperCase()}{" "}
+                                      PID:
+                                      {device.productId
+                                        .toString(16)
+                                        .toUpperCase()}
+                                    </span>
                                   )}
                                 </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
                               {getStatusBadge(device.status)}
-                              {device.status === 'disconnected' && (
+                              {device.status === "disconnected" && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1461,7 +1592,7 @@ export default function POSModule() {
                                   ربط
                                 </Button>
                               )}
-                              {device.status === 'connected' && (
+                              {device.status === "connected" && (
                                 <Button
                                   size="sm"
                                   variant="ghost"
@@ -1472,7 +1603,7 @@ export default function POSModule() {
                                   فصل
                                 </Button>
                               )}
-                              {device.status === 'error' && (
+                              {device.status === "error" && (
                                 <Button
                                   size="sm"
                                   variant="outline"
@@ -1499,22 +1630,58 @@ export default function POSModule() {
                   <CardContent className="space-y-3">
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                       {[
-                        { type: 'printer', label: 'طابعة الإيصالات', icon: Printer, value: selectedPrinterId, onChange: setSelectedPrinterId },
-                        { type: 'cash_drawer', label: 'درج النقود', icon: HardDrive, value: selectedDrawerId, onChange: setSelectedDrawerId },
-                        { type: 'barcode_scanner', label: 'قارئ الباركود', icon: Barcode, value: selectedScannerId, onChange: setSelectedScannerId },
-                        { type: 'customer_display', label: 'شاشة العميل', icon: Monitor, value: selectedDisplayId, onChange: setSelectedDisplayId },
-                        { type: 'pin_pad', label: 'جهاز الدفع', icon: PinPadIcon, value: selectedPinPadId, onChange: setSelectedPinPadId },
-                        { type: 'scale', label: 'الميزان', icon: Scale, value: selectedScaleId, onChange: setSelectedScaleId },
+                        {
+                          type: "printer",
+                          label: "طابعة الإيصالات",
+                          icon: Printer,
+                          value: selectedPrinterId,
+                          onChange: setSelectedPrinterId,
+                        },
+                        {
+                          type: "cash_drawer",
+                          label: "درج النقود",
+                          icon: HardDrive,
+                          value: selectedDrawerId,
+                          onChange: setSelectedDrawerId,
+                        },
+                        {
+                          type: "barcode_scanner",
+                          label: "قارئ الباركود",
+                          icon: Barcode,
+                          value: selectedScannerId,
+                          onChange: setSelectedScannerId,
+                        },
+                        {
+                          type: "customer_display",
+                          label: "شاشة العميل",
+                          icon: Monitor,
+                          value: selectedDisplayId,
+                          onChange: setSelectedDisplayId,
+                        },
+                        {
+                          type: "pin_pad",
+                          label: "جهاز الدفع",
+                          icon: PinPadIcon,
+                          value: selectedPinPadId,
+                          onChange: setSelectedPinPadId,
+                        },
+                        {
+                          type: "scale",
+                          label: "الميزان",
+                          icon: Scale,
+                          value: selectedScaleId,
+                          onChange: setSelectedScaleId,
+                        },
                       ].map(({ type, label, icon: Icon, value, onChange }) => (
-                        <div key={type} className="p-3 rounded-lg border border-border bg-muted/30">
+                        <div
+                          key={type}
+                          className="p-3 rounded-lg border border-border bg-muted/30"
+                        >
                           <div className="flex items-center gap-2 mb-2">
                             <Icon className="h-5 w-5 text-muted-foreground" />
                             <span className="font-medium text-sm">{label}</span>
                           </div>
-                          <Select
-                            value={value || ''}
-                            onValueChange={onChange}
-                          >
+                          <Select value={value || ""} onValueChange={onChange}>
                             <SelectTrigger>
                               <SelectValue placeholder="اختر جهاز..." />
                             </SelectTrigger>
@@ -1523,21 +1690,28 @@ export default function POSModule() {
                                 .filter(d => d.type === type)
                                 .map(d => (
                                   <SelectItem key={d.id} value={d.id}>
-                                    {d.name} {d.status === 'connected' && <Check className="h-3 w-3 ml-1 text-emerald-500" />}
+                                    {d.name}{" "}
+                                    {d.status === "connected" && (
+                                      <Check className="h-3 w-3 ml-1 text-emerald-500" />
+                                    )}
                                   </SelectItem>
                                 ))}
-                              {hardwareDevices.filter(d => d.type === type).length === 0 && (
+                              {hardwareDevices.filter(d => d.type === type)
+                                .length === 0 && (
                                 <SelectItem value="" disabled>
                                   لا توجد أجهزة من هذا النوع
                                 </SelectItem>
                               )}
                             </SelectContent>
                           </Select>
-                          {value && hardwareDevices.find(d => d.id === value)?.status !== 'connected' && (
-                            <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                              <AlertTriangle className="h-3 w-3" /> الجهاز غير متصل
-                            </p>
-                          )}
+                          {value &&
+                            hardwareDevices.find(d => d.id === value)
+                              ?.status !== "connected" && (
+                              <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                                <AlertTriangle className="h-3 w-3" /> الجهاز غير
+                                متصل
+                              </p>
+                            )}
                         </div>
                       ))}
                     </div>
@@ -1547,7 +1721,15 @@ export default function POSModule() {
                     <div className="flex flex-wrap gap-2">
                       <Button
                         variant="outline"
-                        onClick={() => selectedPrinterId && printReceipt('TEST-001', { items: [], summary: { total: 0 }, payments: [], customer: null })}
+                        onClick={() =>
+                          selectedPrinterId &&
+                          printReceipt("TEST-001", {
+                            items: [],
+                            summary: { total: 0 },
+                            payments: [],
+                            customer: null,
+                          })
+                        }
                         disabled={!selectedPrinterId}
                         className="gap-1"
                       >
@@ -1556,7 +1738,10 @@ export default function POSModule() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => selectedDrawerId && openCashDrawer('اختبار درج النقود')}
+                        onClick={() =>
+                          selectedDrawerId &&
+                          openCashDrawer("اختبار درج النقود")
+                        }
                         disabled={!selectedDrawerId}
                         className="gap-1"
                       >
@@ -1565,7 +1750,17 @@ export default function POSModule() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => selectedDisplayId && updateCustomerDisplay({ type: 'welcome', lines: ['اختبار شاشة العميل', 'الحسينية لخدمات الأعمال'], duration: 3000 })}
+                        onClick={() =>
+                          selectedDisplayId &&
+                          updateCustomerDisplay({
+                            type: "welcome",
+                            lines: [
+                              "اختبار شاشة العميل",
+                              "الحسينية لخدمات الأعمال",
+                            ],
+                            duration: 3000,
+                          })
+                        }
                         disabled={!selectedDisplayId}
                         className="gap-1"
                       >
@@ -1574,7 +1769,9 @@ export default function POSModule() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => selectedPinPadId && processCardPayment(1, 'TEST')}
+                        onClick={() =>
+                          selectedPinPadId && processCardPayment(1, "TEST")
+                        }
                         disabled={!selectedPinPadId}
                         className="gap-1"
                       >
@@ -1583,7 +1780,13 @@ export default function POSModule() {
                       </Button>
                       <Button
                         variant="outline"
-                        onClick={() => selectedScaleId && readScaleWeight().then(r => r && toast.success(`الوزن: ${r.weight} ${r.unit}`))}
+                        onClick={() =>
+                          selectedScaleId &&
+                          readScaleWeight().then(
+                            r =>
+                              r && toast.success(`الوزن: ${r.weight} ${r.unit}`)
+                          )
+                        }
                         disabled={!selectedScaleId}
                         className="gap-1"
                       >
@@ -1611,38 +1814,77 @@ export default function POSModule() {
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="receiptHeader" className="text-sm font-medium">رأس الإيصال</Label>
+                        <Label
+                          htmlFor="receiptHeader"
+                          className="text-sm font-medium"
+                        >
+                          رأس الإيصال
+                        </Label>
                         <Input
                           id="receiptHeader"
-                          placeholder={settingsData?.institutionName || brand.names.siteName}
-                          value={config.receiptHeader || settingsData?.institutionName || brand.names.siteName}
-                          onChange={e => updateSettingsMutation.mutate({
-                            posConfig: { ...config, receiptHeader: e.target.value },
-                          } as any)}
+                          placeholder={
+                            settingsData?.institutionName ||
+                            brand.names.siteName
+                          }
+                          value={
+                            config.receiptHeader ||
+                            settingsData?.institutionName ||
+                            brand.names.siteName
+                          }
+                          onChange={e =>
+                            updateSettingsMutation.mutate({
+                              posConfig: {
+                                ...config,
+                                receiptHeader: e.target.value,
+                              },
+                            } as any)
+                          }
                         />
                       </div>
                       <div>
-                        <Label htmlFor="receiptFooter" className="text-sm font-medium">تذييل الإيصال</Label>
+                        <Label
+                          htmlFor="receiptFooter"
+                          className="text-sm font-medium"
+                        >
+                          تذييل الإيصال
+                        </Label>
                         <Input
                           id="receiptFooter"
                           placeholder="شكراً لتعاملكم معنا"
-                          value={config.receiptFooter || 'شكراً لتعاملكم معنا'}
-                          onChange={e => updateSettingsMutation.mutate({
-                            posConfig: { ...config, receiptFooter: e.target.value },
-                          } as any)}
+                          value={config.receiptFooter || "شكراً لتعاملكم معنا"}
+                          onChange={e =>
+                            updateSettingsMutation.mutate({
+                              posConfig: {
+                                ...config,
+                                receiptFooter: e.target.value,
+                              },
+                            } as any)
+                          }
                         />
                       </div>
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="printDensity" className="text-sm font-medium">كثافة الطباعة</Label>
+                        <Label
+                          htmlFor="printDensity"
+                          className="text-sm font-medium"
+                        >
+                          كثافة الطباعة
+                        </Label>
                         <Select
                           value={(config.printDensity || 12).toString()}
-                          onValueChange={v => updateSettingsMutation.mutate({
-                            posConfig: { ...config, printDensity: parseInt(v) },
-                          } as any)}
+                          onValueChange={v =>
+                            updateSettingsMutation.mutate({
+                              posConfig: {
+                                ...config,
+                                printDensity: parseInt(v),
+                              },
+                            } as any)
+                          }
                         >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="8">منخفضة (8)</SelectItem>
                             <SelectItem value="10">متوسطة (10)</SelectItem>
@@ -1652,14 +1894,23 @@ export default function POSModule() {
                         </Select>
                       </div>
                       <div>
-                        <Label htmlFor="paperWidth" className="text-sm font-medium">عرض الورق</Label>
-                        <Select
-                          value={config.paperWidth || '80'}
-                          onValueChange={v => updateSettingsMutation.mutate({
-                            posConfig: { ...config, paperWidth: v },
-                          } as any)}
+                        <Label
+                          htmlFor="paperWidth"
+                          className="text-sm font-medium"
                         >
-                          <SelectTrigger><SelectValue /></SelectTrigger>
+                          عرض الورق
+                        </Label>
+                        <Select
+                          value={config.paperWidth || "80"}
+                          onValueChange={v =>
+                            updateSettingsMutation.mutate({
+                              posConfig: { ...config, paperWidth: v },
+                            } as any)
+                          }
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="58">58 مم</SelectItem>
                             <SelectItem value="80">80 مم</SelectItem>
@@ -1672,9 +1923,14 @@ export default function POSModule() {
                         type="checkbox"
                         id="cutPaper"
                         checked={config.cutPaper !== false}
-                        onChange={e => updateSettingsMutation.mutate({
-                          posConfig: { ...config, cutPaper: e.target.checked },
-                        } as any)}
+                        onChange={e =>
+                          updateSettingsMutation.mutate({
+                            posConfig: {
+                              ...config,
+                              cutPaper: e.target.checked,
+                            },
+                          } as any)
+                        }
                         className="h-4 w-4"
                       />
                       <label htmlFor="cutPaper" className="text-sm">

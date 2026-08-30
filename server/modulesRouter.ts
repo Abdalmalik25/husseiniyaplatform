@@ -1,5 +1,19 @@
 import { z } from "zod";
-import { eq, and, desc, sql, gte, lte, or, ilike, asc, inArray, count } from "drizzle-orm";
+import {
+  eq,
+  and,
+  desc,
+  sql,
+  SQL,
+  gte,
+  lte,
+  or,
+  ilike,
+  asc,
+  inArray,
+  count,
+  isNull,
+} from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
 import { router, tenantProcedure } from "./_core/trpc";
 import { getDb } from "./db";
@@ -22,6 +36,7 @@ import {
   permissions,
   messages,
   activityLogs,
+  notifications,
   salesInvoices,
   salesInvoiceItems,
   purchaseInvoices,
@@ -37,14 +52,41 @@ import {
   suppliers,
   purchaseInvoiceItems,
   posOrders,
+  orders,
+  orderItems,
+  payments,
+  scheduledJournalEntries,
+  recurringExpenses,
 } from "../drizzle/schema";
 
 export const modulesRouter = router({
   // ─── Notifications ──────────────────────────────────────────────
+  // Live engine: `automation.ts` and `erpRouter.ts` write real rows into the
+  // `notifications` table via `createNotification`. Previously this router was a
+  // no-op stub (always returning 0 / []), so the UI bell surfaced nothing. It
+  // now reads the table and maps the persisted shape to the DTO the client
+  // (AppSidebar.tsx) expects: { id, title, body, isRead, link, type, createdAt }.
+  // `userId IS NULL` rows are broadcast notifications addressed to every member
+  // of the tenant and are therefore visible/counted for any authenticated user.
   notifications: router({
     unreadCount: tenantProcedure.query(async ({ ctx }) => {
       if (!ctx.tenantId || !ctx.user) return 0;
-      return 0;
+      const db = await getDb();
+      if (!db) return 0;
+      const [res] = await db
+        .select({ count: sql<number>`count(*)::int` })
+        .from(notifications)
+        .where(
+          and(
+            eq(notifications.tenantId, ctx.tenantId),
+            eq(notifications.status, "unread"),
+            or(
+              isNull(notifications.userId),
+              eq(notifications.userId, ctx.user.id)
+            )
+          )
+        );
+      return res?.count ?? 0;
     }),
     list: tenantProcedure
       .input(
@@ -55,15 +97,77 @@ export const modulesRouter = router({
           })
           .optional()
       )
-      .query(async () => {
-        return [];
+      .query(async ({ ctx, input }) => {
+        if (!ctx.tenantId || !ctx.user) return [];
+        const db = await getDb();
+        if (!db) return [];
+        const rows = await db
+          .select()
+          .from(notifications)
+          .where(
+            and(
+              eq(notifications.tenantId, ctx.tenantId),
+              or(
+                isNull(notifications.userId),
+                eq(notifications.userId, ctx.user.id)
+              )
+            )
+          )
+          .orderBy(desc(notifications.createdAt))
+          .limit(input?.limit ?? 50)
+          .offset(input?.offset ?? 0);
+
+        return rows.map(n => {
+          const meta = n.metadata as { link?: string } | null;
+          return {
+            id: n.id,
+            title: n.subject ?? "",
+            body: n.body ?? "",
+            isRead: n.status !== "unread",
+            link: meta?.link ?? null,
+            type: n.type,
+            createdAt: n.createdAt,
+          };
+        });
       }),
     markRead: tenantProcedure
       .input(z.object({ id: z.number() }))
-      .mutation(async () => {
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.tenantId || !ctx.user) return { success: false };
+        const db = await getDb();
+        if (!db) return { success: false };
+        await db
+          .update(notifications)
+          .set({ status: "read", readAt: new Date() })
+          .where(
+            and(
+              eq(notifications.id, input.id),
+              eq(notifications.tenantId, ctx.tenantId),
+              or(
+                isNull(notifications.userId),
+                eq(notifications.userId, ctx.user.id)
+              )
+            )
+          );
         return { success: true };
       }),
-    markAllRead: tenantProcedure.mutation(async () => {
+    markAllRead: tenantProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.tenantId || !ctx.user) return { success: false };
+      const db = await getDb();
+      if (!db) return { success: false };
+      await db
+        .update(notifications)
+        .set({ status: "read", readAt: new Date() })
+        .where(
+          and(
+            eq(notifications.tenantId, ctx.tenantId),
+            eq(notifications.status, "unread"),
+            or(
+              isNull(notifications.userId),
+              eq(notifications.userId, ctx.user.id)
+            )
+          )
+        );
       return { success: true };
     }),
   }),
@@ -685,10 +789,7 @@ export const modulesRouter = router({
             sql`${salesInvoices.status} <> 'cancelled'`
           )
         );
-      const agg = new Map<
-        string,
-        { total: number; count: number }
-      >();
+      const agg = new Map<string, { total: number; count: number }>();
       for (const r of rows) {
         const key = r.salesRepId ?? "";
         if (!key) continue;
@@ -1343,10 +1444,7 @@ export const modulesRouter = router({
         .select({ n: count() })
         .from(messages)
         .where(
-          and(
-            eq(messages.tenantId, ctx.tenantId),
-            eq(messages.isRead, false)
-          )
+          and(eq(messages.tenantId, ctx.tenantId), eq(messages.isRead, false))
         );
       const [pendingOrders] = await db
         .select({ n: count() })
@@ -1422,8 +1520,11 @@ export const modulesRouter = router({
           if (!k) continue;
           agg.set(k, (agg.get(k) || 0) + parseFloat(rr.total || "0"));
         }
-        let best: { name: string; commission: number; salesTotal: number } | null =
-          null;
+        let best: {
+          name: string;
+          commission: number;
+          salesTotal: number;
+        } | null = null;
         for (const r of reps) {
           const total = agg.get(String(r.id)) || 0;
           const val = parseFloat(r.commissionValue || "0");
@@ -1518,7 +1619,11 @@ export const modulesRouter = router({
           `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
         );
       }
-      const months = monthsKeys.map(k => ({ month: k, revenue: 0, expense: 0 }));
+      const months = monthsKeys.map(k => ({
+        month: k,
+        revenue: 0,
+        expense: 0,
+      }));
       const monthsIndex = new Map(monthsKeys.map((k, i) => [k, i]));
       for (const s of activeSales) {
         const i = monthsIndex.get(monthKey(s.invoiceDate));
@@ -1530,7 +1635,8 @@ export const modulesRouter = router({
       }
 
       const curMonth = months.length ? months[months.length - 1].revenue : 0;
-      const prevMonth = months.length > 1 ? months[months.length - 2].revenue : 0;
+      const prevMonth =
+        months.length > 1 ? months[months.length - 2].revenue : 0;
       const salesGrowth =
         prevMonth > 0 ? ((curMonth - prevMonth) / prevMonth) * 100 : 0;
 
@@ -1637,6 +1743,785 @@ export const modulesRouter = router({
           .orderBy(desc(activityLogs.createdAt))
           .limit(limit)
           .offset(offset);
+      }),
+  }),
+
+  // ─── Products ──────────────────────────────────────────────────────
+  products: router({
+    list: tenantProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(100).default(50),
+            offset: z.number().min(0).default(0),
+            search: z.string().optional(),
+            category: z.string().optional(),
+            type: z.enum(["goods", "service"]).optional(),
+            isActive: z.boolean().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return { items: [], total: 0 };
+        const db = await getDb();
+        if (!db) return { items: [], total: 0 };
+        const where = [eq(products.tenantId, ctx.tenantId)];
+        if (input?.search)
+          where.push(ilike(products.name, `%${input.search}%`));
+        if (input?.category) where.push(eq(products.category, input.category));
+        if (input?.type) where.push(eq(products.type, input.type));
+        if (input?.isActive !== undefined)
+          where.push(eq(products.isActive, input.isActive));
+        where.push(isNull(products.deletedAt));
+        const items = await db
+          .select()
+          .from(products)
+          .where(and(...where))
+          .orderBy(desc(products.createdAt))
+          .limit(input?.limit ?? 50)
+          .offset(input?.offset ?? 0);
+        const total = await db.$count(products, and(...where));
+        return { items, total };
+      }),
+    get: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const [item] = await db
+          .select()
+          .from(products)
+          .where(
+            and(eq(products.id, input.id), eq(products.tenantId, ctx.tenantId))
+          )
+          .limit(1);
+        return item || null;
+      }),
+    create: tenantProcedure
+      .input(
+        z.object({
+          code: z.string().min(1),
+          name: z.string().min(1),
+          nameAr: z.string().optional(),
+          type: z.enum(["goods", "service"]).default("goods"),
+          category: z.string().optional(),
+          unit: z.string().default("قطعة"),
+          purchasePrice: z.string().default("0"),
+          salePrice: z.string().default("0"),
+          wholesalePrice: z.string().default("0"),
+          minStock: z.number().default(0),
+          currentStock: z.number().default(0),
+          barcode: z.string().optional(),
+          supplierId: z.number().optional(),
+          unitId: z.number().optional(),
+          categoryId: z.number().optional(),
+          description: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        const [row] = await db
+          .insert(products)
+          .values({ ...input, tenantId: ctx.tenantId })
+          .returning();
+        return row;
+      }),
+    update: tenantProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          code: z.string().optional(),
+          name: z.string().optional(),
+          nameAr: z.string().optional(),
+          type: z.enum(["goods", "service"]).optional(),
+          category: z.string().optional(),
+          unit: z.string().optional(),
+          purchasePrice: z.string().optional(),
+          salePrice: z.string().optional(),
+          wholesalePrice: z.string().optional(),
+          minStock: z.number().optional(),
+          currentStock: z.number().optional(),
+          barcode: z.string().optional(),
+          supplierId: z.number().nullish(),
+          unitId: z.number().nullish(),
+          categoryId: z.number().nullish(),
+          description: z.string().optional(),
+          isActive: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        const { id, ...data } = input;
+        await db
+          .update(products)
+          .set({ ...data, updatedAt: new Date() })
+          .where(and(eq(products.id, id), eq(products.tenantId, ctx.tenantId)));
+        return { success: true };
+      }),
+    delete: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        await db
+          .update(products)
+          .set({ deletedAt: new Date() })
+          .where(
+            and(eq(products.id, input.id), eq(products.tenantId, ctx.tenantId))
+          );
+        return { success: true };
+      }),
+  }),
+
+  // ─── Customers ─────────────────────────────────────────────────────
+  customers: router({
+    list: tenantProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(100).default(50),
+            offset: z.number().min(0).default(0),
+            search: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return { items: [], total: 0 };
+        const db = await getDb();
+        if (!db) return { items: [], total: 0 };
+        const where = [eq(customers.tenantId, ctx.tenantId)];
+        if (input?.search)
+          where.push(
+            or(
+              ilike(customers.name, `%${input.search}%`),
+              ilike(customers.code, `%${input.search}%`),
+              ilike(customers.phone, `%${input.search}%`),
+              ilike(customers.email, `%${input.search}%`)
+            ) as any
+          );
+        const items = await db
+          .select()
+          .from(customers)
+          .where(and(...where))
+          .orderBy(desc(customers.createdAt))
+          .limit(input?.limit ?? 50)
+          .offset(input?.offset ?? 0);
+        const total = await db.$count(customers, and(...where));
+        return { items, total };
+      }),
+    get: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const [item] = await db
+          .select()
+          .from(customers)
+          .where(
+            and(
+              eq(customers.id, input.id),
+              eq(customers.tenantId, ctx.tenantId)
+            )
+          )
+          .limit(1);
+        return item || null;
+      }),
+    create: tenantProcedure
+      .input(
+        z.object({
+          code: z.string().min(1),
+          name: z.string().min(1),
+          phone: z.string().optional(),
+          email: z.string().email().optional().or(z.literal("")),
+          address: z.string().optional(),
+          city: z.string().optional(),
+          country: z.string().optional(),
+          taxNumber: z.string().optional(),
+          creditLimit: z.string().default("0"),
+          paymentTerms: z.number().default(30),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        const [row] = await db
+          .insert(customers)
+          .values({ ...input, tenantId: ctx.tenantId })
+          .returning();
+        return row;
+      }),
+    update: tenantProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          code: z.string().optional(),
+          name: z.string().optional(),
+          phone: z.string().optional(),
+          email: z.string().email().optional().or(z.literal("")),
+          address: z.string().optional(),
+          city: z.string().optional(),
+          country: z.string().optional(),
+          taxNumber: z.string().optional(),
+          creditLimit: z.string().optional(),
+          paymentTerms: z.number().optional(),
+          isActive: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        const { id, ...data } = input;
+        await db
+          .update(customers)
+          .set({ ...data, updatedAt: new Date() })
+          .where(
+            and(eq(customers.id, id), eq(customers.tenantId, ctx.tenantId))
+          );
+        return { success: true };
+      }),
+    delete: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        await db
+          .delete(customers)
+          .where(
+            and(
+              eq(customers.id, input.id),
+              eq(customers.tenantId, ctx.tenantId)
+            )
+          );
+        return { success: true };
+      }),
+  }),
+
+  // ─── Suppliers ─────────────────────────────────────────────────────
+  suppliers: router({
+    list: tenantProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(100).default(50),
+            offset: z.number().min(0).default(0),
+            search: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return { items: [], total: 0 };
+        const db = await getDb();
+        if (!db) return { items: [], total: 0 };
+        const where = [eq(suppliers.tenantId, ctx.tenantId)];
+        if (input?.search)
+          where.push(
+            or(
+              ilike(suppliers.name, `%${input.search}%`),
+              ilike(suppliers.code, `%${input.search}%`),
+              ilike(suppliers.phone, `%${input.search}%`),
+              ilike(suppliers.email, `%${input.search}%`)
+            ) as any
+          );
+        const items = await db
+          .select()
+          .from(suppliers)
+          .where(and(...where))
+          .orderBy(desc(suppliers.createdAt))
+          .limit(input?.limit ?? 50)
+          .offset(input?.offset ?? 0);
+        const total = await db.$count(suppliers, and(...where));
+        return { items, total };
+      }),
+    get: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const [item] = await db
+          .select()
+          .from(suppliers)
+          .where(
+            and(
+              eq(suppliers.id, input.id),
+              eq(suppliers.tenantId, ctx.tenantId)
+            )
+          )
+          .limit(1);
+        return item || null;
+      }),
+    create: tenantProcedure
+      .input(
+        z.object({
+          code: z.string().min(1),
+          name: z.string().min(1),
+          phone: z.string().optional(),
+          email: z.string().email().optional().or(z.literal("")),
+          address: z.string().optional(),
+          city: z.string().optional(),
+          country: z.string().optional(),
+          taxNumber: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        const [row] = await db
+          .insert(suppliers)
+          .values({ ...input, tenantId: ctx.tenantId })
+          .returning();
+        return row;
+      }),
+    update: tenantProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          code: z.string().optional(),
+          name: z.string().optional(),
+          phone: z.string().optional(),
+          email: z.string().email().optional().or(z.literal("")),
+          address: z.string().optional(),
+          city: z.string().optional(),
+          country: z.string().optional(),
+          taxNumber: z.string().optional(),
+          isActive: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        const { id, ...data } = input;
+        await db
+          .update(suppliers)
+          .set({ ...data, updatedAt: new Date() })
+          .where(
+            and(eq(suppliers.id, id), eq(suppliers.tenantId, ctx.tenantId))
+          );
+        return { success: true };
+      }),
+    delete: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        await db
+          .delete(suppliers)
+          .where(
+            and(
+              eq(suppliers.id, input.id),
+              eq(suppliers.tenantId, ctx.tenantId)
+            )
+          );
+        return { success: true };
+      }),
+  }),
+
+  // ─── Sales Invoices ───────────────────────────────────────────────
+  sales: router({
+    listInvoices: tenantProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(100).default(50),
+            offset: z.number().min(0).default(0),
+            status: z.string().optional(),
+            customerId: z.number().optional(),
+            fromDate: z.string().optional(),
+            toDate: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return { items: [], total: 0 };
+        const db = await getDb();
+        if (!db) return { items: [], total: 0 };
+        const where = [eq(salesInvoices.tenantId, ctx.tenantId)];
+        if (input?.status)
+          where.push(eq(salesInvoices.status, input.status as any));
+        if (input?.customerId)
+          where.push(eq(salesInvoices.customerId, input.customerId));
+        if (input?.fromDate)
+          where.push(gte(salesInvoices.invoiceDate, new Date(input.fromDate)));
+        if (input?.toDate)
+          where.push(lte(salesInvoices.invoiceDate, new Date(input.toDate)));
+        const items = await db
+          .select()
+          .from(salesInvoices)
+          .where(and(...where))
+          .orderBy(desc(salesInvoices.invoiceDate))
+          .limit(input?.limit ?? 50)
+          .offset(input?.offset ?? 0);
+        const total = await db.$count(salesInvoices, and(...where));
+        return { items, total };
+      }),
+    getInvoice: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const [invoice] = await db
+          .select()
+          .from(salesInvoices)
+          .where(
+            and(
+              eq(salesInvoices.id, input.id),
+              eq(salesInvoices.tenantId, ctx.tenantId)
+            )
+          )
+          .limit(1);
+        if (!invoice) return null;
+        const items = await db
+          .select()
+          .from(salesInvoiceItems)
+          .where(eq(salesInvoiceItems.invoiceId, invoice.id));
+        return { invoice, items };
+      }),
+  }),
+
+  // ─── Purchase Invoices ────────────────────────────────────────────
+  purchases: router({
+    listInvoices: tenantProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(100).default(50),
+            offset: z.number().min(0).default(0),
+            status: z.string().optional(),
+            supplierId: z.number().optional(),
+            fromDate: z.string().optional(),
+            toDate: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return { items: [], total: 0 };
+        const db = await getDb();
+        if (!db) return { items: [], total: 0 };
+        const where = [eq(purchaseInvoices.tenantId, ctx.tenantId)];
+        if (input?.status)
+          where.push(eq(purchaseInvoices.status, input.status as any));
+        if (input?.supplierId)
+          where.push(eq(purchaseInvoices.supplierId, input.supplierId));
+        if (input?.fromDate)
+          where.push(
+            gte(purchaseInvoices.invoiceDate, new Date(input.fromDate))
+          );
+        if (input?.toDate)
+          where.push(lte(purchaseInvoices.invoiceDate, new Date(input.toDate)));
+        const items = await db
+          .select()
+          .from(purchaseInvoices)
+          .where(and(...where))
+          .orderBy(desc(purchaseInvoices.invoiceDate))
+          .limit(input?.limit ?? 50)
+          .offset(input?.offset ?? 0);
+        const total = await db.$count(purchaseInvoices, and(...where));
+        return { items, total };
+      }),
+    getInvoice: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const [invoice] = await db
+          .select()
+          .from(purchaseInvoices)
+          .where(
+            and(
+              eq(purchaseInvoices.id, input.id),
+              eq(purchaseInvoices.tenantId, ctx.tenantId)
+            )
+          )
+          .limit(1);
+        if (!invoice) return null;
+        const items = await db
+          .select()
+          .from(purchaseInvoiceItems)
+          .where(eq(purchaseInvoiceItems.invoiceId, invoice.id));
+        return { invoice, items };
+      }),
+  }),
+
+  // ─── Orders ───────────────────────────────────────────────────────
+  orders: router({
+    list: tenantProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(100).default(50),
+            offset: z.number().min(0).default(0),
+            status: z.string().optional(),
+            customerId: z.number().optional(),
+            fromDate: z.string().optional(),
+            toDate: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return { items: [], total: 0 };
+        const db = await getDb();
+        if (!db) return { items: [], total: 0 };
+        const where = [eq(orders.tenantId, ctx.tenantId)];
+        if (input?.status) where.push(eq(orders.status, input.status as any));
+        if (input?.customerId)
+          where.push(eq(orders.customerId, input.customerId));
+        if (input?.fromDate)
+          where.push(gte(orders.createdAt, new Date(input.fromDate)));
+        if (input?.toDate)
+          where.push(lte(orders.createdAt, new Date(input.toDate)));
+        const items = await db
+          .select({
+            id: orders.id,
+            orderNumber: orders.orderNumber,
+            customerId: orders.customerId,
+            customerName: customers.name,
+            status: orders.status,
+            total: orders.total,
+            orderDate: orders.createdAt,
+            deliveryDate: orders.deliveryDate,
+          })
+          .from(orders)
+          .leftJoin(customers, eq(orders.customerId, customers.id))
+          .where(and(...where))
+          .orderBy(desc(orders.createdAt))
+          .limit(input?.limit ?? 50)
+          .offset(input?.offset ?? 0);
+        const total = await db.$count(orders, and(...where));
+        return { items, total };
+      }),
+    get: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const [order] = await db
+          .select()
+          .from(orders)
+          .where(
+            and(eq(orders.id, input.id), eq(orders.tenantId, ctx.tenantId))
+          )
+          .limit(1);
+        if (!order) return null;
+        const items = await db
+          .select()
+          .from(orderItems)
+          .where(eq(orderItems.orderId, order.id));
+        return { order, items };
+      }),
+    create: tenantProcedure
+      .input(
+        z.object({
+          customerId: z.number(),
+          items: z.array(
+            z.object({
+              productId: z.number(),
+              productName: z.string(),
+              quantity: z.number(),
+              unitPrice: z.string(),
+            })
+          ),
+          deliveryDate: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
+        const { deliveryDate, ...inputWithoutStatus } = input;
+        const [order] = await db
+          .insert(orders)
+          .values({
+            ...inputWithoutStatus,
+            tenantId: ctx.tenantId,
+            orderNumber,
+            userId: ctx.user.id,
+            status: "pending" as const,
+            deliveryDate: deliveryDate
+              ? new Date(deliveryDate as string)
+              : null,
+          })
+          .returning();
+        for (const item of input.items) {
+          await db.insert(orderItems).values({
+            orderId: order.id,
+            productId: item.productId,
+            productName: item.productName ?? "",
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            total: (parseFloat(item.unitPrice) * item.quantity).toFixed(2),
+          });
+        }
+        return { success: true, order };
+      }),
+  }),
+
+  // ─── Store (E-commerce) ───────────────────────────────────────────
+  store: router({
+    catalog: tenantProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(100).default(20),
+            offset: z.number().min(0).default(0),
+            category: z.string().optional(),
+            search: z.string().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return { items: [], total: 0 };
+        const db = await getDb();
+        if (!db) return { items: [], total: 0 };
+        const where = [
+          eq(products.tenantId, ctx.tenantId),
+          eq(products.isActive, true),
+          eq(products.type, "goods"),
+        ];
+        if (input?.category) where.push(eq(products.category, input.category));
+        if (input?.search)
+          where.push(ilike(products.name, `%${input.search}%`));
+        const items = await db
+          .select({
+            id: products.id,
+            code: products.code,
+            name: products.name,
+            nameAr: products.nameAr,
+            salePrice: products.salePrice,
+            wholesalePrice: products.wholesalePrice,
+            currentStock: products.currentStock,
+            unit: products.unit,
+            category: products.category,
+            imageUrl: products.attachmentUrl,
+          })
+          .from(products)
+          .where(and(...where))
+          .limit(input?.limit ?? 20)
+          .offset(input?.offset ?? 0);
+        const total = await db.$count(products, and(...where));
+        return { items, total };
+      }),
+  }),
+
+  // ─── Scheduled Journal Entries ────────────────────────────────────
+  scheduled: router({
+    list: tenantProcedure
+      .input(
+        z
+          .object({
+            limit: z.number().min(1).max(100).default(50),
+            offset: z.number().min(0).default(0),
+            isActive: z.boolean().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return { items: [], total: 0 };
+        const db = await getDb();
+        if (!db) return { items: [], total: 0 };
+        const where = [eq(scheduledJournalEntries.tenantId, ctx.tenantId)];
+        if (input?.isActive !== undefined)
+          where.push(eq(scheduledJournalEntries.isActive, input.isActive));
+        const items = await db
+          .select()
+          .from(scheduledJournalEntries)
+          .where(and(...where))
+          .orderBy(desc(scheduledJournalEntries.nextRunAt))
+          .limit(input?.limit ?? 50)
+          .offset(input?.offset ?? 0);
+        const total = await db.$count(scheduledJournalEntries, and(...where));
+        return { items, total };
+      }),
+    create: tenantProcedure
+      .input(
+        z.object({
+          name: z.string().min(1),
+          description: z.string().optional(),
+          branchId: z.number().optional(),
+          accountId: z.number(),
+          amount: z.string(),
+          type: z.enum(["debit", "credit"]),
+          narration: z.string(),
+          frequency: z.enum([
+            "daily",
+            "weekly",
+            "monthly",
+            "quarterly",
+            "yearly",
+          ]),
+          nextRunAt: z.string(),
+          isActive: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        const [row] = await db
+          .insert(scheduledJournalEntries)
+          .values({
+            ...input,
+            tenantId: ctx.tenantId,
+            nextRunAt: new Date(input.nextRunAt),
+            isActive: input.isActive ?? true,
+          })
+          .returning();
+        return row;
+      }),
+    update: tenantProcedure
+      .input(
+        z.object({
+          id: z.number(),
+          name: z.string().optional(),
+          description: z.string().optional(),
+          branchId: z.number().optional(),
+          accountId: z.number().optional(),
+          amount: z.string().optional(),
+          type: z.enum(["debit", "credit"]).optional(),
+          narration: z.string().optional(),
+          frequency: z
+            .enum(["daily", "weekly", "monthly", "quarterly", "yearly"])
+            .optional(),
+          nextRunAt: z.string().optional(),
+          isActive: z.boolean().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        const { id, ...data } = input;
+        const setData: any = { ...data, updatedAt: new Date() };
+        if (data.nextRunAt) setData.nextRunAt = new Date(data.nextRunAt);
+        await db
+          .update(scheduledJournalEntries)
+          .set(setData)
+          .where(
+            and(
+              eq(scheduledJournalEntries.id, id),
+              eq(scheduledJournalEntries.tenantId, ctx.tenantId)
+            )
+          );
+        return { success: true };
+      }),
+    delete: tenantProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId) throw new Error("Database not available");
+        await db
+          .delete(scheduledJournalEntries)
+          .where(
+            and(
+              eq(scheduledJournalEntries.id, input.id),
+              eq(scheduledJournalEntries.tenantId, ctx.tenantId)
+            )
+          );
+        return { success: true };
       }),
   }),
 

@@ -130,7 +130,9 @@ function InitialBootLoader() {
         </div>
 
         <div>
-          <div className="text-base font-black text-white">الحسينية لخدمات الأعمال</div>
+          <div className="text-base font-black text-white">
+            الحسينية لخدمات الأعمال
+          </div>
           <div className="text-[11px] text-white/50 tracking-wider font-mono mt-1">
             Uamex_erp — Unified Asset Management & Enterprise Exchange
           </div>
@@ -338,7 +340,7 @@ function Router() {
             <Route path={"/404"} component={NotFound} />
             <Route component={NotFound} />
           </Switch>
-</Suspense>
+        </Suspense>
       </div>
     </>
   );

@@ -3,10 +3,11 @@
 > وثيقة معتمدة للبنية والقرارات المعمارية والهوية والربط والنشر.
 > تاريخ الاعتماد: أغسطس 2026 — الإصدار: `v2.11.0` — المستودع: `husseiniya-platform`.
 > **الاسم العام الموحد: `الحسينية لخدمات الأعمال`** — الشعار الحديث `BrandMark` SVG (كتاب مفتوح + مسار دفتر) + الأيقونات الرسمية:
+>
 > - المنصة: `public/ALHUSAINIALOGO.png` (1363960) → `client/public/platform-logo.png` / `icon-512.png`
 > - النظام: `public/UAMEX_ERP/UAMEX_ERPLOGO.png` (2121972) → `client/public/uamex-erp.png`
 > - التطبيق/الياس: `public/Elias AI ico/Elias AI.jpg` (2614002) → `client/public/elias-avatar.jpg`
-> **نظام الإدارة الموحّد: `Uamex_erp`** — `client/public/uamex-erp.png`.
+>   **نظام الإدارة الموحّد: `Uamex_erp`** — `client/public/uamex-erp.png`.
 
 ---
 

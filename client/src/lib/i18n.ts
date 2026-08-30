@@ -62,7 +62,8 @@ const translations: TranslationResources = {
     workspaceAccountingTitle: "النظام المحاسبي والمالي المتقدم",
     workspaceEngineeringTitle: "جناح الاستشارات الهندسية والمقاولات والأراضي",
     workspaceCommercialTitle: "إدارة العمليات التجارية والمخازن والعملاء",
-    workspaceLibraryTitle: "المركز المعرفي للخدمات المعرفية والطباعة الاحترافية",
+    workspaceLibraryTitle:
+      "المركز المعرفي للخدمات المعرفية والطباعة الاحترافية",
     // Footer
     footerSystem: "المنظومة",
     footerUnits: "الوحدات",
@@ -75,8 +76,7 @@ const translations: TranslationResources = {
     footerTrust2: "نُشر على GitHub & Vercel",
     footerTrust3: "يعمل أوفلاين وسحابياً",
     footerTrust4: "دعم متعدد العملات والفروع",
-    footerCopyright:
-      "مجموعة الحسينية — جميع الحقوق محفوظة",
+    footerCopyright: "مجموعة الحسينية — جميع الحقوق محفوظة",
     footerPowered:
       "منظومة سحابية متعددة المؤسسات والفروع والعملات — مبنية ومُنشرة عبر GitHub & Vercel.",
     // About page
@@ -314,4 +314,3 @@ export const I18nProvider = ({ children }: { children: ReactNode }) => {
     children
   );
 };
-

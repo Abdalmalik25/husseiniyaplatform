@@ -209,6 +209,7 @@ export function SiteFooter() {
             </h4>
             <ul className="space-y-2">
               {[
+                { label: "من نحن", path: "/about" },
                 { label: "الحلول البرمجية والأتمتة", path: "/solutions" },
                 { label: "متابعة وإشراف المشاريع", path: "/governance" },
                 { label: "الخدمات الهندسية والمساحة", id: "engineering" },

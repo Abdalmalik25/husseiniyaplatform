@@ -22,9 +22,18 @@ export function EmptyState({
         <FileSearch className="h-6 w-6 text-muted-foreground" />
       </div>
       <h3 className="text-sm font-bold text-foreground">{title}</h3>
-      {description && <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">{description}</p>}
+      {description && (
+        <p className="max-w-sm text-xs leading-relaxed text-muted-foreground">
+          {description}
+        </p>
+      )}
       {actionLabel && onAction && (
-        <Button onClick={onAction} variant="outline" size="sm" className="h-9 gap-1.5">
+        <Button
+          onClick={onAction}
+          variant="outline"
+          size="sm"
+          className="h-9 gap-1.5"
+        >
           <RefreshCw className="h-3.5 w-3.5" />
           {actionLabel}
         </Button>

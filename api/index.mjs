@@ -109,12 +109,20 @@ var init_schema = __esm({
         lockedUntil: timestamp("lockedUntil"),
         passwordChangedAt: timestamp("passwordChangedAt").defaultNow().notNull(),
         mfaEnabled: boolean("mfaEnabled").default(false).notNull(),
-        mfaSecret: varchar("mfaSecret", { length: 255 })
+        mfaSecret: varchar("mfaSecret", { length: 255 }),
+        // Email verification & password reset
+        emailVerified: boolean("emailVerified").default(false).notNull(),
+        verificationToken: varchar("verificationToken", { length: 128 }),
+        verificationTokenExpiry: timestamp("verificationTokenExpiry"),
+        resetToken: varchar("resetToken", { length: 128 }),
+        resetTokenExpiry: timestamp("resetTokenExpiry")
       },
       (t2) => [
         // PERFORMANCE: Index for tenant-scoped user lookups
         index("idx_users_tenant").on(t2.tenantId),
-        index("idx_users_session").on(t2.currentSessionId)
+        index("idx_users_session").on(t2.currentSessionId),
+        index("idx_users_email").on(t2.email),
+        index("idx_users_username").on(t2.username)
       ]
     );
     loginAttempts = pgTable(
@@ -842,7 +850,10 @@ var init_schema = __esm({
         index("idx_productSerials_batch").on(t2.batchId),
         index("idx_productSerials_warehouse").on(t2.warehouseId),
         index("idx_productSerials_status").on(t2.status),
-        unique("productSerials_number_tenant_unique").on(t2.serialNumber, t2.tenantId),
+        unique("productSerials_number_tenant_unique").on(
+          t2.serialNumber,
+          t2.tenantId
+        ),
         check("chk_productSerial_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
       ]
     );
@@ -868,7 +879,10 @@ var init_schema = __esm({
       (t2) => [
         index("idx_matrixDimensions_tenant").on(t2.tenantId),
         unique("matrixDimensions_code_tenant_unique").on(t2.code, t2.tenantId),
-        check("chk_matrixDimension_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+        check(
+          "chk_matrixDimension_tenant_not_null",
+          sql`${t2.tenantId} IS NOT NULL`
+        )
       ]
     );
     matrixDimensionValues = pgTable(
@@ -896,8 +910,14 @@ var init_schema = __esm({
       (t2) => [
         index("idx_matrixDimensionValues_tenant").on(t2.tenantId),
         index("idx_matrixDimensionValues_dimension").on(t2.dimensionId),
-        unique("matrixDimensionValues_code_dimension_unique").on(t2.code, t2.dimensionId),
-        check("chk_matrixDimensionValue_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+        unique("matrixDimensionValues_code_dimension_unique").on(
+          t2.code,
+          t2.dimensionId
+        ),
+        check(
+          "chk_matrixDimensionValue_tenant_not_null",
+          sql`${t2.tenantId} IS NOT NULL`
+        )
       ]
     );
     matrixItems = pgTable(
@@ -934,7 +954,10 @@ var init_schema = __esm({
         index("idx_matrixItems_tenant").on(t2.tenantId),
         index("idx_matrixItems_product").on(t2.productId),
         index("idx_matrixItems_matrix").on(t2.matrixId),
-        unique("matrixItems_combination_tenant_unique").on(t2.combinationCode, t2.tenantId),
+        unique("matrixItems_combination_tenant_unique").on(
+          t2.combinationCode,
+          t2.tenantId
+        ),
         check("chk_matrixItem_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
       ]
     );
@@ -967,7 +990,10 @@ var init_schema = __esm({
         index("idx_inventoryAllocations_product").on(t2.productId),
         index("idx_inventoryAllocations_session").on(t2.sessionId),
         index("idx_inventoryAllocations_cartLine").on(t2.cartLineId),
-        check("chk_inventoryAllocation_tenant_not_null", sql`${t2.tenantId} IS NOT NULL`)
+        check(
+          "chk_inventoryAllocation_tenant_not_null",
+          sql`${t2.tenantId} IS NOT NULL`
+        )
       ]
     );
     stockMovements = pgTable(
@@ -4094,15 +4120,26 @@ var init_env = __esm({
         0
       ),
       /** Local directory for backup blobs when S3 is not configured. */
-      backupDir: process.env.BACKUP_DIR ?? ""
+      backupDir: process.env.BACKUP_DIR ?? "",
+      /** Sentry DSN for error tracking and performance monitoring. */
+      sentryDsn: process.env.SENTRY_DSN ?? "",
+      /** Vite-defined app version for health endpoint. */
+      appVersion: true ? "2.12.0" : "dev"
     };
     if (ENV.isProduction) {
       if (!ENV.databaseUrl) {
-        console.warn("[ENV] DATABASE_URL is not set \u2014 health checks will report degraded");
+        console.warn(
+          "[ENV] DATABASE_URL is not set \u2014 health checks will report degraded"
+        );
       }
       if (!ENV.backupEncryptionKey || ENV.backupEncryptionKey.length < 16) {
         console.warn(
           "[ENV] BACKUP_ENCRYPTION_KEY is missing or <16 chars \u2014 encrypted backups are disabled (fail-closed)"
+        );
+      }
+      if (!ENV.sentryDsn) {
+        console.warn(
+          "[ENV] SENTRY_DSN is not set \u2014 error tracking and performance monitoring disabled"
         );
       }
     }
@@ -4214,6 +4251,8 @@ import net from "net";
 
 // server/_core/app.ts
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
+import { expressErrorHandler } from "@sentry/node";
 import express from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -5023,11 +5062,11 @@ var computeBackoffDelay = (attempt, retryAfterMs) => {
   const jittered = cap / 2 + Math.random() * (cap / 2);
   return Math.min(Math.max(jittered, retryAfterMs ?? 0), RETRY_MAX_DELAY_MS);
 };
-var fetchWithBackoff = async (url, init) => {
+var fetchWithBackoff = async (url, init2) => {
   let lastError;
   for (let attempt = 0; attempt <= RETRY_MAX_RETRIES; attempt++) {
     try {
-      const response = await fetch(url, init);
+      const response = await fetch(url, init2);
       if (response.ok || attempt === RETRY_MAX_RETRIES) {
         return response;
       }
@@ -29101,6 +29140,11 @@ async function applyAuthSchema(db) {
   const colAdds = [
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS "username" varchar(120)`,
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS "passwordHash" text`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "emailVerified" boolean DEFAULT false NOT NULL`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "verificationToken" varchar(128)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "verificationTokenExpiry" timestamp`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "resetToken" varchar(128)`,
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS "resetTokenExpiry" timestamp`,
     `ALTER TABLE tenants ALTER COLUMN "ownerUserId" DROP NOT NULL`
   ];
   for (const stmt of colAdds) {
@@ -29585,7 +29629,9 @@ function imbalance(legs) {
 function validateOrThrow(legs, context) {
   if (!isBalanced(legs)) {
     const diff = imbalance(legs);
-    throw new Error(`\u0642\u064A\u0648\u062F \u063A\u064A\u0631 \u0645\u062A\u0648\u0627\u0632\u0646\u0629${context ? ` (${context})` : ""}: \u0627\u0644\u0641\u0631\u0642 ${diff.toFixed(2)}`);
+    throw new Error(
+      `\u0642\u064A\u0648\u062F \u063A\u064A\u0631 \u0645\u062A\u0648\u0627\u0632\u0646\u0629${context ? ` (${context})` : ""}: \u0627\u0644\u0641\u0631\u0642 ${diff.toFixed(2)}`
+    );
   }
 }
 
@@ -29645,10 +29691,13 @@ init_db();
 init_schema();
 async function createNotification(db, input) {
   if (!db) {
-    console.warn("[notifications] createNotification skipped: no db available", {
-      tenantId: input.tenantId,
-      type: input.type
-    });
+    console.warn(
+      "[notifications] createNotification skipped: no db available",
+      {
+        tenantId: input.tenantId,
+        type: input.type
+      }
+    );
     return;
   }
   await db.insert(notifications).values({
@@ -31924,7 +31973,19 @@ var erpRouter = router({
 
 // server/modulesRouter.ts
 import { z as z4 } from "zod";
-import { eq as eq8, and as and6, desc as desc3, sql as sql7, gte as gte4, lte as lte3, inArray as inArray3, count as count2 } from "drizzle-orm";
+import {
+  eq as eq8,
+  and as and6,
+  desc as desc3,
+  sql as sql7,
+  gte as gte4,
+  lte as lte3,
+  or as or3,
+  ilike as ilike4,
+  inArray as inArray3,
+  count as count2,
+  isNull as isNull4
+} from "drizzle-orm";
 import { TRPCError as TRPCError5 } from "@trpc/server";
 init_db();
 
@@ -31960,14 +32021,10 @@ var reportsRouter = router({
         discountedInvoices += 1;
       }
     }
-    const [offersCount] = await db.select({ n: count() }).from(offers).where(
-      and5(eq7(offers.tenantId, ctx.tenantId), eq7(offers.isActive, true))
-    );
+    const [offersCount] = await db.select({ n: count() }).from(offers).where(and5(eq7(offers.tenantId, ctx.tenantId), eq7(offers.isActive, true)));
     const repIds = reps.map((r) => String(r.id));
     const perf = reps.map((r) => {
-      const sales = activeInvoices.filter(
-        (i) => i.salesRepId === String(r.id)
-      );
+      const sales = activeInvoices.filter((i) => i.salesRepId === String(r.id));
       const salesTotal = sales.reduce(
         (s, i) => s + parseFloat(i.total || "0"),
         0
@@ -31997,23 +32054,91 @@ var reportsRouter = router({
 init_schema();
 var modulesRouter = router({
   // ─── Notifications ──────────────────────────────────────────────
+  // Live engine: `automation.ts` and `erpRouter.ts` write real rows into the
+  // `notifications` table via `createNotification`. Previously this router was a
+  // no-op stub (always returning 0 / []), so the UI bell surfaced nothing. It
+  // now reads the table and maps the persisted shape to the DTO the client
+  // (AppSidebar.tsx) expects: { id, title, body, isRead, link, type, createdAt }.
+  // `userId IS NULL` rows are broadcast notifications addressed to every member
+  // of the tenant and are therefore visible/counted for any authenticated user.
   notifications: router({
     unreadCount: tenantProcedure.query(async ({ ctx }) => {
       if (!ctx.tenantId || !ctx.user) return 0;
-      return 0;
+      const db = await getDb();
+      if (!db) return 0;
+      const [res] = await db.select({ count: sql7`count(*)::int` }).from(notifications).where(
+        and6(
+          eq8(notifications.tenantId, ctx.tenantId),
+          eq8(notifications.status, "unread"),
+          or3(
+            isNull4(notifications.userId),
+            eq8(notifications.userId, ctx.user.id)
+          )
+        )
+      );
+      return res?.count ?? 0;
     }),
     list: tenantProcedure.input(
       z4.object({
         limit: z4.number().min(1).max(100).default(50),
         offset: z4.number().min(0).default(0)
       }).optional()
-    ).query(async () => {
-      return [];
+    ).query(async ({ ctx, input }) => {
+      if (!ctx.tenantId || !ctx.user) return [];
+      const db = await getDb();
+      if (!db) return [];
+      const rows = await db.select().from(notifications).where(
+        and6(
+          eq8(notifications.tenantId, ctx.tenantId),
+          or3(
+            isNull4(notifications.userId),
+            eq8(notifications.userId, ctx.user.id)
+          )
+        )
+      ).orderBy(desc3(notifications.createdAt)).limit(input?.limit ?? 50).offset(input?.offset ?? 0);
+      return rows.map((n) => {
+        const meta = n.metadata;
+        return {
+          id: n.id,
+          title: n.subject ?? "",
+          body: n.body ?? "",
+          isRead: n.status !== "unread",
+          link: meta?.link ?? null,
+          type: n.type,
+          createdAt: n.createdAt
+        };
+      });
     }),
-    markRead: tenantProcedure.input(z4.object({ id: z4.number() })).mutation(async () => {
+    markRead: tenantProcedure.input(z4.object({ id: z4.number() })).mutation(async ({ input, ctx }) => {
+      if (!ctx.tenantId || !ctx.user) return { success: false };
+      const db = await getDb();
+      if (!db) return { success: false };
+      await db.update(notifications).set({ status: "read", readAt: /* @__PURE__ */ new Date() }).where(
+        and6(
+          eq8(notifications.id, input.id),
+          eq8(notifications.tenantId, ctx.tenantId),
+          or3(
+            isNull4(notifications.userId),
+            eq8(notifications.userId, ctx.user.id)
+          )
+        )
+      );
       return { success: true };
     }),
-    markAllRead: tenantProcedure.mutation(async () => {
+    markAllRead: tenantProcedure.mutation(async ({ ctx }) => {
+      if (!ctx.tenantId || !ctx.user) return { success: false };
+      const db = await getDb();
+      if (!db) return { success: false };
+      await db.update(notifications).set({ status: "read", readAt: /* @__PURE__ */ new Date() }).where(
+        and6(
+          eq8(notifications.tenantId, ctx.tenantId),
+          eq8(notifications.status, "unread"),
+          or3(
+            isNull4(notifications.userId),
+            eq8(notifications.userId, ctx.user.id)
+          )
+        )
+      );
       return { success: true };
     })
   }),
@@ -32999,10 +33124,7 @@ var modulesRouter = router({
         )
       );
       const [unreadRows] = await db.select({ n: count2() }).from(messages).where(
-        and6(
-          eq8(messages.tenantId, ctx.tenantId),
-          eq8(messages.isRead, false)
-        )
+        and6(eq8(messages.tenantId, ctx.tenantId), eq8(messages.isRead, false))
       );
       const [pendingOrders] = await db.select({ n: count2() }).from(salesInvoices).where(
         and6(
@@ -33133,7 +33255,11 @@ var modulesRouter = router({
           `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
         );
       }
-      const months = monthsKeys.map((k) => ({ month: k, revenue: 0, expense: 0 }));
+      const months = monthsKeys.map((k) => ({
+        month: k,
+        revenue: 0,
+        expense: 0
+      }));
       const monthsIndex = new Map(monthsKeys.map((k, i) => [k, i]));
       for (const s of activeSales) {
         const i = monthsIndex.get(monthKey(s.invoiceDate));
@@ -33222,6 +33348,586 @@ var modulesRouter = router({
       const limit = input?.limit ?? 50;
       const offset = input?.offset ?? 0;
       return db.select().from(activityLogs).where(eq8(activityLogs.tenantId, ctx.tenantId)).orderBy(desc3(activityLogs.createdAt)).limit(limit).offset(offset);
+    })
+  }),
+  // ─── Products ──────────────────────────────────────────────────────
+  products: router({
+    list: tenantProcedure.input(
+      z4.object({
+        limit: z4.number().min(1).max(100).default(50),
+        offset: z4.number().min(0).default(0),
+        search: z4.string().optional(),
+        category: z4.string().optional(),
+        type: z4.enum(["goods", "service"]).optional(),
+        isActive: z4.boolean().optional()
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { items: [], total: 0 };
+      const db = await getDb();
+      if (!db) return { items: [], total: 0 };
+      const where = [eq8(products.tenantId, ctx.tenantId)];
+      if (input?.search)
+        where.push(ilike4(products.name, `%${input.search}%`));
+      if (input?.category) where.push(eq8(products.category, input.category));
+      if (input?.type) where.push(eq8(products.type, input.type));
+      if (input?.isActive !== void 0)
+        where.push(eq8(products.isActive, input.isActive));
+      where.push(isNull4(products.deletedAt));
+      const items = await db.select().from(products).where(and6(...where)).orderBy(desc3(products.createdAt)).limit(input?.limit ?? 50).offset(input?.offset ?? 0);
+      const total = await db.$count(products, and6(...where));
+      return { items, total };
+    }),
+    get: tenantProcedure.input(z4.object({ id: z4.number() })).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const [item] = await db.select().from(products).where(
+        and6(eq8(products.id, input.id), eq8(products.tenantId, ctx.tenantId))
+      ).limit(1);
+      return item || null;
+    }),
+    create: tenantProcedure.input(
+      z4.object({
+        code: z4.string().min(1),
+        name: z4.string().min(1),
+        nameAr: z4.string().optional(),
+        type: z4.enum(["goods", "service"]).default("goods"),
+        category: z4.string().optional(),
+        unit: z4.string().default("\u0642\u0637\u0639\u0629"),
+        purchasePrice: z4.string().default("0"),
+        salePrice: z4.string().default("0"),
+        wholesalePrice: z4.string().default("0"),
+        minStock: z4.number().default(0),
+        currentStock: z4.number().default(0),
+        barcode: z4.string().optional(),
+        supplierId: z4.number().optional(),
+        unitId: z4.number().optional(),
+        categoryId: z4.number().optional(),
+        description: z4.string().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      const [row] = await db.insert(products).values({ ...input, tenantId: ctx.tenantId }).returning();
+      return row;
+    }),
+    update: tenantProcedure.input(
+      z4.object({
+        id: z4.number(),
+        code: z4.string().optional(),
+        name: z4.string().optional(),
+        nameAr: z4.string().optional(),
+        type: z4.enum(["goods", "service"]).optional(),
+        category: z4.string().optional(),
+        unit: z4.string().optional(),
+        purchasePrice: z4.string().optional(),
+        salePrice: z4.string().optional(),
+        wholesalePrice: z4.string().optional(),
+        minStock: z4.number().optional(),
+        currentStock: z4.number().optional(),
+        barcode: z4.string().optional(),
+        supplierId: z4.number().nullish(),
+        unitId: z4.number().nullish(),
+        categoryId: z4.number().nullish(),
+        description: z4.string().optional(),
+        isActive: z4.boolean().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      const { id, ...data } = input;
+      await db.update(products).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(and6(eq8(products.id, id), eq8(products.tenantId, ctx.tenantId)));
+      return { success: true };
+    }),
+    delete: tenantProcedure.input(z4.object({ id: z4.number() })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      await db.update(products).set({ deletedAt: /* @__PURE__ */ new Date() }).where(
+        and6(eq8(products.id, input.id), eq8(products.tenantId, ctx.tenantId))
+      );
+      return { success: true };
+    })
+  }),
+  // ─── Customers ─────────────────────────────────────────────────────
+  customers: router({
+    list: tenantProcedure.input(
+      z4.object({
+        limit: z4.number().min(1).max(100).default(50),
+        offset: z4.number().min(0).default(0),
+        search: z4.string().optional()
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { items: [], total: 0 };
+      const db = await getDb();
+      if (!db) return { items: [], total: 0 };
+      const where = [eq8(customers.tenantId, ctx.tenantId)];
+      if (input?.search)
+        where.push(
+          or3(
+            ilike4(customers.name, `%${input.search}%`),
+            ilike4(customers.code, `%${input.search}%`),
+            ilike4(customers.phone, `%${input.search}%`),
+            ilike4(customers.email, `%${input.search}%`)
+          )
+        );
+      const items = await db.select().from(customers).where(and6(...where)).orderBy(desc3(customers.createdAt)).limit(input?.limit ?? 50).offset(input?.offset ?? 0);
+      const total = await db.$count(customers, and6(...where));
+      return { items, total };
+    }),
+    get: tenantProcedure.input(z4.object({ id: z4.number() })).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const [item] = await db.select().from(customers).where(
+        and6(
+          eq8(customers.id, input.id),
+          eq8(customers.tenantId, ctx.tenantId)
+        )
+      ).limit(1);
+      return item || null;
+    }),
+    create: tenantProcedure.input(
+      z4.object({
+        code: z4.string().min(1),
+        name: z4.string().min(1),
+        phone: z4.string().optional(),
+        email: z4.string().email().optional().or(z4.literal("")),
+        address: z4.string().optional(),
+        city: z4.string().optional(),
+        country: z4.string().optional(),
+        taxNumber: z4.string().optional(),
+        creditLimit: z4.string().default("0"),
+        paymentTerms: z4.number().default(30)
+      })
+    ).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      const [row] = await db.insert(customers).values({ ...input, tenantId: ctx.tenantId }).returning();
+      return row;
+    }),
+    update: tenantProcedure.input(
+      z4.object({
+        id: z4.number(),
+        code: z4.string().optional(),
+        name: z4.string().optional(),
+        phone: z4.string().optional(),
+        email: z4.string().email().optional().or(z4.literal("")),
+        address: z4.string().optional(),
+        city: z4.string().optional(),
+        country: z4.string().optional(),
+        taxNumber: z4.string().optional(),
+        creditLimit: z4.string().optional(),
+        paymentTerms: z4.number().optional(),
+        isActive: z4.boolean().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      const { id, ...data } = input;
+      await db.update(customers).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(
+        and6(eq8(customers.id, id), eq8(customers.tenantId, ctx.tenantId))
+      );
+      return { success: true };
+    }),
+    delete: tenantProcedure.input(z4.object({ id: z4.number() })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      await db.delete(customers).where(
+        and6(
+          eq8(customers.id, input.id),
+          eq8(customers.tenantId, ctx.tenantId)
+        )
+      );
+      return { success: true };
+    })
+  }),
+  // ─── Suppliers ─────────────────────────────────────────────────────
+  suppliers: router({
+    list: tenantProcedure.input(
+      z4.object({
+        limit: z4.number().min(1).max(100).default(50),
+        offset: z4.number().min(0).default(0),
+        search: z4.string().optional()
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { items: [], total: 0 };
+      const db = await getDb();
+      if (!db) return { items: [], total: 0 };
+      const where = [eq8(suppliers.tenantId, ctx.tenantId)];
+      if (input?.search)
+        where.push(
+          or3(
+            ilike4(suppliers.name, `%${input.search}%`),
+            ilike4(suppliers.code, `%${input.search}%`),
+            ilike4(suppliers.phone, `%${input.search}%`),
+            ilike4(suppliers.email, `%${input.search}%`)
+          )
+        );
+      const items = await db.select().from(suppliers).where(and6(...where)).orderBy(desc3(suppliers.createdAt)).limit(input?.limit ?? 50).offset(input?.offset ?? 0);
+      const total = await db.$count(suppliers, and6(...where));
+      return { items, total };
+    }),
+    get: tenantProcedure.input(z4.object({ id: z4.number() })).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const [item] = await db.select().from(suppliers).where(
+        and6(
+          eq8(suppliers.id, input.id),
+          eq8(suppliers.tenantId, ctx.tenantId)
+        )
+      ).limit(1);
+      return item || null;
+    }),
+    create: tenantProcedure.input(
+      z4.object({
+        code: z4.string().min(1),
+        name: z4.string().min(1),
+        phone: z4.string().optional(),
+        email: z4.string().email().optional().or(z4.literal("")),
+        address: z4.string().optional(),
+        city: z4.string().optional(),
+        country: z4.string().optional(),
+        taxNumber: z4.string().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      const [row] = await db.insert(suppliers).values({ ...input, tenantId: ctx.tenantId }).returning();
+      return row;
+    }),
+    update: tenantProcedure.input(
+      z4.object({
+        id: z4.number(),
+        code: z4.string().optional(),
+        name: z4.string().optional(),
+        phone: z4.string().optional(),
+        email: z4.string().email().optional().or(z4.literal("")),
+        address: z4.string().optional(),
+        city: z4.string().optional(),
+        country: z4.string().optional(),
+        taxNumber: z4.string().optional(),
+        isActive: z4.boolean().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      const { id, ...data } = input;
+      await db.update(suppliers).set({ ...data, updatedAt: /* @__PURE__ */ new Date() }).where(
+        and6(eq8(suppliers.id, id), eq8(suppliers.tenantId, ctx.tenantId))
+      );
+      return { success: true };
+    }),
+    delete: tenantProcedure.input(z4.object({ id: z4.number() })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      await db.delete(suppliers).where(
+        and6(
+          eq8(suppliers.id, input.id),
+          eq8(suppliers.tenantId, ctx.tenantId)
+        )
+      );
+      return { success: true };
+    })
+  }),
+  // ─── Sales Invoices ───────────────────────────────────────────────
+  sales: router({
+    listInvoices: tenantProcedure.input(
+      z4.object({
+        limit: z4.number().min(1).max(100).default(50),
+        offset: z4.number().min(0).default(0),
+        status: z4.string().optional(),
+        customerId: z4.number().optional(),
+        fromDate: z4.string().optional(),
+        toDate: z4.string().optional()
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { items: [], total: 0 };
+      const db = await getDb();
+      if (!db) return { items: [], total: 0 };
+      const where = [eq8(salesInvoices.tenantId, ctx.tenantId)];
+      if (input?.status)
+        where.push(eq8(salesInvoices.status, input.status));
+      if (input?.customerId)
+        where.push(eq8(salesInvoices.customerId, input.customerId));
+      if (input?.fromDate)
+        where.push(gte4(salesInvoices.invoiceDate, new Date(input.fromDate)));
+      if (input?.toDate)
+        where.push(lte3(salesInvoices.invoiceDate, new Date(input.toDate)));
+      const items = await db.select().from(salesInvoices).where(and6(...where)).orderBy(desc3(salesInvoices.invoiceDate)).limit(input?.limit ?? 50).offset(input?.offset ?? 0);
+      const total = await db.$count(salesInvoices, and6(...where));
+      return { items, total };
+    }),
+    getInvoice: tenantProcedure.input(z4.object({ id: z4.number() })).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const [invoice] = await db.select().from(salesInvoices).where(
+        and6(
+          eq8(salesInvoices.id, input.id),
+          eq8(salesInvoices.tenantId, ctx.tenantId)
+        )
+      ).limit(1);
+      if (!invoice) return null;
+      const items = await db.select().from(salesInvoiceItems).where(eq8(salesInvoiceItems.invoiceId, invoice.id));
+      return { invoice, items };
+    })
+  }),
+  // ─── Purchase Invoices ────────────────────────────────────────────
+  purchases: router({
+    listInvoices: tenantProcedure.input(
+      z4.object({
+        limit: z4.number().min(1).max(100).default(50),
+        offset: z4.number().min(0).default(0),
+        status: z4.string().optional(),
+        supplierId: z4.number().optional(),
+        fromDate: z4.string().optional(),
+        toDate: z4.string().optional()
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { items: [], total: 0 };
+      const db = await getDb();
+      if (!db) return { items: [], total: 0 };
+      const where = [eq8(purchaseInvoices.tenantId, ctx.tenantId)];
+      if (input?.status)
+        where.push(eq8(purchaseInvoices.status, input.status));
+      if (input?.supplierId)
+        where.push(eq8(purchaseInvoices.supplierId, input.supplierId));
+      if (input?.fromDate)
+        where.push(
+          gte4(purchaseInvoices.invoiceDate, new Date(input.fromDate))
+        );
+      if (input?.toDate)
+        where.push(lte3(purchaseInvoices.invoiceDate, new Date(input.toDate)));
+      const items = await db.select().from(purchaseInvoices).where(and6(...where)).orderBy(desc3(purchaseInvoices.invoiceDate)).limit(input?.limit ?? 50).offset(input?.offset ?? 0);
+      const total = await db.$count(purchaseInvoices, and6(...where));
+      return { items, total };
+    }),
+    getInvoice: tenantProcedure.input(z4.object({ id: z4.number() })).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const [invoice] = await db.select().from(purchaseInvoices).where(
+        and6(
+          eq8(purchaseInvoices.id, input.id),
+          eq8(purchaseInvoices.tenantId, ctx.tenantId)
+        )
+      ).limit(1);
+      if (!invoice) return null;
+      const items = await db.select().from(purchaseInvoiceItems).where(eq8(purchaseInvoiceItems.invoiceId, invoice.id));
+      return { invoice, items };
+    })
+  }),
+  // ─── Orders ───────────────────────────────────────────────────────
+  orders: router({
+    list: tenantProcedure.input(
+      z4.object({
+        limit: z4.number().min(1).max(100).default(50),
+        offset: z4.number().min(0).default(0),
+        status: z4.string().optional(),
+        customerId: z4.number().optional(),
+        fromDate: z4.string().optional(),
+        toDate: z4.string().optional()
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { items: [], total: 0 };
+      const db = await getDb();
+      if (!db) return { items: [], total: 0 };
+      const where = [eq8(orders.tenantId, ctx.tenantId)];
+      if (input?.status) where.push(eq8(orders.status, input.status));
+      if (input?.customerId)
+        where.push(eq8(orders.customerId, input.customerId));
+      if (input?.fromDate)
+        where.push(gte4(orders.createdAt, new Date(input.fromDate)));
+      if (input?.toDate)
+        where.push(lte3(orders.createdAt, new Date(input.toDate)));
+      const items = await db.select({
+        id: orders.id,
+        orderNumber: orders.orderNumber,
+        customerId: orders.customerId,
+        customerName: customers.name,
+        status: orders.status,
+        total: orders.total,
+        orderDate: orders.createdAt,
+        deliveryDate: orders.deliveryDate
+      }).from(orders).leftJoin(customers, eq8(orders.customerId, customers.id)).where(and6(...where)).orderBy(desc3(orders.createdAt)).limit(input?.limit ?? 50).offset(input?.offset ?? 0);
+      const total = await db.$count(orders, and6(...where));
+      return { items, total };
+    }),
+    get: tenantProcedure.input(z4.object({ id: z4.number() })).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return null;
+      const db = await getDb();
+      if (!db) return null;
+      const [order2] = await db.select().from(orders).where(
+        and6(eq8(orders.id, input.id), eq8(orders.tenantId, ctx.tenantId))
+      ).limit(1);
+      if (!order2) return null;
+      const items = await db.select().from(orderItems).where(eq8(orderItems.orderId, order2.id));
+      return { order: order2, items };
+    }),
+    create: tenantProcedure.input(
+      z4.object({
+        customerId: z4.number(),
+        items: z4.array(
+          z4.object({
+            productId: z4.number(),
+            productName: z4.string(),
+            quantity: z4.number(),
+            unitPrice: z4.string()
+          })
+        ),
+        deliveryDate: z4.string().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
+      const { deliveryDate, ...inputWithoutStatus } = input;
+      const [order2] = await db.insert(orders).values({
+        ...inputWithoutStatus,
+        tenantId: ctx.tenantId,
+        orderNumber,
+        userId: ctx.user.id,
+        status: "pending",
+        deliveryDate: deliveryDate ? new Date(deliveryDate) : null
+      }).returning();
+      for (const item of input.items) {
+        await db.insert(orderItems).values({
+          orderId: order2.id,
+          productId: item.productId,
+          productName: item.productName ?? "",
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+          total: (parseFloat(item.unitPrice) * item.quantity).toFixed(2)
+        });
+      }
+      return { success: true, order: order2 };
+    })
+  }),
+  // ─── Store (E-commerce) ───────────────────────────────────────────
+  store: router({
+    catalog: tenantProcedure.input(
+      z4.object({
+        limit: z4.number().min(1).max(100).default(20),
+        offset: z4.number().min(0).default(0),
+        category: z4.string().optional(),
+        search: z4.string().optional()
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { items: [], total: 0 };
+      const db = await getDb();
+      if (!db) return { items: [], total: 0 };
+      const where = [
+        eq8(products.tenantId, ctx.tenantId),
+        eq8(products.isActive, true),
+        eq8(products.type, "goods")
+      ];
+      if (input?.category) where.push(eq8(products.category, input.category));
+      if (input?.search)
+        where.push(ilike4(products.name, `%${input.search}%`));
+      const items = await db.select({
+        id: products.id,
+        code: products.code,
+        name: products.name,
+        nameAr: products.nameAr,
+        salePrice: products.salePrice,
+        wholesalePrice: products.wholesalePrice,
+        currentStock: products.currentStock,
+        unit: products.unit,
+        category: products.category,
+        imageUrl: products.attachmentUrl
+      }).from(products).where(and6(...where)).limit(input?.limit ?? 20).offset(input?.offset ?? 0);
+      const total = await db.$count(products, and6(...where));
+      return { items, total };
+    })
+  }),
+  // ─── Scheduled Journal Entries ────────────────────────────────────
+  scheduled: router({
+    list: tenantProcedure.input(
+      z4.object({
+        limit: z4.number().min(1).max(100).default(50),
+        offset: z4.number().min(0).default(0),
+        isActive: z4.boolean().optional()
+      }).optional()
+    ).query(async ({ input, ctx }) => {
+      if (!ctx.tenantId) return { items: [], total: 0 };
+      const db = await getDb();
+      if (!db) return { items: [], total: 0 };
+      const where = [eq8(scheduledJournalEntries.tenantId, ctx.tenantId)];
+      if (input?.isActive !== void 0)
+        where.push(eq8(scheduledJournalEntries.isActive, input.isActive));
+      const items = await db.select().from(scheduledJournalEntries).where(and6(...where)).orderBy(desc3(scheduledJournalEntries.nextRunAt)).limit(input?.limit ?? 50).offset(input?.offset ?? 0);
+      const total = await db.$count(scheduledJournalEntries, and6(...where));
+      return { items, total };
+    }),
+    create: tenantProcedure.input(
+      z4.object({
+        name: z4.string().min(1),
+        description: z4.string().optional(),
+        branchId: z4.number().optional(),
+        accountId: z4.number(),
+        amount: z4.string(),
+        type: z4.enum(["debit", "credit"]),
+        narration: z4.string(),
+        frequency: z4.enum([
+          "daily",
+          "weekly",
+          "monthly",
+          "quarterly",
+          "yearly"
+        ]),
+        nextRunAt: z4.string(),
+        isActive: z4.boolean().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      const [row] = await db.insert(scheduledJournalEntries).values({
+        ...input,
+        tenantId: ctx.tenantId,
+        nextRunAt: new Date(input.nextRunAt),
+        isActive: input.isActive ?? true
+      }).returning();
+      return row;
+    }),
+    update: tenantProcedure.input(
+      z4.object({
+        id: z4.number(),
+        name: z4.string().optional(),
+        description: z4.string().optional(),
+        branchId: z4.number().optional(),
+        accountId: z4.number().optional(),
+        amount: z4.string().optional(),
+        type: z4.enum(["debit", "credit"]).optional(),
+        narration: z4.string().optional(),
+        frequency: z4.enum(["daily", "weekly", "monthly", "quarterly", "yearly"]).optional(),
+        nextRunAt: z4.string().optional(),
+        isActive: z4.boolean().optional()
+      })
+    ).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      const { id, ...data } = input;
+      const setData = { ...data, updatedAt: /* @__PURE__ */ new Date() };
+      if (data.nextRunAt) setData.nextRunAt = new Date(data.nextRunAt);
+      await db.update(scheduledJournalEntries).set(setData).where(
+        and6(
+          eq8(scheduledJournalEntries.id, id),
+          eq8(scheduledJournalEntries.tenantId, ctx.tenantId)
+        )
+      );
+      return { success: true };
+    }),
+    delete: tenantProcedure.input(z4.object({ id: z4.number() })).mutation(async ({ input, ctx }) => {
+      const db = await getDb();
+      if (!db || !ctx.tenantId) throw new Error("Database not available");
+      await db.delete(scheduledJournalEntries).where(
+        and6(
+          eq8(scheduledJournalEntries.id, input.id),
+          eq8(scheduledJournalEntries.tenantId, ctx.tenantId)
+        )
+      );
+      return { success: true };
     })
   }),
   // ─── Reports ─────────────────────────────────────────────────────
@@ -34273,7 +34979,14 @@ var costCentersRouter = router({
     if (!db || !ctx.tenantId) return [];
     return db.select().from(costCenters).where(eq12(costCenters.tenantId, ctx.tenantId)).orderBy(costCenters.code);
   }),
-  create: tenantProcedure.input(z7.object({ code: z7.string().min(1).max(30), name: z7.string().min(1).max(150), parentId: z7.number().nullable().optional(), costType: z7.string().optional() })).mutation(async ({ input, ctx }) => {
+  create: tenantProcedure.input(
+    z7.object({
+      code: z7.string().min(1).max(30),
+      name: z7.string().min(1).max(150),
+      parentId: z7.number().nullable().optional(),
+      costType: z7.string().optional()
+    })
+  ).mutation(async ({ input, ctx }) => {
     const db = await getDb();
     if (!db || !ctx.tenantId) throw new Error("DB unavailable");
     const [row] = await db.insert(costCenters).values({
@@ -34288,7 +35001,12 @@ var costCentersRouter = router({
   remove: tenantProcedure.input(z7.object({ id: z7.number() })).mutation(async ({ input, ctx }) => {
     const db = await getDb();
     if (!db || !ctx.tenantId) throw new Error("DB unavailable");
-    await db.delete(costCenters).where(and8(eq12(costCenters.id, input.id), eq12(costCenters.tenantId, ctx.tenantId)));
+    await db.delete(costCenters).where(
+      and8(
+        eq12(costCenters.id, input.id),
+        eq12(costCenters.tenantId, ctx.tenantId)
+      )
+    );
     return { success: true };
   })
 });
@@ -34315,8 +35033,14 @@ function validatePhone(phone, country = "OTHER") {
   const n = normalizePhone(phone);
   if (!n) return { ok: false, normalized: n, error: "\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062A\u0641 \u0645\u0637\u0644\u0648\u0628" };
   const pattern = PHONE_PATTERNS[country] || PHONE_PATTERNS.OTHER;
-  if (n.startsWith("+") && PHONE_PATTERNS.OTHER.test(phone)) return { ok: true, normalized: n };
-  if (!pattern.test(phone)) return { ok: false, normalized: n, error: "\u0635\u064A\u063A\u0629 \u0627\u0644\u0647\u0627\u062A\u0641 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629 \u0644\u0647\u0630\u0647 \u0627\u0644\u062F\u0648\u0644\u0629" };
+  if (n.startsWith("+") && PHONE_PATTERNS.OTHER.test(phone))
+    return { ok: true, normalized: n };
+  if (!pattern.test(phone))
+    return {
+      ok: false,
+      normalized: n,
+      error: "\u0635\u064A\u063A\u0629 \u0627\u0644\u0647\u0627\u062A\u0641 \u063A\u064A\u0631 \u0635\u062D\u064A\u062D\u0629 \u0644\u0647\u0630\u0647 \u0627\u0644\u062F\u0648\u0644\u0629"
+    };
   return { ok: true, normalized: n };
 }
 function validateEmail(email) {
@@ -34328,8 +35052,10 @@ function validateEmail(email) {
 function validateTaxNumber(tax, country) {
   if (!tax) return { ok: true, error: void 0 };
   const digits = tax.replace(/\D/g, "");
-  if (country === "SA" && digits.length !== 15) return { ok: false, error: "\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064A\u0628\u064A \u0627\u0644\u0633\u0639\u0648\u062F\u064A 15 \u0631\u0642\u0645\u0627\u064B" };
-  if (country === "AE" && digits.length !== 15) return { ok: false, error: "\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064A\u0628\u064A \u0627\u0644\u0625\u0645\u0627\u0631\u0627\u062A\u064A 15 \u0631\u0642\u0645\u0627\u064B" };
+  if (country === "SA" && digits.length !== 15)
+    return { ok: false, error: "\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064A\u0628\u064A \u0627\u0644\u0633\u0639\u0648\u062F\u064A 15 \u0631\u0642\u0645\u0627\u064B" };
+  if (country === "AE" && digits.length !== 15)
+    return { ok: false, error: "\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064A\u0628\u064A \u0627\u0644\u0625\u0645\u0627\u0631\u0627\u062A\u064A 15 \u0631\u0642\u0645\u0627\u064B" };
   if (digits.length < 5) return { ok: false, error: "\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064A\u0628\u064A \u0642\u0635\u064A\u0631 \u062C\u062F\u0627\u064B" };
   return { ok: true };
 }
@@ -34347,35 +35073,94 @@ async function checkCustomerDuplicate(db, table, tenantId, input) {
   const normalizedEmail = input.email ? input.email.trim().toLowerCase() : null;
   const normalizedTax = input.taxNumber ? input.taxNumber.replace(/\D/g, "") : null;
   if (input.code) {
-    const byCode = await db.select().from(table).where(and9(eq13(table.tenantId, tenantId), eq13(table.code, input.code.trim()))).limit(1);
-    if (byCode.length) return { isDuplicate: true, field: "code", existingId: byCode[0].id, message: "\u0627\u0644\u0643\u0648\u062F \u0645\u0633\u062A\u062E\u062F\u0645 \u0645\u0633\u0628\u0642\u0627\u064B" };
+    const byCode = await db.select().from(table).where(
+      and9(eq13(table.tenantId, tenantId), eq13(table.code, input.code.trim()))
+    ).limit(1);
+    if (byCode.length)
+      return {
+        isDuplicate: true,
+        field: "code",
+        existingId: byCode[0].id,
+        message: "\u0627\u0644\u0643\u0648\u062F \u0645\u0633\u062A\u062E\u062F\u0645 \u0645\u0633\u0628\u0642\u0627\u064B"
+      };
   }
   if (normalizedPhone) {
     const all = await db.select().from(table).where(eq13(table.tenantId, tenantId)).limit(100);
-    const dup = all.find((r) => r.phone && r.phone.replace(/[\s\-()]/g, "") === normalizedPhone);
-    if (dup) return { isDuplicate: true, field: "phone", existingId: dup.id, message: "\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062A\u0641 \u0645\u0633\u062C\u0644 \u0644\u0639\u0645\u064A\u0644 \u0622\u062E\u0631" };
+    const dup = all.find(
+      (r) => r.phone && r.phone.replace(/[\s\-()]/g, "") === normalizedPhone
+    );
+    if (dup)
+      return {
+        isDuplicate: true,
+        field: "phone",
+        existingId: dup.id,
+        message: "\u0631\u0642\u0645 \u0627\u0644\u0647\u0627\u062A\u0641 \u0645\u0633\u062C\u0644 \u0644\u0639\u0645\u064A\u0644 \u0622\u062E\u0631"
+      };
   }
   if (normalizedEmail) {
-    const byEmail = await db.select().from(table).where(and9(eq13(table.tenantId, tenantId), eq13(table.email, normalizedEmail))).limit(1);
-    if (byEmail.length) return { isDuplicate: true, field: "email", existingId: byEmail[0].id, message: "\u0627\u0644\u0628\u0631\u064A\u062F \u0645\u0633\u062C\u0644 \u0645\u0633\u0628\u0642\u0627\u064B" };
+    const byEmail = await db.select().from(table).where(
+      and9(eq13(table.tenantId, tenantId), eq13(table.email, normalizedEmail))
+    ).limit(1);
+    if (byEmail.length)
+      return {
+        isDuplicate: true,
+        field: "email",
+        existingId: byEmail[0].id,
+        message: "\u0627\u0644\u0628\u0631\u064A\u062F \u0645\u0633\u062C\u0644 \u0645\u0633\u0628\u0642\u0627\u064B"
+      };
   }
   if (normalizedTax) {
     const all = await db.select().from(table).where(eq13(table.tenantId, tenantId)).limit(100);
-    const dup = all.find((r) => r.taxNumber && r.taxNumber.replace(/\D/g, "") === normalizedTax);
-    if (dup) return { isDuplicate: true, field: "taxNumber", existingId: dup.id, message: "\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064A\u0628\u064A \u0645\u0633\u062C\u0644 \u0645\u0633\u0628\u0642\u0627\u064B" };
+    const dup = all.find(
+      (r) => r.taxNumber && r.taxNumber.replace(/\D/g, "") === normalizedTax
+    );
+    if (dup)
+      return {
+        isDuplicate: true,
+        field: "taxNumber",
+        existingId: dup.id,
+        message: "\u0627\u0644\u0631\u0642\u0645 \u0627\u0644\u0636\u0631\u064A\u0628\u064A \u0645\u0633\u062C\u0644 \u0645\u0633\u0628\u0642\u0627\u064B"
+      };
   }
   return { isDuplicate: false };
 }
 
 // server/beneficiariesRouter.ts
 var beneficiariesRouter = router({
-  search: tenantProcedure.input(z8.object({ q: z8.string().min(1), kind: z8.enum(["customer", "supplier", "all"]).default("all"), limit: z8.number().min(1).max(20).default(8) })).query(async ({ input, ctx }) => {
+  search: tenantProcedure.input(
+    z8.object({
+      q: z8.string().min(1),
+      kind: z8.enum(["customer", "supplier", "all"]).default("all"),
+      limit: z8.number().min(1).max(20).default(8)
+    })
+  ).query(async ({ input, ctx }) => {
     const db = await getDb();
     if (!db || !ctx.tenantId) return [];
     const needle = `%${input.q}%`;
-    const cust = input.kind === "supplier" ? [] : await db.select().from(customers).where(and10(eq14(customers.tenantId, ctx.tenantId), or5(ilike6(customers.name, needle), ilike6(customers.code, needle), ilike6(customers.phone, needle)))).limit(input.limit);
-    const supp = input.kind === "customer" ? [] : await db.select().from(suppliers).where(and10(eq14(suppliers.tenantId, ctx.tenantId), or5(ilike6(suppliers.name, needle), ilike6(suppliers.code, needle), ilike6(suppliers.phone, needle)))).limit(input.limit);
-    return [...cust.map((c) => ({ ...c, kind: "customer" })), ...supp.map((s) => ({ ...s, kind: "supplier" }))].slice(0, input.limit);
+    const cust = input.kind === "supplier" ? [] : await db.select().from(customers).where(
+      and10(
+        eq14(customers.tenantId, ctx.tenantId),
+        or5(
+          ilike6(customers.name, needle),
+          ilike6(customers.code, needle),
+          ilike6(customers.phone, needle)
+        )
+      )
+    ).limit(input.limit);
+    const supp = input.kind === "customer" ? [] : await db.select().from(suppliers).where(
+      and10(
+        eq14(suppliers.tenantId, ctx.tenantId),
+        or5(
+          ilike6(suppliers.name, needle),
+          ilike6(suppliers.code, needle),
+          ilike6(suppliers.phone, needle)
+        )
+      )
+    ).limit(input.limit);
+    return [
+      ...cust.map((c) => ({ ...c, kind: "customer" })),
+      ...supp.map((s) => ({ ...s, kind: "supplier" }))
+    ].slice(0, input.limit);
   }),
   upsert: tenantProcedure.input(
     z8.object({
@@ -34445,7 +35230,9 @@ function normalSide(type) {
   return ["asset", "expense"].includes(type) ? "debit" : "credit";
 }
 async function accountBalances(db, tenantId, asOf) {
-  const acctRows = await db.select().from(accounts).where(eq15(accounts.tenantId, tenantId));
+  const acctRows = await db.select().from(accounts).where(
+    eq15(accounts.tenantId, tenantId)
+  );
   const obRows = await db.select().from(openingBalances).where(eq15(openingBalances.tenantId, tenantId));
   const txQuery = asOf ? and11(
     eq15(transactions.tenantId, tenantId),
@@ -34462,11 +35249,17 @@ async function accountBalances(db, tenantId, asOf) {
   const ledger = /* @__PURE__ */ new Map();
   for (const ob of obRows) {
     const v = toNum(ob.amount);
-    net2.set(ob.accountId, (net2.get(ob.accountId) ?? 0) + (ob.type === "debit" ? v : -v));
+    net2.set(
+      ob.accountId,
+      (net2.get(ob.accountId) ?? 0) + (ob.type === "debit" ? v : -v)
+    );
   }
   for (const tx of txRows) {
     const v = toNum(tx.amount);
-    net2.set(tx.accountId, (net2.get(tx.accountId) ?? 0) + (tx.type === "debit" ? v : -v));
+    net2.set(
+      tx.accountId,
+      (net2.get(tx.accountId) ?? 0) + (tx.type === "debit" ? v : -v)
+    );
     const l = ledger.get(tx.accountId) ?? { dr: 0, cr: 0 };
     if (tx.type === "debit") l.dr += v;
     else l.cr += v;
@@ -34508,18 +35301,39 @@ var financialReportsRouter = router({
   /** قائمة الدخل — income statement */
   incomeStatement: tenantProcedure.input(z9.object({ asOf: z9.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const db = await getDb();
-    if (!db) return { revenues: [], expenses: [], totals: { revenue: 0, expense: 0, net: 0 } };
+    if (!db)
+      return {
+        revenues: [],
+        expenses: [],
+        totals: { revenue: 0, expense: 0, net: 0 }
+      };
     const tid = requireTenantId(ctx);
     const asOf = input?.asOf ? new Date(input.asOf) : void 0;
     const balances = await accountBalances(db, tid, asOf);
-    const revenues = balances.filter((r) => r.account.type === "revenue" && Math.abs(r.balance) > 1e-4).map((r) => ({ code: r.account.code, name: r.account.name, amount: r.balance })).sort((a, b) => a.code.localeCompare(b.code, "ar"));
-    const expenses = balances.filter((r) => r.account.type === "expense" && Math.abs(r.balance) > 1e-4).map((r) => ({ code: r.account.code, name: r.account.name, amount: Math.abs(r.balance) })).sort((a, b) => a.code.localeCompare(b.code, "ar"));
+    const revenues = balances.filter(
+      (r) => r.account.type === "revenue" && Math.abs(r.balance) > 1e-4
+    ).map((r) => ({
+      code: r.account.code,
+      name: r.account.name,
+      amount: r.balance
+    })).sort((a, b) => a.code.localeCompare(b.code, "ar"));
+    const expenses = balances.filter(
+      (r) => r.account.type === "expense" && Math.abs(r.balance) > 1e-4
+    ).map((r) => ({
+      code: r.account.code,
+      name: r.account.name,
+      amount: Math.abs(r.balance)
+    })).sort((a, b) => a.code.localeCompare(b.code, "ar"));
     const revenueTotal = revenues.reduce((s, r) => s + r.amount, 0);
     const expenseTotal = expenses.reduce((s, r) => s + r.amount, 0);
     return {
       revenues,
       expenses,
-      totals: { revenue: revenueTotal, expense: expenseTotal, net: revenueTotal - expenseTotal }
+      totals: {
+        revenue: revenueTotal,
+        expense: expenseTotal,
+        net: revenueTotal - expenseTotal
+      }
     };
   }),
   /** الميزانية العمومية — balance sheet */
@@ -34529,7 +35343,11 @@ var financialReportsRouter = router({
     const tid = requireTenantId(ctx);
     const asOf = input?.asOf ? new Date(input.asOf) : void 0;
     const balances = await accountBalances(db, tid, asOf);
-    const pick = (type, sign) => balances.filter((r) => r.account.type === type && Math.abs(r.balance) > 1e-4).map((r) => ({ code: r.account.code, name: r.account.name, amount: r.balance * sign })).sort((a, b) => a.code.localeCompare(b.code, "ar"));
+    const pick = (type, sign) => balances.filter((r) => r.account.type === type && Math.abs(r.balance) > 1e-4).map((r) => ({
+      code: r.account.code,
+      name: r.account.name,
+      amount: r.balance * sign
+    })).sort((a, b) => a.code.localeCompare(b.code, "ar"));
     const assets = pick("asset", 1);
     const liabilities = pick("liability", -1);
     const equity = pick("equity", -1);
@@ -34540,7 +35358,12 @@ var financialReportsRouter = router({
       assets,
       liabilities,
       equity,
-      totals: { assets: assetTotal, liabilities: liabTotal, equity: eqTotal, net: assetTotal - liabTotal - eqTotal }
+      totals: {
+        assets: assetTotal,
+        liabilities: liabTotal,
+        equity: eqTotal,
+        net: assetTotal - liabTotal - eqTotal
+      }
     };
   }),
   /** كشف حساب — detailed statement for one account */
@@ -34554,10 +35377,15 @@ var financialReportsRouter = router({
     const db = await getDb();
     if (!db) return { account: null, lines: [], opening: 0, closing: 0 };
     const tid = requireTenantId(ctx);
-    const [acc] = await db.select().from(accounts).where(and11(eq15(accounts.id, input.accountId), eq15(accounts.tenantId, tid))).limit(1);
+    const [acc] = await db.select().from(accounts).where(
+      and11(eq15(accounts.id, input.accountId), eq15(accounts.tenantId, tid))
+    ).limit(1);
     if (!acc) return { account: null, lines: [], opening: 0, closing: 0 };
     const obRows = await db.select().from(openingBalances).where(
-      and11(eq15(openingBalances.tenantId, tid), eq15(openingBalances.accountId, input.accountId))
+      and11(
+        eq15(openingBalances.tenantId, tid),
+        eq15(openingBalances.accountId, input.accountId)
+      )
     );
     const conditions = [
       eq15(transactions.tenantId, tid),
@@ -34565,8 +35393,12 @@ var financialReportsRouter = router({
       eq15(transactions.isReversed, false),
       inArray4(transactions.lifecycleStatus, ACTIVE_LIFECYCLE)
     ];
-    if (input.from) conditions.push(gte6(transactions.transactionDate, new Date(input.from)));
-    if (input.to) conditions.push(lte5(transactions.transactionDate, new Date(input.to)));
+    if (input.from)
+      conditions.push(
+        gte6(transactions.transactionDate, new Date(input.from))
+      );
+    if (input.to)
+      conditions.push(lte5(transactions.transactionDate, new Date(input.to)));
     const txRows = await db.select().from(transactions).where(and11(...conditions)).orderBy(transactions.transactionDate, transactions.id);
     const side = normalSide(acc.type);
     const opening = obRows.reduce(
@@ -34598,7 +35430,11 @@ var financialReportsRouter = router({
   /** تأجيل الديون المدينة (AR aging) */
   arAging: tenantProcedure.input(z9.object({ asOf: z9.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const db = await getDb();
-    if (!db) return { buckets: [], totals: { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 } };
+    if (!db)
+      return {
+        buckets: [],
+        totals: { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 }
+      };
     const tid = requireTenantId(ctx);
     const asOf = input?.asOf ? new Date(input.asOf) : /* @__PURE__ */ new Date();
     const invRows = await db.select().from(salesInvoices).where(
@@ -34610,7 +35446,10 @@ var financialReportsRouter = router({
     const custRows = await db.select({ id: customers.id, name: customers.name }).from(customers).where(eq15(customers.tenantId, tid));
     const custMap = new Map(custRows.map((c) => [c.id, c.name]));
     const bucketOf = (due) => {
-      const days = Math.max(0, Math.floor((asOf.getTime() - due.getTime()) / 864e5));
+      const days = Math.max(
+        0,
+        Math.floor((asOf.getTime() - due.getTime()) / 864e5)
+      );
       if (days <= 0) return "current";
       if (days <= 30) return "d30";
       if (days <= 60) return "d60";
@@ -34619,7 +35458,10 @@ var financialReportsRouter = router({
     };
     const totals = { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 };
     const rows = invRows.map((inv) => {
-      const outstanding = Math.max(0, toNum(inv.total) - toNum(inv.paidAmount));
+      const outstanding = Math.max(
+        0,
+        toNum(inv.total) - toNum(inv.paidAmount)
+      );
       const due = inv.dueDate ?? inv.invoiceDate;
       const bucket = bucketOf(due);
       totals[bucket] += outstanding;
@@ -34637,7 +35479,11 @@ var financialReportsRouter = router({
   /** تأجيل الديون الدائنة (AP aging) */
   apAging: tenantProcedure.input(z9.object({ asOf: z9.string().optional() }).optional()).query(async ({ ctx, input }) => {
     const db = await getDb();
-    if (!db) return { rows: [], totals: { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 } };
+    if (!db)
+      return {
+        rows: [],
+        totals: { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 }
+      };
     const tid = requireTenantId(ctx);
     const asOf = input?.asOf ? new Date(input.asOf) : /* @__PURE__ */ new Date();
     const invRows = await db.select().from(purchaseInvoices).where(
@@ -34649,7 +35495,10 @@ var financialReportsRouter = router({
     const supRows = await db.select({ id: suppliers.id, name: suppliers.name }).from(suppliers).where(eq15(suppliers.tenantId, tid));
     const supMap = new Map(supRows.map((s) => [s.id, s.name]));
     const bucketOf = (due) => {
-      const days = Math.max(0, Math.floor((asOf.getTime() - due.getTime()) / 864e5));
+      const days = Math.max(
+        0,
+        Math.floor((asOf.getTime() - due.getTime()) / 864e5)
+      );
       if (days <= 0) return "current";
       if (days <= 30) return "d30";
       if (days <= 60) return "d60";
@@ -34658,7 +35507,10 @@ var financialReportsRouter = router({
     };
     const totals = { current: 0, d30: 0, d60: 0, d90: 0, over90: 0 };
     const rows = invRows.map((inv) => {
-      const outstanding = Math.max(0, toNum(inv.total) - toNum(inv.paidAmount));
+      const outstanding = Math.max(
+        0,
+        toNum(inv.total) - toNum(inv.paidAmount)
+      );
       const due = inv.dueDate ?? inv.invoiceDate;
       const bucket = bucketOf(due);
       totals[bucket] += outstanding;
@@ -34685,13 +35537,20 @@ var financialReportsRouter = router({
       eq15(transactions.isReversed, false),
       inArray4(transactions.lifecycleStatus, ACTIVE_LIFECYCLE)
     ];
-    if (input?.from) conditions.push(gte6(transactions.transactionDate, new Date(input.from)));
-    if (input?.to) conditions.push(lte5(transactions.transactionDate, new Date(input.to)));
+    if (input?.from)
+      conditions.push(
+        gte6(transactions.transactionDate, new Date(input.from))
+      );
+    if (input?.to)
+      conditions.push(lte5(transactions.transactionDate, new Date(input.to)));
     const txRows = await db.select().from(transactions).where(and11(...conditions));
     const flows = /* @__PURE__ */ new Map();
     for (const tx of txRows) {
       const v = toNum(tx.amount);
-      flows.set(tx.accountId, (flows.get(tx.accountId) ?? 0) + (tx.type === "debit" ? v : -v));
+      flows.set(
+        tx.accountId,
+        (flows.get(tx.accountId) ?? 0) + (tx.type === "debit" ? v : -v)
+      );
     }
     const acctRows = await db.select().from(accounts).where(eq15(accounts.tenantId, tid));
     const acctMap = new Map(acctRows.map((a) => [a.id, a]));
@@ -34706,6 +35565,227 @@ var financialReportsRouter = router({
       net: v
     })).sort((a, b) => a.code.localeCompare(b.code, "ar"));
     return { lines, net: lines.reduce((s, l) => s + l.net, 0) };
+  }),
+  /** كشف حساب عميل — customer statement (invoices + payments, running balance) */
+  customerStatement: tenantProcedure.input(
+    z9.object({
+      customerId: z9.number(),
+      from: z9.string().optional(),
+      to: z9.string().optional()
+    })
+  ).query(async ({ ctx, input }) => {
+    const db = await getDb();
+    if (!db)
+      return { customer: null, lines: [], totals: { debit: 0, credit: 0 } };
+    const tid = requireTenantId(ctx);
+    const custRows = await db.select().from(customers).where(
+      and11(eq15(customers.id, input.customerId), eq15(customers.tenantId, tid))
+    ).limit(1);
+    if (custRows.length === 0) throw new Error("\u0627\u0644\u0639\u0645\u064A\u0644 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
+    const invConditions = [
+      eq15(salesInvoices.tenantId, tid),
+      eq15(salesInvoices.customerId, input.customerId)
+    ];
+    if (input.from)
+      invConditions.push(
+        gte6(salesInvoices.invoiceDate, new Date(input.from))
+      );
+    if (input.to)
+      invConditions.push(lte5(salesInvoices.invoiceDate, new Date(input.to)));
+    const invRows = await db.select().from(salesInvoices).where(and11(...invConditions));
+    const invIds = invRows.map((i) => i.id);
+    const payRows = invIds.length > 0 ? await db.select().from(payments).where(
+      and11(
+        eq15(payments.tenantId, tid),
+        eq15(payments.source, "sales"),
+        inArray4(payments.invoiceId, invIds)
+      )
+    ) : [];
+    const payByInvoice = /* @__PURE__ */ new Map();
+    for (const p of payRows) {
+      payByInvoice.set(
+        p.invoiceId,
+        (payByInvoice.get(p.invoiceId) ?? 0) + toNum(p.amount)
+      );
+    }
+    const lines = [];
+    let running = 0;
+    for (const inv of invRows) {
+      const total = toNum(inv.total);
+      running += total;
+      lines.push({
+        date: inv.invoiceDate,
+        doc: inv.invoiceNumber,
+        description: "\u0641\u0627\u062A\u0648\u0631\u0629 \u0645\u0628\u064A\u0639\u0627\u062A",
+        debit: total,
+        credit: 0,
+        balance: running
+      });
+      const paid = payByInvoice.get(inv.id) ?? 0;
+      if (paid > 0) {
+        running -= paid;
+        lines.push({
+          date: inv.invoiceDate,
+          doc: `${inv.invoiceNumber}-P`,
+          description: "\u062F\u0641\u0639\u0627\u062A \u0645\u0633\u062A\u0644\u0645\u0629 \u0639\u0644\u0649 \u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629",
+          debit: 0,
+          credit: paid,
+          balance: running
+        });
+      }
+    }
+    lines.sort((a, b) => a.date.getTime() - b.date.getTime());
+    const debit = lines.reduce((s, l) => s + l.debit, 0);
+    const credit = lines.reduce((s, l) => s + l.credit, 0);
+    return {
+      customer: { id: custRows[0].id, name: custRows[0].name },
+      lines,
+      totals: { debit, credit, balance: running }
+    };
+  }),
+  /** كشف حساب مورد — supplier statement (invoices + payments, running balance) */
+  supplierStatement: tenantProcedure.input(
+    z9.object({
+      supplierId: z9.number(),
+      from: z9.string().optional(),
+      to: z9.string().optional()
+    })
+  ).query(async ({ ctx, input }) => {
+    const db = await getDb();
+    if (!db)
+      return { supplier: null, lines: [], totals: { debit: 0, credit: 0 } };
+    const tid = requireTenantId(ctx);
+    const supRows = await db.select().from(suppliers).where(
+      and11(eq15(suppliers.id, input.supplierId), eq15(suppliers.tenantId, tid))
+    ).limit(1);
+    if (supRows.length === 0) throw new Error("\u0627\u0644\u0645\u0648\u0631\u062F \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
+    const invConditions = [
+      eq15(purchaseInvoices.tenantId, tid),
+      eq15(purchaseInvoices.supplierId, input.supplierId)
+    ];
+    if (input.from)
+      invConditions.push(
+        gte6(purchaseInvoices.invoiceDate, new Date(input.from))
+      );
+    if (input.to)
+      invConditions.push(
+        lte5(purchaseInvoices.invoiceDate, new Date(input.to))
+      );
+    const invRows = await db.select().from(purchaseInvoices).where(and11(...invConditions));
+    const invIds = invRows.map((i) => i.id);
+    const payRows = invIds.length > 0 ? await db.select().from(payments).where(
+      and11(
+        eq15(payments.tenantId, tid),
+        eq15(payments.source, "purchases"),
+        inArray4(payments.invoiceId, invIds)
+      )
+    ) : [];
+    const payByInvoice = /* @__PURE__ */ new Map();
+    for (const p of payRows) {
+      payByInvoice.set(
+        p.invoiceId,
+        (payByInvoice.get(p.invoiceId) ?? 0) + toNum(p.amount)
+      );
+    }
+    const lines = [];
+    let running = 0;
+    for (const inv of invRows) {
+      const total = toNum(inv.total);
+      running += total;
+      lines.push({
+        date: inv.invoiceDate,
+        doc: inv.invoiceNumber,
+        description: "\u0641\u0627\u062A\u0648\u0631\u0629 \u0645\u0634\u062A\u0631\u064A\u0627\u062A",
+        debit: 0,
+        credit: total,
+        balance: running
+      });
+      const paid = payByInvoice.get(inv.id) ?? 0;
+      if (paid > 0) {
+        running -= paid;
+        lines.push({
+          date: inv.invoiceDate,
+          doc: `${inv.invoiceNumber}-P`,
+          description: "\u062F\u0641\u0639\u0627\u062A \u0645\u0633\u062F\u062F\u0629 \u0639\u0644\u0649 \u0627\u0644\u0641\u0627\u062A\u0648\u0631\u0629",
+          debit: paid,
+          credit: 0,
+          balance: running
+        });
+      }
+    }
+    lines.sort((a, b) => a.date.getTime() - b.date.getTime());
+    const debit = lines.reduce((s, l) => s + l.debit, 0);
+    const credit = lines.reduce((s, l) => s + l.credit, 0);
+    return {
+      supplier: { id: supRows[0].id, name: supRows[0].name },
+      lines,
+      totals: { debit, credit, balance: running }
+    };
+  }),
+  /**
+   * ملخص مراكز التكلفة — cost-center analytical summary.
+   * Revives the previously-dead costCenterId dimension: aggregates revenue
+   * and expense activity per analytical dimension for management reporting.
+   */
+  costCenterSummary: tenantProcedure.input(
+    z9.object({ from: z9.string().optional(), to: z9.string().optional() }).optional()
+  ).query(async ({ ctx, input }) => {
+    const db = await getDb();
+    if (!db) return { rows: [], unassigned: 0 };
+    const tid = requireTenantId(ctx);
+    const conditions = [
+      eq15(transactions.tenantId, tid),
+      eq15(transactions.isReversed, false),
+      inArray4(transactions.lifecycleStatus, ACTIVE_LIFECYCLE)
+    ];
+    if (input?.from)
+      conditions.push(
+        gte6(transactions.transactionDate, new Date(input.from))
+      );
+    if (input?.to)
+      conditions.push(lte5(transactions.transactionDate, new Date(input.to)));
+    const txRows = await db.select({
+      costCenterId: transactions.costCenterId,
+      type: transactions.type,
+      amount: transactions.amount,
+      accountId: transactions.accountId
+    }).from(transactions).where(and11(...conditions));
+    const acctRows = await db.select({ id: accounts.id, type: accounts.type }).from(accounts).where(eq15(accounts.tenantId, tid));
+    const acctType = new Map(acctRows.map((a) => [a.id, a.type]));
+    const agg = /* @__PURE__ */ new Map();
+    let unassigned = 0;
+    for (const tx of txRows) {
+      const v = toNum(tx.amount);
+      const type = acctType.get(tx.accountId);
+      const isRevenue = type === "revenue";
+      if (!isRevenue && type !== "expense") continue;
+      const key = tx.costCenterId ?? 0;
+      const entry = agg.get(key) ?? { revenue: 0, expense: 0, count: 0 };
+      if (isRevenue) {
+        entry.revenue += tx.type === "credit" ? v : -v;
+      } else {
+        entry.expense += tx.type === "debit" ? v : -v;
+      }
+      entry.count++;
+      agg.set(key, entry);
+      if (key === 0) unassigned += 1;
+    }
+    const ccRows = await db.select({
+      id: costCenters.id,
+      code: costCenters.code,
+      name: costCenters.name
+    }).from(costCenters).where(eq15(costCenters.tenantId, tid));
+    const ccMap = new Map(ccRows.map((c) => [c.id, c]));
+    const rows = [...agg.entries()].map(([id, v]) => ({
+      costCenterId: id === 0 ? null : id,
+      code: id === 0 ? "\u2014" : ccMap.get(id)?.code ?? "\u061F",
+      name: id === 0 ? "\u0628\u062F\u0648\u0646 \u0645\u0631\u0643\u0632 \u062A\u0643\u0644\u0641\u0629" : ccMap.get(id)?.name ?? "\u0645\u0631\u0643\u0632 \u0645\u062D\u0630\u0648\u0641",
+      revenue: v.revenue,
+      expense: v.expense,
+      net: v.revenue - v.expense,
+      count: v.count
+    })).sort((a, b) => b.net - a.net);
+    return { rows, unassigned };
   })
 });
 
@@ -34765,7 +35845,9 @@ var fiscalPeriodsRouter = router({
     return row;
   }),
   /** Mark a period closed (locks posting into its range). */
-  close: adminProcedure.input(z10.object({ periodId: z10.number(), closingEntryId: z10.number().optional() })).mutation(async ({ input, ctx }) => {
+  close: adminProcedure.input(
+    z10.object({ periodId: z10.number(), closingEntryId: z10.number().optional() })
+  ).mutation(async ({ input, ctx }) => {
     const db = await getDb();
     if (!db) throw new Error("Database not available");
     const tid = requireTenantId(ctx);
@@ -34834,21 +35916,43 @@ var fiscalPeriodsRouter = router({
 import { eq as eq17, and as and13, desc as desc6 } from "drizzle-orm";
 init_schema();
 var LOCKED_PERIOD_STATUSES = ["closing", "closed"];
+function fiscalPeriodCoversDate(period, date) {
+  const t2 = date.getTime();
+  const start = new Date(period.startDate).getTime();
+  const end = new Date(period.endDate).getTime();
+  if (Number.isNaN(t2) || Number.isNaN(start) || Number.isNaN(end)) return false;
+  const dayStart = new Date(period.startDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(period.endDate);
+  dayEnd.setHours(23, 59, 59, 999);
+  return t2 >= dayStart.getTime() && t2 <= dayEnd.getTime();
+}
+function isLockedPeriodStatus(status) {
+  return LOCKED_PERIOD_STATUSES.includes(status);
+}
+async function findLockedPeriodForDate(db, tenantId, date) {
+  if (!db || !tenantId) return null;
+  const rows = await db.select({
+    name: fiscalPeriods.name,
+    status: fiscalPeriods.status,
+    startDate: fiscalPeriods.startDate,
+    endDate: fiscalPeriods.endDate
+  }).from(fiscalPeriods).where(eq17(fiscalPeriods.tenantId, tenantId));
+  for (const p of rows) {
+    if (isLockedPeriodStatus(p.status) && fiscalPeriodCoversDate(p, date)) {
+      return p;
+    }
+  }
+  return null;
+}
 async function assertPeriodOpen(db, tenantId, date, context) {
   if (!db || !tenantId) return;
   try {
-    const rows = await db.select({ name: fiscalPeriods.name, status: fiscalPeriods.status }).from(fiscalPeriods).where(
-      and13(
-        eq17(fiscalPeriods.tenantId, tenantId),
-        eq17(fiscalPeriods.startDate, date)
-      )
-    );
-    for (const r of rows) {
-      if (LOCKED_PERIOD_STATUSES.includes(r.status)) {
-        throw new Error(
-          `\u0627\u0644\u0641\u062A\u0631\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 "${r.name}" ${context ? `(${context})` : ""} \u0645\u063A\u0644\u0642\u0629 \u2014 \u0644\u0627 \u064A\u0645\u0643\u0646 \u0627\u0644\u062A\u0631\u062D\u064A\u0644 \u0625\u0644\u064A\u0647\u0627`
-        );
-      }
+    const locked = await findLockedPeriodForDate(db, tenantId, date);
+    if (locked) {
+      throw new Error(
+        `\u0627\u0644\u0641\u062A\u0631\u0629 \u0627\u0644\u0645\u0627\u0644\u064A\u0629 "${locked.name}" ${context ? `(${context})` : ""} \u0645\u063A\u0644\u0642\u0629 \u2014 \u0644\u0627 \u064A\u0645\u0643\u0646 \u0627\u0644\u062A\u0631\u062D\u064A\u0644 \u0625\u0644\u064A\u0647\u0627`
+      );
     }
   } catch (e) {
     if (e instanceof Error && /مغلقة/.test(e.message)) throw e;
@@ -34906,9 +36010,13 @@ import {
   ilike as ilike7,
   inArray as inArray5,
   ne as ne3,
-  isNull as isNull4
+  isNull as isNull5
 } from "drizzle-orm";
 import { z as z11 } from "zod";
+var SOD_EXEMPT_ROLES = ["admin", "owner"];
+function canApproveOwnTransaction(role) {
+  return !!role && SOD_EXEMPT_ROLES.includes(role);
+}
 function getMonthlyFactor(frequency) {
   switch (frequency) {
     case "daily":
@@ -36337,6 +37445,7 @@ var appRouter = router({
         transactionDate: z11.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
         narration: z11.string().max(500).optional(),
         notes: z11.string().optional(),
+        costCenterId: z11.number().optional(),
         lifecycleStatus: z11.enum(["saved", "approved", "sent"]).default("saved")
       })
     ).mutation(async ({ input, ctx }) => {
@@ -36350,14 +37459,26 @@ var appRouter = router({
         )
       ).limit(1);
       if (account.length === 0) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
+      if (input.costCenterId != null) {
+        const cc = await db.select({ id: costCenters.id }).from(costCenters).where(
+          and14(
+            eq18(costCenters.id, input.costCenterId),
+            eq18(costCenters.tenantId, ctx.tenantId)
+          )
+        ).limit(1);
+        if (cc.length === 0) throw new Error("\u0645\u0631\u0643\u0632 \u0627\u0644\u062A\u0643\u0644\u0641\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
+      }
+      const txDate = new Date(input.transactionDate);
+      await assertPeriodOpen(db, ctx.tenantId, txDate, "\u0625\u062F\u062E\u0627\u0644 \u062D\u0631\u0643\u0629 \u0645\u0627\u0644\u064A\u0629");
       const values = {
         tenantId: ctx.tenantId,
         accountId: input.accountId,
         amount: input.amount,
         type: input.type,
-        transactionDate: new Date(input.transactionDate),
+        transactionDate: txDate,
         narration: input.narration || null,
         notes: input.notes || null,
+        costCenterId: input.costCenterId ?? null,
         lifecycleStatus: input.lifecycleStatus,
         isReversed: false,
         userId: ctx.user.id
@@ -36376,6 +37497,7 @@ var appRouter = router({
     addBatchTransactions: tenantProcedure.input(
       z11.object({
         lifecycleStatus: z11.enum(["saved", "approved", "sent"]).default("saved"),
+        costCenterId: z11.number().optional(),
         rows: z11.array(
           z11.object({
             id: z11.number().optional(),
@@ -36384,7 +37506,8 @@ var appRouter = router({
             type: z11.enum(["debit", "credit"]).default("debit"),
             transactionDate: z11.string(),
             narration: z11.string().optional(),
-            notes: z11.string().optional()
+            notes: z11.string().optional(),
+            costCenterId: z11.number().optional()
           })
         )
       })
@@ -36392,17 +37515,65 @@ var appRouter = router({
       if (!ctx.tenantId) throw new Error("\u064A\u062C\u0628 \u0625\u0646\u0634\u0627\u0621 \u0645\u0624\u0633\u0633\u0629 \u0623\u0648\u0644\u0627\u064B");
       const db = await getDb();
       if (!db) throw new Error("Database not available");
+      const tid = ctx.tenantId;
+      const requestedAccountIds = [
+        ...new Set(input.rows.map((r) => r.accountId))
+      ];
+      const ownedAccountRows = await db.select({ id: accounts.id }).from(accounts).where(
+        and14(
+          eq18(accounts.tenantId, tid),
+          inArray5(accounts.id, requestedAccountIds)
+        )
+      );
+      const ownedAccountIds = new Set(ownedAccountRows.map((a) => a.id));
+      const foreignAccountId = requestedAccountIds.find(
+        (id) => !ownedAccountIds.has(id)
+      );
+      if (foreignAccountId != null)
+        throw new Error(
+          `\u0627\u0644\u062D\u0633\u0627\u0628 #${foreignAccountId} \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0645\u0624\u0633\u0633\u0629 \u2014 \u062A\u0645 \u0625\u0644\u063A\u0627\u0621 \u0627\u0644\u062F\u0641\u0639\u0629 \u0628\u0627\u0644\u0643\u0627\u0645\u0644`
+        );
+      const requestedCcIds = [
+        ...new Set(
+          [input.costCenterId, ...input.rows.map((r) => r.costCenterId)].filter(
+            (v) => v != null
+          )
+        )
+      ];
+      if (requestedCcIds.length > 0) {
+        const ownedCcRows = await db.select({ id: costCenters.id }).from(costCenters).where(
+          and14(
+            eq18(costCenters.tenantId, tid),
+            inArray5(costCenters.id, requestedCcIds)
+          )
+        );
+        const ownedCcIds = new Set(ownedCcRows.map((c) => c.id));
+        const foreignCcId = requestedCcIds.find((id) => !ownedCcIds.has(id));
+        if (foreignCcId != null)
+          throw new Error(
+            `\u0645\u0631\u0643\u0632 \u0627\u0644\u062A\u0643\u0644\u0641\u0629 #${foreignCcId} \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0645\u0624\u0633\u0633\u0629`
+          );
+      }
+      for (const item of input.rows) {
+        await assertPeriodOpen(
+          db,
+          tid,
+          new Date(item.transactionDate),
+          "\u0625\u062F\u062E\u0627\u0644 \u062F\u0641\u0639\u0629 \u062D\u0631\u0643\u0627\u062A"
+        );
+      }
       let count4 = 0;
       for (const item of input.rows) {
         if (!item.amount || parseFloat(item.amount) <= 0) continue;
         const values = {
-          tenantId: ctx.tenantId,
+          tenantId: tid,
           accountId: item.accountId,
           amount: item.amount,
           type: item.type || "debit",
           transactionDate: new Date(item.transactionDate),
           narration: item.narration || null,
           notes: item.notes || null,
+          costCenterId: item.costCenterId ?? input.costCenterId ?? null,
           lifecycleStatus: input.lifecycleStatus,
           isReversed: false,
           userId: ctx.user.id
@@ -36430,6 +37601,7 @@ var appRouter = router({
         type: z11.enum(["debit", "credit"]),
         transactionDate: z11.string().refine((v) => !isNaN(Date.parse(v)), "\u062A\u0627\u0631\u064A\u062E \u063A\u064A\u0631 \u0635\u062D\u064A\u062D"),
         narration: z11.string().max(200).optional().default("\u062D\u0631\u0643\u0629 \u064A\u0648\u0645\u064A\u0629"),
+        costCenterId: z11.number().optional(),
         lifecycleStatus: z11.enum(["saved"]).default("saved")
       })
     ).mutation(async ({ input, ctx }) => {
@@ -36443,14 +37615,26 @@ var appRouter = router({
         )
       ).limit(1);
       if (account.length === 0) throw new Error("\u0627\u0644\u062D\u0633\u0627\u0628 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
+      if (input.costCenterId != null) {
+        const cc = await db.select({ id: costCenters.id }).from(costCenters).where(
+          and14(
+            eq18(costCenters.id, input.costCenterId),
+            eq18(costCenters.tenantId, ctx.tenantId)
+          )
+        ).limit(1);
+        if (cc.length === 0) throw new Error("\u0645\u0631\u0643\u0632 \u0627\u0644\u062A\u0643\u0644\u0641\u0629 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F");
+      }
+      const txDate = new Date(input.transactionDate);
+      await assertPeriodOpen(db, ctx.tenantId, txDate, "\u062D\u0631\u0643\u0629 \u064A\u0648\u0645\u064A\u0629");
       const values = {
         tenantId: ctx.tenantId,
         accountId: input.accountId,
         amount: input.amount,
         type: input.type,
-        transactionDate: new Date(input.transactionDate),
+        transactionDate: txDate,
         narration: input.narration,
         notes: null,
+        costCenterId: input.costCenterId ?? null,
         lifecycleStatus: input.lifecycleStatus,
         isReversed: false,
         userId: ctx.user.id
@@ -36484,6 +37668,22 @@ var appRouter = router({
       if (existing[0]?.lifecycleStatus === "posted" && input.lifecycleStatus !== "posted") {
         throw new Error(
           "\u0644\u0627 \u064A\u0645\u0643\u0646 \u062A\u0639\u062F\u064A\u0644 \u0623\u0648 \u0625\u0644\u063A\u0627\u0621 \u062D\u0631\u0643\u0629 \u0645\u0631\u062D\u0644\u0629 \u0646\u0647\u0627\u0626\u064A\u0627\u064B. \u0627\u0644\u062A\u0639\u062F\u064A\u0644 \u064A\u062A\u0645 \u0639\u0628\u0631 \u062D\u0631\u0643\u0629 \u0639\u0643\u0633\u064A\u0629 \u0645\u0633\u062A\u0642\u0644\u0629."
+        );
+      }
+      const elevating = ["approved", "sent", "posted"].includes(
+        input.lifecycleStatus
+      );
+      if (elevating && existing[0]?.userId === ctx.user.id && !canApproveOwnTransaction(ctx.user.role)) {
+        throw new Error(
+          "\u0641\u0635\u0644 \u0627\u0644\u0645\u0647\u0627\u0645 (SoD): \u0644\u0627 \u064A\u0645\u0643\u0646 \u0644\u0645\u0646\u0634\u0626 \u0627\u0644\u062D\u0631\u0643\u0629 \u0627\u0639\u062A\u0645\u0627\u062F\u0647\u0627 \u0623\u0648 \u062A\u0631\u062D\u064A\u0644\u0647\u0627 \u0628\u0646\u0641\u0633\u0647 \u2014 \u064A\u0644\u0632\u0645 \u0645\u0648\u0627\u0641\u0642\u0629 \u0645\u0633\u062A\u062E\u062F\u0645 \u0622\u062E\u0631."
+        );
+      }
+      if (elevating) {
+        await assertPeriodOpen(
+          db,
+          ctx.tenantId,
+          existing[0].transactionDate,
+          `\u062A\u0631\u062D\u064A\u0644 \u0627\u0644\u062D\u0631\u0643\u0629 #${input.id}`
         );
       }
       await db.update(transactions).set({
@@ -36674,6 +37874,7 @@ var appRouter = router({
         narration: z11.string().min(1),
         referenceNo: z11.string().optional(),
         branchId: z11.number().optional(),
+        costCenterId: z11.number().optional(),
         lines: z11.array(
           z11.object({
             accountId: z11.number(),
@@ -36682,7 +37883,8 @@ var appRouter = router({
               (v) => parseFloat(v) > 0,
               "\u0627\u0644\u0645\u0628\u0644\u063A \u064A\u062C\u0628 \u0623\u0646 \u064A\u0643\u0648\u0646 \u0623\u0643\u0628\u0631 \u0645\u0646 \u0635\u0641\u0631"
             ),
-            narration: z11.string().optional()
+            narration: z11.string().optional(),
+            costCenterId: z11.number().optional()
           })
         ).min(2, "\u0627\u0644\u0642\u064A\u062F \u064A\u062D\u062A\u0627\u062C \u062D\u0631\u0643\u062A\u064A\u0646 \u0639\u0644\u0649 \u0627\u0644\u0623\u0642\u0644")
       })
@@ -36698,6 +37900,35 @@ var appRouter = router({
           "\u0627\u0644\u0642\u064A\u062F \u063A\u064A\u0631 \u0645\u062A\u0648\u0627\u0632\u0646: \u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u0645\u062F\u064A\u0646 \u064A\u062C\u0628 \u0623\u0646 \u064A\u0633\u0627\u0648\u064A \u0645\u062C\u0645\u0648\u0639 \u0627\u0644\u062F\u0627\u0626\u0646"
         );
       const txDate = input.date ? new Date(input.date) : /* @__PURE__ */ new Date();
+      await assertPeriodOpen(db, tenantId, txDate, "\u0642\u064A\u062F \u064A\u062F\u0648\u064A");
+      const lineAccountIds = [...new Set(input.lines.map((l) => l.accountId))];
+      const ownedAccounts = await db.select({ id: accounts.id }).from(accounts).where(
+        and14(
+          eq18(accounts.tenantId, tenantId),
+          inArray5(accounts.id, lineAccountIds)
+        )
+      );
+      if (ownedAccounts.length < lineAccountIds.length)
+        throw new Error("\u0623\u062D\u062F \u0627\u0644\u062D\u0633\u0627\u0628\u0627\u062A \u0627\u0644\u0645\u0634\u0627\u0631 \u0625\u0644\u064A\u0647\u0627 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0645\u0624\u0633\u0633\u0629");
+      const ccIds = [
+        ...new Set(
+          [input.costCenterId, ...input.lines.map((l) => l.costCenterId)].filter(
+            (v) => v != null
+          )
+        )
+      ];
+      if (ccIds.length > 0) {
+        const ownedCcs = await db.select({ id: costCenters.id }).from(costCenters).where(
+          and14(
+            eq18(costCenters.tenantId, tenantId),
+            inArray5(costCenters.id, ccIds)
+          )
+        );
+        if (ownedCcs.length < ccIds.length)
+          throw new Error(
+            "\u0645\u0631\u0643\u0632 \u0627\u0644\u062A\u0643\u0644\u0641\u0629 \u0627\u0644\u0645\u0634\u0627\u0631 \u0625\u0644\u064A\u0647 \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F \u0641\u064A \u0647\u0630\u0647 \u0627\u0644\u0645\u0624\u0633\u0633\u0629"
+          );
+      }
       const ref = input.referenceNo || `MAN-${Date.now().toString().slice(-6)}`;
       const bRows = await db.select().from(branches).where(eq18(branches.tenantId, tenantId)).orderBy(desc7(branches.isMain)).limit(1);
       const effectiveBranchId = input.branchId ?? bRows[0]?.id ?? null;
@@ -36711,7 +37942,10 @@ var appRouter = router({
         status: "posted",
         totalAmount: totalDebit.toFixed(2),
         createdById: ctx.user?.id ?? null,
-        postedAt: /* @__PURE__ */ new Date()
+        postedAt: /* @__PURE__ */ new Date(),
+        // Posted journals are immutable (chk_journal_immutable_posted);
+        // corrections flow through reverseJournal.
+        isImmutable: true
       }).returning();
       for (const l of input.lines) {
         await db.insert(transactions).values({
@@ -36726,6 +37960,7 @@ var appRouter = router({
           referenceType: "manual",
           referenceId: null,
           sourceModule: "manual",
+          costCenterId: l.costCenterId ?? input.costCenterId ?? null,
           userId: ctx.user?.id ?? null,
           journalEntryId: je.id
         });
@@ -37484,7 +38719,7 @@ var appRouter = router({
             lte6(transactions.transactionDate, asOf),
             eq18(transactions.isReversed, false),
             or6(
-              isNull4(transactions.referenceType),
+              isNull5(transactions.referenceType),
               ne3(transactions.referenceType, "closing")
             )
           )
@@ -38202,11 +39437,11 @@ ${analysisText}
         db.select().from(openingBalances).where(eq18(openingBalances.tenantId, tid)),
         db.select().from(branches).where(eq18(branches.tenantId, tid)),
         db.select().from(tenants).where(eq18(tenants.id, tid)),
-        db.select().from(products).where(and14(eq18(products.tenantId, tid), isNull4(products.deletedAt))).orderBy(asc6(products.code)),
+        db.select().from(products).where(and14(eq18(products.tenantId, tid), isNull5(products.deletedAt))).orderBy(asc6(products.code)),
         db.select().from(warehouses).where(eq18(warehouses.tenantId, tid)),
         db.select().from(inventoryMovements).where(eq18(inventoryMovements.tenantId, tid)).orderBy(desc7(inventoryMovements.createdAt)).limit(500),
-        db.select().from(customers).where(and14(eq18(customers.tenantId, tid), isNull4(customers.deletedAt))).orderBy(asc6(customers.code)),
-        db.select().from(suppliers).where(and14(eq18(suppliers.tenantId, tid), isNull4(suppliers.deletedAt))).orderBy(asc6(suppliers.code)),
+        db.select().from(customers).where(and14(eq18(customers.tenantId, tid), isNull5(customers.deletedAt))).orderBy(asc6(customers.code)),
+        db.select().from(suppliers).where(and14(eq18(suppliers.tenantId, tid), isNull5(suppliers.deletedAt))).orderBy(asc6(suppliers.code)),
         db.select().from(salesInvoices).where(eq18(salesInvoices.tenantId, tid)).orderBy(desc7(salesInvoices.createdAt)).limit(200),
         db.select().from(salesInvoiceItems).where(inArray5(salesInvoiceItems.invoiceId, tenantSalesIds)),
         db.select().from(purchaseInvoices).where(eq18(purchaseInvoices.tenantId, tid)).orderBy(desc7(purchaseInvoices.createdAt)).limit(200),
@@ -38653,7 +39888,7 @@ ${analysisText}
               and14(
                 eq18(products.tenantId, tid),
                 gte7(products.updatedAt, sinceDate),
-                isNull4(products.deletedAt)
+                isNull5(products.deletedAt)
               )
             );
             break;
@@ -38678,7 +39913,7 @@ ${analysisText}
               and14(
                 eq18(customers.tenantId, tid),
                 gte7(customers.updatedAt, sinceDate),
-                isNull4(customers.deletedAt)
+                isNull5(customers.deletedAt)
               )
             );
             break;
@@ -38687,7 +39922,7 @@ ${analysisText}
               and14(
                 eq18(suppliers.tenantId, tid),
                 gte7(suppliers.updatedAt, sinceDate),
-                isNull4(suppliers.deletedAt)
+                isNull5(suppliers.deletedAt)
               )
             );
             break;
@@ -38867,7 +40102,7 @@ ${analysisText}
       const conditions = [
         eq18(products.isActive, true),
         eq18(products.tenantId, ctx.tenantId),
-        isNull4(products.deletedAt)
+        isNull5(products.deletedAt)
       ];
       if (input?.search) {
         conditions.push(
@@ -39361,7 +40596,7 @@ ${analysisText}
         and14(
           eq18(products.tenantId, tid),
           eq18(products.isActive, true),
-          isNull4(products.deletedAt),
+          isNull5(products.deletedAt),
           // currentStock <= minStock
           sql9`${products.currentStock} <= ${products.minStock}`
         )
@@ -39375,7 +40610,7 @@ ${analysisText}
         and14(
           eq18(products.tenantId, tid),
           eq18(products.isActive, true),
-          isNull4(products.deletedAt)
+          isNull5(products.deletedAt)
         )
       );
       const items = rows.map((p) => {
@@ -39416,7 +40651,7 @@ ${analysisText}
         and14(
           eq18(products.tenantId, tid),
           eq18(products.isActive, true),
-          isNull4(products.deletedAt)
+          isNull5(products.deletedAt)
         )
       );
       const byCat = {};
@@ -40252,7 +41487,7 @@ ${analysisText}
           eq18(products.tenantId, ctx.tenantId),
           eq18(products.barcode, input.barcode),
           eq18(products.isActive, true),
-          isNull4(products.deletedAt)
+          isNull5(products.deletedAt)
         )
       ).limit(1);
       return row || null;
@@ -40266,7 +41501,7 @@ ${analysisText}
           eq18(products.tenantId, ctx.tenantId),
           eq18(products.code, input.code),
           eq18(products.isActive, true),
-          isNull4(products.deletedAt)
+          isNull5(products.deletedAt)
         )
       ).limit(1);
       return row || null;
@@ -40289,7 +41524,7 @@ ${analysisText}
       const conditions = [
         eq18(customers.isActive, true),
         eq18(customers.tenantId, ctx.tenantId),
-        isNull4(customers.deletedAt)
+        isNull5(customers.deletedAt)
       ];
       if (input?.search) {
         conditions.push(
@@ -40364,7 +41599,7 @@ ${analysisText}
       const conditions = [
         eq18(suppliers.isActive, true),
         eq18(suppliers.tenantId, ctx.tenantId),
-        isNull4(suppliers.deletedAt)
+        isNull5(suppliers.deletedAt)
       ];
       if (input?.search) {
         conditions.push(
@@ -40611,7 +41846,7 @@ ${analysisText}
         and14(
           eq18(products.tenantId, ctx.tenantId),
           inArray5(products.id, productIds),
-          isNull4(products.deletedAt)
+          isNull5(products.deletedAt)
         )
       );
       const productMap = new Map(productRows.map((p) => [p.id, p]));
@@ -40975,7 +42210,7 @@ ${analysisText}
       const invoiceNumber = `PI-${datePart}-${randPart}`;
       const productIds = input.items.map((i) => i.productId);
       const productRows = await db.select().from(products).where(
-        and14(inArray5(products.id, productIds), isNull4(products.deletedAt))
+        and14(inArray5(products.id, productIds), isNull5(products.deletedAt))
       );
       const productMap = new Map(productRows.map((p) => [p.id, p]));
       for (const item of input.items) {
@@ -41385,7 +42620,7 @@ ${analysisText}
       );
       const productIds = effectiveItems.map((i) => i.productId);
       const productRows = await db.select().from(products).where(
-        and14(inArray5(products.id, productIds), isNull4(products.deletedAt))
+        and14(inArray5(products.id, productIds), isNull5(products.deletedAt))
       );
       if (productRows.length !== productIds.length)
         throw new Error("\u0648\u0627\u062D\u062F \u0623\u0648 \u0623\u0643\u062B\u0631 \u0645\u0646 \u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F\u0629");
@@ -41680,7 +42915,7 @@ ${analysisText}
         and14(
           eq18(products.isActive, true),
           eq18(products.tenantId, ctx.tenantId),
-          isNull4(products.deletedAt)
+          isNull5(products.deletedAt)
         )
       );
       const lowStock = allProducts.filter((p) => p.currentStock <= p.minStock).sort(
@@ -41719,21 +42954,21 @@ ${analysisText}
         and14(
           eq18(products.isActive, true),
           eq18(products.tenantId, ctx.tenantId),
-          isNull4(products.deletedAt)
+          isNull5(products.deletedAt)
         )
       );
       const [customersCount] = await db.select({ count: sql9`count(*)::int` }).from(customers).where(
         and14(
           eq18(customers.isActive, true),
           eq18(customers.tenantId, ctx.tenantId),
-          isNull4(customers.deletedAt)
+          isNull5(customers.deletedAt)
         )
       );
       const [suppliersCount] = await db.select({ count: sql9`count(*)::int` }).from(suppliers).where(
         and14(
           eq18(suppliers.isActive, true),
           eq18(suppliers.tenantId, ctx.tenantId),
-          isNull4(suppliers.deletedAt)
+          isNull5(suppliers.deletedAt)
         )
       );
       const [salesCount] = await db.select({ count: sql9`count(*)::int` }).from(salesInvoices).where(
@@ -41758,7 +42993,7 @@ ${analysisText}
         and14(
           eq18(customers.tenantId, ctx.tenantId),
           eq18(customers.isActive, true),
-          isNull4(customers.deletedAt),
+          isNull5(customers.deletedAt),
           sql9`${customers.balance} > 0`
         )
       ).orderBy(desc7(customers.balance)).limit(5);
@@ -42047,27 +43282,41 @@ init_env();
 import { sql as sql10 } from "drizzle-orm";
 
 // server/_core/logger.ts
-var order = { debug: 10, info: 20, warn: 30, error: 40 };
+var order = {
+  debug: 10,
+  info: 20,
+  warn: 30,
+  error: 40
+};
 var level = process.env.LOG_LEVEL || (process.env.NODE_ENV === "production" ? "info" : "debug");
 function shouldLog(l) {
   return order[l] >= order[level];
 }
 function safeJson(obj) {
   const redacted = { ...obj };
-  for (const k of ["cookie", "authorization", "password", "DATABASE_URL", "JWT_SECRET"]) {
+  for (const k of [
+    "cookie",
+    "authorization",
+    "password",
+    "DATABASE_URL",
+    "JWT_SECRET"
+  ]) {
     if (k in redacted) redacted[k] = "[REDACTED]";
   }
   return JSON.stringify({ t: (/* @__PURE__ */ new Date()).toISOString(), ...redacted });
 }
 var logger = {
   debug: (msg, meta = {}) => {
-    if (shouldLog("debug")) console.debug(safeJson({ level: "debug", msg, ...meta }));
+    if (shouldLog("debug"))
+      console.debug(safeJson({ level: "debug", msg, ...meta }));
   },
   info: (msg, meta = {}) => {
-    if (shouldLog("info")) console.log(safeJson({ level: "info", msg, ...meta }));
+    if (shouldLog("info"))
+      console.log(safeJson({ level: "info", msg, ...meta }));
   },
   warn: (msg, meta = {}) => {
-    if (shouldLog("warn")) console.warn(safeJson({ level: "warn", msg, ...meta }));
+    if (shouldLog("warn"))
+      console.warn(safeJson({ level: "warn", msg, ...meta }));
   },
   error: (msg, meta = {}) => {
     console.error(safeJson({ level: "error", msg, ...meta }));
@@ -42075,6 +43324,15 @@ var logger = {
 };
 
 // server/_core/app.ts
+if (ENV.sentryDsn) {
+  Sentry.init({
+    dsn: ENV.sentryDsn,
+    environment: ENV.isProduction ? "production" : "development",
+    tracesSampleRate: ENV.isProduction ? 0.1 : 1,
+    profilesSampleRate: ENV.isProduction ? 0.1 : 1,
+    integrations: [Sentry.expressIntegration()]
+  });
+}
 function createApp() {
   const app2 = express();
   app2.disable("x-powered-by");
@@ -42128,7 +43386,9 @@ function createApp() {
           url: process.env.UPSTASH_REDIS_REST_URL,
           token: process.env.UPSTASH_REDIS_REST_TOKEN
         });
-        return new RedisStore({ sendCommand: (...args) => client.sendCommand(args) });
+        return new RedisStore({
+          sendCommand: (...args) => client.sendCommand(args)
+        });
       }
     } catch {
     }
@@ -42224,6 +43484,9 @@ function createApp() {
       createContext
     })
   );
+  if (ENV.sentryDsn) {
+    app2.use(expressErrorHandler());
+  }
   app2.use(
     (err, req, res, _next) => {
       const requestId = req.requestId || req.headers["x-request-id"] || "unknown";

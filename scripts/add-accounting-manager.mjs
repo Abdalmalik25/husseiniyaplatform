@@ -20,9 +20,9 @@ async function hashPassword(password) {
 
 async function addAccountingManager() {
   console.log("🚀 Adding Accounting Manager User...");
-  
+
   const tid = 2; // Library tenant
-  
+
   const user = {
     username: "mohamed_accounting",
     name: "محمد مدير الحسابات",
@@ -30,8 +30,14 @@ async function addAccountingManager() {
     role: "accountant",
     password: "Mohamed@2024",
   };
-  
-  const existing = (await db.select().from(schema.users).where(eq(schema.users.username, user.username)).limit(1))[0];
+
+  const existing = (
+    await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.username, user.username))
+      .limit(1)
+  )[0];
   if (!existing) {
     const passwordHash = await hashPassword(user.password);
     const [userRow] = await db
@@ -48,16 +54,33 @@ async function addAccountingManager() {
         lastSignedIn: new Date(),
       })
       .returning();
-    console.log("✅ Created user:", userRow.username, "(", userRow.name, ")", "role:", userRow.role);
+    console.log(
+      "✅ Created user:",
+      userRow.username,
+      "(",
+      userRow.name,
+      ")",
+      "role:",
+      userRow.role
+    );
   } else {
-    console.log("ℹ️ User already exists:", existing.username, "(", existing.name, ")");
+    console.log(
+      "ℹ️ User already exists:",
+      existing.username,
+      "(",
+      existing.name,
+      ")"
+    );
   }
-  
+
   // Verify all users
-  const allUsers = await db.select().from(schema.users).where(eq(schema.users.tenantId, tid));
+  const allUsers = await db
+    .select()
+    .from(schema.users)
+    .where(eq(schema.users.tenantId, tid));
   console.log("\n=== All Library Users:", allUsers.length, "users ===");
-  allUsers.forEach(u => console.log(' ', u.username, u.name, u.role, u.email));
-  
+  allUsers.forEach(u => console.log(" ", u.username, u.name, u.role, u.email));
+
   console.log("\n🎉 Accounting Manager Added Successfully!");
 }
 

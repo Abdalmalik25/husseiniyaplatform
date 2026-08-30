@@ -1,4 +1,10 @@
-import { createContext, useContext, useReducer, useCallback, ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useReducer,
+  useCallback,
+  ReactNode,
+} from "react";
 
 export interface LoadingState {
   /** Global route/app loading */
@@ -27,7 +33,10 @@ const initialState: LoadingState = {
   messages: {},
 };
 
-function loadingReducer(state: LoadingState, action: LoadingAction): LoadingState {
+function loadingReducer(
+  state: LoadingState,
+  action: LoadingAction
+): LoadingState {
   switch (action.type) {
     case "START_GLOBAL":
       return { ...state, global: true };
@@ -84,22 +93,42 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
 
   const startGlobal = useCallback(() => dispatch({ type: "START_GLOBAL" }), []);
   const stopGlobal = useCallback(() => dispatch({ type: "STOP_GLOBAL" }), []);
-  const start = useCallback((key: string, message?: string) =>
-    dispatch({ type: "START", key, message }), []);
-  const stop = useCallback((key: string) =>
-    dispatch({ type: "STOP", key }), []);
-  const setProgress = useCallback((key: string, value: number) =>
-    dispatch({ type: "SET_PROGRESS", key, value }), []);
-  const setMessage = useCallback((key: string, message: string) =>
-    dispatch({ type: "SET_MESSAGE", key, message }), []);
+  const start = useCallback(
+    (key: string, message?: string) =>
+      dispatch({ type: "START", key, message }),
+    []
+  );
+  const stop = useCallback(
+    (key: string) => dispatch({ type: "STOP", key }),
+    []
+  );
+  const setProgress = useCallback(
+    (key: string, value: number) =>
+      dispatch({ type: "SET_PROGRESS", key, value }),
+    []
+  );
+  const setMessage = useCallback(
+    (key: string, message: string) =>
+      dispatch({ type: "SET_MESSAGE", key, message }),
+    []
+  );
 
-  const isLoading = useCallback((key?: string) => {
-    if (!key) return state.global;
-    return state.named[key] === true;
-  }, [state.global, state.named]);
+  const isLoading = useCallback(
+    (key?: string) => {
+      if (!key) return state.global;
+      return state.named[key] === true;
+    },
+    [state.global, state.named]
+  );
 
-  const getProgress = useCallback((key: string) => state.progress[key] ?? 0, [state.progress]);
-  const getMessage = useCallback((key: string) => state.messages[key], [state.messages]);
+  const getProgress = useCallback(
+    (key: string) => state.progress[key] ?? 0,
+    [state.progress]
+  );
+  const getMessage = useCallback(
+    (key: string) => state.messages[key],
+    [state.messages]
+  );
 
   return (
     <LoadingContext.Provider

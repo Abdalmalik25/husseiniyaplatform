@@ -18,7 +18,7 @@ export interface ZatcaConfig {
   address: string;
   phase: "1" | "2";
   simulation: boolean;
-  
+
   // Phase 2 specific
   csid?: {
     secret: string; // Base64 encoded private key
@@ -61,7 +61,12 @@ export interface ZatcaInvoice {
   qrCode: string; // Base64 TLV
   hash: string; // SHA-256
   signature?: string; // Digital signature (Phase 2)
-  clearanceStatus?: "not_submitted" | "pending" | "cleared" | "rejected" | "reported";
+  clearanceStatus?:
+    | "not_submitted"
+    | "pending"
+    | "cleared"
+    | "rejected"
+    | "reported";
   clearanceReference?: string;
   reportedAt?: string;
 }
@@ -196,7 +201,13 @@ export class ZatcaCrypto {
    * Get certificate thumbprint (SHA-256 of certificate DER)
    */
   getCertificateThumbprint(): string {
-    const certDer = Buffer.from(this.certificate.replace(/-----BEGIN CERTIFICATE-----/g, "").replace(/-----END CERTIFICATE-----/g, "").replace(/\n/g, ""), "base64");
+    const certDer = Buffer.from(
+      this.certificate
+        .replace(/-----BEGIN CERTIFICATE-----/g, "")
+        .replace(/-----END CERTIFICATE-----/g, "")
+        .replace(/\n/g, ""),
+      "base64"
+    );
     return createHash("sha256").update(certDer).digest("hex").toUpperCase();
   }
 
@@ -221,8 +232,9 @@ export class ZatcaCrypto {
       ...(invoice.buyerCrNumber ? [`BuyerCR${invoice.buyerCrNumber}`] : []),
       `Currency${invoice.currency}`,
       `LineCount${invoice.lineItems.length}`,
-      ...invoice.lineItems.map(l => 
-        `Line${l.lineNumber}${l.description}${l.quantity}${l.unitCode}${l.unitPrice}${l.taxRate}${l.vatCategory}`
+      ...invoice.lineItems.map(
+        l =>
+          `Line${l.lineNumber}${l.description}${l.quantity}${l.unitCode}${l.unitPrice}${l.taxRate}${l.vatCategory}`
       ),
       `Total${invoice.totalAmount.toFixed(2)}`,
       `TaxTotal${invoice.taxAmount.toFixed(2)}`,
@@ -235,7 +247,11 @@ export class ZatcaCrypto {
   /**
    * Generate CSR (Certificate Signing Request) for ZATCA CSID
    */
-  static generateCSR(commonName: string, organization: string, country: string = "SA"): { csr: string; privateKey: string } {
+  static generateCSR(
+    commonName: string,
+    organization: string,
+    country: string = "SA"
+  ): { csr: string; privateKey: string } {
     // In production, use a proper crypto library like node-forge or @peculiar/x509
     // This is a placeholder for the CSR structure
     const privateKey = randomUUID().replace(/-/g, "");
@@ -255,27 +271,33 @@ export class ZatcaApiClient {
   constructor(config: ZatcaConfig) {
     this.config = config;
     if (config.csid?.secret && config.csid?.certificate) {
-      this.crypto = new ZatcaCrypto(config.csid.secret, config.csid.certificate);
+      this.crypto = new ZatcaCrypto(
+        config.csid.secret,
+        config.csid.certificate
+      );
     }
   }
 
   private getBaseUrl(): string {
-    return this.config.simulation 
-      ? (this.config.apiEndpoint?.sandbox || "https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal")
-      : (this.config.apiEndpoint?.production || "https://gw-fatoora.zatca.gov.sa/e-invoicing/core");
+    return this.config.simulation
+      ? this.config.apiEndpoint?.sandbox ||
+          "https://gw-fatoora.zatca.gov.sa/e-invoicing/developer-portal"
+      : this.config.apiEndpoint?.production ||
+          "https://gw-fatoora.zatca.gov.sa/e-invoicing/core";
   }
 
   private getHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
-      "Accept": "application/json",
+      Accept: "application/json",
       "Accept-Version": "V2",
       "Clearance-Status": "0",
     };
 
     if (this.crypto) {
       // Add certificate thumbprint for authentication
-      headers["X-Certificate-Thumbprint"] = this.crypto.getCertificateThumbprint();
+      headers["X-Certificate-Thumbprint"] =
+        this.crypto.getCertificateThumbprint();
     }
 
     return headers;
@@ -289,10 +311,12 @@ export class ZatcaApiClient {
       throw new Error("CSID not configured - cannot sign invoices for Phase 2");
     }
 
-    const requestType = invoice.invoiceType === "standard" ? "clearance" : "reporting";
-    const endpoint = requestType === "clearance" 
-      ? "/invoices/clearance" 
-      : "/invoices/reporting";
+    const requestType =
+      invoice.invoiceType === "standard" ? "clearance" : "reporting";
+    const endpoint =
+      requestType === "clearance"
+        ? "/invoices/clearance"
+        : "/invoices/reporting";
 
     // Sign the invoice
     invoice.signature = this.crypto.signInvoice(invoice);
@@ -311,7 +335,9 @@ export class ZatcaApiClient {
   /**
    * Batch submit multiple invoices for Reporting (B2C)
    */
-  async submitBatchReporting(invoices: ZatcaInvoice[]): Promise<ZatcaClearanceResponse[]> {
+  async submitBatchReporting(
+    invoices: ZatcaInvoice[]
+  ): Promise<ZatcaClearanceResponse[]> {
     const results: ZatcaClearanceResponse[] = [];
     for (const invoice of invoices) {
       const result = await this.submitInvoice(invoice);
@@ -326,14 +352,20 @@ export class ZatcaApiClient {
    * Get invoice status from ZATCA
    */
   async getInvoiceStatus(uuid: string): Promise<ZatcaClearanceResponse> {
-    const response = await this.makeRequest(`/invoices/${uuid}/status`, null, "GET");
+    const response = await this.makeRequest(
+      `/invoices/${uuid}/status`,
+      null,
+      "GET"
+    );
     return this.parseResponse(response, "status");
   }
 
   /**
    * Request CSID from ZATCA (Compliance Check)
    */
-  async requestCSID(csr: string): Promise<{ certificate: string; expiresAt: string }> {
+  async requestCSID(
+    csr: string
+  ): Promise<{ certificate: string; expiresAt: string }> {
     const response = await this.makeRequest("/compliance/csid", { csr });
     return {
       certificate: response.certificate,
@@ -344,7 +376,9 @@ export class ZatcaApiClient {
   /**
    * Renew CSID certificate
    */
-  async renewCSID(csr: string): Promise<{ certificate: string; expiresAt: string }> {
+  async renewCSID(
+    csr: string
+  ): Promise<{ certificate: string; expiresAt: string }> {
     const response = await this.makeRequest("/compliance/csid/renew", { csr });
     return {
       certificate: response.certificate,
@@ -359,7 +393,11 @@ export class ZatcaApiClient {
     await this.makeRequest("/compliance/csid/revoke", { reason });
   }
 
-  private async makeRequest(endpoint: string, payload: any, method: "POST" | "GET" = "POST"): Promise<any> {
+  private async makeRequest(
+    endpoint: string,
+    payload: any,
+    method: "POST" | "GET" = "POST"
+  ): Promise<any> {
     const url = `${this.getBaseUrl()}${endpoint}`;
     const options: RequestInit = {
       method,
@@ -371,35 +409,46 @@ export class ZatcaApiClient {
     for (let attempt = 1; attempt <= this.config.retryAttempts; attempt++) {
       try {
         const response = await fetch(url, options);
-        
+
         if (response.ok) {
           return await response.json();
         }
 
         const errorData = await response.json().catch(() => ({}));
-        lastError = new Error(`ZATCA API Error: ${response.status} - ${errorData.message || response.statusText}`);
-        
+        lastError = new Error(
+          `ZATCA API Error: ${response.status} - ${errorData.message || response.statusText}`
+        );
+
         if (response.status >= 500 || response.status === 429) {
           // Retry on server errors or rate limiting
-          await new Promise(r => setTimeout(r, this.config.retryDelayMs * attempt));
+          await new Promise(r =>
+            setTimeout(r, this.config.retryDelayMs * attempt)
+          );
           continue;
         }
-        
+
         throw lastError;
       } catch (error) {
         lastError = error as Error;
         if (attempt < this.config.retryAttempts) {
-          await new Promise(r => setTimeout(r, this.config.retryDelayMs * attempt));
+          await new Promise(r =>
+            setTimeout(r, this.config.retryDelayMs * attempt)
+          );
         }
       }
     }
     throw lastError || new Error("Max retry attempts exceeded");
   }
 
-  private parseResponse(response: any, requestType: string): ZatcaClearanceResponse {
+  private parseResponse(
+    response: any,
+    requestType: string
+  ): ZatcaClearanceResponse {
     return {
       requestId: response.requestId || randomUUID(),
-      status: response.status || (requestType === "clearance" ? "cleared" : "reported"),
+      status:
+        response.status ||
+        (requestType === "clearance" ? "cleared" : "reported"),
       clearanceReference: response.clearanceReference,
       reportedAt: response.reportedAt,
       errors: response.errors,
@@ -423,12 +472,14 @@ export class ZatcaApiClient {
         crNumber: invoice.sellerCrNumber,
         address: invoice.sellerAddress,
       },
-      buyer: invoice.buyerName ? {
-        name: invoice.buyerName,
-        vatNumber: invoice.buyerVatNumber,
-        crNumber: invoice.buyerCrNumber,
-        address: invoice.buyerAddress,
-      } : undefined,
+      buyer: invoice.buyerName
+        ? {
+            name: invoice.buyerName,
+            vatNumber: invoice.buyerVatNumber,
+            crNumber: invoice.buyerCrNumber,
+            address: invoice.buyerAddress,
+          }
+        : undefined,
       currency: invoice.currency,
       currencyRate: invoice.currencyRate,
       lineItems: invoice.lineItems.map(l => ({
@@ -497,7 +548,8 @@ export class ZatcaSubmissionManager {
       invoiceNumber: invoice.invoiceNumber,
       invoiceType: invoice.invoiceType,
       uuid: invoice.uuid,
-      requestType: invoice.invoiceType === "standard" ? "clearance" : "reporting",
+      requestType:
+        invoice.invoiceType === "standard" ? "clearance" : "reporting",
       requestPayload: JSON.stringify(invoice),
       status: "pending",
       attempts: 0,
@@ -516,11 +568,21 @@ export class ZatcaSubmissionManager {
    */
   async processQueue(): Promise<void> {
     if (this.isProcessing || this.queue.size === 0) return;
-    
+
     this.isProcessing = true;
     const pending = Array.from(this.queue.values())
-      .filter(log => log.status === "pending" || (log.status === "retrying" && log.nextRetryAt && new Date(log.nextRetryAt) <= new Date()))
-      .sort((a, b) => new Date(a.lastAttemptAt).getTime() - new Date(b.lastAttemptAt).getTime());
+      .filter(
+        log =>
+          log.status === "pending" ||
+          (log.status === "retrying" &&
+            log.nextRetryAt &&
+            new Date(log.nextRetryAt) <= new Date())
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.lastAttemptAt).getTime() -
+          new Date(b.lastAttemptAt).getTime()
+      );
 
     for (const log of pending) {
       if (log.attempts >= 5) {
@@ -539,12 +601,12 @@ export class ZatcaSubmissionManager {
       try {
         const invoice = JSON.parse(log.requestPayload) as ZatcaInvoice;
         const response = await this.client.submitInvoice(invoice);
-        
+
         log.status = response.status === "error" ? "failed" : "success";
         log.responsePayload = JSON.stringify(response);
         log.clearanceReference = response.clearanceReference;
         log.reportedAt = response.reportedAt;
-        
+
         if (response.status === "error") {
           log.errorCode = response.errors?.[0]?.code;
           log.errorMessage = response.errors?.[0]?.message;
@@ -553,7 +615,9 @@ export class ZatcaSubmissionManager {
         log.status = "retrying";
         log.errorCode = "SUBMISSION_ERROR";
         log.errorMessage = (error as Error).message;
-        log.nextRetryAt = new Date(Date.now() + 60000 * log.attempts).toISOString();
+        log.nextRetryAt = new Date(
+          Date.now() + 60000 * log.attempts
+        ).toISOString();
       }
 
       log.updatedAt = new Date().toISOString();
@@ -573,15 +637,24 @@ export class ZatcaSubmissionManager {
    * Get all submissions for an invoice
    */
   getInvoiceSubmissions(invoiceNumber: string): ZatcaSubmissionLog[] {
-    return Array.from(this.queue.values())
-      .filter(log => log.invoiceNumber === invoiceNumber);
+    return Array.from(this.queue.values()).filter(
+      log => log.invoiceNumber === invoiceNumber
+    );
   }
 
   /**
    * Get queue statistics
    */
-  getQueueStats(): { pending: number; processing: number; success: number; failed: number } {
-    let pending = 0, processing = 0, success = 0, failed = 0;
+  getQueueStats(): {
+    pending: number;
+    processing: number;
+    success: number;
+    failed: number;
+  } {
+    let pending = 0,
+      processing = 0,
+      success = 0,
+      failed = 0;
     for (const log of this.queue.values()) {
       switch (log.status) {
         case "pending":
@@ -623,7 +696,10 @@ export class ZatcaSubmissionManager {
   clearOldSubmissions(): void {
     const successful = Array.from(this.queue.values())
       .filter(log => log.status === "success")
-      .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      .sort(
+        (a, b) =>
+          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      );
 
     if (successful.length > 1000) {
       for (const log of successful.slice(1000)) {
@@ -637,7 +713,10 @@ export class ZatcaSubmissionManager {
 // ZATCA COMPLIANCE HELPERS
 // ============================================
 
-export function validateZatcaConfig(config: Partial<ZatcaConfig>): { valid: boolean; errors: string[] } {
+export function validateZatcaConfig(config: Partial<ZatcaConfig>): {
+  valid: boolean;
+  errors: string[];
+} {
   const errors: string[] = [];
 
   if (config.enabled) {
@@ -666,7 +745,12 @@ export function validateZatcaConfig(config: Partial<ZatcaConfig>): { valid: bool
 export function generateZatcaInvoice(
   invoice: any,
   config: ZatcaConfig,
-  buyer?: { name?: string; vatNumber?: string; crNumber?: string; address?: string }
+  buyer?: {
+    name?: string;
+    vatNumber?: string;
+    crNumber?: string;
+    address?: string;
+  }
 ): ZatcaInvoice {
   const now = new Date();
   const isoDate = now.toISOString().split("T")[0];
@@ -674,27 +758,29 @@ export function generateZatcaInvoice(
   const uuid = randomUUID();
 
   // Calculate totals
-  const lineItems: ZatcaLineItem[] = invoice.items.map((item: any, index: number) => {
-    const lineTotal = item.quantity * item.unitPrice;
-    const taxAmount = lineTotal * (item.taxRate / 100);
-    return {
-      lineNumber: index + 1,
-      productCode: item.productCode || `P${item.productId}`,
-      description: item.name,
-      quantity: item.quantity,
-      unitCode: "H87", // Piece (default)
-      unitPrice: item.unitPrice,
-      taxRate: item.taxRate || 15,
-      taxAmount: Math.round(taxAmount * 100) / 100,
-      discount: item.discount || 0,
-      lineTotal: Math.round((lineTotal - (item.discount || 0)) * 100) / 100,
-      vatCategory: item.taxRate === 0 ? "Z" : item.taxRate === 15 ? "S" : "E",
-    };
-  });
+  const lineItems: ZatcaLineItem[] = invoice.items.map(
+    (item: any, index: number) => {
+      const lineTotal = item.quantity * item.unitPrice;
+      const taxAmount = lineTotal * (item.taxRate / 100);
+      return {
+        lineNumber: index + 1,
+        productCode: item.productCode || `P${item.productId}`,
+        description: item.name,
+        quantity: item.quantity,
+        unitCode: "H87", // Piece (default)
+        unitPrice: item.unitPrice,
+        taxRate: item.taxRate || 15,
+        taxAmount: Math.round(taxAmount * 100) / 100,
+        discount: item.discount || 0,
+        lineTotal: Math.round((lineTotal - (item.discount || 0)) * 100) / 100,
+        vatCategory: item.taxRate === 0 ? "Z" : item.taxRate === 15 ? "S" : "E",
+      };
+    }
+  );
 
   const taxTotals: ZatcaTaxTotal[] = [];
   const taxMap = new Map<number, { taxable: number; tax: number }>();
-  
+
   for (const item of lineItems) {
     const existing = taxMap.get(item.taxRate) || { taxable: 0, tax: 0 };
     existing.taxable += item.lineTotal;

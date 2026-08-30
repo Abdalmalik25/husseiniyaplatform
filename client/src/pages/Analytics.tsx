@@ -212,7 +212,13 @@ export default function Analytics() {
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-muted-foreground">الفترة النشطة: <span className="font-bold text-foreground">{timeFilter.label}</span> · {filteredData.length} شهراً معروضة</p>
+          <p className="text-[11px] text-muted-foreground">
+            الفترة النشطة:{" "}
+            <span className="font-bold text-foreground">
+              {timeFilter.label}
+            </span>{" "}
+            · {filteredData.length} شهراً معروضة
+          </p>
         </section>
 
         {isPending ? (
@@ -429,8 +435,21 @@ export default function Analytics() {
                     contentStyle={{ direction: "rtl", fontSize: 12 }}
                   />
                   <Legend wrapperStyle={{ fontSize: 11 }} />
-                  <Bar dataKey="revenue" name="الإيرادات" fill="#b87945" radius={[6,6,0,0]} barSize={18} />
-                  <Line type="monotone" dataKey="revenue" name="اتجاه" stroke="#0e2a2b" strokeWidth={2} dot={false} />
+                  <Bar
+                    dataKey="revenue"
+                    name="الإيرادات"
+                    fill="#b87945"
+                    radius={[6, 6, 0, 0]}
+                    barSize={18}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    name="اتجاه"
+                    stroke="#0e2a2b"
+                    strokeWidth={2}
+                    dot={false}
+                  />
                 </ComposedChart>
               </ChartCard>
 
@@ -440,7 +459,20 @@ export default function Analytics() {
                 hint="صافي الربح المتراكم — مستوحى من بياناتك الحية"
               >
                 <AreaChart
-                  data={filteredData.length ? filteredData.map((d: any, i: number, arr: any[]) => ({ ...d, cashflow: arr.slice(0, i+1).reduce((s: number, x: any)=> s + (x.revenue - x.expense),0)})) : filteredData}
+                  data={
+                    filteredData.length
+                      ? filteredData.map((d: any, i: number, arr: any[]) => ({
+                          ...d,
+                          cashflow: arr
+                            .slice(0, i + 1)
+                            .reduce(
+                              (s: number, x: any) =>
+                                s + (x.revenue - x.expense),
+                              0
+                            ),
+                        }))
+                      : filteredData
+                  }
                   margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
                 >
                   <defs>
@@ -473,5 +505,3 @@ export default function Analytics() {
     </div>
   );
 }
-
-

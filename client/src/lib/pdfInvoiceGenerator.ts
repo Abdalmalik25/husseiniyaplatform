@@ -30,8 +30,7 @@ export interface InvoiceData {
 }
 
 export function generatePrintableInvoiceHtml(data: InvoiceData): string {
-  const instName =
-    data.institutionName || "الحسينية لخدمات الأعمال";
+  const instName = data.institutionName || "الحسينية لخدمات الأعمال";
   const currencyStr = data.currency || "ريال يمني (YER)";
   const formattedDate = data.invoiceDate
     ? new Date(data.invoiceDate).toLocaleDateString("ar-EG")
@@ -57,9 +56,7 @@ export function generatePrintableInvoiceHtml(data: InvoiceData): string {
     <table class="data-table">
       <thead>
         <tr>
-          ${data.report.columns
-            .map(c => `<th>${c}</th>`)
-            .join("")}
+          ${data.report.columns.map(c => `<th>${c}</th>`).join("")}
         </tr>
       </thead>
       <tbody>

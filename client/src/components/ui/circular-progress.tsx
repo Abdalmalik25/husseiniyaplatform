@@ -1,7 +1,8 @@
 import { forwardRef } from "react";
 import { cn } from "@/lib/utils";
 
-export interface CircularProgressProps extends React.SVGAttributes<SVGSVGElement> {
+export interface CircularProgressProps
+  extends React.SVGAttributes<SVGSVGElement> {
   /** Size in pixels (default: 24) */
   size?: number;
   /** Stroke width (default: 2.5) */
@@ -34,7 +35,10 @@ const VARIANT_TRACK = {
   brand: "text-brand/15",
 } as const;
 
-export const CircularProgress = forwardRef<SVGSVGElement, CircularProgressProps>(
+export const CircularProgress = forwardRef<
+  SVGSVGElement,
+  CircularProgressProps
+>(
   (
     {
       className,
@@ -69,10 +73,10 @@ export const CircularProgress = forwardRef<SVGSVGElement, CircularProgressProps>
     } as React.CSSProperties;
 
     const rotationStyle = isIndeterminate
-      ? {
+      ? ({
           animation: `huss-circular-rotate ${speed}ms linear infinite`,
           transformOrigin: "center",
-        } as React.CSSProperties
+        } as React.CSSProperties)
       : {};
 
     return (
@@ -146,7 +150,7 @@ export const CircularProgress = forwardRef<SVGSVGElement, CircularProgressProps>
           </text>
         )}
       </svg>
-    )
+    );
   }
 );
 
@@ -203,7 +207,7 @@ export function LoadingOverlay({
           "bg-white/5 dark:bg-ink/90",
           cfg.padding
         )}
-        onClick={(e) => e.stopPropagation()}
+        onClick={e => e.stopPropagation()}
       >
         <CircularProgress
           size={cfg.progressSize}
@@ -213,7 +217,12 @@ export function LoadingOverlay({
           aria-label={message || "جاري التحميل"}
         />
         {message && (
-          <p className={cn(cfg.fontSize, "font-medium text-foreground text-center max-w-sm")}>
+          <p
+            className={cn(
+              cfg.fontSize,
+              "font-medium text-foreground text-center max-w-sm"
+            )}
+          >
             {message}
           </p>
         )}

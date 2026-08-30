@@ -37,6 +37,7 @@ export type JournalLeg = {
   type: "debit" | "credit";
   amount: string | number;
   narration?: string | null;
+  costCenterId?: number | null;
   currencyId?: number | null;
   exchangeRate?: string | number | null;
   baseAmount?: string | number | null;
@@ -49,6 +50,8 @@ export type PostJournalOptions = {
   narration: string;
   referenceNo?: string;
   branchId?: number | null;
+  /** Analytical dimension — applied to legs that don't override it. */
+  costCenterId?: number | null;
   sourceModule?: string;
   sourceRefType?: string;
   sourceRefId?: number | null;
@@ -61,28 +64,80 @@ export type PostJournalOptions = {
 const MAX_REVERSE_NARRATION = 500;
 
 /** Fiscal period statuses that prevent posting into the covered date range. */
-const LOCKED_PERIOD_STATUSES = ["closing", "closed"];
+export const LOCKED_PERIOD_STATUSES = ["closing", "closed"] as const;
 
+export type FiscalPeriodLike = {
+  name: string;
+  status: string;
+  startDate: Date;
+  endDate: Date;
+};
+
+/**
+ * Pure check: does a fiscal period row cover a given date?
+ * (Range-based — the previous implementation matched `startDate` exactly,
+ * which rendered period locking ineffective.)
+ */
+export function fiscalPeriodCoversDate(
+  period: FiscalPeriodLike,
+  date: Date
+): boolean {
+  const t = date.getTime();
+  const start = new Date(period.startDate).getTime();
+  const end = new Date(period.endDate).getTime();
+  if (Number.isNaN(t) || Number.isNaN(start) || Number.isNaN(end)) return false;
+  // Normalize to day boundaries so a period covering 2026-01-01..2026-12-31
+  // also accepts timestamps inside 2026-12-31 (any time of day).
+  const dayStart = new Date(period.startDate);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(period.endDate);
+  dayEnd.setHours(23, 59, 59, 999);
+  return (
+    t >= dayStart.getTime() &&
+    t <= dayEnd.getTime()
+  );
+}
+
+/** Pure check: is a fiscal period status locked against posting? */
+export function isLockedPeriodStatus(status: string): boolean {
+  return (LOCKED_PERIOD_STATUSES as readonly string[]).includes(status);
+}
+
+/**
+ * Returns the LOCKED fiscal period covering a date (if any), or null when the
+ * date is open/uncovered. Pure-DB helper shared by the engine and routers.
+ */
+export async function findLockedPeriodForDate(
+  db: Db,
+  tenantId: number,
+  date: Date
+): Promise<FiscalPeriodLike | null> {
+  if (!db || !tenantId) return null;
+  const rows = (await db
+    .select({
+      name: fiscalPeriods.name,
+      status: fiscalPeriods.status,
+      startDate: fiscalPeriods.startDate,
+      endDate: fiscalPeriods.endDate,
+    })
+    .from(fiscalPeriods)
+    .where(eq(fiscalPeriods.tenantId, tenantId))) as FiscalPeriodLike[];
+  for (const p of rows) {
+    if (isLockedPeriodStatus(p.status) && fiscalPeriodCoversDate(p, date)) {
+      return p;
+    }
+  }
+  return null;
+}
+
+/** True when the date falls inside a locked (closing/closed) fiscal period. */
 export async function isPeriodLockedForDate(
   db: Db,
   tenantId: number,
   date: Date
 ): Promise<boolean> {
-  if (!db || !tenantId) return false;
   try {
-    const rows = await db
-      .select({ id: fiscalPeriods.id, status: fiscalPeriods.status })
-      .from(fiscalPeriods)
-      .where(
-        and(
-          eq(fiscalPeriods.tenantId, tenantId),
-          eq(fiscalPeriods.startDate, date),
-          eq(fiscalPeriods.status, "open")
-        )
-      );
-    // Only blocks when a fiscal_period record exists for the tenant AND it is
-    // explicitly closed covering that date. Absent periods -> allowed.
-    return false;
+    return (await findLockedPeriodForDate(db, tenantId, date)) != null;
   } catch {
     return false;
   }
@@ -100,21 +155,11 @@ export async function assertPeriodOpen(
 ): Promise<void> {
   if (!db || !tenantId) return;
   try {
-    const rows = await db
-      .select({ name: fiscalPeriods.name, status: fiscalPeriods.status })
-      .from(fiscalPeriods)
-      .where(
-        and(
-          eq(fiscalPeriods.tenantId, tenantId),
-          eq(fiscalPeriods.startDate, date)
-        )
+    const locked = await findLockedPeriodForDate(db, tenantId, date);
+    if (locked) {
+      throw new Error(
+        `الفترة المالية "${locked.name}" ${context ? `(${context})` : ""} مغلقة — لا يمكن الترحيل إليها`
       );
-    for (const r of rows) {
-      if (LOCKED_PERIOD_STATUSES.includes(r.status)) {
-        throw new Error(
-          `الفترة المالية "${r.name}" ${context ? `(${context})` : ""} مغلقة — لا يمكن الترحيل إليها`
-        );
-      }
     }
   } catch (e) {
     if (e instanceof Error && /مغلقة/.test(e.message)) throw e;
@@ -124,7 +169,11 @@ export async function assertPeriodOpen(
 }
 
 /** Applies balance validation to a leg set, throwing a descriptive error. */
-function assertLegs(legs: JournalLeg[], requireBalanced: boolean, context?: string): void {
+function assertLegs(
+  legs: JournalLeg[],
+  requireBalanced: boolean,
+  context?: string
+): void {
   if (legs.length < 2) {
     throw new Error("القيد يحتاج حركتين على الأقل (مدين ودائن)");
   }
@@ -143,7 +192,11 @@ function assertLegs(legs: JournalLeg[], requireBalanced: boolean, context?: stri
   }
 }
 
-async function resolveBranch(db: Db, tenantId: number, branchId?: number | null): Promise<number | null> {
+async function resolveBranch(
+  db: Db,
+  tenantId: number,
+  branchId?: number | null
+): Promise<number | null> {
   if (branchId) return branchId;
   const rows = await db
     .select({ id: branches.id })
@@ -169,13 +222,15 @@ export async function postBalancedJournal(
   const postImmediately = finalStatus === "posted";
 
   assertLegs(opts.legs, requireBalanced, opts.narration);
-  if (postImmediately) await assertPeriodOpen(db, opts.tenantId, opts.date, opts.narration);
+  if (postImmediately)
+    await assertPeriodOpen(db, opts.tenantId, opts.date, opts.narration);
 
-  const effectiveBranchId = await resolveBranch(db, opts.tenantId, opts.branchId);
-  const total = opts.legs.reduce(
-    (s, l) => s + parseFloat(String(l.amount)),
-    0
+  const effectiveBranchId = await resolveBranch(
+    db,
+    opts.tenantId,
+    opts.branchId
   );
+  const total = opts.legs.reduce((s, l) => s + parseFloat(String(l.amount)), 0);
 
   const [je] = await db
     .insert(journalEntries)
@@ -211,6 +266,7 @@ export async function postBalancedJournal(
       sourceModule: opts.sourceModule || opts.sourceRefType || "manual",
       userId: opts.createdById ?? null,
       journalEntryId: je.id,
+      costCenterId: l.costCenterId ?? opts.costCenterId ?? null,
       currencyId: l.currencyId ?? null,
       exchangeRate: l.exchangeRate != null ? l.exchangeRate : undefined,
       baseAmount: l.baseAmount != null ? l.baseAmount : undefined,
@@ -267,7 +323,9 @@ export async function reverseJournal(
         eq(transactions.journalEntryId, opts.journalId)
       )
     )
-    .orderBy(transactions.id)) as unknown as (typeof transactions.$inferSelect)[];
+    .orderBy(
+      transactions.id
+    )) as unknown as (typeof transactions.$inferSelect)[];
 
   if (legs.length < 2) {
     throw new Error("لا يمكن عكس قيد بدون أطراف قابلة للعكس");
@@ -278,6 +336,7 @@ export async function reverseJournal(
     type: l.type === "debit" ? "credit" : "debit",
     amount: l.amount,
     narration: l.narration || opts.reason,
+    costCenterId: l.costCenterId ?? null,
     currencyId: l.currencyId ?? null,
     exchangeRate: l.exchangeRate != null ? l.exchangeRate : undefined,
     baseAmount: l.baseAmount != null ? l.baseAmount : undefined,

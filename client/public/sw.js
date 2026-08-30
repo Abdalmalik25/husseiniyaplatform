@@ -70,7 +70,8 @@ self.addEventListener("notificationclick", event => {
   event.waitUntil(
     self.clients.matchAll({ type: "window" }).then(clients => {
       for (const c of clients) {
-        if (c.url.includes(self.location.origin) && "focus" in c) return c.focus();
+        if (c.url.includes(self.location.origin) && "focus" in c)
+          return c.focus();
       }
       if (self.clients.openWindow) return self.clients.openWindow(url);
     })

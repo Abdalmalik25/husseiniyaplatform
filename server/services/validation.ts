@@ -19,13 +19,22 @@ export function normalizePhone(raw: string): string {
   return raw.replace(/[\s\-()]/g, "");
 }
 
-export function validatePhone(phone: string, country: string = "OTHER"): { ok: boolean; normalized: string; error?: string } {
+export function validatePhone(
+  phone: string,
+  country: string = "OTHER"
+): { ok: boolean; normalized: string; error?: string } {
   const n = normalizePhone(phone);
   if (!n) return { ok: false, normalized: n, error: "رقم الهاتف مطلوب" };
   const pattern = PHONE_PATTERNS[country] || PHONE_PATTERNS.OTHER;
   // مرونة: إذا كان الرقم دولي يبدأ بـ +، نقبل أي نمط دولي
-  if (n.startsWith("+") && PHONE_PATTERNS.OTHER.test(phone)) return { ok: true, normalized: n };
-  if (!pattern.test(phone)) return { ok: false, normalized: n, error: "صيغة الهاتف غير صحيحة لهذه الدولة" };
+  if (n.startsWith("+") && PHONE_PATTERNS.OTHER.test(phone))
+    return { ok: true, normalized: n };
+  if (!pattern.test(phone))
+    return {
+      ok: false,
+      normalized: n,
+      error: "صيغة الهاتف غير صحيحة لهذه الدولة",
+    };
   return { ok: true, normalized: n };
 }
 
@@ -36,11 +45,16 @@ export function validateEmail(email: string): { ok: boolean; error?: string } {
   return { ok: true };
 }
 
-export function validateTaxNumber(tax: string, country: string): { ok: boolean; error?: string } {
+export function validateTaxNumber(
+  tax: string,
+  country: string
+): { ok: boolean; error?: string } {
   if (!tax) return { ok: true, error: undefined };
   const digits = tax.replace(/\D/g, "");
-  if (country === "SA" && digits.length !== 15) return { ok: false, error: "الرقم الضريبي السعودي 15 رقماً" };
-  if (country === "AE" && digits.length !== 15) return { ok: false, error: "الرقم الضريبي الإماراتي 15 رقماً" };
+  if (country === "SA" && digits.length !== 15)
+    return { ok: false, error: "الرقم الضريبي السعودي 15 رقماً" };
+  if (country === "AE" && digits.length !== 15)
+    return { ok: false, error: "الرقم الضريبي الإماراتي 15 رقماً" };
   if (digits.length < 5) return { ok: false, error: "الرقم الضريبي قصير جداً" };
   return { ok: true };
 }

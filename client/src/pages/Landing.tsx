@@ -248,9 +248,10 @@ export default function Landing() {
 
         {/* شريط التنبيه */}
         <div className="relative z-10 bg-gradient-to-l from-brand/20 to-transparent border-b border-brand/20 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/80">
-            <span className="inline-flex items-center gap-1.5 bg-brand/15 border border-brand/30 px-3 py-0.5 rounded-full font-bold text-brand-300">
-              <Sparkles className="w-3 h-3" /> {brand.names.erp} v{brand.names.version} — اعتماد تحديثات وترقية مكونات
-            </span>
+          <span className="inline-flex items-center gap-1.5 bg-brand/15 border border-brand/30 px-3 py-0.5 rounded-full font-bold text-brand-300">
+            <Sparkles className="w-3 h-3" /> {brand.names.erp} v
+            {brand.names.version} — اعتماد تحديثات وترقية مكونات
+          </span>
           <span className="hidden sm:inline text-white/60">
             نظام إدارة الأعمال الموحّد — جاهز للبدء الفوري
           </span>
@@ -279,17 +280,23 @@ export default function Landing() {
               فقرارك يستحق وضوحاً يُدقّق
             </h2>
             <div className="flex items-center justify-center gap-2 text-[11px] font-mono tracking-[0.2em] text-white/40">
-              <span className="h-px w-8 bg-white/10" /> نشخّص — نصمّم — ننفّذ — نقيس <span className="h-px w-8 bg-white/10" />
+              <span className="h-px w-8 bg-white/10" /> نشخّص — نصمّم — ننفّذ —
+              نقيس <span className="h-px w-8 bg-white/10" />
             </div>
           </div>
 
           {/* الرسالة الداعمة — لغة مجالس الإدارة، لا كتيب تسويق */}
           <p className="max-w-3xl mx-auto text-base sm:text-xl text-white/70 leading-relaxed font-light text-pretty">
-            لسنا مزوّد برنامج. نحن شريك حوكمة يضعك أمام حقيقة واحدة قابلة للتدقيق:{" "}
-            <strong className="text-white font-bold">قوائم IFRS</strong> تُقرأ في دقيقة،{" "}
-            <strong className="text-white font-bold">ضوابط COSO</strong> تمنع التجاوز دون تعطيل،{" "}
-            <strong className="text-white font-bold">ومشاريع PMBOK</strong> تُسلّم ضمن النطاق والكلفة — كلها في{" "}
-            <strong className="text-brand-300 font-black">Uamex_erp</strong> مصدر الحقيقة الوحيد.
+            لسنا مزوّد برنامج. نحن شريك حوكمة يضعك أمام حقيقة واحدة قابلة
+            للتدقيق:{" "}
+            <strong className="text-white font-bold">قوائم IFRS</strong> تُقرأ
+            في دقيقة،{" "}
+            <strong className="text-white font-bold">ضوابط COSO</strong> تمنع
+            التجاوز دون تعطيل،{" "}
+            <strong className="text-white font-bold">ومشاريع PMBOK</strong>{" "}
+            تُسلّم ضمن النطاق والكلفة — كلها في{" "}
+            <strong className="text-brand-300 font-black">Uamex_erp</strong>{" "}
+            مصدر الحقيقة الوحيد.
           </p>
 
           {/* الـ CTAs — صوت واحد، قرار واحد */}
@@ -384,41 +391,79 @@ export default function Landing() {
             <Badge className="bg-ink text-brand-300 border border-brand/20 font-bold text-xs px-3 py-1">
               المنهجية — من التشخيص إلى القياس
             </Badge>
-            <h2 className="text-hero text-2xl sm:text-3xl text-foreground">نشخّص — نصمّم — ننفّذ — نقيس</h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">منهجية الحسينية بأربعة أطوار على ثلاثة أطر: IFRS للتقارير، COSO للرقابة، PMBOK للحوكمة — كل طور يسلّم أثراً قابلاً للقياس.</p>
+            <h2 className="text-hero text-2xl sm:text-3xl text-foreground">
+              نشخّص — نصمّم — ننفّذ — نقيس
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              منهجية الحسينية بأربعة أطوار على ثلاثة أطر: IFRS للتقارير، COSO
+              للرقابة، PMBOK للحوكمة — كل طور يسلّم أثراً قابلاً للقياس.
+            </p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div className="reveal glass-premium p-5 rounded-2xl text-center">
               <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
                 <Search className="w-5 h-5 text-brand" />
               </div>
-              <h3 className="font-black text-foreground text-sm mb-1">١ · نشخّص</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">تحليل انحرافات وفجوات — نكتشف أين تتبخر السيولة ولماذا.</p>
-              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">Variance · Gap Analysis</p>
+              <h3 className="font-black text-foreground text-sm mb-1">
+                ١ · نشخّص
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                تحليل انحرافات وفجوات — نكتشف أين تتبخر السيولة ولماذا.
+              </p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
+                Variance · Gap Analysis
+              </p>
             </div>
-            <div className="reveal glass-premium p-5 rounded-2xl text-center" data-reveal-delay={100}>
+            <div
+              className="reveal glass-premium p-5 rounded-2xl text-center"
+              data-reveal-delay={100}
+            >
               <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
                 <Layers className="w-5 h-5 text-brand" />
               </div>
-              <h3 className="font-black text-foreground text-sm mb-1">٢ · نصمّم</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">نصمم KPIs وضوابط COSO ومخططات NRM — على مقاس قطاعك.</p>
-              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">KPIs · COSO · NRM</p>
+              <h3 className="font-black text-foreground text-sm mb-1">
+                ٢ · نصمّم
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                نصمم KPIs وضوابط COSO ومخططات NRM — على مقاس قطاعك.
+              </p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
+                KPIs · COSO · NRM
+              </p>
             </div>
-            <div className="reveal glass-premium p-5 rounded-2xl text-center" data-reveal-delay={200}>
+            <div
+              className="reveal glass-premium p-5 rounded-2xl text-center"
+              data-reveal-delay={200}
+            >
               <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
                 <Zap className="w-5 h-5 text-brand" />
               </div>
-              <h3 className="font-black text-foreground text-sm mb-1">٣ · ننفّذ</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">ننفذ Uamex_erp كمصدر حقيقة واحد — ترحيل آلي ومزامنة بلا ورق.</p>
-              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">Uamex_erp · Single Source</p>
+              <h3 className="font-black text-foreground text-sm mb-1">
+                ٣ · ننفّذ
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                ننفذ Uamex_erp كمصدر حقيقة واحد — ترحيل آلي ومزامنة بلا ورق.
+              </p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
+                Uamex_erp · Single Source
+              </p>
             </div>
-            <div className="reveal glass-premium p-5 rounded-2xl text-center" data-reveal-delay={300}>
+            <div
+              className="reveal glass-premium p-5 rounded-2xl text-center"
+              data-reveal-delay={300}
+            >
               <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
                 <BarChart3 className="w-5 h-5 text-brand" />
               </div>
-              <h3 className="font-black text-foreground text-sm mb-1">٤ · نقيس</h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">نقيس الأثر: زمن الإغلاق، دقة التقدير، وقابلية المراجعة — كل شهر.</p>
-              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">Close · Accuracy · Audit</p>
+              <h3 className="font-black text-foreground text-sm mb-1">
+                ٤ · نقيس
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                نقيس الأثر: زمن الإغلاق، دقة التقدير، وقابلية المراجعة — كل شهر.
+              </p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
+                Close · Accuracy · Audit
+              </p>
             </div>
           </div>
         </div>
@@ -610,18 +655,45 @@ export default function Landing() {
             {/* هوية بصرية موحدة — المؤسسة / النظام / الياس — أيقونات مضبوطة v2.10.4 */}
             <div className="flex items-center justify-center gap-6 pt-4">
               <span className="flex flex-col items-center gap-1">
-                <img src="/favicon-32x32.png?v=2.10.4" alt="أيقونة المؤسسة" width={36} height={36} className="rounded-lg shadow ring-1 ring-white/10" loading="lazy" />
-                <span className="text-[10px] text-white/60 font-bold">المؤسسة</span>
+                <img
+                  src="/favicon-32x32.png?v=2.10.4"
+                  alt="أيقونة المؤسسة"
+                  width={36}
+                  height={36}
+                  className="rounded-lg shadow ring-1 ring-white/10"
+                  loading="lazy"
+                />
+                <span className="text-[10px] text-white/60 font-bold">
+                  المؤسسة
+                </span>
               </span>
               <span className="w-px h-8 bg-white/10" />
               <span className="flex flex-col items-center gap-1">
-                <img src="/uamex-favicon-32.png?v=2.10.4" alt="أيقونة النظام" width={36} height={36} className="rounded-lg shadow ring-1 ring-brand/30" loading="lazy" />
-                <span className="text-[10px] text-brand-300 font-bold">Uamex_erp</span>
+                <img
+                  src="/uamex-favicon-32.png?v=2.10.4"
+                  alt="أيقونة النظام"
+                  width={36}
+                  height={36}
+                  className="rounded-lg shadow ring-1 ring-brand/30"
+                  loading="lazy"
+                />
+                <span className="text-[10px] text-brand-300 font-bold">
+                  Uamex_erp
+                </span>
               </span>
               <span className="w-px h-8 bg-white/10" />
               <span className="flex flex-col items-center gap-1">
-                <img src="/elias-avatar-sm.jpg" alt="الياس — المساعد" width={36} height={36} className="rounded-full shadow ring-1 ring-[#d4a574]/40 object-cover" loading="lazy" />
-                <span className="text-[10px] text-[#d4a574] font-bold">الياس AI</span>
+                <img
+                  src="/elias-avatar-sm.jpg"
+                  alt="الياس — المساعد"
+                  width={36}
+                  height={36}
+                  className="rounded-full shadow ring-1 ring-[#d4a574]/40 object-cover"
+                  loading="lazy"
+                />
+                <span className="text-[10px] text-[#d4a574] font-bold">
+                  الياس AI
+                </span>
               </span>
             </div>
           </div>
@@ -1100,7 +1172,8 @@ export default function Landing() {
                 <GraduationCap className="w-10 h-10 mb-4 text-brand-300" />
                 <h3 className="font-black text-xl mb-3">احجز خدمتك الآن</h3>
                 <p className="text-sm text-white/70 leading-relaxed">
-                  مسار واحد — من البحث إلى النشر — بمعايير الجامعة وضمان التسليم.
+                  مسار واحد — من البحث إلى النشر — بمعايير الجامعة وضمان
+                  التسليم.
                 </p>
               </div>
               <a
@@ -1119,7 +1192,6 @@ export default function Landing() {
         </div>
       </section>
 
-
       {/* ═══════════════════════════════════════════════════════════
           المنهجية المعتمدة — أدلة لا شهادات
       ═══════════════════════════════════════════════════════════ */}
@@ -1133,7 +1205,8 @@ export default function Landing() {
               كل قرار يستند إلى معيار قابل للتدقيق
             </h2>
             <p className="text-sm text-white/60 leading-relaxed">
-              لا نقيس نجاحنا بعدد النجوم، بل بزمن إغلاق الدفاتر، ودقة التقدير، وقابلية المراجعة. أربعة أطر تشكل حوكمتنا.
+              لا نقيس نجاحنا بعدد النجوم، بل بزمن إغلاق الدفاتر، ودقة التقدير،
+              وقابلية المراجعة. أربعة أطر تشكل حوكمتنا.
             </p>
           </div>
 
@@ -1142,52 +1215,105 @@ export default function Landing() {
               <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4 shadow-inner">
                 <FileText className="w-5 h-5 text-brand-300" />
               </div>
-              <h3 className="font-black text-white text-sm mb-2 tracking-tight">IFRS — التقارير المالية</h3>
-              <p className="text-xs text-white/65 leading-relaxed">قوائم تُقرأ في 60 ثانية: دخل IAS 1، ميزانية IAS 1، تدفقات IAS 7 — لا تقديرات، بل أثر نقدي.</p>
-              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">IAS 1 · IAS 7 · IFRS 15</p>
+              <h3 className="font-black text-white text-sm mb-2 tracking-tight">
+                IFRS — التقارير المالية
+              </h3>
+              <p className="text-xs text-white/65 leading-relaxed">
+                قوائم تُقرأ في 60 ثانية: دخل IAS 1، ميزانية IAS 1، تدفقات IAS 7
+                — لا تقديرات، بل أثر نقدي.
+              </p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">
+                IAS 1 · IAS 7 · IFRS 15
+              </p>
             </div>
-            <div className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all" data-reveal-delay={100}>
+            <div
+              className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all"
+              data-reveal-delay={100}
+            >
               <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4 shadow-inner">
                 <ShieldCheck className="w-5 h-5 text-brand-300" />
               </div>
-              <h3 className="font-black text-white text-sm mb-2 tracking-tight">COSO — الرقابة الداخلية</h3>
-              <p className="text-xs text-white/65 leading-relaxed">مصفوفة ثلاثية: إنشاء / اعتماد / ترحيل + سجل غير قابل للتعديل — رقابة بلا تعطيل.</p>
-              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">COSO 2013 · 17 مبدأ</p>
+              <h3 className="font-black text-white text-sm mb-2 tracking-tight">
+                COSO — الرقابة الداخلية
+              </h3>
+              <p className="text-xs text-white/65 leading-relaxed">
+                مصفوفة ثلاثية: إنشاء / اعتماد / ترحيل + سجل غير قابل للتعديل —
+                رقابة بلا تعطيل.
+              </p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">
+                COSO 2013 · 17 مبدأ
+              </p>
             </div>
-            <div className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all" data-reveal-delay={200}>
+            <div
+              className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all"
+              data-reveal-delay={200}
+            >
               <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4 shadow-inner">
                 <FolderKanban className="w-5 h-5 text-brand-300" />
               </div>
-              <h3 className="font-black text-white text-sm mb-2 tracking-tight">PMBOK — حوكمة المشاريع</h3>
-              <p className="text-xs text-white/65 leading-relaxed">نطاق مضبوط، تقدير NRM/POMI، ومسار حرج CPM — من الفكرة إلى التسليم ضمن الميزانية.</p>
-              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">PMBOK 7th · NRM2</p>
+              <h3 className="font-black text-white text-sm mb-2 tracking-tight">
+                PMBOK — حوكمة المشاريع
+              </h3>
+              <p className="text-xs text-white/65 leading-relaxed">
+                نطاق مضبوط، تقدير NRM/POMI، ومسار حرج CPM — من الفكرة إلى
+                التسليم ضمن الميزانية.
+              </p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">
+                PMBOK 7th · NRM2
+              </p>
             </div>
-            <div className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all" data-reveal-delay={300}>
+            <div
+              className="reveal bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] p-6 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.18)] hover:bg-white/[0.06] transition-all"
+              data-reveal-delay={300}
+            >
               <div className="w-10 h-10 rounded-xl bg-brand/20 border border-brand/30 flex items-center justify-center mb-4 shadow-inner">
                 <Layers className="w-5 h-5 text-brand-300" />
               </div>
-              <h3 className="font-black text-white text-sm mb-2 tracking-tight">ISO — الجودة والاستمرارية</h3>
-              <p className="text-xs text-white/65 leading-relaxed">عمليات موثقة، نسخ AES-256 ليلية، واستمرارية 99.9% — جودة تُدقّق، لا تُدّعى.</p>
-              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">ISO 9001 · ISO 27001</p>
+              <h3 className="font-black text-white text-sm mb-2 tracking-tight">
+                ISO — الجودة والاستمرارية
+              </h3>
+              <p className="text-xs text-white/65 leading-relaxed">
+                عمليات موثقة، نسخ AES-256 ليلية، واستمرارية 99.9% — جودة تُدقّق،
+                لا تُدّعى.
+              </p>
+              <p className="text-[11px] text-brand-300 font-mono mt-3 tracking-widest">
+                ISO 9001 · ISO 27001
+              </p>
             </div>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 reveal">
             <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 text-center shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
-              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">14 يوم → 4 ساعات</p>
-              <p className="text-[11px] text-white/60 mt-1">زمن إغلاق الدفاتر السنوي</p>
+              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">
+                14 يوم → 4 ساعات
+              </p>
+              <p className="text-[11px] text-white/60 mt-1">
+                زمن إغلاق الدفاتر السنوي
+              </p>
             </div>
             <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 text-center shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
-              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">±30% → ±5%</p>
-              <p className="text-[11px] text-white/60 mt-1">انحراف تقدير الكميات</p>
+              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">
+                ±30% → ±5%
+              </p>
+              <p className="text-[11px] text-white/60 mt-1">
+                انحراف تقدير الكميات
+              </p>
             </div>
             <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 text-center shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
-              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">0 ورقة</p>
-              <p className="text-[11px] text-white/60 mt-1">دورة اعتماد رقمية كاملة</p>
+              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">
+                0 ورقة
+              </p>
+              <p className="text-[11px] text-white/60 mt-1">
+                دورة اعتماد رقمية كاملة
+              </p>
             </div>
             <div className="bg-white/[0.04] backdrop-blur-xl border border-white/[0.08] rounded-2xl p-4 text-center shadow-[0_8px_32px_rgba(0,0,0,0.12)]">
-              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">60 ثانية</p>
-              <p className="text-[11px] text-white/60 mt-1">قراءة الميزان والتدفق</p>
+              <p className="text-2xl font-black text-brand-300 font-mono tracking-tight">
+                60 ثانية
+              </p>
+              <p className="text-[11px] text-white/60 mt-1">
+                قراءة الميزان والتدفق
+              </p>
             </div>
           </div>
         </div>

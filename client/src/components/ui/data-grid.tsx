@@ -2,7 +2,14 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Search, Printer, Download, Filter, ChevronLeft, ChevronRight } from "lucide-react";
+import {
+  Search,
+  Printer,
+  Download,
+  Filter,
+  ChevronLeft,
+  ChevronRight,
+} from "lucide-react";
 import { toast } from "sonner";
 
 export type DataGridColumn<T> = {
@@ -21,9 +28,16 @@ interface DataGridProps<T extends Record<string, any>> {
   pageSize?: number;
 }
 
-export function DataGrid<T extends Record<string, any>>({ data, columns, permissions = { canPrint: true, canExport: true }, pageSize = 50 }: DataGridProps<T>) {
+export function DataGrid<T extends Record<string, any>>({
+  data,
+  columns,
+  permissions = { canPrint: true, canExport: true },
+  pageSize = 50,
+}: DataGridProps<T>) {
   const [globalFilter, setGlobalFilter] = useState("");
-  const [columnFilters, setColumnFilters] = useState<Record<string, string>>({});
+  const [columnFilters, setColumnFilters] = useState<Record<string, string>>(
+    {}
+  );
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [page, setPage] = useState(0);
@@ -32,7 +46,13 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
     let out = [...data];
     if (globalFilter) {
       const g = globalFilter.toLowerCase();
-      out = out.filter(row => columns.some(col => String(row[col.key] ?? "").toLowerCase().includes(g)));
+      out = out.filter(row =>
+        columns.some(col =>
+          String(row[col.key] ?? "")
+            .toLowerCase()
+            .includes(g)
+        )
+      );
     }
     for (const [k, v] of Object.entries(columnFilters)) {
       if (!v) continue;
@@ -51,7 +71,11 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
           return true;
         });
       } else {
-        out = out.filter(row => String(row[col.key] ?? "").toLowerCase().includes(v.toLowerCase()));
+        out = out.filter(row =>
+          String(row[col.key] ?? "")
+            .toLowerCase()
+            .includes(v.toLowerCase())
+        );
       }
     }
     if (sortKey) {
@@ -74,16 +98,34 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
     const win = window.open("", "_blank");
     if (!win) return;
     const headers = columns.map(c => `<th>${c.header}</th>`).join("");
-    const rows = filtered.map(row => `<tr>${columns.map(c => `<td>${String(row[c.key] ?? "")}</td>`).join("")}</tr>`).join("");
-    win.document.write(`<html dir="rtl"><head><title>طباعة</title><style>table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px;font-size:12px}th{background:#0e2a2b;color:#fff}</style></head><body><h3>تقرير — ${new Date().toLocaleDateString("ar-EG")}</h3><table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table><script>window.print()</script></body></html>`);
+    const rows = filtered
+      .map(
+        row =>
+          `<tr>${columns.map(c => `<td>${String(row[c.key] ?? "")}</td>`).join("")}</tr>`
+      )
+      .join("");
+    win.document.write(
+      `<html dir="rtl"><head><title>طباعة</title><style>table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:6px;font-size:12px}th{background:#0e2a2b;color:#fff}</style></head><body><h3>تقرير — ${new Date().toLocaleDateString("ar-EG")}</h3><table><thead><tr>${headers}</tr></thead><tbody>${rows}</tbody></table><script>window.print()</script></body></html>`
+    );
     win.document.close();
   };
 
   const handleExport = (type: "csv" | "excel") => {
     if (!permissions.canExport) return toast.error("ليس لديك صلاحية التصدير");
-    const headers = columns.map(c => c.header).join(type === "csv" ? "," : "\t");
-    const rows = filtered.map(row => columns.map(c => `"${String(row[c.key] ?? "").replace(/"/g, '""')}"`).join(type === "csv" ? "," : "\t")).join("\n");
-    const blob = new Blob([`\uFEFF${headers}\n${rows}`], { type: type === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel" });
+    const headers = columns
+      .map(c => c.header)
+      .join(type === "csv" ? "," : "\t");
+    const rows = filtered
+      .map(row =>
+        columns
+          .map(c => `"${String(row[c.key] ?? "").replace(/"/g, '""')}"`)
+          .join(type === "csv" ? "," : "\t")
+      )
+      .join("\n");
+    const blob = new Blob([`\uFEFF${headers}\n${rows}`], {
+      type:
+        type === "csv" ? "text/csv;charset=utf-8;" : "application/vnd.ms-excel",
+    });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -99,7 +141,15 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute right-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-          <Input value={globalFilter} onChange={e => { setGlobalFilter(e.target.value); setPage(0); }} placeholder="بحث شامل — اكتمال تلقائي" className="pr-8 h-8 text-xs" />
+          <Input
+            value={globalFilter}
+            onChange={e => {
+              setGlobalFilter(e.target.value);
+              setPage(0);
+            }}
+            placeholder="بحث شامل — اكتمال تلقائي"
+            className="pr-8 h-8 text-xs"
+          />
         </div>
         {columns
           .filter(c => c.filterType)
@@ -109,7 +159,13 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
               {col.filterType === "select" && col.options ? (
                 <select
                   value={columnFilters[String(col.key)] || ""}
-                  onChange={e => { setColumnFilters({ ...columnFilters, [String(col.key)]: e.target.value }); setPage(0); }}
+                  onChange={e => {
+                    setColumnFilters({
+                      ...columnFilters,
+                      [String(col.key)]: e.target.value,
+                    });
+                    setPage(0);
+                  }}
                   className="h-8 rounded-md border bg-background px-2 text-xs"
                 >
                   <option value="">{col.header}</option>
@@ -122,7 +178,13 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
               ) : (
                 <Input
                   value={columnFilters[String(col.key)] || ""}
-                  onChange={e => { setColumnFilters({ ...columnFilters, [String(col.key)]: e.target.value }); setPage(0); }}
+                  onChange={e => {
+                    setColumnFilters({
+                      ...columnFilters,
+                      [String(col.key)]: e.target.value,
+                    });
+                    setPage(0);
+                  }}
                   placeholder={col.header}
                   className="h-8 text-xs w-32"
                 />
@@ -130,13 +192,31 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
             </div>
           ))}
         <div className="flex items-center gap-1 mr-auto">
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={handlePrint} disabled={!permissions.canPrint}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1"
+            onClick={handlePrint}
+            disabled={!permissions.canPrint}
+          >
             <Printer className="w-3.5 h-3.5" /> طباعة
           </Button>
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => handleExport("csv")} disabled={!permissions.canExport}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1"
+            onClick={() => handleExport("csv")}
+            disabled={!permissions.canExport}
+          >
             <Download className="w-3.5 h-3.5" /> CSV
           </Button>
-          <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={() => handleExport("excel")} disabled={!permissions.canExport}>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-8 text-xs gap-1"
+            onClick={() => handleExport("excel")}
+            disabled={!permissions.canExport}
+          >
             <Download className="w-3.5 h-3.5" /> Excel
           </Button>
         </div>
@@ -154,14 +234,17 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
                     className={`text-right p-2 font-bold whitespace-nowrap ${col.sortable ? "cursor-pointer hover:text-brand" : ""}`}
                     onClick={() => {
                       if (!col.sortable) return;
-                      if (sortKey === String(col.key)) setSortDir(d => (d === "asc" ? "desc" : "asc"));
+                      if (sortKey === String(col.key))
+                        setSortDir(d => (d === "asc" ? "desc" : "asc"));
                       else {
                         setSortKey(String(col.key));
                         setSortDir("asc");
                       }
                     }}
                   >
-                    {col.header} {sortKey === String(col.key) && (sortDir === "asc" ? "↑" : "↓")}
+                    {col.header}{" "}
+                    {sortKey === String(col.key) &&
+                      (sortDir === "asc" ? "↑" : "↓")}
                   </th>
                 ))}
               </tr>
@@ -169,7 +252,10 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
             <tbody>
               {paged.length === 0 ? (
                 <tr>
-                  <td colSpan={columns.length} className="text-center py-8 text-muted-foreground">
+                  <td
+                    colSpan={columns.length}
+                    className="text-center py-8 text-muted-foreground"
+                  >
                     لا توجد بيانات — طبّق فلتراً آخر
                   </td>
                 </tr>
@@ -177,8 +263,13 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
                 paged.map((row, i) => (
                   <tr key={i} className="border-b hover:bg-muted/20">
                     {columns.map(col => (
-                      <td key={String(col.key)} className="p-2 whitespace-nowrap">
-                        {col.render ? col.render(row[col.key], row) : String(row[col.key] ?? "")}
+                      <td
+                        key={String(col.key)}
+                        className="p-2 whitespace-nowrap"
+                      >
+                        {col.render
+                          ? col.render(row[col.key], row)
+                          : String(row[col.key] ?? "")}
                       </td>
                     ))}
                   </tr>
@@ -190,16 +281,29 @@ export function DataGrid<T extends Record<string, any>>({ data, columns, permiss
         {/* Pagination — big data */}
         <div className="flex items-center justify-between p-2 border-t bg-muted/20 text-xs">
           <span className="text-muted-foreground">
-            {filtered.length} صف — صفحة {page + 1} من {totalPages} — معروض {paged.length}
+            {filtered.length} صف — صفحة {page + 1} من {totalPages} — معروض{" "}
+            {paged.length}
           </span>
           <div className="flex items-center gap-1">
-            <Button size="icon" variant="outline" className="w-7 h-7" onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}>
+            <Button
+              size="icon"
+              variant="outline"
+              className="w-7 h-7"
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+            >
               <ChevronRight className="w-3.5 h-3.5" />
             </Button>
             <Badge variant="outline" className="font-mono text-xs">
               {page + 1} / {totalPages}
             </Badge>
-            <Button size="icon" variant="outline" className="w-7 h-7" onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}>
+            <Button
+              size="icon"
+              variant="outline"
+              className="w-7 h-7"
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+            >
               <ChevronLeft className="w-3.5 h-3.5" />
             </Button>
           </div>

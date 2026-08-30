@@ -19,10 +19,12 @@ export function isBalanced(legs: Leg[], tolerance = 0.01): boolean {
 }
 
 export function imbalance(legs: Leg[]): number {
-  let d = 0, c = 0;
+  let d = 0,
+    c = 0;
   for (const l of legs) {
     const v = typeof l.amount === "string" ? parseFloat(l.amount) : l.amount;
-    if (l.type === "debit") d += v; else c += v;
+    if (l.type === "debit") d += v;
+    else c += v;
   }
   return d - c;
 }
@@ -30,6 +32,8 @@ export function imbalance(legs: Leg[]): number {
 export function validateOrThrow(legs: Leg[], context?: string): void {
   if (!isBalanced(legs)) {
     const diff = imbalance(legs);
-    throw new Error(`قيود غير متوازنة${context ? ` (${context})` : ""}: الفرق ${diff.toFixed(2)}`);
+    throw new Error(
+      `قيود غير متوازنة${context ? ` (${context})` : ""}: الفرق ${diff.toFixed(2)}`
+    );
   }
 }

@@ -148,8 +148,12 @@ function DemoAccountsSection({
                 <Icon className={`w-4 h-4 ${acc.color}`} />
               </span>
               <span className="flex-1 min-w-0">
-                <span className="block font-bold text-white leading-tight truncate">{acc.label}</span>
-                <span className="block text-[10px] text-white/50">{acc.role} · {acc.username}</span>
+                <span className="block font-bold text-white leading-tight truncate">
+                  {acc.label}
+                </span>
+                <span className="block text-[10px] text-white/50">
+                  {acc.role} · {acc.username}
+                </span>
               </span>
               <ChevronLeft className="w-3.5 h-3.5 text-white/30 group-hover:text-brand-300 shrink-0" />
             </button>
@@ -162,8 +166,14 @@ function DemoAccountsSection({
         className="w-full flex items-center justify-center gap-1.5 text-[11px] text-white/60 hover:text-white py-1.5 rounded-lg hover:bg-white/5 transition-colors"
         aria-expanded={expanded}
       >
-        <span>{expanded ? "إخفاء الأدوار الأخرى" : `عرض ${others.length} أدوار إضافية (مبيعات، دعم، مراجعة)`}</span>
-        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`} />
+        <span>
+          {expanded
+            ? "إخفاء الأدوار الأخرى"
+            : `عرض ${others.length} أدوار إضافية (مبيعات، دعم، مراجعة)`}
+        </span>
+        <ChevronDown
+          className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
+        />
       </button>
       {expanded && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
@@ -179,8 +189,12 @@ function DemoAccountsSection({
               >
                 <Icon className={`w-3.5 h-3.5 ${acc.color} shrink-0`} />
                 <span className="flex-1 min-w-0">
-                  <span className="block font-bold text-white/90 leading-tight truncate text-[11px]">{acc.label}</span>
-                  <span className="block text-[10px] text-white/45 truncate">{acc.role}</span>
+                  <span className="block font-bold text-white/90 leading-tight truncate text-[11px]">
+                    {acc.label}
+                  </span>
+                  <span className="block text-[10px] text-white/45 truncate">
+                    {acc.role}
+                  </span>
                 </span>
               </button>
             );
@@ -188,7 +202,8 @@ function DemoAccountsSection({
         </div>
       )}
       <p className="text-[10px] text-white/35 text-center leading-relaxed px-2">
-        كل حساب يعزل بياناته تماماً — جرّب دوراً مختلفاً لتستكشف الصلاحيات والتقارير الخاصة به
+        كل حساب يعزل بياناته تماماً — جرّب دوراً مختلفاً لتستكشف الصلاحيات
+        والتقارير الخاصة به
       </p>
     </div>
   );
@@ -196,7 +211,9 @@ function DemoAccountsSection({
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const redirectTo = new URLSearchParams(window.location.search).get("redirect");
+  const redirectTo = new URLSearchParams(window.location.search).get(
+    "redirect"
+  );
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -448,12 +465,20 @@ export default function Login() {
                   {mfaRequired && (
                     <div className="space-y-3 p-4 rounded-xl bg-brand/10 border border-brand/30 animate-in fade-in">
                       <p className="text-xs font-black text-brand-300 flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4" /> التحقق الثنائي مطلوب — OWASP A07
+                        <ShieldCheck className="w-4 h-4" /> التحقق الثنائي مطلوب
+                        — OWASP A07
                       </p>
-                      <p className="text-[11px] text-slate-300 leading-relaxed">أدخل رمز 6 أرقام من تطبيق Authenticator (Google/Microsoft Authenticator) المرتبط بحسابك</p>
+                      <p className="text-[11px] text-slate-300 leading-relaxed">
+                        أدخل رمز 6 أرقام من تطبيق Authenticator
+                        (Google/Microsoft Authenticator) المرتبط بحسابك
+                      </p>
                       <Input
                         value={mfaCode}
-                        onChange={e => setMfaCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                        onChange={e =>
+                          setMfaCode(
+                            e.target.value.replace(/\D/g, "").slice(0, 6)
+                          )
+                        }
                         placeholder="000000"
                         className="h-11 bg-ink border-white/15 text-white text-center font-mono text-lg tracking-[0.3em]"
                         maxLength={6}
@@ -461,91 +486,108 @@ export default function Login() {
                         autoFocus
                       />
                       <div className="flex gap-2">
-                        <Button type="button" variant="outline" onClick={() => { setMfaRequired(false); setMfaCode(""); }} className="flex-1 border-white/15 text-white/70 h-10">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setMfaRequired(false);
+                            setMfaCode("");
+                          }}
+                          className="flex-1 border-white/15 text-white/70 h-10"
+                        >
                           رجوع
                         </Button>
                         <Button
                           type="button"
                           disabled={verifyMfa.isPending || mfaCode.length !== 6}
-                          onClick={() => verifyMfa.mutate({ username: mfaUsername, token: mfaCode })}
+                          onClick={() =>
+                            verifyMfa.mutate({
+                              username: mfaUsername,
+                              token: mfaCode,
+                            })
+                          }
                           className="flex-1 bg-brand hover:bg-brand-deep text-ink font-black h-10"
                         >
                           {verifyMfa.isPending ? "جاري التحقق…" : "تحقق ودخول"}
                         </Button>
                       </div>
-                      <p className="text-[10px] text-white/30 text-center">الرمز يتغير كل 30 ثانية — لا تشاركه</p>
+                      <p className="text-[10px] text-white/30 text-center">
+                        الرمز يتغير كل 30 ثانية — لا تشاركه
+                      </p>
                     </div>
                   )}
 
-                  {!mfaRequired && <form onSubmit={handleLogin} className="space-y-4">
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                        <KeyRound className="w-3.5 h-3.5 text-brand-300" /> اسم
-                        المستخدم
-                      </Label>
-                      <Input
-                        required
-                        placeholder="اسم المستخدم"
-                        value={username}
-                        onChange={e => setUsername(e.target.value)}
-                        className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl"
-                        autoComplete="username"
-                      />
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                        <Lock className="w-3.5 h-3.5 text-brand-300" /> كلمة
-                        المرور
-                      </Label>
-                      <div className="relative">
+                  {!mfaRequired && (
+                    <form onSubmit={handleLogin} className="space-y-4">
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
+                          <KeyRound className="w-3.5 h-3.5 text-brand-300" />{" "}
+                          اسم المستخدم
+                        </Label>
                         <Input
                           required
-                          type={showPassword ? "text" : "password"}
-                          placeholder="••••••••"
-                          value={password}
-                          onChange={e => setPassword(e.target.value)}
-                          className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl font-mono pl-10"
-                          autoComplete="current-password"
+                          placeholder="اسم المستخدم"
+                          value={username}
+                          onChange={e => setUsername(e.target.value)}
+                          className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl"
+                          autoComplete="username"
                         />
-                        <button
-                          type="button"
-                          onClick={() => setShowPassword(!showPassword)}
-                          className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                        >
-                          {showPassword ? (
-                            <EyeOff className="w-4 h-4" />
-                          ) : (
-                            <Eye className="w-4 h-4" />
-                          )}
-                        </button>
                       </div>
-                    </div>
-                    <Button
-                      type="submit"
-                      disabled={login.isPending}
-                      className="w-full bg-brand hover:bg-brand-deep text-ink font-black text-xs h-11 rounded-xl shadow-lg flex items-center justify-center gap-2"
-                    >
-                      <Zap className="w-4 h-4" />
-                      {login.isPending ? "جاري التحقق…" : "دخول النظام"}
-                    </Button>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
+                          <Lock className="w-3.5 h-3.5 text-brand-300" /> كلمة
+                          المرور
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            required
+                            type={showPassword ? "text" : "password"}
+                            placeholder="••••••••"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl font-mono pl-10"
+                            autoComplete="current-password"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                          >
+                            {showPassword ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      <Button
+                        type="submit"
+                        disabled={login.isPending}
+                        className="w-full bg-brand hover:bg-brand-deep text-ink font-black text-xs h-11 rounded-xl shadow-lg flex items-center justify-center gap-2"
+                      >
+                        <Zap className="w-4 h-4" />
+                        {login.isPending ? "جاري التحقق…" : "دخول النظام"}
+                      </Button>
 
-                    <div className="relative flex items-center justify-center my-2">
-                      <div className="border-t border-white/10 w-full" />
-                      <span className="bg-ink px-3 text-[10px] text-white/40 absolute font-mono rounded-full border border-white/10">
-                        أو جرّب بحساب تجريبي
-                      </span>
-                    </div>
+                      <div className="relative flex items-center justify-center my-2">
+                        <div className="border-t border-white/10 w-full" />
+                        <span className="bg-ink px-3 text-[10px] text-white/40 absolute font-mono rounded-full border border-white/10">
+                          أو جرّب بحساب تجريبي
+                        </span>
+                      </div>
 
-                    {/* حسابات تجريبية — 3 مميزة + باقي الأدوار في قسم قابل للطي */}
-                    <DemoAccountsSection
-                      onSelect={(u, p) => {
-                        setUsername(u);
-                        setPassword(p);
-                        login.mutate({ username: u, password: p });
-                      }}
-                      isPending={login.isPending}
-                    />
-                  </form>}
+                      {/* حسابات تجريبية — 3 مميزة + باقي الأدوار في قسم قابل للطي */}
+                      <DemoAccountsSection
+                        onSelect={(u, p) => {
+                          setUsername(u);
+                          setPassword(p);
+                          login.mutate({ username: u, password: p });
+                        }}
+                        isPending={login.isPending}
+                      />
+                    </form>
+                  )}
                 </div>
               )}
 
@@ -604,13 +646,16 @@ export default function Login() {
                           value={regCountry}
                           onChange={e => {
                             setRegCountry(e.target.value);
-                            if (e.target.value === "السعودية") setRegCurrency("SAR");
+                            if (e.target.value === "السعودية")
+                              setRegCurrency("SAR");
                           }}
                           className="h-9 w-full bg-ink border border-white/15 text-white text-xs rounded-xl px-2"
                         >
                           <option value="اليمن">اليمن</option>
                           <option value="السعودية">السعودية</option>
-                          <option value="الإمارات العربية المتحدة">الإمارات العربية المتحدة</option>
+                          <option value="الإمارات العربية المتحدة">
+                            الإمارات العربية المتحدة
+                          </option>
                           <option value="مصر">مصر</option>
                           <option value="الأردن">الأردن</option>
                           <option value="أخرى">أخرى</option>
@@ -654,9 +699,9 @@ export default function Login() {
                         <span>فترة تجريبية مجانية 14 يوماً</span>
                       </div>
                       <p className="text-[11px] text-slate-300 leading-relaxed">
-                        وصول كامل لكافة مساحات العمل والميزات بدون أي
-                        متطلبات بطاقة ائتمان. بياناتك محفوظة وآمنة بالكامل
-                        ويمكنك الترقية في أي وقت.
+                        وصول كامل لكافة مساحات العمل والميزات بدون أي متطلبات
+                        بطاقة ائتمان. بياناتك محفوظة وآمنة بالكامل ويمكنك
+                        الترقية في أي وقت.
                       </p>
                     </div>
 

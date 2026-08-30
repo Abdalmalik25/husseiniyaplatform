@@ -5,7 +5,14 @@ import { eq, and, or, ilike } from "drizzle-orm";
 import { randomBytes, scrypt, timingSafeEqual } from "crypto";
 import { promisify } from "util";
 import * as schema from "../drizzle/schema.js";
-import { libraryAccounts, libraryGoods, libraryServices, libraryInventoryValue, LIBRARY_TENANT_CODE, LIBRARY_TENANT_NAME } from "../server/seed/libraryTenantData.js";
+import {
+  libraryAccounts,
+  libraryGoods,
+  libraryServices,
+  libraryInventoryValue,
+  LIBRARY_TENANT_CODE,
+  LIBRARY_TENANT_NAME,
+} from "../server/seed/libraryTenantData.js";
 
 const sql = neon(process.env.DATABASE_URL);
 const db = drizzle(sql, { schema });
@@ -23,9 +30,15 @@ async function provisionLibraryDemo() {
   console.log("🚀 Provisioning Library Demo Tenant...");
 
   // 1) Check if tenant already exists
-  let tenantRow = (await db.select().from(schema.tenants).where(eq(schema.tenants.code, LIBRARY_TENANT_CODE)).limit(1))[0];
+  let tenantRow = (
+    await db
+      .select()
+      .from(schema.tenants)
+      .where(eq(schema.tenants.code, LIBRARY_TENANT_CODE))
+      .limit(1)
+  )[0];
   let alreadyProvisioned = false;
-  
+
   if (!tenantRow) {
     const [created] = await db
       .insert(schema.tenants)
@@ -38,10 +51,22 @@ async function provisionLibraryDemo() {
       })
       .returning();
     tenantRow = created;
-    console.log("✅ Created tenant:", tenantRow.name, "(id:", tenantRow.id, ")");
+    console.log(
+      "✅ Created tenant:",
+      tenantRow.name,
+      "(id:",
+      tenantRow.id,
+      ")"
+    );
   } else {
     alreadyProvisioned = true;
-    console.log("ℹ️ Tenant already exists:", tenantRow.name, "(id:", tenantRow.id, ")");
+    console.log(
+      "ℹ️ Tenant already exists:",
+      tenantRow.name,
+      "(id:",
+      tenantRow.id,
+      ")"
+    );
   }
   const tid = tenantRow.id;
 
@@ -80,7 +105,10 @@ async function provisionLibraryDemo() {
   }
 
   // 4) Chart of accounts (idempotent by count)
-  const acctCount = await db.$count(schema.accounts, eq(schema.accounts.tenantId, tid));
+  const acctCount = await db.$count(
+    schema.accounts,
+    eq(schema.accounts.tenantId, tid)
+  );
   if (acctCount === 0) {
     const inserted = await db
       .insert(schema.accounts)
@@ -102,14 +130,22 @@ async function provisionLibraryDemo() {
         await db
           .update(schema.accounts)
           .set({ parentAccountId: codeToId.get(a.parentCode) })
-          .where(and(eq(schema.accounts.tenantId, tid), eq(schema.accounts.code, a.code)));
+          .where(
+            and(
+              eq(schema.accounts.tenantId, tid),
+              eq(schema.accounts.code, a.code)
+            )
+          );
       }
     }
     console.log("✅ Seeded chart of accounts:", inserted.length, "accounts");
   }
 
   // 5) Products (goods + services)
-  const prodCount = await db.$count(schema.products, eq(schema.products.tenantId, tid));
+  const prodCount = await db.$count(
+    schema.products,
+    eq(schema.products.tenantId, tid)
+  );
   if (prodCount === 0) {
     const all = [
       ...libraryGoods.map(g => ({
@@ -176,7 +212,12 @@ async function provisionLibraryDemo() {
         await db
           .select()
           .from(schema.accounts)
-          .where(and(eq(schema.accounts.tenantId, tid), eq(schema.accounts.type, "asset")))
+          .where(
+            and(
+              eq(schema.accounts.tenantId, tid),
+              eq(schema.accounts.type, "asset")
+            )
+          )
           .limit(1)
       )[0];
       const [created] = await db
@@ -198,7 +239,12 @@ async function provisionLibraryDemo() {
       await db
         .select()
         .from(schema.accounts)
-        .where(and(eq(schema.accounts.tenantId, tid), eq(schema.accounts.type, "equity")))
+        .where(
+          and(
+            eq(schema.accounts.tenantId, tid),
+            eq(schema.accounts.type, "equity")
+          )
+        )
         .limit(1)
     )[0];
     if (!capitalAccount) {
@@ -241,12 +287,23 @@ async function provisionLibraryDemo() {
         notes: "رصيد افتتاحي لرأس المال - مكتبة الحسينية",
       },
     ]);
-    console.log("✅ Created opening balances: Inventory", value, "→ Capital", value);
+    console.log(
+      "✅ Created opening balances: Inventory",
+      value,
+      "→ Capital",
+      value
+    );
   }
 
   // 7) Demo user
   const demoUsername = "library_owner";
-  const existingUser = (await db.select().from(schema.users).where(eq(schema.users.username, demoUsername)).limit(1))[0];
+  const existingUser = (
+    await db
+      .select()
+      .from(schema.users)
+      .where(eq(schema.users.username, demoUsername))
+      .limit(1)
+  )[0];
   if (!existingUser) {
     const passwordHash = await hashPassword("Library@2024");
     const [userRow] = await db
@@ -263,7 +320,13 @@ async function provisionLibraryDemo() {
         lastSignedIn: new Date(),
       })
       .returning();
-    console.log("✅ Created demo user:", userRow.username, "(id:", userRow.id, ")");
+    console.log(
+      "✅ Created demo user:",
+      userRow.username,
+      "(id:",
+      userRow.id,
+      ")"
+    );
 
     await db
       .update(schema.tenants)
@@ -274,10 +337,25 @@ async function provisionLibraryDemo() {
   }
 
   // 8) POS session for demo
-  const posSessionCount = await db.$count(schema.posSessions, eq(schema.posSessions.tenantId, tid));
+  const posSessionCount = await db.$count(
+    schema.posSessions,
+    eq(schema.posSessions.tenantId, tid)
+  );
   if (posSessionCount === 0) {
-    const branch = (await db.select().from(schema.branches).where(eq(schema.branches.tenantId, tid)).limit(1))[0];
-    const user = (await db.select().from(schema.users).where(eq(schema.users.username, demoUsername)).limit(1))[0];
+    const branch = (
+      await db
+        .select()
+        .from(schema.branches)
+        .where(eq(schema.branches.tenantId, tid))
+        .limit(1)
+    )[0];
+    const user = (
+      await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.username, demoUsername))
+        .limit(1)
+    )[0];
     if (branch && user) {
       await db.insert(schema.posSessions).values({
         tenantId: tid,

@@ -27,6 +27,17 @@ import { beneficiariesRouter } from "./beneficiariesRouter";
 import { financialReportsRouter } from "./financialReportsRouter";
 import { fiscalPeriodsRouter } from "./fiscalPeriodsRouter";
 import { assertPeriodOpen } from "./services/accountingEngine";
+
+/**
+ * Separation of Duties (SoD): the creator of a financial transaction must not
+ * approve/post it themselves, unless they hold an elevated governance role
+ * (admin/owner). Enforced in updateTransactionLifecycle.
+ */
+const SOD_EXEMPT_ROLES = ["admin", "owner"] as const;
+
+function canApproveOwnTransaction(role: string | undefined): boolean {
+  return !!role && (SOD_EXEMPT_ROLES as readonly string[]).includes(role);
+}
 import {
   publicProcedure,
   protectedProcedure,
@@ -88,6 +99,7 @@ import {
   openingBalances,
   tenants,
   branches,
+  costCenters,
   userBranchPermissions,
   products,
   warehouses,
@@ -1975,6 +1987,7 @@ export const appRouter = router({
             .refine(v => !isNaN(Date.parse(v)), "تاريخ غير صحيح"),
           narration: z.string().max(500).optional(),
           notes: z.string().optional(),
+          costCenterId: z.number().optional(),
           lifecycleStatus: z
             .enum(["saved", "approved", "sent"])
             .default("saved"),
@@ -1985,7 +1998,7 @@ export const appRouter = router({
         const db = await getDb();
         if (!db) throw new Error("Database not available");
 
-        // Verify account exists
+        // Verify account exists (and belongs to this tenant)
         const account = await db
           .select()
           .from(accounts)
@@ -1998,14 +2011,35 @@ export const appRouter = router({
           .limit(1);
         if (account.length === 0) throw new Error("الحساب غير موجود");
 
+        // Verify cost center belongs to this tenant (analytical dimension)
+        if (input.costCenterId != null) {
+          const cc = await db
+            .select({ id: costCenters.id })
+            .from(costCenters)
+            .where(
+              and(
+                eq(costCenters.id, input.costCenterId),
+                eq(costCenters.tenantId, ctx.tenantId!)
+              )
+            )
+            .limit(1);
+          if (cc.length === 0) throw new Error("مركز التكلفة غير موجود");
+        }
+
+        const txDate = new Date(input.transactionDate);
+
+        // Fiscal-period lock: no posting into a closed/closing period.
+        await assertPeriodOpen(db, ctx.tenantId!, txDate, "إدخال حركة مالية");
+
         const values = {
           tenantId: ctx.tenantId,
           accountId: input.accountId,
           amount: input.amount,
           type: input.type,
-          transactionDate: new Date(input.transactionDate),
+          transactionDate: txDate,
           narration: input.narration || null,
           notes: input.notes || null,
+          costCenterId: input.costCenterId ?? null,
           lifecycleStatus: input.lifecycleStatus,
           isReversed: false,
           userId: ctx.user.id,
@@ -2033,6 +2067,7 @@ export const appRouter = router({
           lifecycleStatus: z
             .enum(["saved", "approved", "sent"])
             .default("saved"),
+          costCenterId: z.number().optional(),
           rows: z.array(
             z.object({
               id: z.number().optional(),
@@ -2042,6 +2077,7 @@ export const appRouter = router({
               transactionDate: z.string(),
               narration: z.string().optional(),
               notes: z.string().optional(),
+              costCenterId: z.number().optional(),
             })
           ),
         })
@@ -2050,18 +2086,81 @@ export const appRouter = router({
         if (!ctx.tenantId) throw new Error("يجب إنشاء مؤسسة أولاً");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+        const tid = ctx.tenantId!;
+
+        // ── Security & integrity pre-flight (batch-wide) ──
+        // 1) Every account must exist AND belong to this tenant (prevents a
+        //    cross-tenant accountId from silently corrupting the ledger).
+        const requestedAccountIds = [
+          ...new Set(input.rows.map(r => r.accountId)),
+        ];
+        const ownedAccountRows = await db
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tid),
+              inArray(accounts.id, requestedAccountIds)
+            )
+          );
+        const ownedAccountIds = new Set(ownedAccountRows.map(a => a.id));
+        const foreignAccountId = requestedAccountIds.find(
+          id => !ownedAccountIds.has(id)
+        );
+        if (foreignAccountId != null)
+          throw new Error(
+            `الحساب #${foreignAccountId} غير موجود في هذه المؤسسة — تم إلغاء الدفعة بالكامل`
+          );
+
+        // 2) Every cost center (if provided) must belong to this tenant.
+        const requestedCcIds = [
+          ...new Set(
+            [input.costCenterId, ...input.rows.map(r => r.costCenterId)].filter(
+              (v): v is number => v != null
+            )
+          ),
+        ];
+        if (requestedCcIds.length > 0) {
+          const ownedCcRows = await db
+            .select({ id: costCenters.id })
+            .from(costCenters)
+            .where(
+              and(
+                eq(costCenters.tenantId, tid),
+                inArray(costCenters.id, requestedCcIds)
+              )
+            );
+          const ownedCcIds = new Set(ownedCcRows.map(c => c.id));
+          const foreignCcId = requestedCcIds.find(id => !ownedCcIds.has(id));
+          if (foreignCcId != null)
+            throw new Error(
+              `مركز التكلفة #${foreignCcId} غير موجود في هذه المؤسسة`
+            );
+        }
+
+        // 3) Fiscal-period lock: reject the whole batch if any row targets a
+        //    locked (closing/closed) period — atomicity at batch level.
+        for (const item of input.rows) {
+          await assertPeriodOpen(
+            db,
+            tid,
+            new Date(item.transactionDate),
+            "إدخال دفعة حركات"
+          );
+        }
 
         let count = 0;
         for (const item of input.rows) {
           if (!item.amount || parseFloat(item.amount) <= 0) continue;
           const values = {
-            tenantId: ctx.tenantId,
+            tenantId: tid,
             accountId: item.accountId,
             amount: item.amount,
             type: item.type || "debit",
             transactionDate: new Date(item.transactionDate),
             narration: item.narration || null,
             notes: item.notes || null,
+            costCenterId: item.costCenterId ?? input.costCenterId ?? null,
             lifecycleStatus: input.lifecycleStatus,
             isReversed: false,
             userId: ctx.user.id,
@@ -2097,6 +2196,7 @@ export const appRouter = router({
             .string()
             .refine(v => !isNaN(Date.parse(v)), "تاريخ غير صحيح"),
           narration: z.string().max(200).optional().default("حركة يومية"),
+          costCenterId: z.number().optional(),
           lifecycleStatus: z.enum(["saved"]).default("saved"),
         })
       )
@@ -2118,14 +2218,33 @@ export const appRouter = router({
           .limit(1);
         if (account.length === 0) throw new Error("الحساب غير موجود");
 
+        // Verify cost center belongs to this tenant (analytical dimension)
+        if (input.costCenterId != null) {
+          const cc = await db
+            .select({ id: costCenters.id })
+            .from(costCenters)
+            .where(
+              and(
+                eq(costCenters.id, input.costCenterId),
+                eq(costCenters.tenantId, ctx.tenantId!)
+              )
+            )
+            .limit(1);
+          if (cc.length === 0) throw new Error("مركز التكلفة غير موجود");
+        }
+
+        const txDate = new Date(input.transactionDate);
+        await assertPeriodOpen(db, ctx.tenantId!, txDate, "حركة يومية");
+
         const values = {
           tenantId: ctx.tenantId,
           accountId: input.accountId,
           amount: input.amount,
           type: input.type,
-          transactionDate: new Date(input.transactionDate),
+          transactionDate: txDate,
           narration: input.narration,
           notes: null,
+          costCenterId: input.costCenterId ?? null,
           lifecycleStatus: input.lifecycleStatus,
           isReversed: false,
           userId: ctx.user.id,
@@ -2173,6 +2292,31 @@ export const appRouter = router({
         ) {
           throw new Error(
             "لا يمكن تعديل أو إلغاء حركة مرحلة نهائياً. التعديل يتم عبر حركة عكسية مستقلة."
+          );
+        }
+
+        // Separation of Duties: the creator cannot approve/post their own
+        // transaction unless they hold an elevated governance role (admin/owner).
+        const elevating = ["approved", "sent", "posted"].includes(
+          input.lifecycleStatus
+        );
+        if (
+          elevating &&
+          existing[0]?.userId === ctx.user.id &&
+          !canApproveOwnTransaction(ctx.user.role)
+        ) {
+          throw new Error(
+            "فصل المهام (SoD): لا يمكن لمنشئ الحركة اعتمادها أو ترحيلها بنفسه — يلزم موافقة مستخدم آخر."
+          );
+        }
+
+        // Fiscal-period lock: cannot elevate a transaction into a locked period.
+        if (elevating) {
+          await assertPeriodOpen(
+            db,
+            ctx.tenantId!,
+            existing[0]!.transactionDate,
+            `ترحيل الحركة #${input.id}`
           );
         }
 
@@ -2450,6 +2594,7 @@ export const appRouter = router({
           narration: z.string().min(1),
           referenceNo: z.string().optional(),
           branchId: z.number().optional(),
+          costCenterId: z.number().optional(),
           lines: z
             .array(
               z.object({
@@ -2462,6 +2607,7 @@ export const appRouter = router({
                     "المبلغ يجب أن يكون أكبر من صفر"
                   ),
                 narration: z.string().optional(),
+                costCenterId: z.number().optional(),
               })
             )
             .min(2, "القيد يحتاج حركتين على الأقل"),
@@ -2485,6 +2631,48 @@ export const appRouter = router({
           );
 
         const txDate = input.date ? new Date(input.date) : new Date();
+
+        // Fiscal-period lock: no manual posting into a closed/closing period.
+        await assertPeriodOpen(db, tenantId, txDate, "قيد يدوي");
+
+        // Verify all referenced accounts belong to this tenant.
+        const lineAccountIds = [...new Set(input.lines.map(l => l.accountId))];
+        const ownedAccounts = await db
+          .select({ id: accounts.id })
+          .from(accounts)
+          .where(
+            and(
+              eq(accounts.tenantId, tenantId),
+              inArray(accounts.id, lineAccountIds)
+            )
+          );
+        if (ownedAccounts.length < lineAccountIds.length)
+          throw new Error("أحد الحسابات المشار إليها غير موجود في هذه المؤسسة");
+
+        // Verify cost center (header/lines) belongs to this tenant.
+        const ccIds = [
+          ...new Set(
+            [input.costCenterId, ...input.lines.map(l => l.costCenterId)].filter(
+              (v): v is number => v != null
+            )
+          ),
+        ];
+        if (ccIds.length > 0) {
+          const ownedCcs = await db
+            .select({ id: costCenters.id })
+            .from(costCenters)
+            .where(
+              and(
+                eq(costCenters.tenantId, tenantId),
+                inArray(costCenters.id, ccIds)
+              )
+            );
+          if (ownedCcs.length < ccIds.length)
+            throw new Error(
+              "مركز التكلفة المشار إليه غير موجود في هذه المؤسسة"
+            );
+        }
+
         const ref =
           input.referenceNo || `MAN-${Date.now().toString().slice(-6)}`;
         const bRows = await db
@@ -2508,6 +2696,9 @@ export const appRouter = router({
             totalAmount: totalDebit.toFixed(2),
             createdById: ctx.user?.id ?? null,
             postedAt: new Date(),
+            // Posted journals are immutable (chk_journal_immutable_posted);
+            // corrections flow through reverseJournal.
+            isImmutable: true,
           })
           .returning();
 
@@ -2524,6 +2715,7 @@ export const appRouter = router({
             referenceType: "manual",
             referenceId: null,
             sourceModule: "manual",
+            costCenterId: l.costCenterId ?? input.costCenterId ?? null,
             userId: ctx.user?.id ?? null,
             journalEntryId: je.id,
           });
@@ -9809,3 +10001,7 @@ ${analysisText}
 });
 
 export type AppRouter = typeof appRouter;
+
+// Re-export functions used by other routers
+export { provisionGenericTenant } from "./_core/systemRouter";
+export { seedDefaultAccountsForTenant, defaultCityForCountry };

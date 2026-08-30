@@ -1,4 +1,6 @@
 import "dotenv/config";
+import * as Sentry from "@sentry/node";
+import { expressErrorHandler } from "@sentry/node";
 import express, { type Express } from "express";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
@@ -14,8 +16,21 @@ import { sql } from "drizzle-orm";
 import { ENV } from "./env";
 import { logger } from "./logger";
 
+if (ENV.sentryDsn) {
+  Sentry.init({
+    dsn: ENV.sentryDsn,
+    environment: ENV.isProduction ? "production" : "development",
+    tracesSampleRate: ENV.isProduction ? 0.1 : 1.0,
+    profilesSampleRate: ENV.isProduction ? 0.1 : 1.0,
+    integrations: [Sentry.expressIntegration()],
+  });
+}
+
 export function createApp(): Express {
   const app = express();
+
+  // Sentry: expressIntegration() automatically patches Express when init() is called.
+  // No manual requestHandler/tracingHandler needed in v10+ (handled by OpenTelemetry instrumentation).
 
   // Hide X-Powered-By header
   app.disable("x-powered-by");
@@ -81,7 +96,10 @@ export function createApp(): Express {
   const maybeRedisStore = (() => {
     try {
       // Lazy: only if the operator provisioned Upstash (Vercel Marketplace → Upstash Redis).
-      if (process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN) {
+      if (
+        process.env.UPSTASH_REDIS_REST_URL &&
+        process.env.UPSTASH_REDIS_REST_TOKEN
+      ) {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { Redis } = require("@upstash/redis");
         // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -90,7 +108,9 @@ export function createApp(): Express {
           url: process.env.UPSTASH_REDIS_REST_URL,
           token: process.env.UPSTASH_REDIS_REST_TOKEN,
         });
-        return new RedisStore({ sendCommand: (...args: string[]) => (client as any).sendCommand(args) });
+        return new RedisStore({
+          sendCommand: (...args: string[]) => (client as any).sendCommand(args),
+        });
       }
     } catch {
       // No Redis — fall back to in-memory (documented in rateLimit.ts).
@@ -220,6 +240,11 @@ export function createApp(): Express {
     })
   );
 
+  // Sentry error handler must be before any other error handler
+  if (ENV.sentryDsn) {
+    app.use(expressErrorHandler() as any);
+  }
+
   // Global error handler — correlation via logger.error.
   app.use(
     (
@@ -228,7 +253,10 @@ export function createApp(): Express {
       res: express.Response,
       _next: express.NextFunction
     ) => {
-      const requestId = (req as any).requestId || (req.headers["x-request-id"] as string) || "unknown";
+      const requestId =
+        (req as any).requestId ||
+        (req.headers["x-request-id"] as string) ||
+        "unknown";
       logger.error("unhandled", {
         requestId,
         path: req.path,

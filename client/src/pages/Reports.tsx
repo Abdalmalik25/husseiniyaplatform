@@ -24,6 +24,7 @@ import {
   computeTrialBalance,
 } from "@/lib/accountingReports";
 import { toast } from "sonner";
+import { fmtNum } from "@/lib/format";
 
 type ReportType =
   | "trialBalance"
@@ -179,7 +180,8 @@ export default function Reports() {
                 الحسينية لخدمات الأعمال — التقارير والقوائم المالية
               </h1>
               <p className="text-xs text-slate-300 mt-1">
-                تقرير موحد لكل القطاعات — مختوم إلكترونياً بـ QR وخاضع لضوابط IFRS ومسار تدقيق COSO
+                تقرير موحد لكل القطاعات — مختوم إلكترونياً بـ QR وخاضع لضوابط
+                IFRS ومسار تدقيق COSO
               </p>
             </div>
 
@@ -216,7 +218,9 @@ export default function Reports() {
                       a.name,
                       typeLabel(a.type),
                       (a.balance ?? 0) > 0 ? fmt(a.balance) : "-",
-                      (a.balance ?? 0) < 0 ? fmt(Math.abs(a.balance ?? 0)) : "-",
+                      (a.balance ?? 0) < 0
+                        ? fmt(Math.abs(a.balance ?? 0))
+                        : "-",
                     ]);
                     rows.push([
                       "",
@@ -251,7 +255,10 @@ export default function Reports() {
                   } else {
                     title = "الميزانية العمومية";
                     columns = ["البيان", "المبلغ"];
-                    rows = balanceSheet.assets.map(a => [a.name, fmt(a.balance)]);
+                    rows = balanceSheet.assets.map(a => [
+                      a.name,
+                      fmt(a.balance),
+                    ]);
                     rows.push(["إجمالي الأصول", fmt(balanceSheet.totalAssets)]);
                     rows.push(["", ""]);
                     rows.push(
@@ -267,14 +274,17 @@ export default function Reports() {
                     );
                     rows.push([
                       "إجمالي الخصوم وحقوق الملكية",
-                      fmt(balanceSheet.totalLiabilities + balanceSheet.totalEquity),
+                      fmt(
+                        balanceSheet.totalLiabilities + balanceSheet.totalEquity
+                      ),
                     ]);
                   }
                   openPrintableInvoiceWindow({
                     invoiceNumber: `REP-${activeReport.toUpperCase()}-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`,
                     invoiceDate: new Date().toISOString(),
                     customerName: "مجموعة الحسينية (الكيان الموحد)",
-                    institutionName: "مجموعة الحسينية — حلول الأعمال والهندسة والمعرفة",
+                    institutionName:
+                      "مجموعة الحسينية — حلول الأعمال والهندسة والمعرفة",
                     currency: "ريال يمني (YER)",
                     items: [],
                     subtotal: summaryData?.totalRevenue || 0,
@@ -959,13 +969,13 @@ export default function Reports() {
                           <tr key={r.rep.id} className="border-b">
                             <td className="p-1.5 font-bold">{r.rep.name}</td>
                             <td className="p-1.5 text-left font-mono">
-                              {Number(r.salesTotal).toLocaleString()} ر.ي
+                              {fmtNum(r.salesTotal)} ر.ي
                             </td>
                             <td className="p-1.5 text-left font-mono text-emerald-600">
-                              {Number(r.commission).toLocaleString()} ر.ي
+                              {fmtNum(r.commission)} ر.ي
                             </td>
                             <td className="p-1.5 text-left font-mono text-[#b87945]">
-                              {Number(r.bonus).toLocaleString()} ر.ي
+                              {fmtNum(r.bonus)} ر.ي
                             </td>
                           </tr>
                         ))}
@@ -987,9 +997,7 @@ export default function Reports() {
                       إجمالي الخصم الممنوح (الفواتير النشطة)
                     </span>
                     <span className="font-bold text-rose-600">
-                      {Number(
-                        profitability?.discountTotal || 0
-                      ).toLocaleString()}{" "}
+                      {fmtNum(profitability?.discountTotal || 0)}{" "}
                       ر.ي
                     </span>
                   </div>

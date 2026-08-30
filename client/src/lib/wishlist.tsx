@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useState,
+  ReactNode,
+  useCallback,
+} from "react";
 
 type WishlistItem = { id: number; name: string; code: string; price: number };
 type WishlistContextValue = {
@@ -29,13 +36,24 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     }
   }, [items]);
 
-  const has = useCallback((id: number) => items.some(i => i.id === id), [items]);
+  const has = useCallback(
+    (id: number) => items.some(i => i.id === id),
+    [items]
+  );
   const toggle = useCallback((item: WishlistItem) => {
-    setItems(prev => (prev.some(i => i.id === item.id) ? prev.filter(i => i.id !== item.id) : [...prev, item]));
+    setItems(prev =>
+      prev.some(i => i.id === item.id)
+        ? prev.filter(i => i.id !== item.id)
+        : [...prev, item]
+    );
   }, []);
   const clear = useCallback(() => setItems([]), []);
 
-  return <WishlistContext.Provider value={{ items, has, toggle, clear }}>{children}</WishlistContext.Provider>;
+  return (
+    <WishlistContext.Provider value={{ items, has, toggle, clear }}>
+      {children}
+    </WishlistContext.Provider>
+  );
 }
 
 export function useWishlist() {

@@ -12,6 +12,26 @@ import "./index.css";
 import { I18nProvider } from "./lib/i18n";
 import { getActiveTenantId } from "./lib/activeTenant";
 
+// Sentry client-side initialization
+if (import.meta.env.VITE_SENTRY_DSN) {
+  import("@sentry/react").then(Sentry => {
+    Sentry.init({
+      dsn: import.meta.env.VITE_SENTRY_DSN,
+      environment: import.meta.env.MODE,
+      integrations: [
+        Sentry.browserTracingIntegration(),
+        Sentry.replayIntegration({
+          maskAllText: true,
+          blockAllMedia: true,
+        }),
+      ],
+      tracesSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
+      replaysSessionSampleRate: import.meta.env.PROD ? 0.01 : 0.1,
+      replaysOnErrorSampleRate: import.meta.env.PROD ? 0.1 : 1.0,
+    });
+  });
+}
+
 // شبكة الأمان الأخيرة: تُركَّب قبل أي شيء آخر لالتقاط أخطاء الإقلاع نفسها.
 installGlobalErrorCapture();
 

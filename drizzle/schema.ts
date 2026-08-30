@@ -87,11 +87,19 @@ export const users = pgTable(
     passwordChangedAt: timestamp("passwordChangedAt").defaultNow().notNull(),
     mfaEnabled: boolean("mfaEnabled").default(false).notNull(),
     mfaSecret: varchar("mfaSecret", { length: 255 }),
+    // Email verification & password reset
+    emailVerified: boolean("emailVerified").default(false).notNull(),
+    verificationToken: varchar("verificationToken", { length: 128 }),
+    verificationTokenExpiry: timestamp("verificationTokenExpiry"),
+    resetToken: varchar("resetToken", { length: 128 }),
+    resetTokenExpiry: timestamp("resetTokenExpiry"),
   },
   t => [
     // PERFORMANCE: Index for tenant-scoped user lookups
     index("idx_users_tenant").on(t.tenantId),
     index("idx_users_session").on(t.currentSessionId),
+    index("idx_users_email").on(t.email),
+    index("idx_users_username").on(t.username),
   ]
 );
 
@@ -877,16 +885,24 @@ export const productVariants = pgTable(
     nameAr: varchar("nameAr", { length: 255 }),
     attributes: jsonb("attributes").notNull(), // {color: "Red", size: "L"}
     barcode: varchar("barcode", { length: 100 }),
-    salePrice: decimal("salePrice", { precision: 15, scale: 2 }).default("0").notNull(),
-    wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 }).default("0").notNull(),
-    costPrice: decimal("costPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+    salePrice: decimal("salePrice", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    costPrice: decimal("costPrice", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     currentStock: integer("currentStock").default(0).notNull(),
     minStock: integer("minStock").default(0).notNull(),
     maxStock: integer("maxStock"),
     weight: decimal("weight", { precision: 10, scale: 3 }),
     dimensions: jsonb("dimensions"), // {length, width, height}
     imageUrl: text("imageUrl"),
-    trackingType: inventoryTrackingTypeEnum("trackingType").default("none").notNull(),
+    trackingType: inventoryTrackingTypeEnum("trackingType")
+      .default("none")
+      .notNull(),
     isActive: boolean("isActive").default(true).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -987,7 +1003,10 @@ export const productSerials = pgTable(
     index("idx_productSerials_batch").on(t.batchId),
     index("idx_productSerials_warehouse").on(t.warehouseId),
     index("idx_productSerials_status").on(t.status),
-    unique("productSerials_number_tenant_unique").on(t.serialNumber, t.tenantId),
+    unique("productSerials_number_tenant_unique").on(
+      t.serialNumber,
+      t.tenantId
+    ),
     check("chk_productSerial_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -1018,7 +1037,10 @@ export const matrixDimensions = pgTable(
   t => [
     index("idx_matrixDimensions_tenant").on(t.tenantId),
     unique("matrixDimensions_code_tenant_unique").on(t.code, t.tenantId),
-    check("chk_matrixDimension_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_matrixDimension_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
@@ -1050,13 +1072,20 @@ export const matrixDimensionValues = pgTable(
   t => [
     index("idx_matrixDimensionValues_tenant").on(t.tenantId),
     index("idx_matrixDimensionValues_dimension").on(t.dimensionId),
-    unique("matrixDimensionValues_code_dimension_unique").on(t.code, t.dimensionId),
-    check("chk_matrixDimensionValue_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    unique("matrixDimensionValues_code_dimension_unique").on(
+      t.code,
+      t.dimensionId
+    ),
+    check(
+      "chk_matrixDimensionValue_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
 export type MatrixDimensionValue = typeof matrixDimensionValues.$inferSelect;
-export type InsertMatrixDimensionValue = typeof matrixDimensionValues.$inferInsert;
+export type InsertMatrixDimensionValue =
+  typeof matrixDimensionValues.$inferInsert;
 
 // Matrix Items (Pre-configured variant combinations)
 export const matrixItems = pgTable(
@@ -1072,9 +1101,15 @@ export const matrixItems = pgTable(
     combinationNameAr: varchar("combinationNameAr", { length: 255 }),
     variantIds: integer("variantIds").array().notNull(), // References to productVariants
     barcode: varchar("barcode", { length: 100 }),
-    salePrice: decimal("salePrice", { precision: 15, scale: 2 }).default("0").notNull(),
-    wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 }).default("0").notNull(),
-    costPrice: decimal("costPrice", { precision: 15, scale: 2 }).default("0").notNull(),
+    salePrice: decimal("salePrice", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    wholesalePrice: decimal("wholesalePrice", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
+    costPrice: decimal("costPrice", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     currentStock: integer("currentStock").default(0).notNull(),
     minStock: integer("minStock").default(0).notNull(),
     isActive: boolean("isActive").default(true).notNull(),
@@ -1091,7 +1126,10 @@ export const matrixItems = pgTable(
     index("idx_matrixItems_tenant").on(t.tenantId),
     index("idx_matrixItems_product").on(t.productId),
     index("idx_matrixItems_matrix").on(t.matrixId),
-    unique("matrixItems_combination_tenant_unique").on(t.combinationCode, t.tenantId),
+    unique("matrixItems_combination_tenant_unique").on(
+      t.combinationCode,
+      t.tenantId
+    ),
     check("chk_matrixItem_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
 );
@@ -1127,12 +1165,16 @@ export const inventoryAllocations = pgTable(
     index("idx_inventoryAllocations_product").on(t.productId),
     index("idx_inventoryAllocations_session").on(t.sessionId),
     index("idx_inventoryAllocations_cartLine").on(t.cartLineId),
-    check("chk_inventoryAllocation_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_inventoryAllocation_tenant_not_null",
+      sql`${t.tenantId} IS NOT NULL`
+    ),
   ]
 );
 
 export type InventoryAllocation = typeof inventoryAllocations.$inferSelect;
-export type InsertInventoryAllocation = typeof inventoryAllocations.$inferInsert;
+export type InsertInventoryAllocation =
+  typeof inventoryAllocations.$inferInsert;
 
 // Enhanced Stock Movements with Serial/Batch tracking
 export const stockMovements = pgTable(

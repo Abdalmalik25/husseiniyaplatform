@@ -36,6 +36,18 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: React.ErrorInfo): void {
+    // Report to Sentry if available
+    if (typeof window !== "undefined" && import.meta.env.VITE_SENTRY_DSN) {
+      import("@sentry/react").then(Sentry => {
+        Sentry.captureException(error, {
+          extra: {
+            componentStack: info.componentStack,
+            errorId: this.state.errorId,
+          },
+        });
+      });
+    }
+
     // Console only — the authoritative log for engineers. The user never
     // sees internals; they see a calm recovery panel instead.
     console.error(

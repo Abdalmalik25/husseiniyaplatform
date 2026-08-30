@@ -12,8 +12,11 @@ export async function ensurePushPermission(): Promise<NotificationPermission> {
   return await Notification.requestPermission();
 }
 
-export async function subscribePush(vapidPublicKey?: string): Promise<PushSubscription | null> {
-  if (!("serviceWorker" in navigator) || !("PushManager" in window)) return null;
+export async function subscribePush(
+  vapidPublicKey?: string
+): Promise<PushSubscription | null> {
+  if (!("serviceWorker" in navigator) || !("PushManager" in window))
+    return null;
   const perm = await ensurePushPermission();
   if (perm !== "granted") return null;
   const reg = await navigator.serviceWorker.ready;
@@ -27,30 +30,54 @@ export async function subscribePush(vapidPublicKey?: string): Promise<PushSubscr
   }
   try {
     const appServerKey = urlBase64ToUint8Array(vapidPublicKey);
-    return await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: appServerKey as any });
+    return await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: appServerKey as any,
+    });
   } catch {
     return null;
   }
 }
 
-export function triggerLocalNotification(title: string, body: string, tag?: string) {
+export function triggerLocalNotification(
+  title: string,
+  body: string,
+  tag?: string
+) {
   if (Notification.permission !== "granted") return;
   // عبر SW لضمان الظهور حتى مع إغلاق التبويب
   if ("serviceWorker" in navigator && navigator.serviceWorker.controller) {
-    navigator.serviceWorker.controller.postMessage({ type: "LOCAL_NOTIFY", title, body, tag });
+    navigator.serviceWorker.controller.postMessage({
+      type: "LOCAL_NOTIFY",
+      title,
+      body,
+      tag,
+    });
   } else {
-    new Notification(title, { body, icon: "/icon-192.png", badge: "/favicon-32x32.png" });
+    new Notification(title, {
+      body,
+      icon: "/icon-192.png",
+      badge: "/favicon-32x32.png",
+    });
   }
 }
 
 export function notifyLowStock(count: number) {
   if (count <= 0) return;
-  triggerLocalNotification("تنبيه مخزون", `يوجد ${count} صنف تحت الحد الأدنى — راجع المخزون الآن`, "low-stock");
+  triggerLocalNotification(
+    "تنبيه مخزون",
+    `يوجد ${count} صنف تحت الحد الأدنى — راجع المخزون الآن`,
+    "low-stock"
+  );
 }
 
 export function notifyPendingInvoice(count: number) {
   if (count <= 0) return;
-  triggerLocalNotification("فاتورة معلقة", `لديك ${count} فاتورة بانتظار الاعتماد — تحرك الآن`, "pending-invoice");
+  triggerLocalNotification(
+    "فاتورة معلقة",
+    `لديك ${count} فاتورة بانتظار الاعتماد — تحرك الآن`,
+    "pending-invoice"
+  );
 }
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -58,6 +85,7 @@ function urlBase64ToUint8Array(base64String: string) {
   const base64 = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
   const rawData = atob(base64);
   const outputArray = new Uint8Array(rawData.length);
-  for (let i = 0; i < rawData.length; ++i) outputArray[i] = rawData.charCodeAt(i);
+  for (let i = 0; i < rawData.length; ++i)
+    outputArray[i] = rawData.charCodeAt(i);
   return outputArray;
 }

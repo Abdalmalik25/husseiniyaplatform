@@ -1,4 +1,8 @@
-function requireEnv(name: string, value: string | undefined, minLength = 1): string {
+function requireEnv(
+  name: string,
+  value: string | undefined,
+  minLength = 1
+): string {
   const v = value ?? "";
   if (process.env.NODE_ENV === "production" && v.length < minLength) {
     throw new Error(
@@ -26,16 +30,27 @@ export const ENV = {
   ),
   /** Local directory for backup blobs when S3 is not configured. */
   backupDir: process.env.BACKUP_DIR ?? "",
+  /** Sentry DSN for error tracking and performance monitoring. */
+  sentryDsn: process.env.SENTRY_DSN ?? "",
+  /** Vite-defined app version for health endpoint. */
+  appVersion: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev",
 };
 
 // Fail-closed warnings for non-blocking but critical secrets
 if (ENV.isProduction) {
   if (!ENV.databaseUrl) {
-    console.warn("[ENV] DATABASE_URL is not set — health checks will report degraded");
+    console.warn(
+      "[ENV] DATABASE_URL is not set — health checks will report degraded"
+    );
   }
   if (!ENV.backupEncryptionKey || ENV.backupEncryptionKey.length < 16) {
     console.warn(
       "[ENV] BACKUP_ENCRYPTION_KEY is missing or <16 chars — encrypted backups are disabled (fail-closed)"
+    );
+  }
+  if (!ENV.sentryDsn) {
+    console.warn(
+      "[ENV] SENTRY_DSN is not set — error tracking and performance monitoring disabled"
     );
   }
 }

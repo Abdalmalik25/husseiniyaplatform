@@ -274,8 +274,7 @@ export function BusinessLifecycleWizard() {
                     invoiceNumber: `STG3-DOC-${Date.now().toString().slice(-5)}`,
                     invoiceDate: new Date().toISOString(),
                     customerName: "عميل المؤسسة والمنشأة",
-                    institutionName:
-                      "مجموعة الحسينية",
+                    institutionName: "مجموعة الحسينية",
                     currency: "ريال يمني (YER)",
                     items: [
                       {
@@ -335,4 +334,3 @@ export function BusinessLifecycleWizard() {
     </Card>
   );
 }
-

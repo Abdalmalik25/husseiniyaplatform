@@ -86,13 +86,14 @@ export function DataImportExportCenter() {
   });
 
   const importAccounts = trpc.accounting.addAccount.useMutation({
-    onError: (err: any) =>
-      toast.error(err?.message || "تعذر استيراد الحسابات"),
+    onError: (err: any) => toast.error(err?.message || "تعذر استيراد الحسابات"),
   });
-  const importOpeningBalances = trpc.accounting.saveOpeningBalances.useMutation({
-    onError: (err: any) =>
-      toast.error(err?.message || "تعذر حفظ الأرصدة الافتتاحية"),
-  });
+  const importOpeningBalances = trpc.accounting.saveOpeningBalances.useMutation(
+    {
+      onError: (err: any) =>
+        toast.error(err?.message || "تعذر حفظ الأرصدة الافتتاحية"),
+    }
+  );
   const importOpeningStock = trpc.products.setOpeningStock.useMutation({
     onError: (err: any) =>
       toast.error(err?.message || "تعذر ضبط مخزون أول المدة"),
@@ -240,7 +241,9 @@ export function DataImportExportCenter() {
             let created = 0;
             let skipped = 0;
             for (const r of previewRows) {
-              const type = String(r.type || "asset").trim().toLowerCase();
+              const type = String(r.type || "asset")
+                .trim()
+                .toLowerCase();
               const code = String(r.code || "").trim();
               const name = String(r.name || "").trim();
               if (!code || !name) {
@@ -263,7 +266,9 @@ export function DataImportExportCenter() {
             );
           } else if (activeTab === "opening_accounts") {
             if (!accountsList || accountsList.length === 0) {
-              throw new Error("لا توجد حسابات — قم باستيراد دليل الحسابات أولاً");
+              throw new Error(
+                "لا توجد حسابات — قم باستيراد دليل الحسابات أولاً"
+              );
             }
             const idByCode = new Map(
               accountsList.map(a => [String(a.code), a.id as number])
