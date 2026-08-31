@@ -2,7 +2,9 @@ import React, { useEffect, useRef } from "react";
 
 /**
  * HeroAurora — Interactive ambient light orbs for the marketing hero section.
- * 5 orbs with layered parallax depth. Follows mouse with spring physics.
+ * 3 orbs with layered parallax depth. Follows mouse with spring physics.
+ * GPU budget: each blur-3xl layer costs a full-screen composited pass, so the
+ * two weakest orbs were removed (visual delta ≈ nil, GPU cost −40%).
  * Fully accessible: respects prefers-reduced-motion.
  * Marketing-only component — does not affect the internal system.
  */
@@ -114,30 +116,6 @@ export function HeroAurora({ className = "" }: { className?: string }) {
             "radial-gradient(circle, rgba(212,165,116,0.16) 0%, rgba(212,165,116,0) 70%)",
           transform: "translate(calc(var(--my) * -0.5), calc(var(--mx) * 0.4))",
           transition: "transform 0.2s ease-out",
-        }}
-      />
-
-      {/* Orb 4 — Deep ink blue (top-left, subtle) */}
-      <div
-        className="absolute -top-10 left-1/4 w-[28rem] h-[28rem] rounded-full blur-3xl will-change-transform"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(3,105,161,0.12) 0%, rgba(3,105,161,0) 70%)",
-          transform: "translate(calc(var(--mx) * 0.3), calc(var(--my) * 0.4))",
-          transition: "transform 0.24s ease-out",
-        }}
-      />
-
-      {/* Orb 5 — Accent rose (center, very subtle shimmer) */}
-      <div
-        className="absolute top-1/2 right-1/4 w-[22rem] h-[22rem] rounded-full blur-3xl will-change-transform"
-        style={{
-          background:
-            "radial-gradient(circle, rgba(184,121,69,0.1) 0%, rgba(184,121,69,0) 70%)",
-          transform:
-            "translate(calc(var(--mx) * -0.3), calc(var(--my) * -0.5))",
-          transition: "transform 0.28s ease-out",
-          animation: "float-slow 14s ease-in-out infinite 2s",
         }}
       />
 

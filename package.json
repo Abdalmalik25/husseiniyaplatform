@@ -1,6 +1,6 @@
 {
   "name": "alhusainia-accounting",
-  "version": "2.12.0",
+  "version": "2.13.0",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -18,9 +18,12 @@
     "test": "vitest run",
     "db:push": "drizzle-kit generate && drizzle-kit migrate",
     "db:migrate": "tsx scripts/run-migrations.ts",
+    "fonts:download": "node scripts/download-fonts.mjs",
+    "sitemap": "node scripts/generate-sitemap.mjs",
     "postbuild": "tsx scripts/run-migrations.ts || node -e \"process.exit(0)\"",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "seed:e2e": "node --env-file=.env scripts/seed-e2e-user.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

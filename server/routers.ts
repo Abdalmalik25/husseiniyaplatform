@@ -19,6 +19,7 @@ import {
   invoiceHash,
 } from "./_core/governance";
 import { erpRouter } from "./erpRouter";
+import { queryRouter } from "./queryRouter";
 import { modulesRouter } from "./modulesRouter";
 import { aliasAiRouter } from "./aliasAiRouter";
 import { backupRouter } from "./backupRouter";
@@ -1007,7 +1008,17 @@ export const appRouter = router({
   aliasAi: aliasAiRouter,
   backup: backupRouter,
   auth: router({
-    me: publicProcedure.query(opts => opts.ctx.user),
+    // SECURITY: strip credential material before it ever reaches the client.
+    // `passwordHash` and session-tracking columns must never be serialized
+    // into tRPC responses (they were previously leaked via auth.me).
+    me: publicProcedure.query(opts => {
+      const user = opts.ctx.user;
+      if (!user) return null;
+      const { passwordHash, currentSessionId, ...safeUser } = user;
+      void passwordHash;
+      void currentSessionId;
+      return safeUser as typeof user;
+    }),
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
@@ -5638,7 +5649,7 @@ ${analysisText}
         }
         return {
           serverTime: new Date().toISOString(),
-          serverVersion: "1.1.0",
+          serverVersion: ENV.appVersion,
           deviceId: input.deviceId,
           dbAvailable,
           serverTxnCount,
@@ -9998,6 +10009,7 @@ ${analysisText}
   beneficiaries: beneficiariesRouter,
   financialReports: financialReportsRouter,
   fiscalPeriods: fiscalPeriodsRouter,
+  query: queryRouter,
 });
 
 export type AppRouter = typeof appRouter;

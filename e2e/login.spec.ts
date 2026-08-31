@@ -9,8 +9,9 @@ import { test, expect } from "@playwright/test";
 test.describe("Login gate", () => {
   test("renders the Uamex_erp branded gate", async ({ page }) => {
     await page.goto("/login");
-    await expect(page).toHaveTitle(/alhusainiaye/i);
-    await expect(page.getByText(/Uamex_erp|بوابة/).first()).toBeVisible();
+    // Per-page Arabic SEO title: "تسجيل الدخول — الحسينية لخدمات الأعمال"
+    await expect(page).toHaveTitle(/الحسينية|alhusainia/i);
+    await expect(page.getByText(/Uamex_erp|بوابة|تسجيل/).first()).toBeVisible();
   });
 
   test("rejects empty submission via client-side Zod (no network)", async ({

@@ -8,6 +8,11 @@
 // CORE TYPES
 // ============================================
 
+/** DEV-only diagnostics logger — strips from production console output. */
+const devLog = (...args: unknown[]): void => {
+  if (import.meta.env?.DEV) console.warn("[hw]", ...args);
+};
+
 export interface HardwareDevice {
   id: string;
   type:
@@ -302,7 +307,7 @@ export class HardwareManager {
     // Generic ESC/POS Printer Driver
     class GenericESCPOSPrinterDriver implements PrinterDriver {
       async connect(device: HardwareDevice): Promise<void> {
-        console.log("Connecting to printer:", device.name);
+        devLog("Connecting to printer:", device.name);
       }
       async disconnect(device: HardwareDevice): Promise<void> {}
       async print(job: PrintJob, device: HardwareDevice): Promise<void> {
@@ -448,7 +453,7 @@ export class HardwareManager {
       async connect(device: HardwareDevice): Promise<void> {}
       async disconnect(device: HardwareDevice): Promise<void> {}
       async openDrawer(device: HardwareDevice): Promise<void> {
-        console.log("Opening cash drawer:", device.name);
+        devLog("Opening cash drawer:", device.name);
         // Send drawer kick command (ESC/POS: ESC p 0 25 250)
         const ESC = 0x1b;
         const kickCommand = new Uint8Array([ESC, 0x70, 0x00, 25, 250]);
@@ -477,7 +482,7 @@ export class HardwareManager {
         device: HardwareDevice,
         options?: ScanOptions
       ): Promise<void> {
-        console.log("Starting barcode scanner:", device.name);
+        devLog("Starting barcode scanner:", device.name);
         // For HID scanners, they act as keyboard input
         // For camera-based, we'd use the camera API
       }
@@ -527,7 +532,7 @@ export class HardwareManager {
         device: HardwareDevice,
         message: CustomerDisplayMessage
       ): Promise<void> {
-        console.log("Display message:", message);
+        devLog("Display message:", message);
       }
       async clear(device: HardwareDevice): Promise<void> {}
       async setBrightness(
@@ -568,7 +573,7 @@ export class HardwareManager {
         currency: string,
         options: any
       ): Promise<PaymentTerminalEvent> {
-        console.log("Processing payment:", amount, currency);
+        devLog("Processing payment:", amount, currency);
         // Simulate approval for testing
         return {
           type: "approved",
@@ -1508,19 +1513,19 @@ export class HardwareManager {
     switch (item.type) {
       case "sale":
         // await this.submitSaleOffline(item.payload);
-        console.log("Process offline sale:", item.payload);
+        devLog("Process offline sale:", item.payload);
         break;
       case "return":
         // await this.processReturnOffline(item.payload);
-        console.log("Process offline return:", item.payload);
+        devLog("Process offline return:", item.payload);
         break;
       case "payment":
         // await this.processPaymentOffline(item.payload);
-        console.log("Process offline payment:", item.payload);
+        devLog("Process offline payment:", item.payload);
         break;
       case "stock_adjustment":
         // await this.adjustStockOffline(item.payload);
-        console.log("Process offline stock adjustment:", item.payload);
+        devLog("Process offline stock adjustment:", item.payload);
         break;
     }
   }

@@ -31,6 +31,11 @@ function baseConfig(entryPoint, outfile) {
         require(path.join(projectRoot, "package.json")).version
       ),
     },
+    // Production hardening: minified server bundles (smaller cold starts on
+    // Vercel) while keeping original names for readable stack traces.
+    minify: true,
+    keepNames: true,
+    legalComments: "none",
     logLevel: "info",
     sourcemap: false,
   };

@@ -32,15 +32,29 @@
       content="الحسينية, مؤسسة الحسينية, مكتبة الحسينية الحديثة, نظام محاسبي, استشارات هندسية, رفع مساحي, جداول BOQ, خدمات طلابية, تصاميم, صيانة كمبيوتر, صيانة موبايل"
     />
     <meta name="theme-color" content="#102a2b" />
-    <!-- Performance: preload assistant identity (high priority, first paint) + font preconnect -->
+    <!-- Performance: preload assistant identity (high priority, first paint) + self-hosted WOFF2 fonts -->
     <link
       rel="preload"
       as="image"
       href="/elias-avatar-sm.jpg"
       fetchpriority="high"
     />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/tajawal-arabic-900-normal.woff2"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      as="font"
+      type="font/woff2"
+      crossorigin
+      href="/fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2"
+      fetchpriority="high"
+    />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta
@@ -63,14 +77,8 @@
       property="og:image"
       content="https://alhusainiaye.vercel.app/ALHUSAINIALOGO.png"
     />
-    <meta
-      property="og:image:width"
-      content="1254"
-    />
-    <meta
-      property="og:image:height"
-      content="1254"
-    />
+    <meta property="og:image:width" content="1254" />
+    <meta property="og:image:height" content="1254" />
     <meta
       property="og:image:alt"
       content="شعار مؤسسة الحسينية لخدمات الأعمال"
@@ -119,18 +127,25 @@
     <meta name="msapplication-TileColor" content="#102a2b" />
     <meta name="msapplication-TileImage" content="/apple-touch-icon.png" />
     <link rel="canonical" href="https://alhusainiaye.vercel.app/" />
+    <!-- hreflang alternates — language is switched client-side on the same URL;
+         both variants plus x-default point at the canonical URL (valid per
+         Google's guidance for single-URL language-aware content). -->
     <link
-      rel="preload"
-      as="style"
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Tajawal:wght@400;500;700;800;900&display=swap"
-      onload="this.onload=null;this.rel='stylesheet'"
+      rel="alternate"
+      hreflang="ar"
+      href="https://alhusainiaye.vercel.app/"
     />
-    <noscript>
-      <link
-        rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=Tajawal:wght@400;500;700;800;900&display=swap"
-      />
-    </noscript>
+    <link
+      rel="alternate"
+      hreflang="en"
+      href="https://alhusainiaye.vercel.app/"
+    />
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href="https://alhusainiaye.vercel.app/"
+    />
+    <!-- Fonts are self-hosted (WOFF2) — @font-face declared in client/src/index.css. No external stylesheet needed. -->
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",

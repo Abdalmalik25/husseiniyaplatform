@@ -21,7 +21,8 @@ test.describe("Operational modules", () => {
   });
 
   test("knowledge hub is publicly reachable", async ({ page }) => {
-    await page.goto("/knowledge");
+    // The knowledge hub lives at /insights (route renamed from /knowledge)
+    await page.goto("/insights");
     // Guard against the SPA fallback rendering a blank screen
     await expect(page.locator("h1, h2").first()).toBeVisible();
     await expect(page.getByRole("contentinfo")).toBeVisible();

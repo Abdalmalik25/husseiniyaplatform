@@ -8,7 +8,8 @@ import { test, expect } from "@playwright/test";
 test.describe("Landing page", () => {
   test("loads with hero, nav and footer", async ({ page }) => {
     await page.goto("/");
-    await expect(page).toHaveTitle(/alhusainiaye/i);
+    // Per-page Arabic SEO title (v2.12 upgrade): "الحسينية — منصة الحوكمة والأعمال الموحدة"
+    await expect(page).toHaveTitle(/الحسينية|alhusainia/i);
 
     // Main navigation renders
     const nav = page.getByRole("banner");
@@ -39,11 +40,14 @@ test.describe("Landing page", () => {
   test("primary CTA navigates to the signup/login gate", async ({ page }) => {
     await page.goto("/");
 
-    const cta = page.getByRole("link", { name: /ابدأ مجاناً/ }).first();
+    // Hero CTA is a <Button onClick={goLogin()}> → navigates to /login
+    const cta = page
+      .getByRole("button", { name: /ابدأ تجربة|ابدأ مجاناً/ })
+      .first();
     await expect(cta).toBeVisible();
     await cta.click();
 
-    await expect(page).toHaveURL(/\/(login|register|api\/oauth)/);
+    await expect(page).toHaveURL(/\/login/);
   });
 
   test("mega-menu cluster opens and reveals described links", async ({

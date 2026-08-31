@@ -1,7 +1,9 @@
-// ALHUSAINIA service worker (v21) — شريط ذكي + DataGrid بيانات ضخمة.
+// ALHUSAINIA service worker (v22) — self-hosted fonts + catalog SWR caching.
 // Network-first for navigations (offline → cached app shell), cache-first for
-// static assets, and NEVER caches /api/* (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v21";
+// static assets, stale-while-revalidate for the public catalog (/api/web/catalog),
+// and NEVER caches tenant-scoped /api/trpc (avoids stale cross-tenant responses).
+const CACHE = "alhusainia-v22";
+const CATALOG_CACHE = "alhusainia-catalog-v1";
 const SHELL = [
   "/",
   "/index.html",
@@ -83,7 +85,11 @@ self.addEventListener("activate", event => {
     caches
       .keys()
       .then(keys =>
-        Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+        Promise.all(
+          keys
+            .filter(k => k !== CACHE && k !== CATALOG_CACHE)
+            .map(k => caches.delete(k))
+        )
       )
       .then(() => self.clients.claim())
   );
@@ -94,7 +100,30 @@ self.addEventListener("fetch", event => {
   if (req.method !== "GET") return;
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith("/api/")) return; // never cache API responses
+
+  // Public catalog: stale-while-revalidate — instant repeat visits, background refresh.
+  // This is unauthenticated guest data (storefront), safe to cache per-request.
+  if (url.pathname === "/api/web/catalog") {
+    event.respondWith(
+      caches.open(CATALOG_CACHE).then(cache =>
+        cache.match(req).then(cached => {
+          const network = fetch(req)
+            .then(res => {
+              if (res && res.ok) {
+                const copy = res.clone();
+                cache.put(req, copy);
+              }
+              return res;
+            })
+            .catch(() => cached);
+          return cached || network;
+        })
+      )
+    );
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/")) return; // never cache tenant API responses
 
   // SPA navigations: try network, fall back to cached shell when offline.
   if (req.mode === "navigate") {

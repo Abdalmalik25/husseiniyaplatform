@@ -9,6 +9,9 @@ import {
   Search,
   Package,
   Users,
+  BookText,
+  ReceiptText,
+  Sparkles,
   type LucideIcon,
   AlertCircle,
   Clock,
@@ -56,7 +59,19 @@ interface SearchResults {
   products: { id: number; name: string; code: string }[];
   customers: { id: number; name: string; code: string }[];
   suppliers: { id: number; name: string; code: string }[];
+  accounts: { id: number; name: string; code: string }[];
+  transactions: { id: number; name: string; code: string }[];
+  suggestions: { label: string; hint: string }[];
 }
+
+const EMPTY_RESULTS: SearchResults = {
+  products: [],
+  customers: [],
+  suppliers: [],
+  accounts: [],
+  transactions: [],
+  suggestions: [],
+};
 
 /**
  * Global Command Palette (⌘K / Ctrl+K) — the signature navigation surface of
@@ -69,11 +84,7 @@ export function CommandPalette() {
   const [, setLocation] = useLocation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<SearchResults>({
-    products: [],
-    customers: [],
-    suppliers: [],
-  });
+  const [results, setResults] = useState<SearchResults>(EMPTY_RESULTS);
   const utils = trpc.useUtils();
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -136,33 +147,30 @@ export function CommandPalette() {
   useEffect(() => {
     const q = query.trim();
     if (q.length < 1) {
-      setResults({ products: [], customers: [], suppliers: [] });
+      setResults(EMPTY_RESULTS);
       return;
     }
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
       try {
-        const [p, c, s] = await Promise.all([
-          utils.products.list.fetch({ search: q, limit: 5 }),
-          utils.customers.list.fetch({ search: q, limit: 5 }),
-          utils.suppliers.list.fetch({ search: q, limit: 5 }),
-        ]);
+        // One unified trigram-accelerated call — replaces the old 3-parallel
+        // fan-out (products.list / customers.list / suppliers.list) and adds
+        // accounts + transactions + smart suggestions. Always tenant-scoped.
+        const data = await utils.query.globalSearch.fetch({
+          query: q,
+          limit: 8,
+        });
+        const byKind = (kind: string) =>
+          (data.items ?? [])
+            .filter((x: any) => x.kind === kind)
+            .map((x: any) => ({ id: x.id, name: x.name, code: x.code ?? "" }));
         setResults({
-          products: (p.items ?? []).map((x: any) => ({
-            id: x.id,
-            name: x.name,
-            code: x.code,
-          })),
-          customers: (c.items ?? []).map((x: any) => ({
-            id: x.id,
-            name: x.name,
-            code: x.code,
-          })),
-          suppliers: (s.items ?? []).map((x: any) => ({
-            id: x.id,
-            name: x.name,
-            code: x.code,
-          })),
+          products: byKind("product"),
+          customers: byKind("customer"),
+          suppliers: byKind("supplier"),
+          accounts: byKind("account"),
+          transactions: byKind("transaction"),
+          suggestions: data.suggestions ?? [],
         });
       } catch {
         // ignore — user may be logged out
@@ -182,7 +190,9 @@ export function CommandPalette() {
   const hasResults =
     results.products.length ||
     results.customers.length ||
-    results.suppliers.length;
+    results.suppliers.length ||
+    results.accounts.length ||
+    results.transactions.length;
 
   return (
     <Command.Dialog
@@ -256,12 +266,38 @@ export function CommandPalette() {
                   key={`s-${s.id}`}
                   value={`مورد ${s.name} ${s.code}`}
                   onSelect={() => go("/commercial")}
-                  className="flex items-center gap-3 px^4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
                 >
                   <Building2 className="w-4 h-4 text-[#0e2a2b] shrink-0" />
                   <span className="flex-1">{s.name}</span>
                   <span className="text-[10px] opacity-60">{s.code}</span>
+                </Command.Item>
+              ))}
+              {results.accounts.map(a => (
+                <Command.Item
+                  key={`a-${a.id}`}
+                  value={`حساب ${a.name} ${a.code}`}
+                  onSelect={() => go("/accounting")}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <BookText className="w-4 h-4 text-[#7dd3fc] shrink-0" />
+                  <span className="flex-1">{a.name}</span>
+                  <span className="text-[10px] opacity-60">{a.code}</span>
+                </Command.Item>
+              ))}
+              {results.transactions.map(tx => (
+                <Command.Item
+                  key={`t-${tx.id}`}
+                  value={`قيد ${tx.name} ${tx.code}`}
+                  onSelect={() => go("/accounting")}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <ReceiptText className="w-4 h-4 text-[#fbbf24] shrink-0" />
+                  <span className="flex-1">{tx.name}</span>
+                  <span className="text-[10px] opacity-60">{tx.code}</span>
                 </Command.Item>
               ))}
             </Command.Group>
@@ -306,9 +342,8 @@ export function CommandPalette() {
                     style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
                   >
                     <Icon
-                      className="w-4 h-4"
+                      className="w-4 h-4 shrink-0"
                       style={{ color: m.accent }}
-                      shrink-0
                     />
                     <span className="flex-1">{m.label}</span>
                     <span className="text-[10px] text-gray-400">
@@ -317,6 +352,27 @@ export function CommandPalette() {
                   </Command.Item>
                 );
               })}
+            </Command.Group>
+          )}
+
+          {/* SMART SUGGESTIONS — intent-driven quick actions from the search engine */}
+          {results.suggestions.length > 0 && (
+            <Command.Group
+              heading="إجراءات ذكية مقترحة"
+              className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
+            >
+              {results.suggestions.map(s => (
+                <Command.Item
+                  key={s.label}
+                  value={`اقتراح ${s.label}`}
+                  onSelect={() => go(s.hint)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
+                >
+                  <Sparkles className="w-4 h-4 text-[#d4a574] shrink-0" />
+                  <span className="flex-1">{s.label}</span>
+                </Command.Item>
+              ))}
             </Command.Group>
           )}
 

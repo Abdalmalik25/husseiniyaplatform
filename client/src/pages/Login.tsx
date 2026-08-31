@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -225,6 +225,20 @@ export default function Login() {
   const [mfaRequired, setMfaRequired] = useState(false);
   const [mfaCode, setMfaCode] = useState("");
   const [mfaUsername, setMfaUsername] = useState("");
+  // End-to-end readiness: inline (not toast-only) authentication error surfaced
+  // through a live region so screen readers announce it instantly and the user
+  // sees exactly what failed without hunting for a toast.
+  const [loginError, setLoginError] = useState<string | null>(null);
+
+  // End-to-end: announce the page purpose and fix <title> on first focus so the
+  // login surface is unambiguously identified to assistive tech.
+  useEffect(() => {
+    document.title = "تسجيل الدخول — الحسينية لخدمات الأعمال";
+    document.body.setAttribute("data-page", "login");
+    return () => {
+      document.body.removeAttribute("data-page");
+    };
+  }, []);
 
   // Simplified Registration States
   const [regName, setRegName] = useState("");
@@ -262,6 +276,9 @@ export default function Login() {
         return;
       }
       toast.error(msg || "تعذر تسجيل الدخول");
+      setLoginError(
+        msg || "تعذر تسجيل الدخول. تحقّق من اسم المستخدم وكلمة المرور."
+      );
     },
   });
 
@@ -293,6 +310,7 @@ export default function Login() {
     e.preventDefault();
     setNotFound(false);
     setLocked(null);
+    setLoginError(null);
     if (!username.trim() || !password) {
       toast.error("الرجاء إدخال اسم المستخدم وكلمة المرور");
       return;
@@ -526,11 +544,16 @@ export default function Login() {
                         </Label>
                         <Input
                           required
+                          type="text"
+                          name="username"
                           placeholder="اسم المستخدم"
                           value={username}
                           onChange={e => setUsername(e.target.value)}
                           className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl"
                           autoComplete="username"
+                          autoFocus
+                          aria-label="اسم المستخدم"
+                          aria-describedby="login-error"
                         />
                       </div>
                       <div className="space-y-1.5">
@@ -542,11 +565,14 @@ export default function Login() {
                           <Input
                             required
                             type={showPassword ? "text" : "password"}
+                            name="password"
                             placeholder="••••••••"
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                             className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl font-mono pl-10"
                             autoComplete="current-password"
+                            aria-label="كلمة المرور"
+                            aria-describedby="login-error"
                           />
                           <button
                             type="button"
@@ -569,6 +595,17 @@ export default function Login() {
                         <Zap className="w-4 h-4" />
                         {login.isPending ? "جاري التحقق…" : "دخول النظام"}
                       </Button>
+
+                      {loginError && (
+                        <div
+                          id="login-error"
+                          role="alert"
+                          aria-live="assertive"
+                          className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] text-rose-200"
+                        >
+                          {loginError}
+                        </div>
+                      )}
 
                       <div className="relative flex items-center justify-center my-2">
                         <div className="border-t border-white/10 w-full" />

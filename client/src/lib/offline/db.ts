@@ -10,7 +10,11 @@
  */
 
 const DB_NAME = "alhusainia-accounting";
-const DB_VERSION = 3;
+// v4: recreate the `_status` index properly on the upgrade transaction —
+// the previous attempt nested a NEW transaction inside onupgradeneeded
+// (invalid in IndexedDB) and silently failed, leaving existing clients
+// without the index (NotFoundError on every getByIndex("_status") call).
+const DB_VERSION = 4;
 
 export type SyncStatus = "synced" | "pending" | "conflict";
 
@@ -168,6 +172,10 @@ function openDB(): Promise<IDBDatabase> {
       // PERFORMANCE: Add _status index to all data stores for fast stats queries.
       // This index is used by getOfflineStats() to count pending/synced records
       // without loading all records into memory.
+      // IMPORTANT: indices MUST be created on the upgrade transaction itself —
+      // opening a nested db.transaction() inside onupgradeneeded is invalid and
+      // throws NotFoundError (previously swallowed, so the index never existed).
+      const upgradeTx = (event.target as IDBOpenDBRequest).transaction;
       const dataStores = [
         "accounts",
         "transactions",
@@ -193,15 +201,13 @@ function openDB(): Promise<IDBDatabase> {
         "payments",
       ];
       for (const storeName of dataStores) {
-        if (db.objectStoreNames.contains(storeName)) {
+        if (db.objectStoreNames.contains(storeName) && upgradeTx) {
           try {
-            const transaction = db.transaction(storeName, "versionchange");
-            const store = transaction.objectStore(storeName);
+            const store = upgradeTx.objectStore(storeName);
             if (!store.indexNames.contains("_status")) {
               store.createIndex("_status", "_status", { unique: false });
             }
           } catch (e) {
-            // Index might already exist or store not available in versionchange
             console.warn(`Could not create _status index for ${storeName}:`, e);
           }
         }
@@ -307,8 +313,17 @@ export async function getByIndex<T>(
   value: IDBValidKey
 ): Promise<WithSync<T>[]> {
   return runTx("readonly", table, store => {
-    const index = (store as IDBObjectStore).index(indexName);
-    return index.getAll(value);
+    const s = store as IDBObjectStore;
+    // Defensive: a missing index (old DB version) must degrade to a full scan,
+    // never throw NotFoundError into an unhandled rejection.
+    if (!s.indexNames.contains(indexName)) {
+      return reqToPromise(s.getAll()).then(records =>
+        (records as WithSync<T>[]).filter(
+          r => (r as unknown as Record<string, unknown>)[indexName] === value
+        )
+      );
+    }
+    return s.index(indexName).getAll(value);
   });
 }
 
@@ -322,8 +337,16 @@ export async function countByIndex(
   value: IDBValidKey
 ): Promise<number> {
   return runTx("readonly", table, store => {
-    const index = (store as IDBObjectStore).index(indexName);
-    return index.count(value);
+    const s = store as IDBObjectStore;
+    if (!s.indexNames.contains(indexName)) {
+      return reqToPromise(s.getAll()).then(
+        records =>
+          (records as unknown as Record<string, unknown>[]).filter(
+            r => r[indexName] === value
+          ).length
+      );
+    }
+    return s.index(indexName).count(value);
   });
 }
 

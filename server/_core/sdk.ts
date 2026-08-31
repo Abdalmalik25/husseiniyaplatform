@@ -216,19 +216,21 @@ class SDKServer {
       });
       const { openId, appId, name } = payload as Record<string, unknown>;
 
-      if (
-        !isNonEmptyString(openId) ||
-        !isNonEmptyString(appId) ||
-        !isNonEmptyString(name)
-      ) {
-        console.warn("[Auth] Session payload missing required fields");
+      // `openId` is the security-critical claim (the JWT is already signed
+      // with JWT_SECRET). `appId`/`name` are contextual: local/self-hosted
+      // deployments legitimately issue sessions with an empty appId (the
+      // local `auth.login` flow does exactly that), so treating an empty
+      // appId as "invalid session" would make every locally-issued session
+      // unresolvable — login succeeds yet every protected screen rejects it.
+      if (!isNonEmptyString(openId)) {
+        console.warn("[Auth] Session payload missing openId");
         return null;
       }
 
       return {
         openId,
-        appId,
-        name,
+        appId: isNonEmptyString(appId) ? appId : "",
+        name: isNonEmptyString(name) ? name : "",
       };
     } catch (error) {
       console.warn("[Auth] Session verification failed", String(error));

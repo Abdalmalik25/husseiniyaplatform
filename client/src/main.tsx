@@ -8,6 +8,8 @@ import superjson from "superjson";
 import App from "./App";
 import { goLogin } from "./const";
 import { installGlobalErrorCapture } from "./lib/globalErrorCapture";
+import { initFontLoading } from "./lib/fonts";
+import { injectCoreResourceHints } from "./lib/resource-hints";
 import "./index.css";
 import { I18nProvider } from "./lib/i18n";
 import { getActiveTenantId } from "./lib/activeTenant";
@@ -34,6 +36,9 @@ if (import.meta.env.VITE_SENTRY_DSN) {
 
 // شبكة الأمان الأخيرة: تُركَّب قبل أي شيء آخر لالتقاط أخطاء الإقلاع نفسها.
 installGlobalErrorCapture();
+
+// Resource hints: preconnect إلى الخدمات الخارجية + preload أصول LCP مبكراً.
+injectCoreResourceHints();
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -127,6 +132,10 @@ const trpcClient = trpc.createClient({
     }),
   ],
 });
+
+// الخطوط الذاتية: تحميل الخطوط الحرجة عبر FontFace API قبل الرسم الأول،
+// والخطوط الثانوية تُؤجَّل حتى idle — مع بديل CSS فقط عند حظر FontFace.
+initFontLoading();
 
 createRoot(document.getElementById("root")!).render(
   <I18nProvider>

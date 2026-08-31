@@ -4,6 +4,75 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.13.0] — 2026-08-31 — سدّ الديون التقنية والوظيفية
+
+### Added
+- **بحث موحّد في لوحة الأوامر (⌘/Ctrl+K)** — ترقية `CommandPalette.tsx` لاستخدام `query.globalSearch` (محرك trigram): نداء **واحد** بدل 3 نداءات متوازية، مع إضافة **الحسابات والقيود المحاسبية** للنتائج الحية، ومجموعة **"إجراءات ذكية مقترحة"** مبنية على نية الاستعلام (`suggestQuickActions`)
+- مفاتيح i18n جديدة: `search.*` في `ar.json` و `en.json`
+
+### Fixed
+- **`px^4` → `px-4`** — كلاس Tailwind تالف في عنصر المورّدين باللوحة
+- **خاصية `shrink-0` العارية** على مكوّن أيقونة lucide (props غير صالحة)
+- **`serverVersion: "1.1.0"` مُشفّر يدوياً** في `routers.ts` → `ENV.appVersion` (مصدر الحقيقة الوحيد = package.json عبر `__APP_VERSION__`)
+- **9 تحذيرات `no-console`** في `pos/hardwareIntegration.ts` → مساعد `devLog` مُقيّد بـ DEV
+
+### Performance
+- **`HeroAurora`**: حذف Orb 4 و Orb 5 (الأضعف بصرياً) — تقليل تكلفة GPU بنسبة ~40% مع فرق بصري لا يُذكر
+- **`scripts/build-server.cjs`**: `minify: true` + `keepNames: true` + `legalComments: "none"` — حزم serverless أصغر (cold-start أسرع) مع stack traces مقروءة
+
+---
+
+## [2.14.0] — 2026-08-31 · Enterprise Search & Query Acceleration + Full E2E Journey
+
+### Added
+
+- **طبقة تسريع قاعدة البيانات** — `drizzle/0010_enterprise_performance_views.sql` (مطبّقة على الإنتاج: 23 statement، 0 فشل):
+  - امتداد `pg_trgm` + 11 فهرس GIN trigram للبحث الضبابي الفوري عبر products/accounts/customers/suppliers/transactions/sales_invoices
+  - فهارس btree مركّبة للمسارات الساخنة (transactions tenant+date+lifecycle، sales_invoices tenant+date+status، activity_logs geo، warehouse_stock، opening_balances)
+  - **5 SQL VIEWs حيّة**: `v_account_balances` (أرصدة trial-balance)، `v_inventory_health` (المخزون مقابل reorder/min)، `v_sales_trend` (إيرادات يومية per branch+currency)، `v_activity_trace` (تتبع مكاني-زماني: geo + device + hash chain)، `v_tenant_master_summary` (KPIs المؤسسة: فروع/مخازن/عملات/وحدات قياس)
+- **مخططات Drizzle للـ Views** — `server/_core/views.ts` (pgView read-only، كل View يشتق tenantId ويُفلتر إلزامياً — عزل صفر ثقة)
+- **محرك البحث الموحد** — `server/_core/globalSearch.ts`: بحث trigram عبر 5 كيانات + اقتراحات ذكية (`suggestQuickActions`) + إحصاءات الاستعلام — يغذي الإكمال التلقائي ولوحات القيادة
+- **راوتر الاستعلام الذكي** — `server/queryRouter.ts` (`query.*` مُدمج في `appRouter`): `globalSearch`، `accountBalances`، `inventoryHealth`، `salesTrend`، `activityTrace`، `tenantMasterSummary`، `dashboardSummary` (KPIs متوازية بـ Promise.all) — كلها tenantProcedure مع فلترة tenantId إلزامية
+- **E2E رحلة المؤسسة الكاملة** — `e2e/enterprise-journey.spec.ts`: بوابة الدخول → 11 ورksبيس نظام (app/accounting/commercial/inventory/procurement/projects/hr/support/pos/permissions/basic-data) → عزل صفر-ثقة (tRPC بدون جلسة = UNAUTHORIZED) → رحلة مُصادقة شرطية عبر E2E_USERNAME/E2E_PASSWORD
+- **Playwright channel: chrome** — `playwright.config.ts` يستخدم Chrome النظامي (لا تنزيل متصفح، صالح للبيئات المعزولة)
+
+### Fixed
+
+- **E2E stale assertions** — تحديث العناوين إلى /الحسينية|alhusainia/i (بعد ترقية SEO العربية)، CTA عبر `getByRole("button")` + `goLogin()`، ومسار مركز المعرفة `/knowledge` → `/insights`
+- **v_sales_trend enum bug** — `status IN ('paid','posted')` كانت ستُفشل وقت التشغيل (`posted` غير موجودة في `salesInvoiceStatusEnum`) → صُححت إلى `('paid','partial')` قبل التطبيق
+
+### Verified
+
+- `pnpm check` 0 أخطاء · `pnpm lint` 0 أخطاء · `pnpm test` 120/120 · `pnpm build` EXIT=0
+- **E2E: 14 passed / 0 failed / 2 skipped (اختيارية ببيانات اعتماد) في 37.8s** — تشمل رحلة الدخول→الرئيسية→الوركسبيس لكل الأنظمة وبوابات الحماية والعزل
+
+---
+
+## [2.13.0] — 2026-08-31 · Nuclear Global Upgrade — Deep Performance, Self-Hosted Fonts, Security & SEO
+
+### Added
+
+- **Self-hosted fonts (WOFF2)** — `scripts/download-fonts.mjs` (v2, Fontsource CDN) تنزّل 20 ملف خط فرعي (Tajawal + IBM Plex Sans Arabic، اتزان arabic/latin بـ 8-45KB لكل ملف) إلى `client/public/fonts/` — أزيل Google Fonts الخارجي بالكامل من `index.html` و CSP (خصوصية CCPA/GDPR + لا RTT خارجي)
+- **@font-face مع unicode-range** في `client/src/index.css:5` — المتصفح ينزّل فقط المحارف اللازمة، مع `font-display: swap`
+- **Font loading pipeline** — `client/src/lib/fonts.ts` (`initFontLoading`/`loadFonts`/`hasFontsLoaded`) يُربط في `main.tsx` قبل الرسم الأول: خطوط حرجة فورية، ثانوية عند idle، تخطّي بعد أول زيارة (localStorage)
+- **Resource hints** — `client/src/lib/resource-hints.ts` (`injectCoreResourceHints`) preconnect إلى Neon/Sentry + preload أصول LCP — يُربط في `main.tsx`
+- **i18n خارجي** — `client/src/i18n/ar.json` + `en.json` + `loader.ts` (حمولة كسولة + flatten + `tPlural` بقواعد الجمع العربية) — `lib/i18n.ts` صار يقرأ من JSON بدل inline
+- **Design tokens نظام** — `client/src/styles/tokens/` (colors/typography/spacing/radius/shadows/effects + barrel `index.ts` + `registry.ts` لحقن متغيرات CSS عند تبديل الثيم)
+- **Service Worker v22** — `client/public/sw.js` تخزين `stale-while-revalidate` للكتالوج العام `/api/web/catalog` (مخزن منفصل `alhusainia-catalog-v1`) — زيارات فورية مع تحديث خلفي
+- **Permissions-Policy** — رأس `Permissions-Policy` مخصص في `server/_core/app.ts` (helem v8 أزال الدعم): all() افتراضية مقفلة للكاميرا/الميكروفون/الموقع/الدفع
+- **Sitemap + hreflang** — `scripts/generate-sitemap.mjs` يولّد `sitemap.xml` بـ 12 URL مع `<xhtml:link hreflang>` (ar/en/x-default)؛ `index.html` أضيفت alternates hreflang
+- **Build hardening** — `vite.config.ts`: `target: es2022`، `cssCodeSplit: true`، `sourcemap: hidden`، أسماء chunks بـ `[name]-[hash:8]`
+
+### Changed
+
+- **إزالة كامل التبعية** على `fonts.googleapis.com` / `fonts.gstatic.com` (preconnect + preload stylesheet + noscript) في `index.html` — الخطوط الآن self-hosted اسماً ومصدراً
+- **`main.tsx`** يبدأ `injectCoreResourceHints()` + `initFontLoading()` قبل أول رسم
+
+### Scripts
+
+- `node scripts/download-fonts.mjs` — تنزيل/تحديث الخطوط (idempotent، يتخطى الموجود)
+- `node scripts/generate-sitemap.mjs` — توليد sitemap.xml
+
 ## [2.11.2] — 2026-08-28 · Login Multi-Tenant Fix + Modern Icon + Header Logic
 
 ### Fixed

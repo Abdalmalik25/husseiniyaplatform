@@ -21,6 +21,8 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL: "http://localhost:3000",
+    // Use the system Chrome — no browser download needed (CI/offline-safe)
+    channel: "chrome",
     trace: "retain-on-failure",
     locale: "ar-YE",
     viewport: { width: 1280, height: 720 },

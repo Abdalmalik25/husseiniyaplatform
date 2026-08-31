@@ -192,8 +192,16 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    target: "es2022",
+    cssCodeSplit: true,
+    // Hidden sourcemaps: available to Sentry via CI upload, not exposed in devtools.
+    sourcemap: "hidden",
     rollupOptions: {
       output: {
+        // Content-hashed, deterministic filenames for long-term caching + SRI.
+        chunkFileNames: "assets/[name]-[hash:8].js",
+        entryFileNames: "assets/[name]-[hash:8].js",
+        assetFileNames: "assets/[name]-[hash:8][extname]",
         manualChunks(id) {
           if (!id.includes("node_modules")) return undefined;
 

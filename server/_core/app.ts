@@ -82,6 +82,17 @@ export function createApp(): Express {
     })
   );
 
+  // Permissions-Policy — removed from helmet v7+; set explicitly to lock down
+  // browser feature access (camera, mic, geolocation, payment, usb, sensors).
+  app.use((_req, res, next) => {
+    res.setHeader(
+      "Permissions-Policy",
+      "camera=(), microphone=(), geolocation=(), payment=(), usb=(), " +
+        "accelerometer=(), gyroscope=(), magnetometer=(), sync-xhr=()"
+    );
+    next();
+  });
+
   // PERFORMANCE: Enable gzip/brotli compression for all responses.
   // This significantly reduces payload sizes for JSON API responses and
   // static assets, improving load times especially on slower connections.
@@ -135,6 +146,52 @@ export function createApp(): Express {
     standardHeaders: true,
     legacyHeaders: false,
     validate: false,
+    ...(maybeRedisStore ? { store: maybeRedisStore } : {}),
+  });
+
+  // tRPC-shaped 429s: the tRPC client deserializes EVERY response with superjson,
+  // so a plain-JSON rate-limit body (express-rate-limit default) made whole
+  // batches explode client-side as "Unable to transform response from server"
+  // instead of a readable error. This handler mirrors tRPC's wire error format
+  // for both single GET queries and index-keyed batch POST requests.
+  // max is raised vs apiLimiter: one authenticated workspace journey (11 pages ×
+  // several tRPC queries each, per user, per 15 min) legitimately exceeds 100.
+  const trpcRateLimitHandler: express.RequestHandler = (req, res) => {
+    const json = {
+      message: "تم تجاوز الحد المسموح من الطلبات. حاول بعد قليل.",
+      code: -32029,
+      data: { code: "TOO_MANY_REQUESTS", httpStatus: 429, path: req.path },
+    };
+    let indices: string[] | null = null;
+    try {
+      if (req.method === "POST" && req.body && typeof req.body === "object") {
+        indices = Object.keys(req.body);
+      } else if (
+        req.method === "GET" &&
+        typeof req.query.input === "string"
+      ) {
+        const parsed = JSON.parse(req.query.input as string);
+        if (parsed && typeof parsed === "object") indices = Object.keys(parsed);
+      }
+    } catch {
+      indices = null;
+    }
+    const body =
+      indices && indices.length > 0
+        ? Object.fromEntries(
+            indices.map(i => [i, { error: { json } }])
+          )
+        : { error: { json } };
+    res.status(429).json(body);
+  };
+
+  const trpcLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 600,
+    standardHeaders: true,
+    legacyHeaders: false,
+    validate: false,
+    handler: trpcRateLimitHandler,
     ...(maybeRedisStore ? { store: maybeRedisStore } : {}),
   });
 
@@ -224,7 +281,7 @@ export function createApp(): Express {
   // let one tenant's query result be served to another tenant (the cache key is
   // the URL only, ignoring the x-tenant-id header and the session cookie).
   // Mutations (POST/PATCH) are never cached regardless.
-  app.use("/api/trpc", apiLimiter);
+  app.use("/api/trpc", trpcLimiter);
   app.use("/api/trpc", (req, res, next) => {
     if (req.method === "GET") {
       res.setHeader("Cache-Control", "no-store, private");
