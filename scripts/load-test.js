@@ -15,16 +15,16 @@
  *
  * Usage:
  *   # Smoke test (quick validation)
- *   k6 run --vus 5 --duration 30s scripts/load-test.js -e BASE_URL=https://api.uamex.vercel.app
+ *   k6 run --vus 5 --duration 30s scripts/load-test.js -e BASE_URL=https://alhusainiaye.vercel.app
  *
  *   # Load test (typical production load)
- *   k6 run --vus 50 --duration 5m scripts/load-test.js -e BASE_URL=https://api.uamex.vercel.app
+ *   k6 run --vus 50 --duration 5m scripts/load-test.js -e BASE_URL=https://alhusainiaye.vercel.app
  *
  *   # Stress test (find breaking point)
- *   k6 run --vus 200 --duration 10m scripts/load-test.js -e BASE_URL=https://api.uamex.vercel.app
+ *   k6 run --vus 200 --duration 10m scripts/load-test.js -e BASE_URL=https://alhusainiaye.vercel.app
  *
  *   # Spike test (sudden traffic surge)
- *   k6 run --stage 10s:10 --stage 1m:100 --stage 10s:10 scripts/load-test.js -e BASE_URL=https://api.uamex.vercel.app
+ *   k6 run --stage 10s:10 --stage 1m:100 --stage 10s:10 scripts/load-test.js -e BASE_URL=https://alhusainiaye.vercel.app
  *
  * Environment Variables:
  *   BASE_URL          - Base URL of the API (default: http://localhost:3000)

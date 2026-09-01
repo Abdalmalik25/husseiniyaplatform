@@ -25,7 +25,7 @@
 | **Uptime Monitor** | تلقائي — `/api/health` → 503                | UptimeRobot / BetterStack / Pingdom             |
 | **On-call Slack**  | تواصل فوري للفريق                           | `#incidents-oncall`                             |
 | **WhatsApp Group** | تصعيد إداري / عملاء                         | `Uamex On-call`                                 |
-| **Status Page**    | تواصل عام للعملاء                           | `status.uamex.vercel.app`                       |
+| **Status Page**    | تواصل عام للعملاء                           | `alhusainiaye.vercel.app`                       |
 
 ---
 
@@ -37,7 +37,7 @@
 
 | الخطوة | الإجراء                      | الأمر/التحقق                                                                             | المالك         |
 | ------ | ---------------------------- | ---------------------------------------------------------------------------------------- | -------------- |
-| 1      | تأكيد التأثير                | `curl -s https://api.uamex.vercel.app/api/health \| jq .dbAvailable`                     | On-call        |
+| 1      | تأكيد التأثير                | `curl -s https://alhusainiaye.vercel.app/api/health \| jq .dbAvailable`                     | On-call        |
 | 2      | فحص Neon Dashboard           | `https://console.neon.tech/projects/<project-id>` — هل المشروع نشط؟ هل وصلت للحد الأقصى؟ | On-call        |
 | 3      | فحص Vercel Function Logs     | `vercel logs api/index.mjs --follow`                                                     | On-call        |
 | 4      | إذا Neon معطل → **Failover** | غير مجدي (Neon managed) — تواصل دعم Neon فوراً                                           | On-call + Lead |
@@ -70,7 +70,7 @@
 | ------ | ------------------------------ | ------------------------------------------------------------------------------------------------- | --------------------------- | ------- |
 | 1      | تحقق من المفتاح                | `vercel env ls                                                                                    | grep BACKUP_ENCRYPTION_KEY` | On-call |
 | 2      | تحقق من S3 credentials         | `vercel env ls                                                                                    | grep S3\_`                  | On-call |
-| 3      | شغل يدوياً للتشخيص             | `curl -X POST https://api.uamex.vercel.app/api/cron/tick -H "Authorization: Bearer $CRON_SECRET"` | On-call                     |
+| 3      | شغل يدوياً للتشخيص             | `curl -X POST https://alhusainiaye.vercel.app/api/cron/tick -H "Authorization: Bearer $CRON_SECRET"` | On-call                     |
 | 4      | إذا S3 quota ممتلئ             | نظف bucket أو زد الحصة                                                                            | Lead                        |
 | 5      | إذا encryption key مفقود       | أضف في Vercel → Redeploy                                                                          | On-call                     |
 | 6      | تحقق من استعادة النسخة الأخيرة | `trpc.backup.verify` ثم `trpc.backup.restore dry-run`                                             | On-call                     |
@@ -165,7 +165,7 @@ vercel list alhusainia-platform --limit 10
 vercel rollback <DEPLOYMENT_URL> --token=$VERCEL_TOKEN
 
 # 4. تحقق من الصحة
-curl -s https://api.uamex.vercel.app/api/health | jq .
+curl -s https://alhusainiaye.vercel.app/api/health | jq .
 
 # 5. إذا rollback فشل → redeploy من main branch
 vercel --prod --token=$VERCEL_TOKEN
@@ -204,11 +204,11 @@ vercel --prod --token=$VERCEL_TOKEN
 
 | الدور               | الاسم | Slack             | Phone (طوارئ) | البريد                    |
 | ------------------- | ----- | ----------------- | ------------- | ------------------------- |
-| **Tech Lead / IC**  |       | `@tech-lead`      | +967-XXX-XXXX | lead@uamex.vercel.app     |
-| **Backend Owner**   |       | `@backend-owner`  | +967-XXX-XXXX | backend@uamex.vercel.app  |
-| **Frontend Owner**  |       | `@frontend-owner` | +967-XXX-XXXX | frontend@uamex.vercel.app |
-| **DevOps / Vercel** |       | `@devops`         | +967-XXX-XXXX | devops@uamex.vercel.app   |
-| **Product Owner**   |       | `@po`             | +967-XXX-XXXX | po@uamex.vercel.app       |
+| **Tech Lead / IC**  |       | `@tech-lead`      | +967-XXX-XXXX | lead@alhusainiaye.vercel.app     |
+| **Backend Owner**   |       | `@backend-owner`  | +967-XXX-XXXX | backend@alhusainiaye.vercel.app  |
+| **Frontend Owner**  |       | `@frontend-owner` | +967-XXX-XXXX | frontend@alhusainiaye.vercel.app |
+| **DevOps / Vercel** |       | `@devops`         | +967-XXX-XXXX | devops@alhusainiaye.vercel.app   |
+| **Product Owner**   |       | `@po`             | +967-XXX-XXXX | po@alhusainiaye.vercel.app       |
 | **Neon Support**    | —     | —                 | —             | support@neon.tech         |
 | **Vercel Support**  | —     | —                 | —             | support@vercel.com        |
 | **Sentry Support**  | —     | —                 | —             | support@sentry.io         |
@@ -223,7 +223,7 @@ vercel --prod --token=$VERCEL_TOKEN
 | **Neon Console**       | `https://console.neon.tech/projects/<project-id>`                    |
 | **Sentry Issues**      | `https://sentry.io/organizations/<org>/issues/?project=<project-id>` |
 | **Sentry Performance** | `https://sentry.io/organizations/<org>/performance/`                 |
-| **Status Page**        | `https://status.uamex.vercel.app`                                    |
+| **Status Page**        | `https://alhusainiaye.vercel.app`                                    |
 | **GitHub Actions**     | `https://github.com/<org>/husseiniya-platform/actions`               |
 | **Runbook هذا الملف**  | `docs/INCIDENT_RESPONSE_RUNBOOK.md`                                  |
 

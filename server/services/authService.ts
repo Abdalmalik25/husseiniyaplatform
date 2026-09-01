@@ -1009,7 +1009,7 @@ async function sendVerificationEmail(
 ): Promise<void> {
   // TODO: Integrate with your email provider (SendGrid, AWS SES, Nodemailer, etc.)
   if (!email) return;
-  const verifyUrl = `${ENV.oAuthServerUrl || "https://app.uamex.vercel.app"}/verify-email?token=${token}`;
+  const verifyUrl = `${ENV.oAuthServerUrl || "https://alhusainiaye.vercel.app"}/verify-email?token=${token}`;
   console.log(`[Email] Verification email to ${email}: ${verifyUrl}`);
   // await emailService.send({
   //   to: email,
@@ -1026,7 +1026,7 @@ async function sendPasswordResetEmail(
 ): Promise<void> {
   // TODO: Integrate with your email provider
   if (!email) return;
-  const resetUrl = `${ENV.oAuthServerUrl || "https://app.uamex.vercel.app"}/reset-password?token=${token}`;
+  const resetUrl = `${ENV.oAuthServerUrl || "https://alhusainiaye.vercel.app"}/reset-password?token=${token}`;
   console.log(`[Email] Password reset email to ${email}: ${resetUrl}`);
   // await emailService.send({
   //   to: email,

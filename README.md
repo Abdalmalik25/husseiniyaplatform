@@ -181,4 +181,4 @@ MIT License - راجع ملف [LICENSE](LICENSE) للتفاصيل.
 
 ** الحسينية لخدمات الأعمال **
 
-- الموقع: [husseiniya-platform-coral.vercel.app](https://husseiniya-platform-coral.vercel.app)
+- الموقع: [alhusainiaye.vercel.app](https://alhusainiaye.vercel.app)

@@ -52,7 +52,7 @@ const OG_HTML = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="u
   <div class="desc">منصة موحّدة للمحاسبة القانونية والاستشارات الهندسية والتقنية:
      قيد مزدوج وقوائم مالية آلية، فواتير ومخزون، مخططات ورفع مساحي — في مكان واحد.</div>
   <div class="chips"><span class="chip">محاسبة متقدمة</span><span class="chip">هندسة ومساحة</span><span class="chip">تجارة ومخزون</span></div>
-  <div class="url">husseiniya-platform-coral.vercel.app</div>
+  <div class="url">alhusainiaye.vercel.app</div>
 </body></html>`;
 
 /* ── helpers ──────────────────────────────────────────────────────────── */
