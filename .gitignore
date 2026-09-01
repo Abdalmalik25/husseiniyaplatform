@@ -68,6 +68,12 @@ add-columns.mjs
 create-fiscal-periods.mjs
 final-verify.mjs
 
+# k6 load-testing binaries, zips and runtime session artifacts
+k6/
+k6.zip
+cookies.txt
+current-token.txt
+
 # Temporary files
 *.log
 *.tmp

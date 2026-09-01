@@ -37,6 +37,53 @@ describe("splitMigrationStatements", () => {
     const text = stmts.join("--> statement-breakpoint\n");
     expect(splitMigrationStatements(text)).toHaveLength(500);
   });
+
+  it("splits hand-written statements separated by top-level semicolons", () => {
+    const text = `CREATE INDEX "idx_a" ON "t" ("x");\nCREATE INDEX "idx_b" ON "t" ("y");\nALTER TABLE "t" SET (autovacuum_vacuum_scale_factor = 0.05);`;
+    const parts = splitMigrationStatements(text);
+    expect(parts).toHaveLength(3);
+    expect(parts[0]).toContain("idx_a");
+    expect(parts[2]).toContain("autovacuum_vacuum_scale_factor");
+  });
+
+  it("does NOT split inside dollar-quoted plpgsql bodies", () => {
+    const text = [
+      "CREATE OR REPLACE FUNCTION refresh_views() RETURNS void AS $$",
+      "BEGIN",
+      "REFRESH MATERIALIZED VIEW mv_a;",
+      "REFRESH MATERIALIZED VIEW mv_b;",
+      "END;",
+      "$$ LANGUAGE plpgsql;",
+      'COMMENT ON MATERIALIZED VIEW "mv_a" IS \'x; y; z\';',
+    ].join("\n");
+    const parts = splitMigrationStatements(text);
+    expect(parts).toHaveLength(2);
+    expect(parts[0]).toContain("LANGUAGE plpgsql");
+    expect(parts[0]).toContain("mv_b;");
+    expect(parts[1]).toContain("COMMENT ON");
+  });
+
+  it("does NOT split inside DO $$ … $$ blocks", () => {
+    const text = [
+      "DO $$ BEGIN",
+      "IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'c') THEN",
+      'ALTER TABLE "t" ADD CONSTRAINT "c" CHECK ("a" >= 0);',
+      "END IF;",
+      "END $$;",
+      'CREATE INDEX "idx_c" ON "t" ("a");',
+    ].join("\n");
+    const parts = splitMigrationStatements(text);
+    expect(parts).toHaveLength(2);
+    expect(parts[0]).toContain("END $$;");
+    expect(parts[1]).toContain("idx_c");
+  });
+
+  it("handles string literals containing semicolons and comments", () => {
+    const text = `INSERT INTO "t" ("note") VALUES ('a; b -- not a comment');\n-- a standalone comment\nCREATE INDEX "idx_d" ON "t" ("a");`;
+    const parts = splitMigrationStatements(text);
+    expect(parts).toHaveLength(2);
+    expect(parts[0]).toContain("'a; b -- not a comment'");
+  });
 });
 
 describe("classifyStatementError", () => {

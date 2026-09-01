@@ -27,6 +27,12 @@ import { costCentersRouter } from "./costCentersRouter";
 import { beneficiariesRouter } from "./beneficiariesRouter";
 import { financialReportsRouter } from "./financialReportsRouter";
 import { fiscalPeriodsRouter } from "./fiscalPeriodsRouter";
+import {
+  openingBalancesRouter,
+  fiscalPeriodClosingRouter,
+  accountingReportsRouter,
+  inventoryReportsRouter,
+} from "./accountingClosingRouter";
 import { assertPeriodOpen } from "./services/accountingEngine";
 
 /**
@@ -10009,6 +10015,10 @@ ${analysisText}
   beneficiaries: beneficiariesRouter,
   financialReports: financialReportsRouter,
   fiscalPeriods: fiscalPeriodsRouter,
+  openingBalances: openingBalancesRouter,
+  fiscalPeriodClosing: fiscalPeriodClosingRouter,
+  accountingReports: accountingReportsRouter,
+  inventoryReports: inventoryReportsRouter,
   query: queryRouter,
 });
 

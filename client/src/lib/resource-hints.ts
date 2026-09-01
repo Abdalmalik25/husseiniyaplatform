@@ -48,13 +48,6 @@ export function injectCoreResourceHints(): void {
   for (const h of hints) {
     injectLink(h.rel, h.href, h.extra);
   }
-
-  // Preload LCP hero image
-  injectLink("preload", "/uamex-erp.png", {
-    as: "image",
-    fetchpriority: "high",
-    imagesrcset: "/uamex-erp.png 320w, /uamex-erp.png 640w",
-  });
 }
 
 /**

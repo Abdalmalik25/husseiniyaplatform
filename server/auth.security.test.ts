@@ -413,10 +413,21 @@ describe("auth.logout", () => {
 
 // ── auth.me ────────────────────────────────────────────
 describe("auth.me", () => {
-  it("returns the current user from context", async () => {
+  it("returns the current user from context with sensitive fields stripped", async () => {
     const user = createAuthUser();
     const caller = appRouter.createCaller(createCtx({ user }));
-    expect(await caller.auth.me()).toEqual(user);
+    const result = await caller.auth.me();
+    // SECURITY (regression): auth.me must never leak credential or session
+    // material — `passwordHash` and `currentSessionId` are explicitly
+    // destructured out in the resolver. A re-introduction of the leak must
+    // fail the test suite.
+    expect(result).not.toHaveProperty("passwordHash");
+    expect(result).not.toHaveProperty("currentSessionId");
+    // The returned object matches the input user minus the stripped fields.
+    const { passwordHash, currentSessionId, ...safeUser } = user;
+    void passwordHash;
+    void currentSessionId;
+    expect(result).toEqual(safeUser);
   });
 
   it("returns null when no user is authenticated", async () => {

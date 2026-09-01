@@ -23,7 +23,11 @@
     "postbuild": "tsx scripts/run-migrations.ts || node -e \"process.exit(0)\"",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "seed:e2e": "node --env-file=.env scripts/seed-e2e-user.mjs"
+    "seed:e2e": "node --env-file=.env scripts/seed-e2e-user.mjs",
+    "loadtest": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-load-test.ps1",
+    "loadtest:smoke": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-load-test.ps1 smoke",
+    "loadtest:load": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-load-test.ps1 load",
+    "loadtest:prepare": "node scripts/dl-k6.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

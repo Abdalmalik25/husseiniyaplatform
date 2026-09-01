@@ -35,7 +35,7 @@ export default [
         version: "detect",
       },
     },
-  },
+    },
   {
     // Operational scripts (*.mjs, *.cjs at root and in scripts/)
     // These are standalone Node.js scripts that use console/process globals.
@@ -44,6 +44,9 @@ export default [
       globals: {
         ...globals.node,
         ...globals.nodeBuiltin,
+        // Operational scripts use Playwright page.evaluate / page.$eval,
+        // whose callbacks execute in a browser context (document, window).
+        ...globals.browser,
       },
     },
     rules: {

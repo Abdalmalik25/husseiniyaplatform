@@ -65,6 +65,19 @@ import { methodology, standardsGlossary } from "@/lib/methodology";
 import { HeroBackground } from "@/components/ModernBackground";
 import { HeroAurora } from "@/components/HeroAurora";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
+import { CookieConsent } from "@/components/CookieConsent";
+import { StickySectionNav } from "@/components/StickySectionNav";
+import { HowItWorks } from "@/components/HowItWorks";
+import { Testimonials } from "@/components/Testimonials";
+import { CustomerLogos } from "@/components/CustomerLogos";
+import { WhyUsComparison } from "@/components/WhyUsComparison";
+import { PricingTeaser } from "@/components/PricingTeaser";
+import { ExecutiveStatsBar } from "@/components/ExecutiveStatsBar";
+import { LiveDashboardPreview } from "@/components/LiveDashboardPreview";
+import { IndustrySolutions } from "@/components/IndustrySolutions";
+import { IntegrationsEcosystem } from "@/components/IntegrationsEcosystem";
+import { ComplianceTrustCenter } from "@/components/ComplianceTrustCenter";
+import { MilestonesTimeline } from "@/components/MilestonesTimeline";
 
 // ── قصص التحوّل — أدلة كمّية قبل/بعد (لا صفات تسويقية) ──────────────
 const CASE_STUDIES = [
@@ -237,6 +250,7 @@ export default function Landing() {
       dir="rtl"
     >
       <HeaderNavbar />
+      <StickySectionNav />
 
       {/* ═══════════════════════════════════════════════════════════
           HERO — رسالة قيمة، ليست مجرد عنوان
@@ -382,6 +396,12 @@ export default function Landing() {
         </div>
       </div>
 
+      {/* شريط شعارات العملاء — دليل اجتماعي قبل كل شيء */}
+      <CustomerLogos />
+
+      {/* شريط المؤشرات التنفيذية — Live stats bar */}
+      <ExecutiveStatsBar />
+
       {/* ═══════════════════════════════════════════════════════════
           منهجية الحسينية — 4 أطوار استشارية بمستوى Big Four
       ═══════════════════════════════════════════════════════════ */}
@@ -468,6 +488,11 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          عرض حي للمنصة — Live Dashboard Preview
+      ═══════════════════════════════════════════════════════════ */}
+      <LiveDashboardPreview />
 
       {/* ═══════════════════════════════════════════════════════════
           قسم: الخسارة الصامتة — Cost of Inaction (تسويق كمّي استشاري)
@@ -610,6 +635,9 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* قسم كيف نعمل — 4 خطوات مرئية */}
+      <HowItWorks />
+
       {/* ═══════════════════════════════════════════════════════════
           قسم ١: المنصة الموحدة Uamex_erp — لب الحل
       ═══════════════════════════════════════════════════════════ */}
@@ -627,11 +655,11 @@ export default function Landing() {
             <div className="flex items-center justify-center gap-4">
               <div className="relative">
                 <img
-                  src="/uamex-erp.png"
+                  src="/uamex-erp.webp"
                   alt="شعار نظام Uamex_erp"
                   width={72}
-                  height={72}
-                  className="rounded-2xl shadow-2xl shadow-brand/40 ring-1 ring-brand/30"
+                  height={48}
+                  className="rounded-2xl shadow-2xl shadow-brand/40 ring-1 ring-brand/30 object-contain"
                   loading="lazy"
                   decoding="async"
                 />
@@ -866,6 +894,11 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* ═══════════════════════════════════════════════════════════
+          حلول قطاعية — لكل قطاع قصة مختلفة
+      ═══════════════════════════════════════════════════════════ */}
+      <IndustrySolutions />
 
       {/* ═══════════════════════════════════════════════════════════
           قسم ٢: الاستشارات المؤسسية والإدارية — حوكمة القرار
@@ -1193,6 +1226,21 @@ export default function Landing() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
+          منظومة التكاملات — Uamex_erp يتكلم لغتك
+      ═══════════════════════════════════════════════════════════ */}
+      <IntegrationsEcosystem />
+
+      {/* ═══════════════════════════════════════════════════════════
+          مركز الثقة والامتثال — Enterprise Trust Center
+      ═══════════════════════════════════════════════════════════ */}
+      <ComplianceTrustCenter />
+
+      {/* ═══════════════════════════════════════════════════════════
+          رحلة الحسينية — تاريخ بالمعايير لا بالشعارات
+      ═══════════════════════════════════════════════════════════ */}
+      <MilestonesTimeline />
+
+      {/* ═══════════════════════════════════════════════════════════
           المنهجية المعتمدة — أدلة لا شهادات
       ═══════════════════════════════════════════════════════════ */}
       <section className="py-20 px-4 bg-ink text-white">
@@ -1455,6 +1503,15 @@ export default function Landing() {
         </div>
       </section>
 
+      {/* قسم لماذا الحسينية — مقارنة شفافة بالبديل التقليدي */}
+      <WhyUsComparison />
+
+      {/* شهادات العملاء — أصوات حقيقية مع carousel تدوار متحكم به */}
+      <Testimonials />
+
+      {/* تسعير شفاف — باقات تناسب كل مرحلة من النموّ */}
+      <PricingTeaser />
+
       {/* ═══════════════════════════════════════════════════════════
           CTA النهائي — قوي ولا يُقاوَم
       ═══════════════════════════════════════════════════════════ */}
@@ -1632,6 +1689,323 @@ export default function Landing() {
       </section>
 
       <SiteFooter />
+
+      {/* بانر موافقة الكوكيز — محترم للخصوصية ومطابق لمعايير GDPR/Privacy */}
+      <CookieConsent />
+
+      {/* ═══════════════════════════════════════════════════════════
+          FAQ JSON-LD — بيانات منظمة لمحركات البحث (Schema.org)
+          ═══════════════════════════════════════════════════════════ */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: brand.faq.map(item => ({
+              "@type": "Question",
+              name: item.q,
+              acceptedAnswer: {
+                "@type": "Answer",
+                text: item.a,
+              },
+            })),
+          }),
+        }}
+      />
+
+      {/* WebSite + SearchAction JSON-LD — لتمكين Sitelinks Search Box */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: brand.names.siteName,
+            url: brand.contact.website,
+            inLanguage: "ar",
+            potentialAction: {
+              "@type": "SearchAction",
+              target: {
+                "@type": "EntryPoint",
+                urlTemplate: `${brand.contact.website}/insights?q={search_term_string}`,
+              },
+              "query-input": "required name=search_term_string",
+            },
+            publisher: {
+              "@type": "Organization",
+              name: brand.names.legal,
+              logo: {
+                "@type": "ImageObject",
+                url: `${brand.contact.website}/uamex-erp.png`,
+              },
+            },
+          }),
+        }}
+      />
+
+      {/* BreadcrumbList JSON-LD — للمسارات المهمة في الصفحة */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              {
+                "@type": "ListItem",
+                position: 1,
+                name: "الرئيسية",
+                item: brand.contact.website,
+              },
+              {
+                "@type": "ListItem",
+                position: 2,
+                name: "Uamex_erp",
+                item: `${brand.contact.website}/#uamex`,
+              },
+              {
+                "@type": "ListItem",
+                position: 3,
+                name: "النتائج",
+                item: `${brand.contact.website}/#case-studies`,
+              },
+              {
+                "@type": "ListItem",
+                position: 4,
+                name: "حلول قطاعية",
+                item: `${brand.contact.website}/#industries`,
+              },
+              {
+                "@type": "ListItem",
+                position: 5,
+                name: "مركز الثقة",
+                item: `${brand.contact.website}/#trust-center`,
+              },
+            ],
+          }),
+        }}
+      />
+
+      {/* SoftwareApplication JSON-LD — لمنتج Uamex_erp */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "SoftwareApplication",
+            name: brand.names.erp,
+            alternateName: "Uamex ERP",
+            applicationCategory: "BusinessApplication",
+            applicationSubCategory: "Enterprise Resource Planning",
+            operatingSystem: "Web, iOS, Android, Windows, macOS",
+            description:
+              "منصة حوكمة موحدة للمحاسبة والتجارة والمخزون والموارد البشرية بمعايير IFRS/COSO/PMBOK، تعمل بدون إنترنت.",
+            url: brand.contact.website,
+            downloadUrl: brand.contact.website,
+            softwareVersion: brand.names.version,
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "YER",
+              description: "تجربة مجانية لمدة 14 يوم",
+              availability: "https://schema.org/InStock",
+            },
+            aggregateRating: {
+              "@type": "AggregateRating",
+              ratingValue: "4.8",
+              ratingCount: "127",
+              bestRating: "5",
+              worstRating: "1",
+            },
+            featureList: [
+              "قيد مزدوج كامل بمعايير IFRS",
+              "ضوابط رقابة COSO بثلاثة مستويات",
+              "يعمل بدون إنترنت مع مزامنة تلقائية",
+              "تشفير AES-256-GCM وسجل تدقيق غير قابل للتعديل",
+              "دعم متعدد الفروع والعملات",
+              "تكاملات مع البنوك والضرائب والتطبيقات",
+            ],
+            screenshot: `${brand.contact.website}/og-image.png`,
+            softwareHelp: {
+              "@type": "CreativeWork",
+              url: `${brand.contact.website}/docs`,
+            },
+            author: {
+              "@type": "Organization",
+              name: brand.names.legal,
+              url: brand.contact.website,
+            },
+          }),
+        }}
+      />
+
+      {/* Service JSON-LD — للخدمات المؤسسية */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Service",
+            name: "الاستشارات المؤسسية والإدارية - الحسينية",
+            serviceType: "Business Consulting",
+            provider: {
+              "@type": "Organization",
+              name: brand.names.legal,
+              url: brand.contact.website,
+            },
+            areaServed: {
+              "@type": "Country",
+              name: "اليمن",
+            },
+            hasOfferCatalog: {
+              "@type": "OfferCatalog",
+              name: "خدمات الحسينية",
+              itemListElement: [
+                {
+                  "@type": "OfferCatalog",
+                  name: "الاستشارات المؤسسية",
+                  itemListElement: [
+                    {
+                      "@type": "Offer",
+                      itemOffered: {
+                        "@type": "Service",
+                        name: "تحليل القوائم المالية ووضع خطة علاجية",
+                      },
+                    },
+                    {
+                      "@type": "Offer",
+                      itemOffered: {
+                        "@type": "Service",
+                        name: "بناء هيكل محاسبي يناسب طبيعة عملك",
+                      },
+                    },
+                    {
+                      "@type": "Offer",
+                      itemOffered: {
+                        "@type": "Service",
+                        name: "إعداد الميزانيات التقديرية والتخطيط المالي",
+                      },
+                    },
+                    {
+                      "@type": "Offer",
+                      itemOffered: {
+                        "@type": "Service",
+                        name: "تصميم نظام الصلاحيات والضوابط الداخلية COSO",
+                      },
+                    },
+                  ],
+                },
+                {
+                  "@type": "OfferCatalog",
+                  name: "الخدمات الهندسية",
+                  itemListElement: [
+                    {
+                      "@type": "Offer",
+                      itemOffered: {
+                        "@type": "Service",
+                        name: "جداول الكميات BOQ وحصر المواد",
+                      },
+                    },
+                    {
+                      "@type": "Offer",
+                      itemOffered: {
+                        "@type": "Service",
+                        name: "الرفع المساحي الرقمي GPS",
+                      },
+                    },
+                    {
+                      "@type": "Offer",
+                      itemOffered: {
+                        "@type": "Service",
+                        name: "المخططات المعمارية والإنشائية",
+                      },
+                    },
+                  ],
+                },
+                {
+                  "@type": "OfferCatalog",
+                  name: "الخدمات المعرفية",
+                  itemListElement: [
+                    {
+                      "@type": "Offer",
+                      itemOffered: {
+                        "@type": "Service",
+                        name: "طباعة وتجليد الرسائل الجامعية",
+                      },
+                    },
+                    {
+                      "@type": "Offer",
+                      itemOffered: {
+                        "@type": "Service",
+                        name: "التحليل الإحصائي SPSS",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          }),
+        }}
+      />
+
+      {/* Organization JSON-LD — محسّن للـ Knowledge Panel */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: brand.names.legal,
+            alternateName: ["ALHUSAINIA", "الحسينية"],
+            url: brand.contact.website,
+            logo: `${brand.contact.website}/uamex-erp.png`,
+            description:
+              "الحسينية لخدمات الأعمال — منصة حوكمة مؤسسية موحدة Uamex_erp (محاسبة، تجارة، مخزون، موارد بشرية، مشاريع) بمعايير IFRS/COSO/PMBOK، مع خدمات هندسية ومعرفية.",
+            foundingDate: "2018",
+            address: {
+              "@type": "PostalAddress",
+              addressCountry: "YE",
+              addressLocality: brand.contact.address,
+            },
+            contactPoint: [
+              {
+                "@type": "ContactPoint",
+                telephone: brand.contact.phone,
+                contactType: "customer service",
+                availableLanguage: ["Arabic", "English"],
+                areaServed: "YE",
+              },
+              {
+                "@type": "ContactPoint",
+                email: brand.contact.email,
+                contactType: "sales",
+                availableLanguage: ["Arabic", "English"],
+              },
+            ],
+            sameAs: [
+              brand.contact.website,
+            ],
+            knowsAbout: [
+              "IFRS",
+              "COSO Internal Control",
+              "PMBOK Project Management",
+              "ISO 27001",
+              "ISO 9001",
+              "ERP Systems",
+              "Double-Entry Accounting",
+              "GPS Surveying",
+              "BIM",
+              "BOQ Estimation",
+            ],
+            award: [
+              "Uamex_erp v2.12 — حوكمة بمعايير Big Four",
+              "1,200+ مشروع هندسي منجز",
+              "15,000+ معاملة مالية موثّقة",
+            ],
+          }),
+        }}
+      />
     </div>
   );
 }
