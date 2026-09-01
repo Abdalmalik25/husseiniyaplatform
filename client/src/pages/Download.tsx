@@ -418,7 +418,7 @@ export default function DownloadPage() {
             <Button
               variant="outline"
               onClick={() =>
-                window.open("https://alhusainiaye.vercel.app", "_blank")
+                window.open("https://husseiniya-platform-coral.vercel.app", "_blank")
               }
               className="w-full border-[#102a2b]/20 text-[#102a2b] h-10 text-xs"
             >

@@ -258,7 +258,7 @@ export const brand = {
     engineeringEmail: "engineering@husseiniya-business.com",
     address: "المركز الرئيسي — شارع المؤسسة والمكتبة",
     country: "اليمن",
-    website: "https://alhusainiaye.vercel.app",
+    website: "https://husseiniya-platform-coral.vercel.app",
   },
 
   /** ألوان البراند */

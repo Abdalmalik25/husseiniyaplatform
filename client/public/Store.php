@@ -9,7 +9,7 @@
  * For a full-page storefront instead of an iframe, link directly to STORE_URL.
  * WP users: paste the iframe below into a page via the "Custom HTML" block.
  */
-$STORE_URL = "https://alhusainiaye.vercel.app/store"; // CHANGE ME
+$STORE_URL = "https://husseiniya-platform-coral.vercel.app/store"; // CHANGE ME
 header("Content-Type: text/html; charset=UTF-8");
 ?>
 <!DOCTYPE html>

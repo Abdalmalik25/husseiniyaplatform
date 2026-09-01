@@ -5,10 +5,10 @@
  * ALHUSAINIA storefront and syncs the shopping cart in real time.
  *
  * USAGE (add before </body>):
- *   <script src="https://alhusainiaye.vercel.app/SyncJav.js"></script>
+ *   <script src="https://husseiniya-platform-coral.vercel.app/SyncJav.js"></script>
  *   <script>
  *     SyncJav.init({
- *       storeUrl:   "https://alhusainiaye.vercel.app/store",
+ *       storeUrl:   "https://husseiniya-platform-coral.vercel.app/store",
  *       currency:   "YER",        // optional: tenant currency
  *       branchCode: "MAIN"        // optional: tenant branch code
  *     });

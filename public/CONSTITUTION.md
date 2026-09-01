@@ -2,7 +2,7 @@
 
 > **الاسم العام الموحد:** `الحسينية لخدمات الأعمال` — الشعار الحديث `BrandMark` SVG (كتاب مفتوح + مسار دفتر) — المنصة `ALHUSAINIALOGO.png` / النظام `UAMEX_ERPLOGO.png` / التطبيق `Elias AI.jpg` — كلها معتمدة كأساس افتراضي في `client/public/` و `public/`.
 
-**تاريخ الإقرار:** 28 أغسطس 2026 — الإصدار `v2.11.0` — النطاق `alhusainiaye.vercel.app`
+**تاريخ الإقرار:** 28 أغسطس 2026 — الإصدار `v2.11.0` — النطاق `husseiniya-platform-coral.vercel.app`
 
 ---
 

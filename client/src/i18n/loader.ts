@@ -33,11 +33,18 @@ export async function loadLocale(lang: Language): Promise<Translations> {
 
   let data: Translations;
   try {
-    // Vite resolves .json imports at build time with proper code-splitting.
+    // Static per-locale loader map — Vite resolves each entry at build time
+    // with proper code-splitting, without the dynamic-import-vars template
+    // warning (only "ar" and "en" exist, so an explicit map is clearer anyway).
     // Dynamic import returns a namespace object — unwrap the default export.
-    const module = (await import(`./${lang}.json`, {
-      with: { type: "json" },
-    })) as { default?: Translations } & Record<string, unknown>;
+    const loaders: Record<
+      Language,
+      () => Promise<{ default?: Translations } & Record<string, unknown>>
+    > = {
+      ar: () => import("./ar.json", { with: { type: "json" } }),
+      en: () => import("./en.json", { with: { type: "json" } }),
+    };
+    const module = await loaders[lang]();
     data = (module.default ?? module) as Translations;
   } catch (e) {
     console.error(`[i18n] Failed to load locale "${lang}":`, e);

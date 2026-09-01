@@ -9,7 +9,7 @@
 import { writeFileSync } from "fs";
 import path from "path";
 
-const BASE = "https://alhusainiaye.vercel.app";
+const BASE = "https://husseiniya-platform-coral.vercel.app";
 const LAST_MOD = new Date().toISOString().slice(0, 10);
 
 /** [route, priority, changefreq] — keep in sync with client/src/lib/nav.ts */

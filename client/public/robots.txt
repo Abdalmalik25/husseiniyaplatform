@@ -26,4 +26,4 @@ Disallow: /billing/
 Disallow: /permissions/
 Disallow: /basic-data/
 
-Sitemap: https://alhusainiaye.vercel.app/sitemap.xml
+Sitemap: https://husseiniya-platform-coral.vercel.app/sitemap.xml
