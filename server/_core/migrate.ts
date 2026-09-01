@@ -158,12 +158,28 @@ export type MigrationDecision =
  * absent for drops), which lets the same migration directory run safely on
  * top of a partially-migrated database.
  */
+/**
+ * Format an unknown thrown value into a readable string without relying on
+ * `String(value)`, which renders plain objects as "[object Object]".
+ */
+function formatUnknownError(error: unknown): string {
+  if (error === null || error === undefined) return "unknown error";
+  if (typeof error === "string") return error;
+  if (error instanceof Error) return error.message;
+  try {
+    const json = JSON.stringify(error);
+    return json === undefined ? String(error) : json;
+  } catch {
+    return String(error);
+  }
+}
+
 export function classifyStatementError(
   error: unknown,
   statement?: string
 ): MigrationDecision {
   const raw =
-    error instanceof Error ? error.message : String(error ?? "unknown error");
+    error instanceof Error ? error.message : formatUnknownError(error);
   // Neon driver errors carry the SQLSTATE in a `code` property that is not
   // always embedded in the message text; normalize it so the code checks below work.
   const codeProp = (error as any)?.code;
