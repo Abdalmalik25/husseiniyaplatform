@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
@@ -9,10 +9,8 @@ import { OfflineProvider } from "./lib/offline/OfflineContext";
 import { FloatingSupportWidget } from "@/components/FloatingSupportWidget";
 import { AliasAIAssistant } from "@/components/AliasAIAssistant";
 import { InstallPrompt } from "@/components/InstallPrompt";
-import { BrandLogo } from "@/components/BrandLogo";
 import { CommandPalette } from "@/components/CommandPalette";
 import { SWUpdateToast } from "@/components/SWUpdateToast";
-import { ScrollProgress } from "@/components/ScrollProgress";
 import { ScrollManager } from "@/components/ScrollManager";
 import { PageTitle } from "@/components/PageTitle";
 import { OfflineBanner } from "@/components/OfflineBanner";
@@ -51,9 +49,9 @@ const Procurement = lazy(() => import("@/pages/Procurement"));
 const ProcurementWorkspace = lazy(() => import("@/pages/ProcurementWorkspace"));
 const SupplierAnalytics = lazy(() => import("@/pages/SupplierAnalytics"));
 const Projects = lazy(() => import("@/pages/Projects"));
-const HR = lazy(() => import("@/pages/HR"));
+const HRPage = lazy(() => import("@/pages/HR"));
 const SupportQuality = lazy(() => import("@/pages/SupportQuality"));
-const POS = lazy(() => import("@/pages/POS"));
+const POSPage = lazy(() => import("@/pages/POS"));
 const Permissions = lazy(() => import("@/pages/Permissions"));
 const BasicData = lazy(() => import("@/pages/BasicData"));
 const Journal = lazy(() => import("@/pages/Journal"));
@@ -66,11 +64,17 @@ const Operations = lazy(() => import("@/pages/Operations"));
 const Analytics = lazy(() => import("@/pages/Analytics"));
 const Billing = lazy(() => import("@/pages/Billing"));
 const SubscriberOnboarding = lazy(() => import("@/pages/SubscriberOnboarding"));
+const ClaimSubscription = lazy(() => import("@/pages/ClaimSubscription"));
 const CostCenters = lazy(() => import("@/pages/CostCenters"));
+
+
+
 const ZatcaIntegration = lazy(() => import("@/pages/ZatcaIntegration"));
 const Beneficiaries = lazy(() => import("@/pages/Beneficiaries"));
 const FinancialStatements = lazy(() => import("@/pages/FinancialStatements"));
 const FiscalPeriods = lazy(() => import("@/pages/FiscalPeriods"));
+const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
+const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
 
 /**
  * Unified Route Loader — Single lightweight circular progress for all lazy loads.
@@ -78,9 +82,8 @@ const FiscalPeriods = lazy(() => import("@/pages/FiscalPeriods"));
  */
 function RouteLoader() {
   return (
-    <div
+    <output
       className="min-h-[50vh] flex items-center justify-center"
-      role="status"
       aria-label="جاري تحميل الصفحة"
     >
       <div className="flex flex-col items-center gap-4 text-center">
@@ -89,7 +92,7 @@ function RouteLoader() {
           جاري تحميل الصفحة…
         </p>
       </div>
-    </div>
+    </output>
   );
 }
 
@@ -98,50 +101,7 @@ function RouteLoader() {
  * Uses sessionStorage to track if user has seen it.
  */
 function InitialBootLoader() {
-  const [show, setShow] = useState(true);
-
-  useEffect(() => {
-    const hasSeenBoot = sessionStorage.getItem("huss-initial-boot-seen");
-    if (hasSeenBoot) {
-      setShow(false);
-      return;
-    }
-    // Mark as seen after a short delay to show the loader at least once
-    const timer = setTimeout(() => {
-      sessionStorage.setItem("huss-initial-boot-seen", "true");
-      setShow(false);
-    }, 1200);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (!show) return <RouteLoader />;
-
-  return (
-    <div
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-ink-deep/95 backdrop-blur-md font-display"
-      dir="rtl"
-      role="status"
-      aria-label="جاري تحميل التطبيق"
-    >
-      <div className="flex flex-col items-center gap-4 p-8 rounded-3xl bg-white/[0.02] border border-white/[0.08] shadow-2xl backdrop-blur-xl max-w-xs w-[88%] text-center">
-        <div className="relative">
-          <BrandLogo size={40} />
-          <div className="absolute -inset-2 rounded-2xl bg-brand/15 blur-md -z-10 animate-pulse" />
-        </div>
-
-        <div>
-          <div className="text-base font-black text-white">
-            الحسينية لخدمات الأعمال
-          </div>
-          <div className="text-[11px] text-white/50 tracking-wider font-mono mt-1">
-            Uamex_erp — Unified Asset Management & Enterprise Exchange
-          </div>
-        </div>
-
-        <CircularProgress size={56} variant="brand" strokeWidth={3.5} />
-      </div>
-    </div>
-  );
+  return <RouteLoader />;
 }
 
 function Router() {
@@ -160,6 +120,9 @@ function Router() {
             {/* ── Public marketing & guest pages (no session required) ── */}
             <Route path={"/"} component={Landing} />
             <Route path={"/login"} component={Login} />
+            <Route path={"/claim"} component={ClaimSubscription} />
+            <Route path={"/reset-password"} component={ResetPassword} />
+            <Route path={"/verify-email"} component={VerifyEmail} />
             <Route path={"/about"} component={About} />
             <Route path={"/portal"} component={Portal} />
             <Route path={"/download"} component={Download} />
@@ -239,7 +202,7 @@ function Router() {
             </Route>
             <Route path={"/hr"}>
               <RequireAuth>
-                <HR />
+                <HRPage />
               </RequireAuth>
             </Route>
             <Route path={"/support"}>
@@ -249,7 +212,7 @@ function Router() {
             </Route>
             <Route path={"/pos"}>
               <RequireAuth>
-                <POS />
+                <POSPage />
               </RequireAuth>
             </Route>
             <Route path={"/permissions"}>
@@ -347,87 +310,6 @@ function Router() {
 }
 
 function App() {
-  // Prefetch sibling page chunks after first paint — but *politely*:
-  //   • Skipped entirely for Save-Data / 2G visitors (their data quota wins).
-  //   • Warmed ONE chunk at a time so background traffic never competes with
-  //     user-initiated requests on slow links.
-  //   • Highest-traffic routes queued first.
-  useEffect(() => {
-    const nav = navigator as Navigator & {
-      connection?: { saveData?: boolean; effectiveType?: string };
-    };
-    if (nav.connection?.saveData) return;
-    if (
-      nav.connection?.effectiveType &&
-      /^(slow-)?2g$/.test(nav.connection.effectiveType)
-    )
-      return;
-
-    const chunks: Array<() => Promise<unknown>> = [
-      () => import("@/pages/Login"),
-      () => import("@/pages/Pricing"),
-      () => import("@/pages/Home"),
-      () => import("@/pages/WorkspaceDashboard"),
-      () => import("@/pages/Reports"),
-      () => import("@/pages/Commercial"),
-      () => import("@/pages/Download"),
-      () => import("@/pages/Journal"),
-      () => import("@/pages/Store"),
-      () => import("@/pages/Procurement"),
-      () => import("@/pages/Projects"),
-      () => import("@/pages/HR"),
-      () => import("@/pages/SupportQuality"),
-      () => import("@/pages/POS"),
-      () => import("@/pages/Permissions"),
-      () => import("@/pages/BasicData"),
-      () => import("@/pages/ManualJournal"),
-      () => import("@/pages/Customization"),
-      () => import("@/pages/Branches"),
-      () => import("@/pages/Audit"),
-      () => import("@/pages/Requisitions"),
-      () => import("@/pages/Operations"),
-      () => import("@/pages/Analytics"),
-      () => import("@/pages/Billing"),
-      () => import("@/pages/Settings"),
-      () => import("@/pages/Inventory"),
-      () => import("@/pages/Security"),
-      () => import("@/pages/ErpPage"),
-      () => import("@/pages/Integrate"),
-      () => import("@/pages/Portal"),
-      () => import("@/pages/SubscriberOnboarding"),
-      () => import("@/pages/CostCenters"),
-      () => import("@/pages/ZatcaIntegration"),
-      () => import("@/pages/Beneficiaries"),
-      () => import("@/pages/FinancialStatements"),
-      () => import("@/pages/FiscalPeriods"),
-    ];
-
-    let i = 0;
-    let cancelled = false;
-    const pump = () => {
-      if (cancelled || i >= chunks.length) return;
-      void chunks[i++]()
-        .then(() => {
-          if (!cancelled) window.setTimeout(pump, 300); // breathe between chunks
-        })
-        .catch(() => {});
-    };
-
-    const idle =
-      (
-        window as Window &
-          typeof globalThis & {
-            requestIdleCallback: (cb: () => void) => number;
-          }
-      ).requestIdleCallback ??
-      ((cb: () => void) => window.setTimeout(cb, 2000));
-    const t = idle(pump);
-    return () => {
-      cancelled = true;
-      if (typeof t === "number") clearTimeout(t);
-    };
-  }, []);
-
   // Collect Core Web Vitals (CLS, INP, LCP) for real-user monitoring.
   useWebVitals({ reportOnce: true });
 
@@ -438,7 +320,7 @@ function App() {
             skipping the header & floating widgets (WCAG 2.4.1 "Bypass Blocks"). */}
         <a
           href="#main-content"
-          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:right-3 focus:z-[95] focus:bg-brand focus:text-ink focus:px-4 focus:py-2 focus:rounded-lg focus:font-black focus:text-xs focus:shadow-xl"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:right-3 focus:z-[95] focus:bg-brand focus:text-ink-deep focus:px-4 focus:py-2 focus:rounded-lg focus:font-black focus:text-xs focus:shadow-xl"
         >
           تخطّ إلى المحتوى الرئيسي
         </a>
@@ -451,7 +333,6 @@ function App() {
                 <TooltipProvider>
                   <Toaster />
                   <Router />
-                  <ScrollProgress />
                   <CommandPalette />
                   <GlobalQuickActions />
                   <FloatingSupportWidget />

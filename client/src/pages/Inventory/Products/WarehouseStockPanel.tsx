@@ -106,7 +106,7 @@ export function WarehouseStockPanel() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[#102a2b]">مخزون المخازن</h2>
+          <h2 className="text-lg font-bold text-ink">مخزون المخازن</h2>
           <p className="text-xs text-gray-500">
             عرض وإدارة الأرصدة لكل مخزن على حدة
           </p>
@@ -176,11 +176,11 @@ export function WarehouseStockPanel() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             <Card className="border-0 shadow-sm bg-white p-3">
               <p className="text-[10px] text-gray-500">إجمالي الأصناف</p>
-              <p className="font-bold text-lg text-[#102a2b]">{totalItems}</p>
+              <p className="font-bold text-lg text-ink">{totalItems}</p>
             </Card>
             <Card className="border-0 shadow-sm bg-white p-3">
               <p className="text-[10px] text-gray-500">إجمالي الكمية</p>
-              <p className="font-bold text-lg text-[#102a2b]">
+              <p className="font-bold text-lg text-ink">
                 {formatNum(totalQty)}
               </p>
             </Card>

@@ -612,15 +612,15 @@ Revenue Growth, Gross/Net Margin, EBITDA/EBIT, Current/Quick Ratio, Debt/Equity,
 
 **الحالة: مُنفّذ ✅ — تحقّق عبر `pnpm check` (نظيف) واختبارات `server/accounting.test.ts` (3 ✓)**
 
-| الدين | الحالة | التنفيذ |
-|---|---|---|
-| D1: قفل الفترات غير فعّال (مطابقة startDate بالضبط + دالة ميتة) | ✅ سُدّد | `accountingEngine.ts`: `fiscalPeriodCoversDate` (مدى يومي [start,end]) + `isLockedPeriodStatus` + `findLockedPeriodForDate` + `isPeriodLockedForDate` + `assertPeriodOpen` على المدى والحالتين closing/closed |
-| D2: `addBatchTransactions` يقبل حساباً/مركزاً من مؤسسة أخرى (cross-tenant) | ✅ سُدّد | pre-flight دفعي: ملكية كل الحسابات ومراكز التكلفة لكل الصفوف وإلا رفض الدفعة بالكامل |
-| D3: مسارات الإدخال بلا فحص فترة | ✅ سُدّد | `assertPeriodOpen` في `addTransaction` + `addBatchTransactions` (رفض دفعي) + `dailyEntry` + `createManualJournalEntry` + `updateTransactionLifecycle` (عند الرفع للترحيل) |
-| D4: القيد اليدوي يتجاوز المحرك (بلا فترة، بلا isImmutable، بلا أبعاد) | ✅ سُدّد | فحص الفترة + `isImmutable: true` (متوافق مع `chk_journal_immutable_posted`) + تحقق الحسابات ومراكز التكلفة + `costCenterId` على الرأس والسطور |
-| D5: بلا فصل مهام (SoD) في دورة الحياة | ✅ سُدّد | `canApproveOwnTransaction`: منشئ الحركة لا يعتمد/يرحّل حركته إلا admin/owner |
-| D6: البُعد التحليلي `costCenterId` ميّت | ✈️ نُشّط | مقبول في المحرك (`JournalLeg`/`PostJournalOptions`) وكل مسارات الإدخال + تقرير `financialReports.costCenterSummary` (إيراد/مصروف/صافٍ لكل مركز + غير المُسند) |
-| D7: كشوف العملاء/الموردين خادمية غير موجودة | ✅ سُدّد | `financialReportsRouter`: `customerStatement` + `supplierStatement` (فواتير + دفعات + رصيد متحرك) |
+| الدين                                                                      | الحالة   | التنفيذ                                                                                                                                                                                                       |
+| -------------------------------------------------------------------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| D1: قفل الفترات غير فعّال (مطابقة startDate بالضبط + دالة ميتة)            | ✅ سُدّد | `accountingEngine.ts`: `fiscalPeriodCoversDate` (مدى يومي [start,end]) + `isLockedPeriodStatus` + `findLockedPeriodForDate` + `isPeriodLockedForDate` + `assertPeriodOpen` على المدى والحالتين closing/closed |
+| D2: `addBatchTransactions` يقبل حساباً/مركزاً من مؤسسة أخرى (cross-tenant) | ✅ سُدّد | pre-flight دفعي: ملكية كل الحسابات ومراكز التكلفة لكل الصفوف وإلا رفض الدفعة بالكامل                                                                                                                          |
+| D3: مسارات الإدخال بلا فحص فترة                                            | ✅ سُدّد | `assertPeriodOpen` في `addTransaction` + `addBatchTransactions` (رفض دفعي) + `dailyEntry` + `createManualJournalEntry` + `updateTransactionLifecycle` (عند الرفع للترحيل)                                     |
+| D4: القيد اليدوي يتجاوز المحرك (بلا فترة، بلا isImmutable، بلا أبعاد)      | ✅ سُدّد | فحص الفترة + `isImmutable: true` (متوافق مع `chk_journal_immutable_posted`) + تحقق الحسابات ومراكز التكلفة + `costCenterId` على الرأس والسطور                                                                 |
+| D5: بلا فصل مهام (SoD) في دورة الحياة                                      | ✅ سُدّد | `canApproveOwnTransaction`: منشئ الحركة لا يعتمد/يرحّل حركته إلا admin/owner                                                                                                                                  |
+| D6: البُعد التحليلي `costCenterId` ميّت                                    | ✈️ نُشّط | مقبول في المحرك (`JournalLeg`/`PostJournalOptions`) وكل مسارات الإدخال + تقرير `financialReports.costCenterSummary` (إيراد/مصروف/صافٍ لكل مركز + غير المُسند)                                                 |
+| D7: كشوف العملاء/الموردين خادمية غير موجودة                                | ✅ سُدّد | `financialReportsRouter`: `customerStatement` + `supplierStatement` (فواتير + دفعات + رصيد متحرك)                                                                                                             |
 
 **منهجية:** كل التعديلات additive/غير تدميرية، متوافقة مع قيود المخطط القائمة (checks/immutable)، ومتعددة المستأجرين (tenant-scoped) بالكامل.
 

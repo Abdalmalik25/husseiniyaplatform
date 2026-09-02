@@ -1,6 +1,6 @@
 {
-  "name": "alhusainia-accounting",
-  "version": "2.13.0",
+  "name": "alhusainia",
+  "version": "2.14.1",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -20,7 +20,7 @@
     "db:migrate": "tsx scripts/run-migrations.ts",
     "fonts:download": "node scripts/download-fonts.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
-    "postbuild": "tsx scripts/run-migrations.ts || node -e \"process.exit(0)\"",
+    "postbuild": "tsx scripts/run-migrations.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "seed:e2e": "node --env-file=.env scripts/seed-e2e-user.mjs",
@@ -70,6 +70,7 @@
     "lucide-react": "^0.453.0",
     "nanoid": "^5.1.5",
     "next-themes": "^0.4.6",
+    "nodemailer": "^9.1.1",
     "react": "^19.2.1",
     "react-day-picker": "^9.11.1",
     "react-dom": "^19.2.1",
@@ -92,6 +93,7 @@
     "@types/compression": "^1.8.1",
     "@types/express": "4.17.21",
     "@types/node": "^24.7.0",
+    "@types/nodemailer": "^8.0.1",
     "@types/react": "^19.2.1",
     "@types/react-dom": "^19.2.1",
     "@vitejs/plugin-react": "^5.0.4",

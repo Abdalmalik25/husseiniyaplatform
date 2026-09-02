@@ -217,7 +217,7 @@ export default function HR() {
       className={cn(
         "flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition",
         tab === k
-          ? "bg-brand text-ink shadow"
+          ? "bg-brand text-ink-deep shadow"
           : "bg-panel/60 text-muted hover:bg-panel hover:text-ink"
       )}
     >
@@ -377,7 +377,7 @@ export default function HR() {
                 </div>
                 <Button
                   onClick={() => openForm()}
-                  className="bg-brand text-ink font-bold"
+                  className="bg-brand text-ink-deep font-bold"
                 >
                   <UserPlus className="h-4 w-4" /> موظف جديد
                 </Button>
@@ -496,7 +496,7 @@ export default function HR() {
                 </div>
                 <Button
                   onClick={() => setAttOpen(true)}
-                  className="bg-brand text-ink font-bold"
+                  className="bg-brand text-ink-deep font-bold"
                   disabled={list.length === 0}
                 >
                   <CalendarCheck className="h-4 w-4" /> تسجيل حضور
@@ -906,7 +906,7 @@ export default function HR() {
                 إلغاء
               </Button>
               <Button
-                className="bg-brand text-ink font-bold"
+                className="bg-brand text-ink-deep font-bold"
                 disabled={
                   createEmp.isPending ||
                   updateEmp.isPending ||
@@ -1011,7 +1011,7 @@ export default function HR() {
                 إلغاء
               </Button>
               <Button
-                className="bg-brand text-ink font-bold"
+                className="bg-brand text-ink-deep font-bold"
                 disabled={createAtt.isPending || !attForm.employeeId}
                 onClick={saveAtt}
               >

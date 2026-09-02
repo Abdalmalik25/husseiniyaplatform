@@ -26,21 +26,24 @@ export function CustomerLogos() {
       <div className="max-w-7xl mx-auto">
         {/* Header — minimal */}
         <div className="flex items-center justify-center gap-3 mb-8">
-          <div className="h-px w-8 sm:w-16 bg-gradient-to-l from-transparent to-brand/30" aria-hidden />
+          <div
+            className="h-px w-8 sm:w-16 bg-gradient-to-l from-transparent to-brand/30"
+            aria-hidden
+          />
           <p
             id="customer-logos-title"
             className="text-[11px] font-mono font-bold text-muted-foreground tracking-widest uppercase"
           >
             يثق بنا
           </p>
-          <div className="h-px w-8 sm:w-16 bg-gradient-to-r from-transparent to-brand/30" aria-hidden />
+          <div
+            className="h-px w-8 sm:w-16 bg-gradient-to-r from-transparent to-brand/30"
+            aria-hidden
+          />
         </div>
 
         {/* Marquee — desktop */}
-        <div
-          className="relative overflow-hidden"
-          aria-hidden
-        >
+        <div className="relative overflow-hidden" aria-hidden>
           <div
             className="flex gap-4 animate-[marquee_28s_linear_infinite]"
             style={{

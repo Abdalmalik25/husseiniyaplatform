@@ -133,7 +133,7 @@ export function BrandLogo({
   className,
 }: BrandLogoProps) {
   const wordColor =
-    wordmarkClassName ?? (onDark ? "text-white" : "text-[#0e2a2b]");
+    wordmarkClassName ?? (onDark ? "text-white" : "text-ink");
   return (
     <span className={`inline-flex items-center gap-2.5 ${className ?? ""}`}>
       <BrandMark size={size} />
@@ -146,7 +146,7 @@ export function BrandLogo({
           </span>
           <span
             className={`font-mono font-bold tracking-[0.2em] text-[8px] mt-0.5 ${
-              onDark ? "text-[#d4a574]" : "text-[#b87945]"
+              onDark ? "text-brand-300" : "text-brand"
             }`}
           >
             ALHUSAINIA BUSINESS SERVICES

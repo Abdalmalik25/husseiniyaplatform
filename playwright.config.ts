@@ -20,7 +20,7 @@ export default defineConfig({
   retries: 1,
   reporter: [["list"]],
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL: "http://localhost:3100",
     // Use the system Chrome — no browser download needed (CI/offline-safe)
     channel: "chrome",
     trace: "retain-on-failure",
@@ -30,8 +30,9 @@ export default defineConfig({
   webServer: process.env.E2E_BASE_URL
     ? undefined
     : {
-        command: "pnpm dev",
-        url: "http://localhost:3000",
+        command:
+          "pnpm exec cross-env NODE_ENV=development PORT=3100 tsx server/_core/index.ts",
+        url: "http://localhost:3100",
         reuseExistingServer: true,
         timeout: 120_000,
       },

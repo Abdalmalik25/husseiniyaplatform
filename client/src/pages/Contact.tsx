@@ -306,7 +306,7 @@ export default function Contact() {
                     </div>
                     <Button
                       type="submit"
-                      className="w-full h-12 bg-brand hover:bg-brand-deep text-ink font-black gap-2 text-sm rounded-xl"
+                      className="w-full h-12 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black gap-2 text-sm rounded-xl"
                     >
                       <Send className="w-4 h-4" />
                       إرسال الرسالة

@@ -120,7 +120,7 @@ export default function Procurement() {
             العودة للوحة التحكم
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-brand text-ink flex items-center justify-center font-bold shadow-lg">
+            <div className="w-12 h-12 rounded-2xl bg-brand text-ink-deep flex items-center justify-center font-bold shadow-lg">
               <Truck className="w-6 h-6" />
             </div>
             <div>
@@ -408,7 +408,7 @@ function SuppliersPanel({
               });
               setDialogOpen(true);
             }}
-            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
           >
             <Plus className="w-4 h-4" /> مورد جديد
           </Button>
@@ -587,7 +587,7 @@ function SuppliersPanel({
             </Button>
             <Button
               disabled={!form.name || createM.isPending || updateM.isPending}
-              className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
               onClick={() => {
                 if (editId !== null) {
                   updateM.mutate({
@@ -803,7 +803,7 @@ function InvoicesPanel({
                 resetForm();
                 setDialogOpen(true);
               }}
-              className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
             >
               <Plus className="w-4 h-4" /> فاتورة شراء جديدة
             </Button>
@@ -1074,7 +1074,7 @@ function InvoicesPanel({
                   <span className="text-[11px] font-bold">البنود</span>
                   <Button
                     size="sm"
-                    className="h-7 text-[10px] bg-brand hover:bg-brand-deep text-ink"
+                    className="h-7 text-[10px] bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep"
                     onClick={() => setPickerOpen(true)}
                   >
                     <Package className="w-3 h-3" /> إضافة صنف
@@ -1191,7 +1191,7 @@ function InvoicesPanel({
               </Button>
               <Button
                 disabled={items.length === 0 || createM.isPending}
-                className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+                className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
                 onClick={() =>
                   createM.mutate({
                     supplierId: supplierId ? Number(supplierId) : undefined,

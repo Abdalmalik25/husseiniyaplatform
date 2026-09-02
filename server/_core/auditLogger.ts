@@ -6,14 +6,14 @@
  * - GDPR data access logging
  * - ISO 27001 security monitoring
  * - Internal audit requirements
- * 
+ *
  * Features:
  * - Immutable append-only log (no UPDATE/DELETE allowed)
  * - Cryptographic integrity verification (SHA-256 hashes)
  * - PII/Sensitive data masking
  * - Real-time alerting for suspicious patterns
  * - GDPR right-to-erasure compatible (pseudonymization)
- * 
+ *
  * Scale: 100M+ entries, sub-10ms write latency
  */
 
@@ -34,32 +34,32 @@ export enum AuditAction {
   PASSWORD_RESET = "auth.password.reset",
   MFA_ENABLED = "auth.mfa.enabled",
   MFA_DISABLED = "auth.mfa.disabled",
-  
+
   // Authorization
   PERMISSION_GRANTED = "auth.permission.grant",
   PERMISSION_REVOKED = "auth.permission.revoke",
   ROLE_ASSIGNED = "auth.role.assign",
   ROLE_REMOVED = "auth.role.remove",
-  
+
   // Data Access (CRUD)
   DATA_CREATE = "data.create",
   DATA_READ = "data.read",
   DATA_UPDATE = "data.update",
   DATA_DELETE = "data.delete",
-  
+
   // Financial (Critical)
   JOURNAL_ENTRY_POSTED = "financial.journal.post",
   JOURNAL_ENTRY_REVERSED = "financial.journal.reverse",
   INVOICE_CREATED = "financial.invoice.create",
   INVOICE_PAID = "financial.invoice.paid",
   PAYMENT_PROCESSED = "financial.payment.process",
-  
+
   // Configuration
   SETTING_CHANGED = "config.setting.change",
   INTEGRATION_ACCESSED = "config.integration.access",
   API_KEY_CREATED = "config.apikey.create",
   API_KEY_REVOKED = "config.apikey.revoke",
-  
+
   // Security Events
   RATE_LIMIT_EXCEEDED = "security.ratelimit.exceeded",
   SUSPICIOUS_ACTIVITY = "security.suspicious",
@@ -154,12 +154,23 @@ function maskNationalId(id: string): string {
   return "****" + id.slice(-4);
 }
 
-function maskSensitiveData(data: Record<string, unknown>): Record<string, unknown> {
+function maskSensitiveData(
+  data: Record<string, unknown>
+): Record<string, unknown> {
   const sensitiveFields = [
-    "password", "token", "secret", "apiKey", "ssn", "creditCard",
-    "nationalId", "passport", "bankAccount", "pin", "cvv"
+    "password",
+    "token",
+    "secret",
+    "apiKey",
+    "ssn",
+    "creditCard",
+    "nationalId",
+    "passport",
+    "bankAccount",
+    "pin",
+    "cvv",
   ];
-  
+
   const masked = { ...data };
   for (const field of sensitiveFields) {
     if (field in masked) {
@@ -178,10 +189,13 @@ async function sha256(data: string): Promise<string> {
   const dataBuffer = encoder.encode(data);
   const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+  return hashArray.map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function computeEntryHash(entry: AuditEntry, previousHash: string): Promise<string> {
+async function computeEntryHash(
+  entry: AuditEntry,
+  previousHash: string
+): Promise<string> {
   const content = JSON.stringify({
     timestamp: entry.timestamp.toISOString(),
     tenantId: entry.tenantId,
@@ -209,27 +223,32 @@ export class AuditLogger {
   private lastHash: string = "GENESIS";
   private flushTimer?: ReturnType<typeof setTimeout>;
 
-  constructor(db: NeonDb, options?: {
-    flushIntervalMs?: number;
-    maxBufferSize?: number;
-  }) {
+  constructor(
+    db: NeonDb,
+    options?: {
+      flushIntervalMs?: number;
+      maxBufferSize?: number;
+    }
+  ) {
     this.db = db;
     this.flushIntervalMs = options?.flushIntervalMs ?? 1000;
     this.maxBufferSize = options?.maxBufferSize ?? 100;
-    
+
     // Start flush timer
     this.startFlushTimer();
   }
 
   private startFlushTimer(): void {
     this.flushTimer = setInterval(() => {
-      this.flush().catch((err) => {
+      this.flush().catch(err => {
         console.error("[AuditLogger] Flush error:", err);
       });
     }, this.flushIntervalMs);
   }
 
-  async log(entry: Omit<AuditEntry, "id" | "timestamp" | "entryHash" | "previousHash">): Promise<void> {
+  async log(
+    entry: Omit<AuditEntry, "id" | "timestamp" | "entryHash" | "previousHash">
+  ): Promise<void> {
     const fullEntry: AuditEntry = {
       ...entry,
       timestamp: new Date(),
@@ -249,8 +268,11 @@ export class AuditLogger {
     }
 
     // Real-time alerting for critical events
-    if (fullEntry.severity === AuditSeverity.CRITICAL || fullEntry.severity === AuditSeverity.ERROR) {
-      this.alert(fullEntry).catch((err) => {
+    if (
+      fullEntry.severity === AuditSeverity.CRITICAL ||
+      fullEntry.severity === AuditSeverity.ERROR
+    ) {
+      this.alert(fullEntry).catch(err => {
         console.error("[AuditLogger] Alert error:", err);
       });
     }
@@ -267,7 +289,8 @@ export class AuditLogger {
           "tenantId", "userId", "username", "action", "category",
           "severity", "resourceType", "resourceId", "ipAddress",
           "userAgent", "requestId", "metadata", "previousHash", "entryHash"
-        ) VALUES ${entries.map((entry) => this.db`
+        ) VALUES ${entries.map(
+          entry => this.db`
           (
             ${entry.tenantId},
             ${entry.userId},
@@ -284,7 +307,8 @@ export class AuditLogger {
             ${entry.previousHash ?? "GENESIS"},
             ${entry.entryHash}
           )
-        `)}
+        `
+        )}
       `;
     } catch (error) {
       // If insert fails, log to console and re-add to buffer
@@ -319,7 +343,9 @@ export class AuditLogger {
     }
 
     if (filter.action) {
-      const actions = Array.isArray(filter.action) ? filter.action : [filter.action];
+      const actions = Array.isArray(filter.action)
+        ? filter.action
+        : [filter.action];
       conditions.push(`"action" = ANY($${paramIndex++})`);
       params.push(actions);
     }
@@ -354,7 +380,8 @@ export class AuditLogger {
       params.push(filter.resourceId);
     }
 
-    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
     const limit = filter.limit ?? 100;
     const offset = filter.offset ?? 0;
 
@@ -369,14 +396,18 @@ export class AuditLogger {
     return result as AuditEntry[];
   }
 
-  async verifyIntegrity(startDate?: Date, endDate?: Date): Promise<{
+  async verifyIntegrity(
+    startDate?: Date,
+    endDate?: Date
+  ): Promise<{
     valid: boolean;
     brokenAt?: string;
     totalChecked: number;
   }> {
-    const whereClause = startDate || endDate
-      ? `WHERE ${startDate ? `"timestamp" >= '${startDate.toISOString()}'` : ""} ${endDate ? `AND "timestamp" <= '${endDate.toISOString()}'` : ""}`
-      : "";
+    const whereClause =
+      startDate || endDate
+        ? `WHERE ${startDate ? `"timestamp" >= '${startDate.toISOString()}'` : ""} ${endDate ? `AND "timestamp" <= '${endDate.toISOString()}'` : ""}`
+        : "";
 
     const entries = await this.db`
       SELECT * FROM audit_log
@@ -391,7 +422,10 @@ export class AuditLogger {
     let checked = 0;
 
     for (const entry of rows) {
-      const expectedHash = await computeEntryHash(entry, entry.previousHash || "GENESIS");
+      const expectedHash = await computeEntryHash(
+        entry,
+        entry.previousHash || "GENESIS"
+      );
       if (expectedHash !== entry.entryHash) {
         return {
           valid: false,
@@ -449,12 +483,18 @@ export class AuditLogger {
     return {
       totalEntries: Number(result[0]?.total ?? 0),
       byCategory: Object.fromEntries(
-        (byCategory as unknown as Array<{ category: string; count: string }>).map((r) => [r.category, Number(r.count)]),
+        (
+          byCategory as unknown as Array<{ category: string; count: string }>
+        ).map(r => [r.category, Number(r.count)])
       ) as Record<AuditCategory, number>,
       bySeverity: Object.fromEntries(
-        (bySeverity as unknown as Array<{ severity: string; count: string }>).map((r) => [r.severity, Number(r.count)]),
+        (
+          bySeverity as unknown as Array<{ severity: string; count: string }>
+        ).map(r => [r.severity, Number(r.count)])
       ) as Record<AuditSeverity, number>,
-      byUser: (byUser as unknown as Array<{ userId: string; count: string }>).map((r) => ({
+      byUser: (
+        byUser as unknown as Array<{ userId: string; count: string }>
+      ).map(r => ({
         userId: r.userId,
         count: Number(r.count),
       })),
@@ -490,11 +530,20 @@ export class AuditLogger {
 
 export function logLogin(
   logger: AuditLogger,
-  context: { tenantId: string; userId: string; username?: string; success: boolean; ip?: string; userAgent?: string }
+  context: {
+    tenantId: string;
+    userId: string;
+    username?: string;
+    success: boolean;
+    ip?: string;
+    userAgent?: string;
+  }
 ): Promise<void> {
   return logger.log({
     ...context,
-    action: context.success ? AuditAction.LOGIN_SUCCESS : AuditAction.LOGIN_FAILED,
+    action: context.success
+      ? AuditAction.LOGIN_SUCCESS
+      : AuditAction.LOGIN_FAILED,
     category: AuditCategory.AUTHENTICATION,
     severity: context.success ? AuditSeverity.INFO : AuditSeverity.WARNING,
     metadata: context.success ? undefined : { reason: "failed_attempt" },
@@ -525,7 +574,8 @@ export function logDataAccess(
     userId: context.userId,
     action: actionMap[context.action],
     category: AuditCategory.DATA_ACCESS,
-    severity: context.action === "delete" ? AuditSeverity.WARNING : AuditSeverity.INFO,
+    severity:
+      context.action === "delete" ? AuditSeverity.WARNING : AuditSeverity.INFO,
     resourceType: context.resourceType,
     resourceId: context.resourceId,
     ipAddress: context.ip,

@@ -47,33 +47,20 @@ function StatItem({ icon: Icon, value, label, live }: StatItemProps) {
 export function ExecutiveStatsBar() {
   return (
     <section
-      className="bg-[#0a1f20] border-y border-white/[0.06] py-5 px-4"
+      className="bg-ink-deep border-y border-white/[0.06] py-5 px-4"
       aria-label="مؤشرات تشغيلية مباشرة"
     >
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <StatItem
-            icon={TrendingUp}
-            value="+1,200"
-            label="مشروع منجز"
-          />
-          <StatItem
-            icon={Globe}
-            value="14"
-            label="قطاع يُخدم فعلياً"
-          />
+          <StatItem icon={TrendingUp} value="+1,200" label="مشروع منجز" />
+          <StatItem icon={Globe} value="14" label="قطاع يُخدم فعلياً" />
           <StatItem
             icon={ShieldCheck}
             value="99.6%"
             label="وقت تشغيل فعلي"
             live
           />
-          <StatItem
-            icon={Clock}
-            value="< 2س"
-            label="استجابة الدعم"
-            live
-          />
+          <StatItem icon={Clock} value="< 2س" label="استجابة الدعم" live />
         </div>
       </div>
     </section>

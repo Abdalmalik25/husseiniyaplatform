@@ -360,7 +360,7 @@ export default function InteractiveCalculators() {
 
                   <Button
                     onClick={sendRoiQuoteToWhatsApp}
-                    className="w-full h-12 bg-brand hover:bg-brand-deep text-ink font-black text-xs gap-2 rounded-xl mt-4"
+                    className="w-full h-12 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black text-xs gap-2 rounded-xl mt-4"
                   >
                     <MessageSquare className="w-4 h-4" />
                     احصل على العرض التجريبي بهذه الأرقام

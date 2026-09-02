@@ -210,7 +210,7 @@ export default function ZatcaIntegration() {
               <Button
                 onClick={handleSave}
                 disabled={update.isPending}
-                className="bg-brand hover:bg-brand-deep text-ink font-bold h-9"
+                className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold h-9"
               >
                 {update.isPending ? "جاري الحفظ…" : "حفظ إعدادات ZATCA"}
               </Button>

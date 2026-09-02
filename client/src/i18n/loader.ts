@@ -41,8 +41,8 @@ export async function loadLocale(lang: Language): Promise<Translations> {
       Language,
       () => Promise<{ default?: Translations } & Record<string, unknown>>
     > = {
-      ar: () => import("./ar.json", { with: { type: "json" } }),
-      en: () => import("./en.json", { with: { type: "json" } }),
+      ar: () => import("./ar.json"),
+      en: () => import("./en.json"),
     };
     const module = await loaders[lang]();
     data = (module.default ?? module) as Translations;

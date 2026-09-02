@@ -64,7 +64,10 @@ for (const job of JOBS) {
     async ({ max, type, quality }) => {
       const img = document.querySelector("img");
       await img.decode();
-      const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const scale = Math.min(
+        1,
+        max / Math.max(img.naturalWidth, img.naturalHeight)
+      );
       const w = Math.round(img.naturalWidth * scale);
       const h = Math.round(img.naturalHeight * scale);
       const canvas = document.createElement("canvas");

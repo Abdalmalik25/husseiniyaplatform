@@ -6,7 +6,7 @@
  * - Connection pooling via tRPC context reuse
  * - Rate limiting per IP and per tenant
  * - Request queuing for bulk operations
- * 
+ *
  * Scale target: 10M+ records, 1000+ concurrent users
  * Latency target: P99 < 100ms for cached, P99 < 500ms for uncached
  */
@@ -200,7 +200,10 @@ class RateLimiter {
     bucket.lastRefill = now;
   }
 
-  consume(key: string, cost = 1): { allowed: boolean; remaining: number; resetMs: number } {
+  consume(
+    key: string,
+    cost = 1
+  ): { allowed: boolean; remaining: number; resetMs: number } {
     const bucket = this.getBucket(key);
     this.refill(bucket);
 
@@ -318,7 +321,7 @@ class BatchProcessor<T> {
 
       // Setup timeout
       const timeout = setTimeout(() => {
-        const idx = this.queue.findIndex((r) => r.id === id);
+        const idx = this.queue.findIndex(r => r.id === id);
         if (idx !== -1) {
           this.queue.splice(idx, 1);
           reject(new Error(`Batch timeout for ${id}`));
@@ -348,7 +351,7 @@ class BatchProcessor<T> {
     const batch = this.queue.splice(0, this.batchSize);
 
     try {
-      await Promise.all(batch.map((req) => req.query()));
+      await Promise.all(batch.map(req => req.query()));
     } catch (error) {
       console.error("Batch processing error:", error);
     }
@@ -382,7 +385,11 @@ export const requestContext = new AsyncLocalStorage<{
 
 import type { Request, Response, NextFunction } from "express";
 
-export function performanceMiddleware(req: Request, res: Response, next: NextFunction) {
+export function performanceMiddleware(
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
   const startTime = Date.now();
 

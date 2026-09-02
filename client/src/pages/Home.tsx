@@ -793,11 +793,11 @@ export default function Home() {
   if (!isAuthenticated && !authLoading) {
     return (
       <div
-        className="min-h-screen bg-[#0d1b1c] flex flex-col items-center justify-center p-4 text-white"
+        className="min-h-screen bg-ink-deep flex flex-col items-center justify-center p-4 text-white"
         dir="rtl"
       >
         <div className="w-full max-w-md space-y-6 text-center">
-          <div className="bg-[#b87945] text-[#102a2b] w-14 h-14 rounded-2xl mx-auto flex items-center justify-center font-bold shadow-lg">
+          <div className="bg-brand text-ink-deep w-14 h-14 rounded-2xl mx-auto flex items-center justify-center font-bold shadow-lg">
             <Building2 className="w-7 h-7" />
           </div>
           <h1 className="text-xl font-bold font-display">
@@ -806,7 +806,7 @@ export default function Home() {
           <p className="text-sm text-slate-400">
             مؤسسة الحسينية لخدمات الأعمال
           </p>
-          <Card className="bg-[#162e30] border-[#1e3a3c] text-white p-6 space-y-4 shadow-xl">
+          <Card className="bg-ink-800 border-ink-600 text-white p-6 space-y-4 shadow-xl">
             <p className="text-xs text-slate-400">
               الرجاء تسجيل الدخول للوصول لنظام الحسابات — عزل تام للبيانات
               ومعايير موثوقة
@@ -815,21 +815,21 @@ export default function Home() {
               <TooltipTrigger asChild>
                 <Button
                   onClick={() => goLogin()}
-                  className="w-full bg-[#b87945] hover:bg-[#a06838] text-xs h-10 font-bold text-[#102a2b]"
+                  className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-xs h-10 font-bold text-ink-deep"
                 >
                   تسجيل الدخول الآمن
                 </Button>
               </TooltipTrigger>
               <TooltipContent
                 sideOffset={5}
-                className="text-xs bg-[#1e3a3c] text-white border border-[#2a4e50]"
+                className="text-xs bg-ink-600 text-white border border-ink-500"
               >
                 تسجيل الدخول باستخدام بيانات الاعتماد الشخصية
               </TooltipContent>
             </Tooltip>
           </Card>
-          <div className="mt-4 rounded-2xl border border-[#1e3a3c] bg-[#0d1b1c]/80 p-5 text-right">
-            <h3 className="text-sm font-bold text-[#b87945] mb-3">
+          <div className="mt-4 rounded-2xl border border-ink-600 bg-ink-deep/80 p-5 text-right">
+            <h3 className="text-sm font-bold text-brand mb-3">
               جرّب النظام مجاناً
             </h3>
             <p className="text-xs text-slate-400 leading-6 mb-3">
@@ -853,23 +853,23 @@ export default function Home() {
       <HeaderNavbar onOpenSettings={() => setIsSettingsOpen(!isSettingsOpen)} />
 
       {isSettingsOpen && (
-        <div className="bg-[#1e3a3c] border-b border-[#2a4e50] px-4 py-2.5">
+        <div className="bg-ink-600 border-b border-ink-500 px-4 py-2.5">
           <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 text-xs text-white">
             <span className="text-slate-300 font-medium">اسم المؤسسة:</span>
             <Input
               value={instName}
               onChange={e => setInstName(e.target.value)}
-              className="bg-[#102a2b] border-[#2a4e50] text-white text-xs h-7 w-48"
+              className="bg-ink border-ink-500 text-white text-xs h-7 w-48"
             />
             <span className="text-slate-300 font-medium mr-2">العملة:</span>
             <Input
               value={currency}
               onChange={e => setCurrency(e.target.value)}
-              className="bg-[#102a2b] border-[#2a4e50] text-white text-xs h-7 w-28"
+              className="bg-ink border-ink-500 text-white text-xs h-7 w-28"
             />
             <Button
               size="sm"
-              className="bg-[#b87945] hover:bg-[#a06838] h-7 text-xs px-3 font-bold text-[#102a2b]"
+              className="bg-brand hover:bg-brand-deep hover:text-sand h-7 text-xs px-3 font-bold text-ink-deep"
               onClick={() => {
                 updateSettingsMutation.mutate({
                   institutionName: instName,
@@ -889,7 +889,7 @@ export default function Home() {
       {/* Download & Services Banner */}
       <div className="brand-gradient text-white mx-3 mt-3 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-center justify-between gap-3 shadow-lg">
         <div className="flex items-center gap-3">
-          <div className="bg-[#b87945] text-[#102a2b] w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
+          <div className="bg-brand text-ink-deep w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
             <Building2 className="w-5 h-5" />
           </div>
           <div>
@@ -904,7 +904,7 @@ export default function Home() {
         <div className="flex items-center gap-2 flex-wrap">
           <Button
             size="sm"
-            className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs font-bold h-8 px-4"
+            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs font-bold h-8 px-4"
             onClick={() => (window.location.href = "/about")}
           >
             التعريف بالمؤسسة والمكتبة
@@ -929,7 +929,7 @@ export default function Home() {
                 key={i}
                 className="p-4 bg-white shadow-sm flex items-center justify-center h-20"
               >
-                <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />
+                <Loader2 className="w-5 h-5 animate-spin text-brand" />
               </Card>
             ))}
           </div>
@@ -992,16 +992,16 @@ export default function Home() {
           summaryData.totalRevenue === 0 &&
           summaryData.totalExpense === 0 &&
           (transactionsData?.length ?? 0) === 0 && (
-            <div className="rounded-2xl border border-[#e8c9a0] bg-gradient-to-l from-[#fbf6ee] to-[#f5ece0] p-4 md:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
+            <div className="rounded-2xl border border-brand-200 bg-gradient-to-l from-brand-50 to-muted p-4 md:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="bg-[#b87945] text-[#102a2b] w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
+                <div className="bg-brand text-ink-deep w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
                   <Sparkles className="w-5 h-5" />
                 </div>
                 <div>
-                  <h3 className="text-sm font-bold text-[#5c3d1e]">
+                  <h3 className="text-sm font-bold text-brand-800">
                     مرحباً بك! منصة الحسينية جاهزة للانطلاق
                   </h3>
-                  <p className="text-[11px] text-[#7a5228] mt-0.5">
+                  <p className="text-[11px] text-brand-700 mt-0.5">
                     الأصول والدليل المحاسبي (12 حساباً) مُجهّزون. ابدأ بتسجيل
                     أول حركة مالية — سيُترحّل فوراً ويرصد في السجل والتدقيق
                     والتقارير.
@@ -1011,7 +1011,7 @@ export default function Home() {
               <Button
                 size="sm"
                 onClick={() => setActiveTab("entry")}
-                className="bg-[#b87945] hover:bg-[#a06838] text-white text-xs font-bold h-8 px-4 shrink-0"
+                className="bg-brand hover:bg-brand-deep text-white text-xs font-bold h-8 px-4 shrink-0"
               >
                 <Plus className="w-3.5 h-3.5 ml-1" /> ابدأ الإدخال السريع
               </Button>
@@ -1024,60 +1024,60 @@ export default function Home() {
             size="sm"
             variant="outline"
             onClick={() => setActiveTab("entry")}
-            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+            className="h-8 text-xs border-brand-200 bg-white text-brand-800 hover:bg-brand-50"
           >
-            <Plus className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> إدخال سريع
+            <Plus className="w-3.5 h-3.5 ml-1 text-brand" /> إدخال سريع
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => setActiveTab("reports")}
-            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+            className="h-8 text-xs border-brand-200 bg-white text-brand-800 hover:bg-brand-50"
           >
-            <FileText className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> السجل
+            <FileText className="w-3.5 h-3.5 ml-1 text-brand" /> السجل
             والتقارير
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => (window.location.href = "/commercial")}
-            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+            className="h-8 text-xs border-brand-200 bg-white text-brand-800 hover:bg-brand-50"
           >
-            <Layers className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> المحاسبة
+            <Layers className="w-3.5 h-3.5 ml-1 text-brand" /> المحاسبة
             التجارية
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => (window.location.href = "/store")}
-            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+            className="h-8 text-xs border-brand-200 bg-white text-brand-800 hover:bg-brand-50"
           >
-            <ShoppingCart className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> المتجر
+            <ShoppingCart className="w-3.5 h-3.5 ml-1 text-brand" /> المتجر
             الإلكتروني
           </Button>
           <Button
             size="sm"
             variant="outline"
             onClick={() => setActiveTab("analytics")}
-            className="h-8 text-xs border-[#e8c9a0] bg-white text-[#5c3d1e] hover:bg-[#faf5ed]"
+            className="h-8 text-xs border-brand-200 bg-white text-brand-800 hover:bg-brand-50"
           >
-            <BarChart3 className="w-3.5 h-3.5 ml-1 text-[#b87945]" /> التحليلات
+            <BarChart3 className="w-3.5 h-3.5 ml-1 text-brand" /> التحليلات
             والمساعد ألياس
           </Button>
         </div>
 
         {/* Commercial Overview Panel */}
-        <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
-          <CardHeader className="py-2.5 px-4 border-b border-[#f0dfc8] bg-[#f5ece0] flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-bold text-[#5c3d1e] flex items-center gap-1.5">
-              <Layers className="w-4 h-4 text-[#7a5228]" /> نظرة تجارية سريعة —
+        <Card className="border-brand-200 bg-brand-50 shadow-sm">
+          <CardHeader className="py-2.5 px-4 border-b border-brand-100 bg-muted flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-bold text-brand-800 flex items-center gap-1.5">
+              <Layers className="w-4 h-4 text-brand-700" /> نظرة تجارية سريعة —
               المخزون والمبيعات والذمم
             </CardTitle>
             <Button
               size="sm"
               variant="ghost"
               onClick={() => (window.location.href = "/commercial")}
-              className="h-6 text-[10px] text-[#b87945] font-bold hover:bg-[#f5ece0]"
+              className="h-6 text-[10px] text-brand font-bold hover:bg-muted"
             >
               فتح المحاسبة التجارية
             </Button>
@@ -1089,7 +1089,7 @@ export default function Home() {
               <>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <div
-                    className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center"
+                    className="p-2.5 rounded-lg bg-white border border-brand-100 text-center"
                     title="مبيعات الشهر الجاري"
                   >
                     <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1">
@@ -1103,7 +1103,7 @@ export default function Home() {
                     </p>
                   </div>
                   <div
-                    className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center"
+                    className="p-2.5 rounded-lg bg-white border border-brand-100 text-center"
                     title="مشتريات الشهر الجاري"
                   >
                     <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1">
@@ -1117,18 +1117,18 @@ export default function Home() {
                     </p>
                   </div>
                   <div
-                    className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center"
+                    className="p-2.5 rounded-lg bg-white border border-brand-100 text-center"
                     title="المنتجات النشطة في المخزون"
                   >
                     <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1">
-                      <Package className="w-3 h-3 text-[#b87945]" /> منتجات نشطة
+                      <Package className="w-3 h-3 text-brand" /> منتجات نشطة
                     </p>
-                    <p className="text-xs font-bold text-[#5c3d1e] mt-0.5 font-mono">
+                    <p className="text-xs font-bold text-brand-800 mt-0.5 font-mono">
                       {commercialStats?.counts?.products || 0}
                     </p>
                   </div>
                   <div
-                    className="p-2.5 rounded-lg bg-white border border-[#f0dfc8] text-center"
+                    className="p-2.5 rounded-lg bg-white border border-brand-100 text-center"
                     title="عدد العملاء النشطين"
                   >
                     <p className="text-[9px] font-bold text-slate-500 flex items-center justify-center gap-1">
@@ -1188,20 +1188,20 @@ export default function Home() {
         </Card>
 
         {/* Quick Transaction Entry Widget */}
-        <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
-          <CardHeader className="py-2.5 px-4 border-b border-[#f0dfc8] bg-[#f5ece0] flex flex-row items-center justify-between">
-            <CardTitle className="text-xs font-bold text-[#5c3d1e] flex items-center gap-1.5">
-              <Plus className="w-4 h-4 text-[#7a5228]" /> أداة الإدخال السريع
+        <Card className="border-brand-200 bg-brand-50 shadow-sm">
+          <CardHeader className="py-2.5 px-4 border-b border-brand-100 bg-muted flex flex-row items-center justify-between">
+            <CardTitle className="text-xs font-bold text-brand-800 flex items-center gap-1.5">
+              <Plus className="w-4 h-4 text-brand-700" /> أداة الإدخال السريع
               للمعاملات اليومية (اعتماد فوري)
             </CardTitle>
-            <span className="text-[10px] text-[#7a5228] font-mono">
+            <span className="text-[10px] text-brand-700 font-mono">
               تاريخ الحركة: {quickDate}
             </span>
           </CardHeader>
           <CardContent className="p-3">
             <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-center">
               <Select value={quickAccountId} onValueChange={setQuickAccountId}>
-                <SelectTrigger className="h-8 text-xs bg-white border-[#e8c9a0]">
+                <SelectTrigger className="h-8 text-xs bg-white border-brand-200">
                   <SelectValue placeholder="اختر الحساب النشط..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -1221,18 +1221,18 @@ export default function Home() {
                 placeholder="قيمة المبلغ..."
                 value={quickAmount}
                 onChange={e => setQuickAmount(e.target.value)}
-                className="h-8 text-xs bg-white border-[#e8c9a0] font-bold"
+                className="h-8 text-xs bg-white border-brand-200 font-bold"
               />
               <Input
                 placeholder="البيان أو وصف الحركة (اختياري)..."
                 value={quickNarration}
                 onChange={e => setQuickNarration(e.target.value)}
-                className="h-8 text-xs bg-white border-[#e8c9a0]"
+                className="h-8 text-xs bg-white border-brand-200"
               />
               <Button
                 onClick={handleQuickEntry}
                 disabled={addBatchTransactionsMutation.isPending}
-                className="h-8 bg-[#b87945] hover:bg-[#a06838] text-white text-xs font-bold"
+                className="h-8 bg-brand hover:bg-brand-deep text-white text-xs font-bold"
               >
                 {addBatchTransactionsMutation.isPending ? (
                   <Loader2 className="w-3 h-3 animate-spin ml-1" />
@@ -1291,7 +1291,7 @@ export default function Home() {
             <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
               <CardHeader className="bg-slate-50 border-b py-2.5 px-4 flex flex-row items-center justify-between">
                 <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Layers className="w-3.5 h-3.5 text-[#b87945]" /> جدول الإدخال
+                  <Layers className="w-3.5 h-3.5 text-brand" /> جدول الإدخال
                   السريع متعدد الحسابات (الحسابات النشطة فقط)
                 </CardTitle>
                 <div className="relative">
@@ -1307,7 +1307,7 @@ export default function Home() {
               <CardContent className="p-0 overflow-x-auto">
                 {loadingAccounts ? (
                   <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />{" "}
+                    <Loader2 className="w-5 h-5 animate-spin text-brand" />{" "}
                     جاري تحميل الحسابات النشطة...
                   </div>
                 ) : (
@@ -1375,7 +1375,7 @@ export default function Home() {
             </Card>
 
             {/* Floating Action Bar */}
-            <div className="flex justify-end gap-2 bg-[#102a2b] p-2.5 rounded-xl sticky bottom-16 shadow-lg border border-[#1e3a3c]">
+            <div className="flex justify-end gap-2 bg-ink p-2.5 rounded-xl sticky bottom-16 shadow-lg border border-ink-600">
               <Button
                 size="sm"
                 onClick={() => {
@@ -1399,9 +1399,9 @@ export default function Home() {
                   });
                 }}
                 disabled={addBatchTransactionsMutation.isPending}
-                className="bg-[#1e3a3c] hover:bg-[#1e3a3c] text-white text-xs h-8 px-3 font-semibold"
+                className="bg-ink-600 hover:bg-ink-600 text-white text-xs h-8 px-3 font-semibold"
               >
-                <Save className="w-3.5 h-3.5 ml-1 text-[#d4a574]" /> حفظ مسودة
+                <Save className="w-3.5 h-3.5 ml-1 text-brand-300" /> حفظ مسودة
               </Button>
               <Button
                 size="sm"
@@ -1444,7 +1444,7 @@ export default function Home() {
             <Card className="p-4 bg-white shadow-sm border-slate-200">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Scale className="w-4 h-4 text-[#b87945]" />
+                  <Scale className="w-4 h-4 text-brand" />
                   <h3 className="text-xs font-bold text-slate-800">
                     الأرصدة الافتتاحية للفترة — ترحيل أرصدة بداية السنة
                   </h3>
@@ -1452,7 +1452,7 @@ export default function Home() {
                 <Button
                   size="sm"
                   onClick={openOpeningBalances}
-                  className="h-7 px-2.5 text-xs bg-[#b87945] hover:bg-[#a06838] text-white font-semibold"
+                  className="h-7 px-2.5 text-xs bg-brand hover:bg-brand-deep text-white font-semibold"
                 >
                   <Scale className="w-3.5 h-3.5 ml-1" /> إدارة الأرصدة
                 </Button>
@@ -1467,7 +1467,7 @@ export default function Home() {
             {/* Add New Account Card */}
             <Card className="p-4 bg-white shadow-sm border-slate-200">
               <h3 className="text-xs font-bold text-slate-800 mb-3 flex items-center gap-1.5">
-                <Plus className="w-4 h-4 text-[#b87945]" /> إضافة حساب جديد إلى
+                <Plus className="w-4 h-4 text-brand" /> إضافة حساب جديد إلى
                 الدليل الشجري
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-center text-xs">
@@ -1522,7 +1522,7 @@ export default function Home() {
                     });
                   }}
                   disabled={createAccountMutation.isPending}
-                  className="h-8 bg-[#b87945] hover:bg-[#a06838] text-white font-bold"
+                  className="h-8 bg-brand hover:bg-brand-deep text-white font-bold"
                 >
                   {createAccountMutation.isPending ? (
                     <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" />
@@ -1539,7 +1539,7 @@ export default function Home() {
               <div className="flex flex-wrap justify-between items-center gap-3">
                 <div className="flex items-center gap-2">
                   <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                    <Network className="w-4 h-4 text-[#b87945]" /> العرض الشجري
+                    <Network className="w-4 h-4 text-brand" /> العرض الشجري
                     المتقدم (اسحب وأفلت لإعادة الترتيب)
                   </h3>
                   <div className="flex bg-slate-100 p-0.5 rounded-lg text-[11px]">
@@ -1571,7 +1571,7 @@ export default function Home() {
 
               {loadingAccounts ? (
                 <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                  <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />{" "}
+                  <Loader2 className="w-5 h-5 animate-spin text-brand" />{" "}
                   جاري تحميل الدليل الشجري...
                 </div>
               ) : accountViewMode === "tree" ? (
@@ -1597,7 +1597,7 @@ export default function Home() {
                     {
                       key: "revenue",
                       label: "الإيرادات (Revenues)",
-                      color: "border-[#e8c9a0] bg-[#faf5ed] text-[#5c3d1e]",
+                      color: "border-brand-200 bg-brand-50 text-brand-800",
                     },
                     {
                       key: "expense",
@@ -1619,7 +1619,7 @@ export default function Home() {
                     return (
                       <div
                         key={group.key}
-                        className={`p-3 rounded-xl border ${group.color} space-y-2 transition-all ${dropTargetId === -100 ? "ring-2 ring-[#b87945] bg-[#f5ece0]/60" : ""}`}
+                        className={`p-3 rounded-xl border ${group.color} space-y-2 transition-all ${dropTargetId === -100 ? "ring-2 ring-brand bg-muted/60" : ""}`}
                         onDragOver={e => {
                           e.preventDefault();
                           setDropTargetId(-100);
@@ -1685,7 +1685,7 @@ export default function Home() {
                                     setDraggedAccountId(null);
                                   }
                                 }}
-                                className={`p-2.5 rounded-lg bg-white/95 border transition-all ${isTarget ? "border-amber-500 ring-2 ring-[#d4a574] bg-[#b87945]/10 shadow-md scale-[1.01]" : "border-slate-200 shadow-sm"} space-y-2 cursor-grab active:cursor-grabbing`}
+                                className={`p-2.5 rounded-lg bg-white/95 border transition-all ${isTarget ? "border-amber-500 ring-2 ring-brand-300 bg-brand/10 shadow-md scale-[1.01]" : "border-slate-200 shadow-sm"} space-y-2 cursor-grab active:cursor-grabbing`}
                               >
                                 <div className="flex justify-between items-center text-xs">
                                   <div className="flex items-center gap-2">
@@ -1733,7 +1733,7 @@ export default function Home() {
 
                                 {/* Children Sub-accounts */}
                                 {children.length > 0 && (
-                                  <div className="pr-6 border-r-2 border-[#b87945] space-y-1.5 pt-1">
+                                  <div className="pr-6 border-r-2 border-brand space-y-1.5 pt-1">
                                     {children.map((child: any) => (
                                       <div
                                         key={child.id}
@@ -1846,7 +1846,7 @@ export default function Home() {
             <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
               <CardHeader className="bg-slate-50 border-b py-2.5 px-4">
                 <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-[#b87945]" /> إقفال الدورة
+                  <Lock className="w-3.5 h-3.5 text-brand" /> إقفال الدورة
                   المحاسبية
                 </CardTitle>
               </CardHeader>
@@ -1877,7 +1877,7 @@ export default function Home() {
                 </div>
 
                 <Button
-                  className="w-full h-8 text-xs bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold"
+                  className="w-full h-8 text-xs bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold"
                   onClick={() =>
                     setClosingPreviewParams({
                       periodName: closingPeriod.trim() || "السنة المالية 2026",
@@ -1891,7 +1891,7 @@ export default function Home() {
 
                 {closingPreview.isLoading && (
                   <div className="py-6 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                    <Loader2 className="w-4 h-4 animate-spin text-[#b87945]" />{" "}
+                    <Loader2 className="w-4 h-4 animate-spin text-brand" />{" "}
                     جاري حساب أرصدة الدورة...
                   </div>
                 )}
@@ -1987,7 +1987,7 @@ export default function Home() {
                 )}
 
                 <Button
-                  className="w-full h-9 text-xs bg-[#102a2b] hover:bg-[#1d3f40] text-white font-bold"
+                  className="w-full h-9 text-xs bg-ink hover:bg-ink-600 text-white font-bold"
                   disabled={
                     !closingPreview.data ||
                     closingPreview.data.rows.length === 0 ||
@@ -2026,7 +2026,7 @@ export default function Home() {
             <Card className="p-4 bg-white shadow-sm border-slate-200 space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
                 <h2 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                  <Filter className="w-4 h-4 text-[#b87945]" /> تصفية وفرز
+                  <Filter className="w-4 h-4 text-brand" /> تصفية وفرز
                   السجلات المالية والتقارير الرسمية
                 </h2>
                 <div className="flex items-center gap-1.5">
@@ -2047,7 +2047,7 @@ export default function Home() {
                   <Button
                     size="sm"
                     onClick={handleExportPDF}
-                    className="h-7 px-2.5 text-xs bg-[#b87945] hover:bg-[#a06838] text-white font-semibold"
+                    className="h-7 px-2.5 text-xs bg-brand hover:bg-brand-deep text-white font-semibold"
                   >
                     <FileText className="w-3.5 h-3.5 ml-1" /> PDF / طباعة
                   </Button>
@@ -2121,7 +2121,7 @@ export default function Home() {
               <div className="overflow-x-auto pt-2">
                 {loadingTx ? (
                   <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />{" "}
+                    <Loader2 className="w-5 h-5 animate-spin text-brand" />{" "}
                     جاري تحميل السجلات المالية...
                   </div>
                 ) : (
@@ -2160,7 +2160,7 @@ export default function Home() {
                             <td className="py-2 px-3">
                               <Badge
                                 variant="outline"
-                                className={`text-[10px] px-1.5 py-0.5 ${tx.lifecycleStatus === "approved" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-[#b87945]/10 text-[#7a5228] border-[#e8c9a0]"}`}
+                                className={`text-[10px] px-1.5 py-0.5 ${tx.lifecycleStatus === "approved" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-brand/10 text-brand-700 border-brand-200"}`}
                               >
                                 {tx.lifecycleStatus === "approved"
                                   ? "معتمد ومرحل"
@@ -2205,7 +2205,7 @@ export default function Home() {
           <TabsContent value="audit" className="space-y-3">
             <Card className="p-4 bg-white shadow-sm border-slate-200 space-y-3">
               <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 border-b pb-3">
-                <ShieldAlert className="w-4 h-4 text-[#b87945]" /> سجل التدقيق
+                <ShieldAlert className="w-4 h-4 text-brand" /> سجل التدقيق
                 الشامل وتتبع الحركات (Audit Trail)
               </h3>
               <p className="text-[11px] text-slate-500">
@@ -2225,7 +2225,7 @@ export default function Home() {
                           <span className="font-bold text-slate-900">
                             {log.action}
                           </span>
-                          <span className="text-[10px] bg-[#f5ece0] text-[#5c3d1e] px-1.5 py-0.5 rounded font-mono">
+                          <span className="text-[10px] bg-muted text-brand-800 px-1.5 py-0.5 rounded font-mono">
                             {log.userName || "المشرف"}
                           </span>
                         </div>
@@ -2254,10 +2254,10 @@ export default function Home() {
               currency={currency}
             />
 
-            <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
-              <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-[#f0dfc8]">
-                <CardTitle className="flex items-center gap-2 text-[#5c3d1e] text-xs font-bold">
-                  <Sparkles className="w-4 h-4 text-[#b87945]" /> تحليل المساعد
+            <Card className="border-brand-200 bg-brand-50 shadow-sm">
+              <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-brand-100">
+                <CardTitle className="flex items-center gap-2 text-brand-800 text-xs font-bold">
+                  <Sparkles className="w-4 h-4 text-brand" /> تحليل المساعد
                   المالي الذكي (Forge LLM)
                 </CardTitle>
                 <Button
@@ -2265,7 +2265,7 @@ export default function Home() {
                   variant="outline"
                   onClick={() => refetchAiAdvisor()}
                   disabled={aiLoading}
-                  className="h-7 text-[10px] bg-white border-[#b87945]"
+                  className="h-7 text-[10px] bg-white border-brand"
                 >
                   {aiLoading ? (
                     <Loader2 className="w-3 h-3 animate-spin ml-1" />
@@ -2277,7 +2277,7 @@ export default function Home() {
               <CardContent className="p-4 text-xs leading-relaxed whitespace-pre-wrap text-slate-800">
                 {aiLoading ? (
                   <div className="py-8 flex items-center justify-center gap-2 text-slate-500">
-                    <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" />{" "}
+                    <Loader2 className="w-5 h-5 animate-spin text-brand" />{" "}
                     جاري استنتاج التوصيات المالية بدقة...
                   </div>
                 ) : (
@@ -2341,7 +2341,7 @@ export default function Home() {
           <TabsContent value="profile" className="space-y-3">
             <Card className="p-4 space-y-4 bg-white shadow-sm border-slate-200 text-xs">
               <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-                <div className="bg-[#f5ece0] text-[#5c3d1e] w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-inner">
+                <div className="bg-muted text-brand-800 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-inner">
                   {(profileName || "U").charAt(0).toUpperCase()}
                 </div>
                 <div>
@@ -2350,7 +2350,7 @@ export default function Home() {
                   </h2>
                   <p className="text-slate-500 text-[11px]">
                     {profileEmail || "user@al-husainia.com"} • الدور الوظيفي:{" "}
-                    <span className="font-semibold text-[#b87945]">
+                    <span className="font-semibold text-brand">
                       {user?.role || "admin"}
                     </span>
                   </p>
@@ -2389,7 +2389,7 @@ export default function Home() {
                       compactMode: false,
                     });
                   }}
-                  className="w-full bg-[#102a2b] hover:bg-[#1e3a3c] text-white text-xs h-9 font-bold mt-2 shadow"
+                  className="w-full bg-ink hover:bg-ink-600 text-white text-xs h-9 font-bold mt-2 shadow"
                 >
                   حفظ وتحديث الملف الشخصي
                 </Button>
@@ -2417,7 +2417,7 @@ export default function Home() {
         >
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Upload className="w-4 h-4 text-[#b87945]" /> استيراد جماعي
+              <Upload className="w-4 h-4 text-brand" /> استيراد جماعي
               للحركات (Excel/CSV)
             </DialogTitle>
             <DialogDescription
@@ -2429,8 +2429,8 @@ export default function Home() {
                 <b>التاريخ، الحساب، الكود، المبلغ، البيان، النوع</b> (النوع
                 اختياري). يدعم أيضاً اللصق المباشر من ملف Excel المُصدَّر.
               </p>
-              <p className="text-[11px] bg-[#fff8ef] border border-[#e8c9a0] rounded-lg p-2.5 text-slate-700 leading-relaxed">
-                <span className="font-bold text-[#b87945]">دليل سريع:</span>{" "}
+              <p className="text-[11px] bg-sand border border-brand-200 rounded-lg p-2.5 text-slate-700 leading-relaxed">
+                <span className="font-bold text-brand">دليل سريع:</span>{" "}
                 التاريخ <b>2026-08-01</b> أو <b>01/08/2026</b> · المبلغ أرقام
                 فقط · النوع <b>debit</b> (مدين) أو <b>credit</b> (دائن) ويُفترض{" "}
                 <b>debit</b> إن تُرك فارغاً، والمبلغ السالب يُحول دائناً
@@ -2522,7 +2522,7 @@ export default function Home() {
         <DialogContent className="max-w-lg font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Scale className="w-4 h-4 text-[#b87945]" /> الأرصدة الافتتاحية
+              <Scale className="w-4 h-4 text-brand" /> الأرصدة الافتتاحية
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-600 pt-2">
               أدخل أرصدة بداية الفترة لحسابات الميزانية — الإيرادات والمصروفات
@@ -2611,7 +2611,7 @@ export default function Home() {
               size="sm"
               onClick={handleObSave}
               disabled={saveOpeningBalancesMutation.isPending}
-              className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-white font-bold"
+              className="text-xs h-8 bg-brand hover:bg-brand-deep text-white font-bold"
             >
               {saveOpeningBalancesMutation.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin ml-1" />
@@ -2632,7 +2632,7 @@ export default function Home() {
         <DialogContent className="max-w-md font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Network className="w-4 h-4 text-[#b87945]" /> تأكيد إعادة ترتيب
+              <Network className="w-4 h-4 text-brand" /> تأكيد إعادة ترتيب
               الحساب الشجري
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-600 pt-2">
@@ -2641,7 +2641,7 @@ export default function Home() {
                 "{pendingMove?.accountName}"
               </span>{" "}
               ليكون تابعاً تحت الحساب الرئيسي{" "}
-              <span className="font-bold text-[#7a5228]">
+              <span className="font-bold text-brand-700">
                 "{pendingMove?.parentName}"
               </span>
               ؟
@@ -2667,7 +2667,7 @@ export default function Home() {
                 }
               }}
               disabled={moveAccountMutation.isPending}
-              className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-white font-bold"
+              className="text-xs h-8 bg-brand hover:bg-brand-deep text-white font-bold"
             >
               {moveAccountMutation.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin ml-1" />
@@ -2681,46 +2681,46 @@ export default function Home() {
       </Dialog>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-[#102a2b] border-t border-[#1e3a3c] z-50 text-white py-1.5 px-4 shadow-2xl">
+      <nav className="fixed bottom-0 left-0 right-0 bg-ink border-t border-ink-600 z-50 text-white py-1.5 px-4 shadow-2xl">
         <div className="max-w-md mx-auto flex justify-around items-center text-[10px]">
           <button
             onClick={() => setActiveTab("entry")}
-            className={`flex flex-col items-center gap-0.5 ${activeTab === "entry" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "entry" ? "text-brand-300 font-bold" : "text-slate-400 hover:text-white"}`}
           >
             <Plus className="w-4 h-4" />
             <span>الإدخال</span>
           </button>
           <button
             onClick={() => setActiveTab("accounts")}
-            className={`flex flex-col items-center gap-0.5 ${activeTab === "accounts" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "accounts" ? "text-brand-300 font-bold" : "text-slate-400 hover:text-white"}`}
           >
             <BookOpen className="w-4 h-4" />
             <span>الدليل</span>
           </button>
           <button
             onClick={() => setActiveTab("reports")}
-            className={`flex flex-col items-center gap-0.5 ${activeTab === "reports" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "reports" ? "text-brand-300 font-bold" : "text-slate-400 hover:text-white"}`}
           >
             <BarChart3 className="w-4 h-4" />
             <span>التقارير</span>
           </button>
           <button
             onClick={() => setActiveTab("audit")}
-            className={`flex flex-col items-center gap-0.5 ${activeTab === "audit" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "audit" ? "text-brand-300 font-bold" : "text-slate-400 hover:text-white"}`}
           >
             <History className="w-4 h-4" />
             <span>التدقيق</span>
           </button>
           <button
             onClick={() => setActiveTab("analytics")}
-            className={`flex flex-col items-center gap-0.5 ${activeTab === "analytics" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "analytics" ? "text-brand-300 font-bold" : "text-slate-400 hover:text-white"}`}
           >
             <Sparkles className="w-4 h-4" />
             <span>التحليلات</span>
           </button>
           <button
             onClick={() => setActiveTab("profile")}
-            className={`flex flex-col items-center gap-0.5 ${activeTab === "profile" ? "text-[#d4a574] font-bold" : "text-slate-400 hover:text-white"}`}
+            className={`flex flex-col items-center gap-0.5 ${activeTab === "profile" ? "text-brand-300 font-bold" : "text-slate-400 hover:text-white"}`}
           >
             <User className="w-4 h-4" />
             <span>الملف</span>

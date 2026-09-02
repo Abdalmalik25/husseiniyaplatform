@@ -62,13 +62,22 @@ const OG_HTML = `<!doctype html><html dir="rtl" lang="ar"><head><meta charset="u
  * non-file origin — which produced empty (1 KB) screenshots on the first run.
  * Data-URIs are same-origin by construction, so this works everywhere.
  */
-const MIME = { ".svg": "image/svg+xml", ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg" };
+const MIME = {
+  ".svg": "image/svg+xml",
+  ".png": "image/png",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+};
 async function dataUri(p) {
   const ext = path.extname(p).toLowerCase();
   return `data:${MIME[ext] ?? "application/octet-stream"};base64,${(await readFile(p)).toString("base64")}`;
 }
 
-async function shoot(page, html, { width, height, selector, out, type = "png", quality }) {
+async function shoot(
+  page,
+  html,
+  { width, height, selector, out, type = "png", quality }
+) {
   await page.setViewportSize({ width, height });
   await page.setContent(html, { waitUntil: "load" });
   const target = selector ? page.locator(selector) : page;
@@ -82,13 +91,16 @@ const page = await browser.newPage();
 const ogPath = path.join(PUB, "og-image.png");
 const faviconUri = await dataUri(path.join(PUB, "favicon.svg"));
 await shoot(page, OG_HTML.replace("__FAVICON_URI__", faviconUri), {
-  width: 1200, height: 630, out: ogPath,
+  width: 1200,
+  height: 630,
+  out: ogPath,
 });
 console.log("og-image.png       →", await kb(ogPath), "KB");
 
 /* 2+3 — real favicons from the SVG */
 const svg = await readFile(path.join(PUB, "favicon.svg"));
-const favHtml = size => `<!doctype html><style>*{margin:0}body{width:${size}px;height:${size}px;overflow:hidden}</style>
+const favHtml =
+  size => `<!doctype html><style>*{margin:0}body{width:${size}px;height:${size}px;overflow:hidden}</style>
 <img src="data:image/svg+xml;base64,${svg.toString("base64")}" width="${size}" height="${size}">`;
 for (const s of [32, 16]) {
   const out = path.join(PUB, `favicon-${s}x${s}.png`);

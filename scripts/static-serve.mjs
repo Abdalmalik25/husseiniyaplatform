@@ -5,7 +5,12 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const dir = path.resolve(here, "..", "dist", "public");
-console.log("serving from:", dir, "index exists:", fs.existsSync(path.join(dir, "index.html")));
+console.log(
+  "serving from:",
+  dir,
+  "index exists:",
+  fs.existsSync(path.join(dir, "index.html"))
+);
 
 const types = {
   ".html": "text/html; charset=utf-8",
@@ -46,4 +51,3 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(8100, () => console.log("static server: http://localhost:8100"));
-

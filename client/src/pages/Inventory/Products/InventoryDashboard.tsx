@@ -140,15 +140,15 @@ export function InventoryDashboard() {
 
   return (
     <main
-      className="min-h-screen bg-gradient-to-b from-[#f6f7f5] to-[#eef1ea] font-sans"
+      className="min-h-screen bg-gradient-to-b from-sand to-muted font-sans"
       dir="rtl"
     >
       <div className="max-w-7xl mx-auto p-4 space-y-4">
         {/* Header */}
-        <div className="bg-[#102a2b] text-white p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+        <div className="bg-ink text-white p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-bold font-display flex items-center gap-2">
-              <Package className="w-7 h-7 text-[#b87945]" />
+              <Package className="w-7 h-7 text-brand" />
               لوحة معلومات المخزون - Business Intelligence
             </h1>
             <p className="text-xs text-slate-300 mt-1">
@@ -193,7 +193,7 @@ export function InventoryDashboard() {
           />
           <KpiCard
             icon={<DollarSign className="w-5 h-5" />}
-            iconBg="bg-[#b87945] text-white"
+            iconBg="bg-brand text-white"
             label="قيمة المخزون (تكلفة)"
             value={`${formatNum(totalStockValue)} ر.ي`}
           />
@@ -235,8 +235,8 @@ export function InventoryDashboard() {
         {/* Quick Actions */}
         <Card className="border-0 shadow-sm bg-white">
           <CardHeader className="p-3">
-            <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-[#b87945]" /> إجراءات سريعة
+            <CardTitle className="text-sm font-bold text-ink flex items-center gap-2">
+              <BarChart3 className="w-4 h-4 text-brand" /> إجراءات سريعة
             </CardTitle>
           </CardHeader>
           <CardContent className="p-3">
@@ -268,7 +268,7 @@ export function InventoryDashboard() {
         {/* Top Moving Products */}
         <Card className="border-0 shadow-sm bg-white">
           <CardHeader className="p-3">
-            <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-2">
+            <CardTitle className="text-sm font-bold text-ink flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-green-600" /> أكثر الأصناف
               حركة
             </CardTitle>
@@ -303,7 +303,7 @@ export function InventoryDashboard() {
                     <td className="p-1.5 text-center font-mono text-blue-600">
                       {formatInt(m.transfers)}
                     </td>
-                    <td className="p-1.5 text-center font-bold text-[#102a2b]">
+                    <td className="p-1.5 text-center font-bold text-ink">
                       {formatInt(m.total)}
                     </td>
                   </tr>
@@ -324,8 +324,8 @@ export function InventoryDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader className="p-3">
-              <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-[#b87945]" /> توزيع القيمة حسب
+              <CardTitle className="text-sm font-bold text-ink flex items-center gap-2">
+                <PieChart className="w-4 h-4 text-brand" /> توزيع القيمة حسب
                 التصنيف
               </CardTitle>
             </CardHeader>
@@ -346,7 +346,7 @@ export function InventoryDashboard() {
                       <td className="p-1.5 text-center font-mono">
                         {formatInt(c.qty)}
                       </td>
-                      <td className="p-1.5 text-left font-mono text-[#b87945]">
+                      <td className="p-1.5 text-left font-mono text-brand">
                         {formatNum(c.value)} ر.ي
                       </td>
                       <td className="p-1.5 text-left font-bold">
@@ -369,7 +369,7 @@ export function InventoryDashboard() {
                         ) || 0
                       )}
                     </td>
-                    <td className="p-1.5 text-left font-mono text-[#b87945]">
+                    <td className="p-1.5 text-left font-mono text-brand">
                       {formatNum(totalStockValue)} ر.ي
                     </td>
                     <td className="p-1.5 text-left">100%</td>
@@ -381,7 +381,7 @@ export function InventoryDashboard() {
 
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader className="p-3">
-              <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-2">
+              <CardTitle className="text-sm font-bold text-ink flex items-center gap-2">
                 <LineChart className="w-4 h-4 text-blue-600" /> حركة المخزون (30
                 يوم)
               </CardTitle>
@@ -418,7 +418,7 @@ export function InventoryDashboard() {
                   return (
                     <div key={i} className="flex flex-col items-center w-full">
                       <div
-                        className="bg-[#b87945] rounded-t transition-all hover:bg-[#a06838]"
+                        className="bg-brand rounded-t transition-all hover:bg-brand-deep"
                         style={{ width: "100%", height: `${height}%` }}
                         title={`${format(date, "yyyy/MM/dd")}: ${dayMovements} حركة`}
                       />
@@ -531,7 +531,7 @@ function KpiCard({
         <div className="flex-1 min-w-0">
           <p className="text-[10px] text-gray-500 truncate">{label}</p>
           <p
-            className={`font-bold text-lg truncate ${danger ? "text-red-600" : "text-[#102a2b]"}`}
+            className={`font-bold text-lg truncate ${danger ? "text-red-600" : "text-ink"}`}
           >
             {value}
           </p>
@@ -559,10 +559,10 @@ function QuickActionBtn({
       size="sm"
       className="h-20 flex-col items-start justify-center gap-1 text-right border-gray-200 hover:bg-gray-50"
     >
-      <div className="bg-[#102a2b] text-[#b87945] w-8 h-8 rounded-lg flex items-center justify-center mb-1">
+      <div className="bg-ink text-brand w-8 h-8 rounded-lg flex items-center justify-center mb-1">
         {icon}
       </div>
-      <span className="font-bold text-xs text-[#102a2b]">{label}</span>
+      <span className="font-bold text-xs text-ink">{label}</span>
       <span className="text-[9px] text-gray-400">{desc}</span>
     </Button>
   );

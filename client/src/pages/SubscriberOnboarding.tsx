@@ -131,7 +131,7 @@ export default function SubscriberOnboarding() {
             <h1 className="text-2xl font-black text-foreground">
               تهيئة المشترك — بورك فلو معياري ذكي
             </h1>
-            <Badge className="bg-brand text-ink font-bold">
+            <Badge className="bg-brand text-ink-deep font-bold">
               {step + 1} / 6 — {STEPS[step]}
             </Badge>
           </div>
@@ -439,14 +439,14 @@ export default function SubscriberOnboarding() {
           {step < 5 ? (
             <Button
               onClick={next}
-              className="bg-brand hover:bg-brand-deep text-ink font-black gap-1"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black gap-1"
             >
               التالي <ArrowLeft className="w-4 h-4" />
             </Button>
           ) : (
             <Button
               onClick={handleFinish}
-              className="bg-brand hover:bg-brand-deep text-ink font-black gap-1"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black gap-1"
             >
               <Layers className="w-4 h-4" /> إطلاق المنصة
             </Button>

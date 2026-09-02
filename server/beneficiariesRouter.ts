@@ -4,6 +4,11 @@ import { router, tenantProcedure } from "./_core/trpc";
 import { getDb } from "./db";
 import { customers, suppliers } from "../drizzle/schema";
 import {
+  buildSearchVariants,
+  likePattern,
+  rankRow,
+} from "./_core/searchUtils";
+import {
   validatePhone,
   validateEmail,
   validateTaxNumber,
@@ -30,45 +35,58 @@ export const beneficiariesRouter = router({
     .query(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db || !ctx.tenantId) return [];
-      const needle = `%${input.q}%`;
-      const cust =
+
+      // Normalize Arabic + escape LIKE wildcards (anti pattern-injection).
+      const variants = buildSearchVariants(input.q);
+      if (!variants.length) return [];
+      const matchAny = (cols: any[]) =>
+        or(...cols.flatMap(col => variants.map(v => ilike(col, likePattern(v)))));
+
+      // Both branches run in parallel — latency = slowest, not the sum.
+      const [cust, supp] = await Promise.all([
         input.kind === "supplier"
-          ? []
-          : await db
+          ? Promise.resolve([] as any[])
+          : db
               .select()
               .from(customers)
               .where(
                 and(
                   eq(customers.tenantId, ctx.tenantId!),
-                  or(
-                    ilike(customers.name, needle),
-                    ilike(customers.code, needle),
-                    ilike(customers.phone, needle)
-                  )
+                  matchAny([customers.name, customers.code, customers.phone])
                 )
               )
-              .limit(input.limit);
-      const supp =
+              .limit(input.limit),
         input.kind === "customer"
-          ? []
-          : await db
+          ? Promise.resolve([] as any[])
+          : db
               .select()
               .from(suppliers)
               .where(
                 and(
                   eq(suppliers.tenantId, ctx.tenantId!),
-                  or(
-                    ilike(suppliers.name, needle),
-                    ilike(suppliers.code, needle),
-                    ilike(suppliers.phone, needle)
-                  )
+                  matchAny([suppliers.name, suppliers.code, suppliers.phone])
                 )
               )
-              .limit(input.limit);
-      return [
-        ...cust.map(c => ({ ...c, kind: "customer" as const })),
-        ...supp.map(s => ({ ...s, kind: "supplier" as const })),
-      ].slice(0, input.limit);
+              .limit(input.limit),
+      ]);
+
+      // Relevance-ordered merged list (prefix > word-start > substring).
+      const ranked = [
+        ...cust.map((c: any) => ({
+          ...c,
+          kind: "customer" as const,
+          _score: rankRow(variants[0], [c.name], [c.code]),
+        })),
+        ...supp.map((s: any) => ({
+          ...s,
+          kind: "supplier" as const,
+          _score: rankRow(variants[0], [s.name], [s.code]),
+        })),
+      ]
+        .sort((a, b) => b._score - a._score || (a.code ?? "").localeCompare(b.code ?? ""))
+        .slice(0, input.limit);
+
+      return ranked.map(({ _score: _s, ...row }: any) => row);
     }),
 
   upsert: tenantProcedure

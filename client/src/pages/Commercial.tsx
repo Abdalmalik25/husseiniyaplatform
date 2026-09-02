@@ -827,7 +827,7 @@ export default function Commercial() {
   const statusLabelsMap = statusLabels;
 
   return (
-    <div className="min-h-screen bg-[#fbf8f2]" dir="rtl">
+    <div className="min-h-screen bg-sand" dir="rtl">
       <HeaderNavbar />
 
       <main className="max-w-7xl mx-auto p-3">
@@ -879,7 +879,7 @@ export default function Commercial() {
           <TabsContent value="products">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   المنتجات والمخازن
                 </CardTitle>
                 <div className="flex items-center gap-1.5">
@@ -905,7 +905,7 @@ export default function Commercial() {
                   </Button>
                   <Button
                     size="sm"
-                    className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+                    className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
                     onClick={() => setShowProductDialog(true)}
                   >
                     <Plus className="w-3 h-3 ml-1" />
@@ -932,11 +932,11 @@ export default function Commercial() {
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="bg-[#102a2b] text-[#b87945] w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
+                          <div className="bg-ink text-brand w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
                             {p.code}
                           </div>
                           <div>
-                            <p className="font-bold text-xs text-[#102a2b]">
+                            <p className="font-bold text-xs text-ink">
                               {p.name}
                             </p>
                             <p className="text-[10px] text-gray-500">
@@ -957,7 +957,7 @@ export default function Commercial() {
                             <p className="text-[10px] text-gray-500">
                               سعر الشراء
                             </p>
-                            <p className="font-bold text-[#102a2b]">
+                            <p className="font-bold text-ink">
                               {p.purchasePrice}
                             </p>
                           </div>
@@ -1057,12 +1057,12 @@ export default function Commercial() {
           <TabsContent value="customers">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   العملاء
                 </CardTitle>
                 <Button
                   size="sm"
-                  className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
                   onClick={() => setShowCustomerDialog(true)}
                 >
                   <Plus className="w-3 h-3 ml-1" />
@@ -1088,11 +1088,11 @@ export default function Commercial() {
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="bg-[#b87945] text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
+                          <div className="bg-brand text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
                             {c.code}
                           </div>
                           <div>
-                            <p className="font-bold text-xs text-[#102a2b]">
+                            <p className="font-bold text-xs text-ink">
                               {c.name}
                             </p>
                             <div className="flex items-center gap-2 text-[10px] text-gray-500">
@@ -1143,12 +1143,12 @@ export default function Commercial() {
           <TabsContent value="suppliers">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   الموردين
                 </CardTitle>
                 <Button
                   size="sm"
-                  className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
                   onClick={() => setShowSupplierDialog(true)}
                 >
                   <Plus className="w-3 h-3 ml-1" />
@@ -1174,11 +1174,11 @@ export default function Commercial() {
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                       >
                         <div className="flex items-center gap-3">
-                          <div className="bg-[#102a2b] text-[#b87945] w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
+                          <div className="bg-ink text-brand w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
                             {s.code}
                           </div>
                           <div>
-                            <p className="font-bold text-xs text-[#102a2b]">
+                            <p className="font-bold text-xs text-ink">
                               {s.name}
                             </p>
                             <div className="flex items-center gap-2 text-[10px] text-gray-500">
@@ -1227,12 +1227,12 @@ export default function Commercial() {
           <TabsContent value="sales">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   فواتير المبيعات / نقطة البيع
                 </CardTitle>
                 <Button
                   size="sm"
-                  className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
                   onClick={() => setShowSaleDialog(true)}
                 >
                   <Plus className="w-3 h-3 ml-1" />
@@ -1258,7 +1258,7 @@ export default function Commercial() {
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                       >
                         <div>
-                          <p className="font-bold text-xs text-[#102a2b]">
+                          <p className="font-bold text-xs text-ink">
                             {inv.invoiceNumber}
                           </p>
                           <p className="text-[10px] text-gray-500 flex items-center gap-1">
@@ -1352,12 +1352,12 @@ export default function Commercial() {
           <TabsContent value="purchases">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   فواتير المشتريات
                 </CardTitle>
                 <Button
                   size="sm"
-                  className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
                   onClick={() => setShowPurchaseDialog(true)}
                 >
                   <Plus className="w-3 h-3 ml-1" />
@@ -1383,7 +1383,7 @@ export default function Commercial() {
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                       >
                         <div>
-                          <p className="font-bold text-xs text-[#102a2b]">
+                          <p className="font-bold text-xs text-ink">
                             {inv.invoiceNumber}
                           </p>
                           <p className="text-[10px] text-gray-500 flex items-center gap-1">
@@ -1463,7 +1463,7 @@ export default function Commercial() {
           <TabsContent value="orders">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   طلبات التوزيع
                   {pendingWebOrders > 0 && (
                     <Badge className="mr-2 text-[9px] bg-purple-100 text-purple-700">
@@ -1473,7 +1473,7 @@ export default function Commercial() {
                 </CardTitle>
                 <Button
                   size="sm"
-                  className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
                   onClick={() => setShowOrderDialog(true)}
                 >
                   <Plus className="w-3 h-3 ml-1" />
@@ -1499,7 +1499,7 @@ export default function Commercial() {
                         className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                       >
                         <div>
-                          <p className="font-bold text-xs text-[#102a2b] flex items-center gap-2">
+                          <p className="font-bold text-xs text-ink flex items-center gap-2">
                             {o.orderNumber}
                             {isWebOrder(o) && (
                               <Badge className="text-[9px] bg-purple-100 text-purple-700">
@@ -1541,7 +1541,7 @@ export default function Commercial() {
                               <SelectItem value="cancelled">ملغي</SelectItem>
                             </SelectContent>
                           </Select>
-                          <p className="font-bold text-xs text-[#102a2b]">
+                          <p className="font-bold text-xs text-ink">
                             {o.total} ر.ي
                           </p>
                           {isWebOrder(o) &&
@@ -1550,7 +1550,7 @@ export default function Commercial() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-[9px] h-6 text-[#102a2b] border-[#b87945]/40 hover:bg-[#f5ece0]"
+                                className="text-[9px] h-6 text-ink border-brand/40 hover:bg-muted"
                                 onClick={() => {
                                   setConvertForm({
                                     paymentMethod: "cash",
@@ -1580,12 +1580,12 @@ export default function Commercial() {
           <TabsContent value="offers">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   العروض المالية والكمية
                 </CardTitle>
                 <Button
                   size="sm"
-                  className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
                   onClick={() => setShowOfferDialog(true)}
                 >
                   <Plus className="w-3 h-3 ml-1" />
@@ -1600,7 +1600,7 @@ export default function Commercial() {
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                     >
                       <div>
-                        <p className="font-bold text-xs text-[#102a2b]">
+                        <p className="font-bold text-xs text-ink">
                           {o.name}
                         </p>
                         <p className="text-[10px] text-gray-500">
@@ -1664,7 +1664,7 @@ export default function Commercial() {
       <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               إضافة منتج جديد
             </DialogTitle>
           </DialogHeader>
@@ -1890,7 +1890,7 @@ export default function Commercial() {
 
             {productForm.productType === "service" && (
               <div className="border rounded-lg p-2 space-y-2 bg-amber-50/50">
-                <p className="text-[10px] font-bold text-[#102a2b]">
+                <p className="text-[10px] font-bold text-ink">
                   تسعير الخدمة (تكلفة دقيقة/مرنة)
                 </p>
                 <div className="grid grid-cols-3 gap-2">
@@ -2032,7 +2032,7 @@ export default function Commercial() {
             </Button>
             <Button
               size="sm"
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep h-8 text-xs"
               disabled={isCreatingProduct}
               onClick={() => createProduct.mutate(productForm as any)}
             >
@@ -2046,7 +2046,7 @@ export default function Commercial() {
       <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               إضافة عميل جديد
             </DialogTitle>
           </DialogHeader>
@@ -2117,7 +2117,7 @@ export default function Commercial() {
             </Button>
             <Button
               size="sm"
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep h-8 text-xs"
               disabled={isCreatingCustomer}
               onClick={() => createCustomer.mutate(customerForm)}
             >
@@ -2131,7 +2131,7 @@ export default function Commercial() {
       <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               إضافة مورد جديد
             </DialogTitle>
           </DialogHeader>
@@ -2202,7 +2202,7 @@ export default function Commercial() {
             </Button>
             <Button
               size="sm"
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep h-8 text-xs"
               disabled={isCreatingSupplier}
               onClick={() => createSupplier.mutate(supplierForm)}
             >
@@ -2216,7 +2216,7 @@ export default function Commercial() {
       <Dialog open={customerDetailOpen} onOpenChange={setCustomerDetailOpen}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               تفاصيل العميل: {selectedCustomer?.name}
             </DialogTitle>
           </DialogHeader>
@@ -2238,7 +2238,7 @@ export default function Commercial() {
       <Dialog open={supplierDetailOpen} onOpenChange={setSupplierDetailOpen}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               تفاصيل المورد: {selectedSupplier?.name}
             </DialogTitle>
           </DialogHeader>
@@ -2260,7 +2260,7 @@ export default function Commercial() {
       <Dialog open={showOfferDialog} onOpenChange={setShowOfferDialog}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               عرض جديد
             </DialogTitle>
           </DialogHeader>
@@ -2404,7 +2404,7 @@ export default function Commercial() {
               </Button>
               <Button
                 size="sm"
-                className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+                className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep h-8 text-xs"
                 disabled={!offerForm.name || createOffer.isPending}
                 onClick={() =>
                   createOffer.mutate({
@@ -2430,7 +2430,7 @@ export default function Commercial() {
       <Dialog open={!!editOffer} onOpenChange={o => !o && setEditOffer(null)}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               تعديل العرض
             </DialogTitle>
           </DialogHeader>
@@ -2575,7 +2575,7 @@ export default function Commercial() {
                 </Button>
                 <Button
                   size="sm"
-                  className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep h-8 text-xs"
                   disabled={!editOffer.name || updateOffer.isPending}
                   onClick={() =>
                     updateOffer.mutate({
@@ -2602,7 +2602,7 @@ export default function Commercial() {
       <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
         <DialogContent className="bg-white max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               فاتورة مبيعات جديدة / نقطة بيع
             </DialogTitle>
           </DialogHeader>
@@ -2747,7 +2747,7 @@ export default function Commercial() {
                 <Button
                   size="sm"
                   variant="outline"
-                  className="h-6 text-[10px] text-[#b87945] border-[#b87945]/40"
+                  className="h-6 text-[10px] text-brand border-brand/40"
                   onClick={applyOffersToSale}
                   disabled={saleItems.length === 0}
                 >
@@ -2762,13 +2762,13 @@ export default function Commercial() {
                 return (
                   <div key={idx} className="flex items-center gap-1.5 mb-2">
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold text-[#102a2b] truncate">
+                      <p className="text-[10px] font-bold text-ink truncate">
                         {item.productName}
                       </p>
                       <p className="text-[9px] text-gray-400">
-                        {fmtNum(parseFloat(item.unitPrice) * item.quantity)}{" "}
-                        − خصم {item.discount || "0"} ={" "}
-                        <span className="font-bold text-[#b87945]">
+                        {fmtNum(parseFloat(item.unitPrice) * item.quantity)} −
+                        خصم {item.discount || "0"} ={" "}
+                        <span className="font-bold text-brand">
                           {fmtNum(lineTotal)} ر.ي
                         </span>
                       </p>
@@ -2820,9 +2820,7 @@ export default function Commercial() {
               <div className="flex flex-col gap-1 pt-2 border-t text-[11px]">
                 <div className="flex justify-between">
                   <span className="text-gray-500">المجموع الفرعي</span>
-                  <span className="font-bold">
-                    {fmtNum(saleTotal)} ر.ي
-                  </span>
+                  <span className="font-bold">{fmtNum(saleTotal)} ر.ي</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">إجمالي الخصم</span>
@@ -2831,10 +2829,10 @@ export default function Commercial() {
                   </span>
                 </div>
                 <div className="flex justify-between border-t pt-1">
-                  <span className="font-bold text-[#102a2b]">
+                  <span className="font-bold text-ink">
                     الإجمالي النهائي
                   </span>
-                  <span className="font-bold text-[#102a2b]">
+                  <span className="font-bold text-ink">
                     {fmtNum(saleGrandTotal)} ر.ي
                   </span>
                 </div>
@@ -2852,7 +2850,7 @@ export default function Commercial() {
             </Button>
             <Button
               size="sm"
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep h-8 text-xs"
               onClick={() =>
                 createSale.mutate({
                   customerId: saleCustomerId,
@@ -2882,7 +2880,7 @@ export default function Commercial() {
       <Dialog open={!!zatcaView} onOpenChange={o => !o && setZatcaView(null)}>
         <DialogContent className="bg-white max-w-sm">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               الفاتورة الإلكترونية (ZATCA)
             </DialogTitle>
           </DialogHeader>
@@ -2928,7 +2926,7 @@ export default function Commercial() {
       <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
         <DialogContent className="bg-white max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               فاتورة مشتريات جديدة
             </DialogTitle>
           </DialogHeader>
@@ -3006,7 +3004,7 @@ export default function Commercial() {
                 </div>
               ))}
               <div className="flex justify-end pt-2 border-t">
-                <p className="text-sm font-bold text-[#102a2b]">
+                <p className="text-sm font-bold text-ink">
                   الإجمالي: {fmtNum(purchaseTotal)} ر.ي
                 </p>
               </div>
@@ -3023,7 +3021,7 @@ export default function Commercial() {
             </Button>
             <Button
               size="sm"
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep h-8 text-xs"
               onClick={() =>
                 createPurchase.mutate({
                   supplierId: purchaseSupplierId,
@@ -3046,7 +3044,7 @@ export default function Commercial() {
       <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
         <DialogContent className="bg-white max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-sm text-[#102a2b]">
+            <DialogTitle className="text-sm text-ink">
               طلب توزيع جديد
             </DialogTitle>
           </DialogHeader>
@@ -3132,7 +3130,7 @@ export default function Commercial() {
                 </div>
               ))}
               <div className="flex justify-end pt-2 border-t">
-                <p className="text-sm font-bold text-[#102a2b]">
+                <p className="text-sm font-bold text-ink">
                   الإجمالي: {fmtNum(orderTotal)} ر.ي
                 </p>
               </div>
@@ -3149,7 +3147,7 @@ export default function Commercial() {
             </Button>
             <Button
               size="sm"
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] h-8 text-xs"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep h-8 text-xs"
               onClick={() =>
                 createOrder.mutate({
                   customerId: orderCustomerId,
@@ -3170,7 +3168,7 @@ export default function Commercial() {
         <DialogContent className="max-w-md font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Wallet className="w-4 h-4 text-[#b87945]" /> تسجيل دفعة / سند قبض
+              <Wallet className="w-4 h-4 text-brand" /> تسجيل دفعة / سند قبض
             </DialogTitle>
           </DialogHeader>
           {payTarget && (
@@ -3272,7 +3270,7 @@ export default function Commercial() {
                 type="checkbox"
                 checked={printAfterSave}
                 onChange={e => setPrintAfterSave(e.target.checked)}
-                className="accent-[#b87945]"
+                className="accent-brand"
               />
               اطبع سند {payTarget?.source === "purchases" ? "صرف" : "قبض"} بعد
               الحفظ
@@ -3310,7 +3308,7 @@ export default function Commercial() {
         <DialogContent className="max-w-md font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Edit className="w-4 h-4 text-[#b87945]" /> تعديل منتج:{" "}
+              <Edit className="w-4 h-4 text-brand" /> تعديل منتج:{" "}
               {editProduct?.name}
             </DialogTitle>
           </DialogHeader>
@@ -3651,7 +3649,7 @@ export default function Commercial() {
                 } as any)
               }
               disabled={updateProduct.isPending}
-              className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold"
+              className="text-xs h-8 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold"
             >
               {updateProduct.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin ml-1" />
@@ -3672,7 +3670,7 @@ export default function Commercial() {
         <DialogContent className="max-w-md font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <PackagePlus className="w-4 h-4 text-[#b87945]" /> تعديل المخزون:{" "}
+              <PackagePlus className="w-4 h-4 text-brand" /> تعديل المخزون:{" "}
               {adjustProduct?.name}
             </DialogTitle>
           </DialogHeader>
@@ -3774,7 +3772,7 @@ export default function Commercial() {
                 })
               }
               disabled={adjustStock.isPending}
-              className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold"
+              className="text-xs h-8 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold"
             >
               {adjustStock.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin ml-1" />
@@ -3795,7 +3793,7 @@ export default function Commercial() {
         <DialogContent className="max-w-md font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <ReceiptText className="w-4 h-4 text-[#b87945]" /> تحويل الطلب إلى
+              <ReceiptText className="w-4 h-4 text-brand" /> تحويل الطلب إلى
               فاتورة مبيعات
             </DialogTitle>
           </DialogHeader>
@@ -3898,7 +3896,7 @@ export default function Commercial() {
                   paidAmount: convertForm.paidAmount || "0",
                 })
               }
-              className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold"
+              className="text-xs h-8 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold"
             >
               {convertToInvoice.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin ml-1" />
@@ -3925,7 +3923,7 @@ export default function Commercial() {
         <DialogContent className="max-w-md font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Upload className="w-4 h-4 text-[#b87945]" /> استيراد الأصناف
+              <Upload className="w-4 h-4 text-brand" /> استيراد الأصناف
               والخدمات (CSV)
             </DialogTitle>
           </DialogHeader>
@@ -3943,9 +3941,9 @@ export default function Commercial() {
               الموجودة تُحدَّث، والجديدة تُضاف، والمخزون يعدَّل بفارق الرصيد مع
               تسجيل حركة جرد.
             </p>
-            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-[#e8c9a0] rounded-lg p-5 cursor-pointer bg-[#faf5ed] hover:bg-[#f5ece0] transition-colors">
-              <Upload className="w-5 h-5 text-[#b87945]" />
-              <span className="text-xs font-bold text-[#5c3d1e]">
+            <label className="flex items-center justify-center gap-2 border-2 border-dashed border-brand-200 rounded-lg p-5 cursor-pointer bg-brand-50 hover:bg-muted transition-colors">
+              <Upload className="w-5 h-5 text-brand" />
+              <span className="text-xs font-bold text-brand-800">
                 {importFileName || "اختر ملف CSV"}
               </span>
               <input

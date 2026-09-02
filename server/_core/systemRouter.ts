@@ -19,6 +19,9 @@ import {
   activityLogs,
   users,
   loginAttempts,
+  paymentGateways,
+  subscriptionPolicies,
+  subscriptionPlans,
 } from "../../drizzle/schema";
 import {
   LIBRARY_TENANT_CODE,
@@ -400,13 +403,300 @@ export async function applyAuthSchema(
       lng decimal(10,7),
       "createdAt" timestamp NOT NULL DEFAULT now()
     )`,
+    // SaaS Billing: dynamic payment gateways managed by the platform owner.
+    `CREATE TABLE IF NOT EXISTS payment_gateways (
+      id serial PRIMARY KEY,
+      "GlobalId" uuid DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+      code varchar(60) NOT NULL UNIQUE,
+      "providerType" varchar(40) NOT NULL,
+      name varchar(120) NOT NULL,
+      country varchar(60) DEFAULT 'عالمي' NOT NULL,
+      "countryCode" varchar(2) DEFAULT 'GL' NOT NULL,
+      currency varchar(10) DEFAULT 'USD' NOT NULL,
+      mode varchar(10) DEFAULT 'test' NOT NULL,
+      credentials text,
+      "feePercent" decimal(5,2) DEFAULT '0' NOT NULL,
+      "feeFixed" decimal(10,2) DEFAULT '0' NOT NULL,
+      instructions text,
+      "checkoutUrlTemplate" text,
+      "isActive" boolean DEFAULT true NOT NULL,
+      "sortOrder" integer DEFAULT 0 NOT NULL,
+      "createdAt" timestamp NOT NULL DEFAULT now(),
+      "updatedAt" timestamp NOT NULL DEFAULT now(),
+      "serverVersion" integer DEFAULT 1 NOT NULL,
+      "lastSyncAt" timestamp,
+      "conflictState" varchar(20) DEFAULT 'none',
+      "aggregateId" uuid
+    )`,
+    // SaaS Billing: flexible subscription policy (never stops the business).
+    `CREATE TABLE IF NOT EXISTS subscription_policies (
+      id serial PRIMARY KEY,
+      "GlobalId" uuid DEFAULT gen_random_uuid() NOT NULL UNIQUE,
+      code varchar(50) NOT NULL UNIQUE,
+      name varchar(120) NOT NULL,
+      "trialDays" integer DEFAULT 14 NOT NULL,
+      "graceDays" integer DEFAULT 30 NOT NULL,
+      "graceFullAccess" boolean DEFAULT true NOT NULL,
+      "maxOverdueDays" integer DEFAULT 120 NOT NULL,
+      "restrictedFeatures" jsonb,
+      "dunningReminderDays" jsonb,
+      "isActive" boolean DEFAULT true NOT NULL,
+      "createdAt" timestamp NOT NULL DEFAULT now(),
+      "updatedAt" timestamp NOT NULL DEFAULT now()
+    )`,
   ];
+  // SaaS Billing: flexible per-country plan pricing (optional column).
+  try {
+    await db.execute(
+      sql.raw(
+        `ALTER TABLE subscription_plans ADD COLUMN IF NOT EXISTS "countryPricing" jsonb`
+      )
+    );
+  } catch (e: any) {
+    console.warn("[applyAuthSchema] countryPricing col ignored:", e?.message);
+  }
   for (const stmt of tableStmts) {
     try {
       await db.execute(sql.raw(stmt));
     } catch (e: any) {
       console.warn("[applyAuthSchema] table ignored:", stmt, e?.message);
     }
+  }
+
+  // SaaS Billing catalog (plans + policy + gateways) — idempotent.
+  try {
+    await seedBillingCatalog(db);
+  } catch (e: any) {
+    console.warn("[applyAuthSchema] billing catalog seed ignored:", e?.message);
+  }
+}
+
+/**
+ * seedBillingCatalog — بذر الكتالوج التجاري (idempotent by count):
+ *   1) السياسة الافتراضية للاشتراك (لا يتوقف العمل أبداً).
+ *   2) الباقات (starter/growth/pro) مع تسعير مرن لكل دولة.
+ *   3) بوابات دفع جاهزة: واتساب (افتراضي)، تحويل بنكي، كاش، يدوي —
+ *      مع بوابات مدفوعة (Tap/Moyasar/Stripe) معطّلة بانتظار إدخال
+ *      بيانات من المالك من لوحة الإدارة.
+ */
+export async function seedBillingCatalog(
+  db: NonNullable<Awaited<ReturnType<typeof getDb>>>
+) {
+  // 1) Subscription policy.
+  const existingPolicy = await db
+    .select({ id: subscriptionPolicies.id })
+    .from(subscriptionPolicies)
+    .where(eq(subscriptionPolicies.code, "default"))
+    .limit(1);
+  if (existingPolicy.length === 0) {
+    await db.insert(subscriptionPolicies).values({
+      code: "default",
+      name: "السياسة الافتراضية — لا يتوقف العمل أبداً",
+      trialDays: 14,
+      graceDays: 30,
+      graceFullAccess: true,
+      maxOverdueDays: 120,
+      restrictedFeatures: [
+        "exports",
+        "zatca",
+        "api_keys",
+        "ai_assistant",
+        "add_user",
+        "add_branch",
+        "backups",
+      ],
+      dunningReminderDays: [7, 3, 1, 0, -3, -7],
+    });
+  }
+
+  // 2) Subscription plans with flexible per-country pricing.
+  const planCount = await db
+    .select({ id: subscriptionPlans.id })
+    .from(subscriptionPlans)
+    .limit(1);
+  if (planCount.length === 0) {
+    await db.insert(subscriptionPlans).values([
+      {
+        name: "الباقة الأساسية",
+        code: "starter",
+        description:
+          "للأعمال الصغيرة: إصدار فواتير، دفتر يومية، كشف حساب، تقارير أساسية.",
+        priceMonthly: "2990",
+        priceYearly: "29900",
+        currency: "YER",
+        maxUsers: 3,
+        maxBranches: 1,
+        maxTransactions: 1000,
+        sortOrder: 1,
+        features: [
+          "فواتير بيع وشراء",
+          "دفتر اليومية والقيود",
+          "متابعة العملاء والموردين",
+          "تقارير أساسية",
+          "3 مستخدمين",
+        ],
+        countryPricing: [
+          { countryCode: "SA", country: "السعودية", currency: "SAR", priceMonthly: "49", priceYearly: "490", taxPercent: 15 },
+          { countryCode: "AE", country: "الإمارات", currency: "AED", priceMonthly: "45", priceYearly: "450", taxPercent: 5 },
+          { countryCode: "US", country: "أمريكا", currency: "USD", priceMonthly: "12", priceYearly: "120", taxPercent: 0 },
+          { countryCode: "EG", country: "مصر", currency: "EGP", priceMonthly: "299", priceYearly: "2990", taxPercent: 14 },
+        ],
+      },
+      {
+        name: "باقة النمو",
+        code: "growth",
+        description:
+          "للشركات النامية: وحدات المخزون، نقاط البيع، إعداد ميزانية وتقارير متقدمة.",
+        priceMonthly: "6990",
+        priceYearly: "69900",
+        currency: "YER",
+        maxUsers: 10,
+        maxBranches: 3,
+        maxTransactions: 10000,
+        sortOrder: 2,
+        features: [
+          "كل مزايا الأساسية",
+          "المخزون ونقاط البيع",
+          "الميزانية والتدفقات النقدية",
+          "10 مستخدمين",
+          "3 فروع",
+        ],
+        countryPricing: [
+          { countryCode: "SA", country: "السعودية", currency: "SAR", priceMonthly: "99", priceYearly: "990", taxPercent: 15 },
+          { countryCode: "AE", country: "الإمارات", currency: "AED", priceMonthly: "89", priceYearly: "890", taxPercent: 5 },
+          { countryCode: "US", country: "أمريكا", currency: "USD", priceMonthly: "25", priceYearly: "250", taxPercent: 0 },
+          { countryCode: "EG", country: "مصر", currency: "EGP", priceMonthly: "599", priceYearly: "5990", taxPercent: 14 },
+        ],
+      },
+      {
+        name: "الباقة الاحترافية",
+        code: "pro",
+        description:
+          "للمؤسسات: ZATCA، وحدات متقدمة، API، أولوية دعم، فروع ومستخدمون غير محدود.",
+        priceMonthly: "14990",
+        priceYearly: "149900",
+        currency: "YER",
+        maxUsers: 999,
+        maxBranches: 999,
+        maxTransactions: 1000000,
+        sortOrder: 3,
+        features: [
+          "كل مزايا النمو",
+          "الفوترة الإلكترونية ZATCA",
+          "وحدات متقدمة (مشاريع/موارد بشرية)",
+          "API وتكاملات",
+          "مستخدمون وفروع غير محدودين",
+        ],
+        countryPricing: [
+          { countryCode: "SA", country: "السعودية", currency: "SAR", priceMonthly: "199", priceYearly: "1990", taxPercent: 15 },
+          { countryCode: "AE", country: "الإمارات", currency: "AED", priceMonthly: "179", priceYearly: "1790", taxPercent: 5 },
+          { countryCode: "US", country: "أمريكا", currency: "USD", priceMonthly: "49", priceYearly: "490", taxPercent: 0 },
+          { countryCode: "EG", country: "مصر", currency: "EGP", priceMonthly: "1199", priceYearly: "11990", taxPercent: 14 },
+        ],
+      },
+    ]);
+  }
+
+  // 3) Payment gateways. Manual-friendly defaults active; card providers stay
+  //    disabled until the owner enters credentials from the admin panel.
+  const gwCount = await db
+    .select({ id: paymentGateways.id })
+    .from(paymentGateways)
+    .limit(1);
+  if (gwCount.length === 0) {
+    await db.insert(paymentGateways).values([
+      {
+        code: "whatsapp",
+        providerType: "whatsapp",
+        name: "الدفع عبر واتساب",
+        country: "عالمي",
+        countryCode: "GL",
+        currency: "YER",
+        mode: "live",
+        instructions:
+          "أرسل بيانات الدفع عبر واتساب وسيتولى فريق الدعم تأكيد اشتراككم فوراً.",
+        feePercent: "0",
+        feeFixed: "0",
+        isActive: true,
+        sortOrder: 10,
+      },
+      {
+        code: "bank_transfer",
+        providerType: "bank_transfer",
+        name: "تحويل بنكي",
+        country: "عالمي",
+        countryCode: "GL",
+        currency: "YER",
+        mode: "live",
+        instructions:
+          "حوّل المبلغ إلى الحساب البنكي وأرفق إيصال التحويل — يُفعَّل اشتراككم خلال دقائق.",
+        feePercent: "0",
+        feeFixed: "0",
+        isActive: true,
+        sortOrder: 20,
+      },
+      {
+        code: "cash",
+        providerType: "cash",
+        name: "الدفع نقداً",
+        country: "عالمي",
+        countryCode: "GL",
+        currency: "YER",
+        mode: "live",
+        instructions:
+          "تواصل مع توزيعنا المعتمد في منطقتكم للدفع النقدي وتفعيل الاشتراك.",
+        feePercent: "0",
+        feeFixed: "0",
+        isActive: true,
+        sortOrder: 30,
+      },
+      {
+        code: "tap",
+        providerType: "tap",
+        name: "بطاقة ائتمان / مدى (Tap)",
+        country: "الخليج",
+        countryCode: "SA",
+        currency: "SAR",
+        mode: "test",
+        instructions:
+          "ادفع مباشرة ببطاقات مدى/فيزا/ماستركارد — تفعيل فوري تلقائي.",
+        checkoutUrlTemplate: "",
+        feePercent: "2.6",
+        feeFixed: "0",
+        isActive: false,
+        sortOrder: 40,
+      },
+      {
+        code: "moyasar",
+        providerType: "moyasar",
+        name: "بطاقة ائتمان (Moyasar)",
+        country: "الخليج",
+        countryCode: "SA",
+        currency: "SAR",
+        mode: "test",
+        instructions: "ادفع ببطاقات فيزا/ماستركارد عبر بوابة Moyasar.",
+        checkoutUrlTemplate: "",
+        feePercent: "2.9",
+        feeFixed: "0",
+        isActive: false,
+        sortOrder: 50,
+      },
+      {
+        code: "stripe",
+        providerType: "stripe",
+        name: "بطاقة دولية (Stripe)",
+        country: "عالمي",
+        countryCode: "GL",
+        currency: "USD",
+        mode: "test",
+        instructions: "ادفع ببطاقات دولية عبر Stripe — تفعيل فوري.",
+        checkoutUrlTemplate: "",
+        feePercent: "2.9",
+        feeFixed: "30",
+        isActive: false,
+        sortOrder: 60,
+      },
+    ]);
   }
 }
 

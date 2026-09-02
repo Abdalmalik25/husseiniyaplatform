@@ -46,9 +46,13 @@ export const queryRouter = router({
       const db: Db = await getDb();
       if (!db) return { items: [], suggestions: [] };
 
-      const [items] = await Promise.all([
-        searchEntities({ db, tenantId, query: input.query, branchId: input.branchId, limit: input.limit }),
-      ]);
+      const items = await searchEntities({
+        db,
+        tenantId,
+        query: input.query,
+        branchId: input.branchId,
+        limit: input.limit,
+      });
       return { items, suggestions: suggestQuickActions(input.query) };
     }),
 
@@ -66,8 +70,10 @@ export const queryRouter = router({
       const db: Db = await getDb();
       if (!db) return [];
       const filters: any[] = [eq(accountBalancesView.tenantId, tenantId)];
-      if (input.accountType) filters.push(eq(accountBalancesView.type, input.accountType));
-      if (input.accountId) filters.push(eq(accountBalancesView.accountId, input.accountId));
+      if (input.accountType)
+        filters.push(eq(accountBalancesView.type, input.accountType));
+      if (input.accountId)
+        filters.push(eq(accountBalancesView.accountId, input.accountId));
       return db
         .select()
         .from(accountBalancesView)
@@ -90,8 +96,10 @@ export const queryRouter = router({
       const db: Db = await getDb();
       if (!db) return [];
       const filters: any[] = [eq(inventoryHealthView.tenantId, tenantId)];
-      if (input.warehouseId) filters.push(eq(inventoryHealthView.warehouseId, input.warehouseId));
-      if (input.onlyLow) filters.push(eq(inventoryHealthView.needsReplenishment, true));
+      if (input.warehouseId)
+        filters.push(eq(inventoryHealthView.warehouseId, input.warehouseId));
+      if (input.onlyLow)
+        filters.push(eq(inventoryHealthView.needsReplenishment, true));
       return db
         .select()
         .from(inventoryHealthView)
@@ -113,9 +121,12 @@ export const queryRouter = router({
       const db: Db = await getDb();
       if (!db) return [];
       const filters: any[] = [eq(salesTrendView.tenantId, tenantId)];
-      if (input.branchId) filters.push(eq(salesTrendView.branchId, input.branchId));
+      if (input.branchId)
+        filters.push(eq(salesTrendView.branchId, input.branchId));
       if (input.days) {
-        filters.push(gte(salesTrendView.saleDate, sql`CURRENT_DATE - ${input.days}::int`));
+        filters.push(
+          gte(salesTrendView.saleDate, sql`CURRENT_DATE - ${input.days}::int`)
+        );
       }
       return db
         .select()
@@ -139,8 +150,10 @@ export const queryRouter = router({
       const db: Db = await getDb();
       if (!db) return [];
       const filters: any[] = [eq(activityTraceView.tenantId, tenantId)];
-      if (input.userId) filters.push(eq(activityTraceView.userId, input.userId));
-      if (input.country) filters.push(eq(activityTraceView.country, input.country));
+      if (input.userId)
+        filters.push(eq(activityTraceView.userId, input.userId));
+      if (input.country)
+        filters.push(eq(activityTraceView.country, input.country));
       return db
         .select()
         .from(activityTraceView)
@@ -174,17 +187,25 @@ export const queryRouter = router({
       const tenantId = requireTenantId(ctx);
       const db: Db = await getDb();
       if (!db) {
-        return { salesTrend: [], lowStockCount: 0, inventoryRows: 0, recentActivity: [], master: null };
+        return {
+          salesTrend: [],
+          lowStockCount: 0,
+          inventoryRows: 0,
+          recentActivity: [],
+          master: null,
+        };
       }
       const days = input.days ?? 30;
       const salesFilters: any[] = [
         eq(salesTrendView.tenantId, tenantId),
         gte(salesTrendView.saleDate, sql`CURRENT_DATE - ${days}::int`),
       ];
-      if (input.branchId) salesFilters.push(eq(salesTrendView.branchId, input.branchId));
+      if (input.branchId)
+        salesFilters.push(eq(salesTrendView.branchId, input.branchId));
 
       const invFilters: any[] = [eq(inventoryHealthView.tenantId, tenantId)];
-      if (input.branchId) invFilters.push(eq(inventoryHealthView.warehouseId, input.branchId));
+      if (input.branchId)
+        invFilters.push(eq(inventoryHealthView.warehouseId, input.branchId));
 
       const [sales, lowStock, recent, master] = await Promise.all([
         db
@@ -196,7 +217,9 @@ export const queryRouter = router({
         db
           .select({ count: sql<number>`count(*)::int` })
           .from(inventoryHealthView)
-          .where(and(...invFilters, eq(inventoryHealthView.needsReplenishment, true))),
+          .where(
+            and(...invFilters, eq(inventoryHealthView.needsReplenishment, true))
+          ),
         db
           .select()
           .from(activityTraceView)

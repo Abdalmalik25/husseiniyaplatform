@@ -124,7 +124,7 @@ export function InventoryValuationPanel() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[#102a2b]">
+          <h2 className="text-lg font-bold text-ink">
             تقييم المخزون (FIFO / LIFO / المتوسط المرجح)
           </h2>
           <p className="text-xs text-gray-500">
@@ -235,19 +235,19 @@ export function InventoryValuationPanel() {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                   <Card className="border-0 shadow-sm bg-white p-3">
                     <p className="text-[10px] text-gray-500">إجمالي الطبقات</p>
-                    <p className="font-bold text-lg text-[#102a2b]">
+                    <p className="font-bold text-lg text-ink">
                       {totalLayers}
                     </p>
                   </Card>
                   <Card className="border-0 shadow-sm bg-white p-3">
                     <p className="text-[10px] text-gray-500">إجمالي الكمية</p>
-                    <p className="font-bold text-lg text-[#102a2b]">
+                    <p className="font-bold text-lg text-ink">
                       {formatNum(totalQty)}
                     </p>
                   </Card>
                   <Card className="border-0 shadow-sm bg-white p-3">
                     <p className="text-[10px] text-gray-500">إجمالي القيمة</p>
-                    <p className="font-bold text-lg text-[#b87945]">
+                    <p className="font-bold text-lg text-brand">
                       {formatNum(totalValue)} ر.ي
                     </p>
                   </Card>
@@ -306,7 +306,7 @@ export function InventoryValuationPanel() {
                                 </span>
                               )}
                             </td>
-                            <td className="p-2 text-left font-mono text-[#b87945]">
+                            <td className="p-2 text-left font-mono text-brand">
                               {formatCost(layer.unitCost)}
                             </td>
                             <td className="p-2 text-left font-mono">
@@ -349,7 +349,7 @@ export function InventoryValuationPanel() {
                               ) || 0
                             )}
                           </td>
-                          <td className="p-2 text-left font-mono text-[#b87945]">
+                          <td className="p-2 text-left font-mono text-brand">
                             {formatCost(wavgCost)}
                           </td>
                           <td className="p-2 text-left font-mono">
@@ -398,14 +398,14 @@ export function InventoryValuationPanel() {
                   </Card>
                   <Card className="border-0 shadow-sm bg-white p-3">
                     <div className="flex items-center gap-2">
-                      <div className="bg-[#b87945] text-white w-8 h-8 rounded-lg flex items-center justify-center">
+                      <div className="bg-brand text-white w-8 h-8 rounded-lg flex items-center justify-center">
                         <DollarSign className="w-4 h-4" />
                       </div>
                       <div>
                         <p className="text-[10px] text-gray-500">
                           قيمة المخزون الإجمالية
                         </p>
-                        <p className="font-bold text-lg text-[#102a2b]">
+                        <p className="font-bold text-lg text-ink">
                           {formatNum(totalValue)} ر.ي
                         </p>
                       </div>
@@ -430,7 +430,7 @@ export function InventoryValuationPanel() {
 
                 <Card className="border-0 shadow-sm bg-white">
                   <CardHeader className="p-3">
-                    <CardTitle className="text-sm font-bold text-[#102a2b]">
+                    <CardTitle className="text-sm font-bold text-ink">
                       شرح طريقة المتوسط المرجح
                     </CardTitle>
                   </CardHeader>
@@ -496,7 +496,7 @@ export function InventoryValuationPanel() {
                         <p className="text-[10px] text-gray-500">
                           التكلفة المتوسطة لل_unit
                         </p>
-                        <p className="font-bold text-lg text-[#b87945]">
+                        <p className="font-bold text-lg text-brand">
                           {formatCost(
                             fifoQty > 0 ? fifoResult.totalCost / fifoQty : 0
                           )}{" "}
@@ -515,7 +515,7 @@ export function InventoryValuationPanel() {
 
                     <Card className="border-0 shadow-sm bg-white">
                       <CardHeader className="p-3">
-                        <CardTitle className="text-sm font-bold text-[#102a2b]">
+                        <CardTitle className="text-sm font-bold text-ink">
                           طبقات FIFO المستخدمة في التقييم
                         </CardTitle>
                       </CardHeader>
@@ -629,7 +629,7 @@ export function InventoryValuationPanel() {
                         <p className="text-[10px] text-gray-500">
                           التكلفة المتوسطة للunit
                         </p>
-                        <p className="font-bold text-lg text-[#b87945]">
+                        <p className="font-bold text-lg text-brand">
                           {formatCost(
                             lifoQty > 0 ? lifoResult.totalCost / lifoQty : 0
                           )}{" "}
@@ -648,7 +648,7 @@ export function InventoryValuationPanel() {
 
                     <Card className="border-0 shadow-sm bg-white">
                       <CardHeader className="p-3">
-                        <CardTitle className="text-sm font-bold text-[#102a2b]">
+                        <CardTitle className="text-sm font-bold text-ink">
                           طبقات LIFO المستخدمة في التقييم
                         </CardTitle>
                       </CardHeader>

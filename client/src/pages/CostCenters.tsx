@@ -43,7 +43,7 @@ export default function CostCenters() {
               تُربط بالقيود والمشاريع والفروع — تكامل مع الأدوار وحدود التعامل
             </p>
           </div>
-          <Badge className="bg-brand text-ink font-bold">
+          <Badge className="bg-brand text-ink-deep font-bold">
             {list.data?.length ?? 0} مركزاً
           </Badge>
         </div>
@@ -100,7 +100,7 @@ export default function CostCenters() {
                   });
                 }}
                 disabled={create.isPending}
-                className="w-full bg-brand hover:bg-brand-deep text-ink font-bold h-9"
+                className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold h-9"
               >
                 إضافة
               </Button>

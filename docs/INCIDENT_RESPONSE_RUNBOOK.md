@@ -37,7 +37,7 @@
 
 | الخطوة | الإجراء                      | الأمر/التحقق                                                                             | المالك         |
 | ------ | ---------------------------- | ---------------------------------------------------------------------------------------- | -------------- |
-| 1      | تأكيد التأثير                | `curl -s https://alhusainiaye.vercel.app/api/health \| jq .dbAvailable`                     | On-call        |
+| 1      | تأكيد التأثير                | `curl -s https://alhusainiaye.vercel.app/api/health \| jq .dbAvailable`                  | On-call        |
 | 2      | فحص Neon Dashboard           | `https://console.neon.tech/projects/<project-id>` — هل المشروع نشط؟ هل وصلت للحد الأقصى؟ | On-call        |
 | 3      | فحص Vercel Function Logs     | `vercel logs api/index.mjs --follow`                                                     | On-call        |
 | 4      | إذا Neon معطل → **Failover** | غير مجدي (Neon managed) — تواصل دعم Neon فوراً                                           | On-call + Lead |
@@ -66,14 +66,14 @@
 
 **الأعراض:** Cron job `/api/cron/tick` يعيد 500، Sentry يلتقط `BACKUP_ENCRYPTION_KEY missing` أو S3 error.
 
-| الخطوة | الإجراء                        | الأمر/التحقق                                                                                      | المالك                      |
-| ------ | ------------------------------ | ------------------------------------------------------------------------------------------------- | --------------------------- | ------- |
-| 1      | تحقق من المفتاح                | `vercel env ls                                                                                    | grep BACKUP_ENCRYPTION_KEY` | On-call |
-| 2      | تحقق من S3 credentials         | `vercel env ls                                                                                    | grep S3\_`                  | On-call |
+| الخطوة | الإجراء                        | الأمر/التحقق                                                                                         | المالك                      |
+| ------ | ------------------------------ | ---------------------------------------------------------------------------------------------------- | --------------------------- | ------- |
+| 1      | تحقق من المفتاح                | `vercel env ls                                                                                       | grep BACKUP_ENCRYPTION_KEY` | On-call |
+| 2      | تحقق من S3 credentials         | `vercel env ls                                                                                       | grep S3\_`                  | On-call |
 | 3      | شغل يدوياً للتشخيص             | `curl -X POST https://alhusainiaye.vercel.app/api/cron/tick -H "Authorization: Bearer $CRON_SECRET"` | On-call                     |
-| 4      | إذا S3 quota ممتلئ             | نظف bucket أو زد الحصة                                                                            | Lead                        |
-| 5      | إذا encryption key مفقود       | أضف في Vercel → Redeploy                                                                          | On-call                     |
-| 6      | تحقق من استعادة النسخة الأخيرة | `trpc.backup.verify` ثم `trpc.backup.restore dry-run`                                             | On-call                     |
+| 4      | إذا S3 quota ممتلئ             | نظف bucket أو زد الحصة                                                                               | Lead                        |
+| 5      | إذا encryption key مفقود       | أضف في Vercel → Redeploy                                                                             | On-call                     |
+| 6      | تحقق من استعادة النسخة الأخيرة | `trpc.backup.verify` ثم `trpc.backup.restore dry-run`                                                | On-call                     |
 
 ---
 
@@ -202,16 +202,16 @@ vercel --prod --token=$VERCEL_TOKEN
 
 ## 7. جهات الاتصال (Contacts)
 
-| الدور               | الاسم | Slack             | Phone (طوارئ) | البريد                    |
-| ------------------- | ----- | ----------------- | ------------- | ------------------------- |
+| الدور               | الاسم | Slack             | Phone (طوارئ) | البريد                           |
+| ------------------- | ----- | ----------------- | ------------- | -------------------------------- |
 | **Tech Lead / IC**  |       | `@tech-lead`      | +967-XXX-XXXX | lead@alhusainiaye.vercel.app     |
 | **Backend Owner**   |       | `@backend-owner`  | +967-XXX-XXXX | backend@alhusainiaye.vercel.app  |
 | **Frontend Owner**  |       | `@frontend-owner` | +967-XXX-XXXX | frontend@alhusainiaye.vercel.app |
 | **DevOps / Vercel** |       | `@devops`         | +967-XXX-XXXX | devops@alhusainiaye.vercel.app   |
 | **Product Owner**   |       | `@po`             | +967-XXX-XXXX | po@alhusainiaye.vercel.app       |
-| **Neon Support**    | —     | —                 | —             | support@neon.tech         |
-| **Vercel Support**  | —     | —                 | —             | support@vercel.com        |
-| **Sentry Support**  | —     | —                 | —             | support@sentry.io         |
+| **Neon Support**    | —     | —                 | —             | support@neon.tech                |
+| **Vercel Support**  | —     | —                 | —             | support@vercel.com               |
+| **Sentry Support**  | —     | —                 | —             | support@sentry.io                |
 
 ---
 

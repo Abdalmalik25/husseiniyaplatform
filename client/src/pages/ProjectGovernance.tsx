@@ -340,7 +340,7 @@ export default function ProjectGovernance() {
 
             <Button
               type="submit"
-              className="w-full h-12 bg-brand hover:bg-brand-deep text-ink font-black text-sm rounded-xl gap-2"
+              className="w-full h-12 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black text-sm rounded-xl gap-2"
             >
               <MessageSquare className="w-4 h-4" />
               إرسال ومناقشة المشروع عبر الواتساب

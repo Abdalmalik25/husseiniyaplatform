@@ -135,12 +135,12 @@ export default function Inventory() {
 
   return (
     <main
-      className="min-h-screen bg-gradient-to-b from-[#f6f7f5] to-[#eef1ea] font-sans"
+      className="min-h-screen bg-gradient-to-b from-sand to-muted font-sans"
       dir="rtl"
     >
       <div className="max-w-7xl mx-auto p-4 space-y-4">
-        <div className="bg-[#102a2b] text-white p-4 rounded-2xl shadow-md flex items-center gap-3">
-          <Boxes className="w-7 h-7 text-[#b87945]" />
+        <div className="bg-ink text-white p-4 rounded-2xl shadow-md flex items-center gap-3">
+          <Boxes className="w-7 h-7 text-brand" />
           <div>
             <h1 className="text-xl font-bold font-display">وحدة المخزون</h1>
             <p className="text-xs text-slate-300 mt-0.5">
@@ -228,7 +228,7 @@ export default function Inventory() {
             </div>
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   توزيع المخزون حسب التصنيف
                 </CardTitle>
               </CardHeader>
@@ -248,7 +248,7 @@ export default function Inventory() {
                         <td className="p-1.5 text-center font-mono">
                           {formatNum(c.qty)}
                         </td>
-                        <td className="p-1.5 text-left font-mono text-[#b87945]">
+                        <td className="p-1.5 text-left font-mono text-brand">
                           {formatNum(c.value)}
                         </td>
                       </tr>
@@ -275,7 +275,7 @@ export default function Inventory() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-[#102a2b]">
+                  <CardTitle className="text-sm font-bold text-ink">
                     تسوية / جرد / إدخال / إخراج
                   </CardTitle>
                 </CardHeader>
@@ -317,7 +317,7 @@ export default function Inventory() {
                   <div className="flex gap-2">
                     <Button
                       size="sm"
-                      className="bg-[#102a2b] hover:bg-[#0c2021] text-xs"
+                      className="bg-ink hover:bg-ink-deep text-xs"
                       disabled={
                         !opProduct || adjust.isPending || setOpening.isPending
                       }
@@ -351,7 +351,7 @@ export default function Inventory() {
 
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-1.5">
+                  <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
                     <ArrowLeftRight className="w-4 h-4" /> تحويل بين المخازن
                   </CardTitle>
                 </CardHeader>
@@ -388,7 +388,7 @@ export default function Inventory() {
                   </div>
                   <Button
                     size="sm"
-                    className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs"
+                    className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs"
                     disabled={
                       !opProduct || !trFrom || !trTo || transfer.isPending
                     }
@@ -414,7 +414,7 @@ export default function Inventory() {
           <TabsContent value="reports" className="space-y-3">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   تقييم المخزون (تكلفة وبيع)
                 </CardTitle>
               </CardHeader>
@@ -456,7 +456,7 @@ export default function Inventory() {
                           <td className="p-1.5 text-left font-mono">
                             {formatNum(i.cost)}
                           </td>
-                          <td className="p-1.5 text-left font-mono text-[#b87945]">
+                          <td className="p-1.5 text-left font-mono text-brand">
                             {formatNum(i.stockValue)}
                           </td>
                           <td className="p-1.5 text-left font-mono">
@@ -470,7 +470,7 @@ export default function Inventory() {
                         <td colSpan={5} className="p-1.5 text-left">
                           الإجماليات
                         </td>
-                        <td className="p-1.5 text-left font-mono text-[#b87945]">
+                        <td className="p-1.5 text-left font-mono text-brand">
                           {formatNum(valuation.data?.totalValue || 0)}
                         </td>
                         <td className="p-1.5 text-left font-mono">
@@ -485,7 +485,7 @@ export default function Inventory() {
 
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-1.5">
+                <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4 text-amber-500" /> تنبيهات
                   نقص المخزون
                 </CardTitle>
@@ -512,7 +512,7 @@ export default function Inventory() {
 
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   كرت الصنف (حركة وتعاقب الأرصدة)
                 </CardTitle>
               </CardHeader>
@@ -546,7 +546,7 @@ export default function Inventory() {
                           <td className="p-1.5 text-center font-mono">
                             {m.quantity}
                           </td>
-                          <td className="p-1.5 text-left font-mono text-[#b87945]">
+                          <td className="p-1.5 text-left font-mono text-brand">
                             {m.balanceAfter}
                           </td>
                         </tr>
@@ -572,7 +572,7 @@ export default function Inventory() {
           <TabsContent value="warehouses" className="space-y-3">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-1.5">
+                <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
                   <WhIcon className="w-4 h-4" /> المخازن
                 </CardTitle>
               </CardHeader>
@@ -598,7 +598,7 @@ export default function Inventory() {
                   />
                   <Button
                     size="sm"
-                    className="bg-[#102a2b] hover:bg-[#0c2021] text-xs"
+                    className="bg-ink hover:bg-ink-deep text-xs"
                     disabled={!whCode || !whName || createWh.isPending}
                     onClick={() => {
                       createWh.mutate({
@@ -654,13 +654,13 @@ export default function Inventory() {
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-1.5">
+                  <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
                     <AlertTriangle className="w-4 h-4 text-amber-500" />{" "}
                     اقتراحات إعادة الطلب
                   </CardTitle>
                   <Button
                     size="sm"
-                    className="bg-[#102a2b] hover:bg-[#0c2021] text-[10px] h-7 text-white"
+                    className="bg-ink hover:bg-ink-deep text-[10px] h-7 text-white"
                     disabled={
                       generateAuto.isPending ||
                       (reorderSuggestions.data ?? []).length === 0
@@ -684,7 +684,7 @@ export default function Inventory() {
                         className="flex items-center justify-between p-2 bg-amber-50 rounded-lg border border-amber-200"
                       >
                         <div>
-                          <p className="font-bold text-xs text-[#102a2b]">
+                          <p className="font-bold text-xs text-ink">
                             {s.product.name}
                           </p>
                           <p className="text-[10px] text-gray-500">
@@ -694,7 +694,7 @@ export default function Inventory() {
                         </div>
                         <Button
                           size="sm"
-                          className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-[10px] h-7"
+                          className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-[10px] h-7"
                           disabled={createRequisition.isPending}
                           onClick={() =>
                             createRequisition.mutate({
@@ -727,7 +727,7 @@ export default function Inventory() {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-[#102a2b] hover:bg-[#0c2021] text-xs"
+                className="bg-ink hover:bg-ink-deep text-xs"
                 onClick={() => {
                   /* Tab switch handled by defaultValue */
                 }}
@@ -747,7 +747,7 @@ export default function Inventory() {
               <Button
                 variant="outline"
                 size="sm"
-                className="bg-[#102a2b] hover:bg-[#0c2021] text-xs"
+                className="bg-ink hover:bg-ink-deep text-xs"
               >
                 الانتقال للوحة المعلومات
               </Button>
@@ -792,13 +792,13 @@ function ProductUnitsPanel({ productId }: { productId: number | null }) {
     <Card className="border-0 shadow-sm bg-white">
       <CardHeader className="p-3">
         <button
-          className="flex w-full items-center justify-between text-sm font-bold text-[#102a2b]"
+          className="flex w-full items-center justify-between text-sm font-bold text-ink"
           onClick={() => setOpenU(o => !o)}
         >
           <span className="flex items-center gap-1.5">
             <Ruler className="w-4 h-4" /> وحدات القياس
           </span>
-          <span className="text-[10px] text-[#b87945]">
+          <span className="text-[10px] text-brand">
             {openU ? "إخفاء" : "عرض"}
           </span>
         </button>
@@ -821,7 +821,7 @@ function ProductUnitsPanel({ productId }: { productId: number | null }) {
                       × {p.conversionFactor}
                     </span>
                     {p.isBase && (
-                      <span className="mr-1 rounded bg-[#102a2b]/10 px-1 text-[9px] text-[#102a2b]">
+                      <span className="mr-1 rounded bg-ink/10 px-1 text-[9px] text-ink">
                         أساسية
                       </span>
                     )}
@@ -886,7 +886,7 @@ function ProductUnitsPanel({ productId }: { productId: number | null }) {
           </div>
           <Button
             size="sm"
-            className="bg-[#102a2b] hover:bg-[#0c2021] text-xs"
+            className="bg-ink hover:bg-ink-deep text-xs"
             disabled={!puUnit || addPU.isPending}
             onClick={() => {
               if (!puUnit) return;
@@ -923,7 +923,7 @@ function Kpi({
     <Card className="border-0 shadow-sm bg-white p-3">
       <p className="text-[10px] text-gray-500">{label}</p>
       <p
-        className={`font-bold text-lg ${danger ? "text-rose-500" : "text-[#102a2b]"}`}
+        className={`font-bold text-lg ${danger ? "text-rose-500" : "text-ink"}`}
       >
         {value}
       </p>

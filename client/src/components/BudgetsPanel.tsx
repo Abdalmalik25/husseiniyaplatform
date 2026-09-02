@@ -121,17 +121,17 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
   };
 
   return (
-    <Card className="border-[#e8c9a0] bg-[#faf5ed] shadow-sm">
-      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-[#f0dfc8]">
-        <CardTitle className="flex items-center gap-2 text-[#5c3d1e] text-xs font-bold">
-          <Target className="w-4 h-4 text-[#b87945]" /> الميزانيات: الخطة مقابل
+    <Card className="border-brand-200 bg-brand-50 shadow-sm">
+      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-brand-100">
+        <CardTitle className="flex items-center gap-2 text-brand-800 text-xs font-bold">
+          <Target className="w-4 h-4 text-brand" /> الميزانيات: الخطة مقابل
           الفعلي
         </CardTitle>
         <Button
           size="sm"
           variant="outline"
           onClick={() => setDialogOpen(true)}
-          className="h-7 text-[10px] bg-white border-[#b87945] text-[#5c3d1e] hover:bg-[#f5ece0]"
+          className="h-7 text-[10px] bg-white border-brand text-brand-800 hover:bg-muted"
         >
           <Plus className="w-3.5 h-3.5 ml-1" /> إضافة خطة
         </Button>
@@ -139,7 +139,7 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
       <CardContent className="p-4 space-y-3">
         {isLoading ? (
           <div className="py-6 flex items-center justify-center gap-2 text-slate-500 text-xs">
-            <Loader2 className="w-5 h-5 animate-spin text-[#b87945]" /> جاري
+            <Loader2 className="w-5 h-5 animate-spin text-brand" /> جاري
             تحميل خطط الميزانية...
           </div>
         ) : !budgets || budgets.length === 0 ? (
@@ -168,7 +168,7 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
                   </span>
                   <Badge
                     variant="outline"
-                    className="text-[10px] font-mono bg-[#faf5ed]"
+                    className="text-[10px] font-mono bg-brand-50"
                   >
                     {new Date(b.createdAt).toLocaleDateString("ar-YE")}
                   </Badge>
@@ -288,7 +288,7 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
               size="sm"
               onClick={handleSave}
               disabled={saveBudgetMutation.isPending}
-              className="h-8 text-xs bg-[#b87945] hover:bg-[#a06838] text-white font-bold"
+              className="h-8 text-xs bg-brand hover:bg-brand-deep text-white font-bold"
             >
               {saveBudgetMutation.isPending ? (
                 <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" />

@@ -1,6 +1,6 @@
 /**
  * server/accountingClosingRouter.ts — Financial & Inventory Closing System
- * 
+ *
  * Complete implementation for:
  * - Opening Balances (الأرصدة الافتتاحية)
  * - Fiscal Period Management (إدارة الفترات المالية)
@@ -81,7 +81,12 @@ export const openingBalancesRouter = router({
       const rows = await db
         .select()
         .from(openingBalances)
-        .where(and(eq(openingBalances.tenantId, tid), eq(openingBalances.accountId, input.accountId)))
+        .where(
+          and(
+            eq(openingBalances.tenantId, tid),
+            eq(openingBalances.accountId, input.accountId)
+          )
+        )
         .orderBy(desc(openingBalances.createdAt))
         .limit(1);
 
@@ -107,7 +112,9 @@ export const openingBalancesRouter = router({
       const acct = await db
         .select()
         .from(accounts)
-        .where(and(eq(accounts.id, input.accountId), eq(accounts.tenantId, tid)))
+        .where(
+          and(eq(accounts.id, input.accountId), eq(accounts.tenantId, tid))
+        )
         .limit(1);
 
       if (!acct[0]) throw new Error("Account not found");
@@ -130,7 +137,12 @@ export const openingBalancesRouter = router({
       if (existing[0]) {
         [row] = await db
           .update(openingBalances)
-          .set({ amount: String(input.amount), type: input.type, notes: input.notes, updatedAt: new Date() })
+          .set({
+            amount: String(input.amount),
+            type: input.type,
+            notes: input.notes,
+            updatedAt: new Date(),
+          })
           .where(eq(openingBalances.id, existing[0].id))
           .returning();
       } else {
@@ -166,9 +178,14 @@ export const openingBalancesRouter = router({
 
       const tid = requireTenantId(ctx);
 
-      await db.delete(openingBalances).where(
-        and(eq(openingBalances.id, input.id), eq(openingBalances.tenantId, tid))
-      );
+      await db
+        .delete(openingBalances)
+        .where(
+          and(
+            eq(openingBalances.id, input.id),
+            eq(openingBalances.tenantId, tid)
+          )
+        );
 
       await db.insert(activityLogs).values({
         tenantId: tid,
@@ -206,7 +223,12 @@ export const openingBalancesRouter = router({
           const acct = await db
             .select()
             .from(accounts)
-            .where(and(eq(accounts.tenantId, tid), eq(accounts.code, item.accountCode)))
+            .where(
+              and(
+                eq(accounts.tenantId, tid),
+                eq(accounts.code, item.accountCode)
+              )
+            )
             .limit(1);
 
           if (!acct[0]) {
@@ -230,7 +252,11 @@ export const openingBalancesRouter = router({
           if (existing[0]) {
             await db
               .update(openingBalances)
-              .set({ amount: String(item.amount), type: item.type, updatedAt: new Date() })
+              .set({
+                amount: String(item.amount),
+                type: item.type,
+                updatedAt: new Date(),
+              })
               .where(eq(openingBalances.id, existing[0].id));
           } else {
             await db.insert(openingBalances).values({
@@ -284,7 +310,9 @@ export const fiscalPeriodClosingRouter = router({
     const periods = await db
       .select()
       .from(fiscalPeriods)
-      .where(and(eq(fiscalPeriods.tenantId, tid), eq(fiscalPeriods.status, "open")))
+      .where(
+        and(eq(fiscalPeriods.tenantId, tid), eq(fiscalPeriods.status, "open"))
+      )
       .orderBy(desc(fiscalPeriods.startDate))
       .limit(1);
 
@@ -328,11 +356,17 @@ export const fiscalPeriodClosingRouter = router({
       const periods = await db
         .select()
         .from(fiscalPeriods)
-        .where(and(eq(fiscalPeriods.id, input.periodId), eq(fiscalPeriods.tenantId, tid)))
+        .where(
+          and(
+            eq(fiscalPeriods.id, input.periodId),
+            eq(fiscalPeriods.tenantId, tid)
+          )
+        )
         .limit(1);
 
       if (!periods[0]) throw new Error("Fiscal period not found");
-      if (periods[0].status === "closed") throw new Error("Period already closed");
+      if (periods[0].status === "closed")
+        throw new Error("Period already closed");
 
       await db
         .update(fiscalPeriods)
@@ -366,7 +400,12 @@ export const fiscalPeriodClosingRouter = router({
       const periods = await db
         .select()
         .from(fiscalPeriods)
-        .where(and(eq(fiscalPeriods.id, input.periodId), eq(fiscalPeriods.tenantId, tid)))
+        .where(
+          and(
+            eq(fiscalPeriods.id, input.periodId),
+            eq(fiscalPeriods.tenantId, tid)
+          )
+        )
         .limit(1);
 
       if (!periods[0]) throw new Error("Fiscal period not found");
@@ -392,11 +431,13 @@ export const fiscalPeriodClosingRouter = router({
 export const accountingReportsRouter = router({
   trialBalance: tenantProcedure
     .input(
-      z.object({
-        asOf: z.string().optional(),
-        periodName: z.string().optional(),
-        includeOpening: z.boolean().default(true),
-      }).optional()
+      z
+        .object({
+          asOf: z.string().optional(),
+          periodName: z.string().optional(),
+          includeOpening: z.boolean().default(true),
+        })
+        .optional()
     )
     .query(async ({ ctx, input }) => {
       const db = await getDb();
@@ -412,16 +453,30 @@ export const accountingReportsRouter = router({
         .where(eq(accounts.tenantId, tid))
         .orderBy(accounts.code);
 
-      const ledger = new Map<number, { dr: number; cr: number; openingDr: number; openingCr: number }>();
+      const ledger = new Map<
+        number,
+        { dr: number; cr: number; openingDr: number; openingCr: number }
+      >();
 
       if (input?.includeOpening !== false) {
         const obConditions = periodName
-          ? and(eq(openingBalances.tenantId, tid), eq(openingBalances.periodName, periodName))
+          ? and(
+              eq(openingBalances.tenantId, tid),
+              eq(openingBalances.periodName, periodName)
+            )
           : eq(openingBalances.tenantId, tid);
-        const openingRows = await db.select().from(openingBalances).where(obConditions);
+        const openingRows = await db
+          .select()
+          .from(openingBalances)
+          .where(obConditions);
 
         for (const ob of openingRows) {
-          const entry = ledger.get(ob.accountId) ?? { dr: 0, cr: 0, openingDr: 0, openingCr: 0 };
+          const entry = ledger.get(ob.accountId) ?? {
+            dr: 0,
+            cr: 0,
+            openingDr: 0,
+            openingCr: 0,
+          };
           if (ob.type === "debit") entry.openingDr = toNum(ob.amount);
           else entry.openingCr = toNum(ob.amount);
           ledger.set(ob.accountId, entry);
@@ -429,15 +484,31 @@ export const accountingReportsRouter = router({
       }
 
       const txConditions = asOf
-        ? and(eq(transactions.tenantId, tid), eq(transactions.lifecycleStatus, "posted"), lte(transactions.transactionDate, asOf))
-        : and(eq(transactions.tenantId, tid), eq(transactions.lifecycleStatus, "posted"));
+        ? and(
+            eq(transactions.tenantId, tid),
+            eq(transactions.lifecycleStatus, "posted"),
+            lte(transactions.transactionDate, asOf)
+          )
+        : and(
+            eq(transactions.tenantId, tid),
+            eq(transactions.lifecycleStatus, "posted")
+          );
       const txRows = await db
-        .select({ accountId: transactions.accountId, type: transactions.type, amount: transactions.amount })
+        .select({
+          accountId: transactions.accountId,
+          type: transactions.type,
+          amount: transactions.amount,
+        })
         .from(transactions)
         .where(txConditions);
 
       for (const tx of txRows) {
-        const entry = ledger.get(tx.accountId) ?? { dr: 0, cr: 0, openingDr: 0, openingCr: 0 };
+        const entry = ledger.get(tx.accountId) ?? {
+          dr: 0,
+          cr: 0,
+          openingDr: 0,
+          openingCr: 0,
+        };
         const v = toNum(tx.amount);
         if (tx.type === "debit") entry.dr += v;
         else entry.cr += v;
@@ -446,20 +517,32 @@ export const accountingReportsRouter = router({
 
       const net = new Map<number, number>();
       ledger.forEach((entry, accountId) => {
-        net.set(accountId, entry.dr + entry.openingDr - (entry.cr + entry.openingCr));
+        net.set(
+          accountId,
+          entry.dr + entry.openingDr - (entry.cr + entry.openingCr)
+        );
       });
 
       let totalDebit = 0;
       let totalCredit = 0;
       const rows = acctRows
-        .filter((a) => Math.abs(net.get(a.id) ?? 0) > 0.0001)
-        .map((a) => {
-          const balance = (net.get(a.id) ?? 0) * (normalSide(a.type) === "debit" ? 1 : -1);
+        .filter(a => Math.abs(net.get(a.id) ?? 0) > 0.0001)
+        .map(a => {
+          const balance =
+            (net.get(a.id) ?? 0) * (normalSide(a.type) === "debit" ? 1 : -1);
           const side = balance >= 0 ? "debit" : "credit";
           const amount = Math.abs(balance);
           if (side === "debit") totalDebit += amount;
           else totalCredit += amount;
-          return { accountId: a.id, code: a.code, name: a.name, type: a.type, debit: side === "debit" ? amount : 0, credit: side === "credit" ? amount : 0, balance };
+          return {
+            accountId: a.id,
+            code: a.code,
+            name: a.name,
+            type: a.type,
+            debit: side === "debit" ? amount : 0,
+            credit: side === "credit" ? amount : 0,
+            balance,
+          };
         });
 
       return { rows, totals: { debit: totalDebit, credit: totalCredit } };
@@ -476,40 +559,97 @@ export const accountingReportsRouter = router({
     )
     .query(async ({ ctx, input }) => {
       const db = await getDb();
-      if (!db) return { account: null, openingBalance: { amount: 0, type: "debit" }, transactions: [], closingBalance: { amount: 0, type: "debit" } };
+      if (!db)
+        return {
+          account: null,
+          openingBalance: { amount: 0, type: "debit" },
+          transactions: [],
+          closingBalance: { amount: 0, type: "debit" },
+        };
 
       const tid = requireTenantId(ctx);
 
-      const acctRows = await db.select().from(accounts).where(and(eq(accounts.id, input.accountId), eq(accounts.tenantId, tid))).limit(1);
+      const acctRows = await db
+        .select()
+        .from(accounts)
+        .where(
+          and(eq(accounts.id, input.accountId), eq(accounts.tenantId, tid))
+        )
+        .limit(1);
       if (!acctRows[0]) throw new Error("Account not found");
 
       const account = acctRows[0];
       const fromDate = new Date(input.fromDate);
       const toDate = new Date(input.toDate);
 
-      let openingBalance: { amount: number; type: "debit" | "credit" } = { amount: 0, type: "debit" };
+      let openingBalance: { amount: number; type: "debit" | "credit" } = {
+        amount: 0,
+        type: "debit",
+      };
       if (input.includeOpening) {
-        const obRows = await db.select().from(openingBalances).where(and(eq(openingBalances.tenantId, tid), eq(openingBalances.accountId, input.accountId))).limit(1);
+        const obRows = await db
+          .select()
+          .from(openingBalances)
+          .where(
+            and(
+              eq(openingBalances.tenantId, tid),
+              eq(openingBalances.accountId, input.accountId)
+            )
+          )
+          .limit(1);
         if (obRows[0]) {
-          openingBalance = { amount: toNum(obRows[0].amount), type: obRows[0].type };
+          openingBalance = {
+            amount: toNum(obRows[0].amount),
+            type: obRows[0].type,
+          };
         }
       }
 
-      let runningBalance = openingBalance.type === "debit" ? openingBalance.amount : -openingBalance.amount;
+      let runningBalance =
+        openingBalance.type === "debit"
+          ? openingBalance.amount
+          : -openingBalance.amount;
 
-      const beforeTx = await db.select({ type: transactions.type, amount: transactions.amount }).from(transactions).where(
-        and(eq(transactions.tenantId, tid), eq(transactions.accountId, input.accountId), eq(transactions.lifecycleStatus, "posted"), lt(transactions.transactionDate, fromDate))
-      );
+      const beforeTx = await db
+        .select({ type: transactions.type, amount: transactions.amount })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.tenantId, tid),
+            eq(transactions.accountId, input.accountId),
+            eq(transactions.lifecycleStatus, "posted"),
+            lt(transactions.transactionDate, fromDate)
+          )
+        );
       for (const tx of beforeTx) {
-        runningBalance += tx.type === "debit" ? toNum(tx.amount) : -toNum(tx.amount);
+        runningBalance +=
+          tx.type === "debit" ? toNum(tx.amount) : -toNum(tx.amount);
       }
 
-      const periodTx = await db.select({ id: transactions.id, transactionDate: transactions.transactionDate, narration: transactions.narration, type: transactions.type, amount: transactions.amount, costCenterId: transactions.costCenterId }).from(transactions).where(
-        and(eq(transactions.tenantId, tid), eq(transactions.accountId, input.accountId), eq(transactions.lifecycleStatus, "posted"), gte(transactions.transactionDate, fromDate), lte(transactions.transactionDate, toDate))
-      ).orderBy(transactions.transactionDate);
+      const periodTx = await db
+        .select({
+          id: transactions.id,
+          transactionDate: transactions.transactionDate,
+          narration: transactions.narration,
+          type: transactions.type,
+          amount: transactions.amount,
+          costCenterId: transactions.costCenterId,
+        })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.tenantId, tid),
+            eq(transactions.accountId, input.accountId),
+            eq(transactions.lifecycleStatus, "posted"),
+            gte(transactions.transactionDate, fromDate),
+            lte(transactions.transactionDate, toDate)
+          )
+        )
+        .orderBy(transactions.transactionDate);
 
       const transactionsWithBalance = periodTx.map((tx: any) => {
-        runningBalance += tx.type === "debit" ? toNum(tx.amount) : -toNum(tx.amount);
+        runningBalance +=
+          tx.type === "debit" ? toNum(tx.amount) : -toNum(tx.amount);
         return { ...tx, runningBalance };
       });
 
@@ -517,12 +657,20 @@ export const accountingReportsRouter = router({
         account,
         openingBalance,
         transactions: transactionsWithBalance,
-        closingBalance: { amount: Math.abs(runningBalance), type: runningBalance >= 0 ? "debit" : "credit" },
+        closingBalance: {
+          amount: Math.abs(runningBalance),
+          type: runningBalance >= 0 ? "debit" : "credit",
+        },
       };
     }),
 
   agingReport: tenantProcedure
-    .input(z.object({ type: z.enum(["customers", "suppliers"]), asOf: z.string().optional() }))
+    .input(
+      z.object({
+        type: z.enum(["customers", "suppliers"]),
+        asOf: z.string().optional(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return { rows: [], totals: {} };
@@ -531,22 +679,66 @@ export const accountingReportsRouter = router({
       const result: any[] = [];
 
       if (input.type === "customers") {
-        const custRows = await db.select().from(customers).where(eq(customers.tenantId, tid));
+        const custRows = await db
+          .select()
+          .from(customers)
+          .where(eq(customers.tenantId, tid));
         for (const cust of custRows) {
-          const invoices = await db.select({ date: salesInvoices.invoiceDate, total: salesInvoices.total, paid: salesInvoices.paidAmount }).from(salesInvoices).where(
-            and(eq(salesInvoices.tenantId, tid), eq(salesInvoices.customerId, cust.id))
+          const invoices = await db
+            .select({
+              date: salesInvoices.invoiceDate,
+              total: salesInvoices.total,
+              paid: salesInvoices.paidAmount,
+            })
+            .from(salesInvoices)
+            .where(
+              and(
+                eq(salesInvoices.tenantId, tid),
+                eq(salesInvoices.customerId, cust.id)
+              )
+            );
+          const outstanding = invoices.reduce(
+            (sum, inv) => sum + toNum(inv.total) - toNum(inv.paid),
+            0
           );
-          const outstanding = invoices.reduce((sum, inv) => sum + toNum(inv.total) - toNum(inv.paid), 0);
-          if (outstanding > 0.01) result.push({ id: cust.id, name: cust.name, outstanding, aging: { current: outstanding } });
+          if (outstanding > 0.01)
+            result.push({
+              id: cust.id,
+              name: cust.name,
+              outstanding,
+              aging: { current: outstanding },
+            });
         }
       } else {
-        const suppRows = await db.select().from(suppliers).where(eq(suppliers.tenantId, tid));
+        const suppRows = await db
+          .select()
+          .from(suppliers)
+          .where(eq(suppliers.tenantId, tid));
         for (const supp of suppRows) {
-          const invoices = await db.select({ date: purchaseInvoices.invoiceDate, total: purchaseInvoices.total, paid: purchaseInvoices.paidAmount }).from(purchaseInvoices).where(
-            and(eq(purchaseInvoices.tenantId, tid), eq(purchaseInvoices.supplierId, supp.id))
+          const invoices = await db
+            .select({
+              date: purchaseInvoices.invoiceDate,
+              total: purchaseInvoices.total,
+              paid: purchaseInvoices.paidAmount,
+            })
+            .from(purchaseInvoices)
+            .where(
+              and(
+                eq(purchaseInvoices.tenantId, tid),
+                eq(purchaseInvoices.supplierId, supp.id)
+              )
+            );
+          const outstanding = invoices.reduce(
+            (sum, inv) => sum + toNum(inv.total) - toNum(inv.paid),
+            0
           );
-          const outstanding = invoices.reduce((sum, inv) => sum + toNum(inv.total) - toNum(inv.paid), 0);
-          if (outstanding > 0.01) result.push({ id: supp.id, name: supp.name, outstanding, aging: { current: outstanding } });
+          if (outstanding > 0.01)
+            result.push({
+              id: supp.id,
+              name: supp.name,
+              outstanding,
+              aging: { current: outstanding },
+            });
         }
       }
 
@@ -566,10 +758,29 @@ export const inventoryReportsRouter = router({
       if (!db) return { rows: [], totals: { quantity: 0, value: 0 } };
       const tid = requireTenantId(ctx);
 
-      const prodRows = await db.select({ id: products.id, code: products.code, name: products.name, unit: products.unit, currentStock: products.currentStock }).from(products).where(eq(products.tenantId, tid));
+      const prodRows = await db
+        .select({
+          id: products.id,
+          code: products.code,
+          name: products.name,
+          unit: products.unit,
+          currentStock: products.currentStock,
+        })
+        .from(products)
+        .where(eq(products.tenantId, tid));
 
-      const rows = prodRows.map((p: any) => ({ ...p, quantity: toNum(p.currentStock), value: 0 }));
-      const totals = rows.reduce((acc: any, r: any) => ({ quantity: acc.quantity + r.quantity, value: acc.value + r.value }), { quantity: 0, value: 0 });
+      const rows = prodRows.map((p: any) => ({
+        ...p,
+        quantity: toNum(p.currentStock),
+        value: 0,
+      }));
+      const totals = rows.reduce(
+        (acc: any, r: any) => ({
+          quantity: acc.quantity + r.quantity,
+          value: acc.value + r.value,
+        }),
+        { quantity: 0, value: 0 }
+      );
 
       return { rows, totals };
     }),
@@ -581,27 +792,58 @@ export const inventoryReportsRouter = router({
       if (!db) return { rows: [] };
       const tid = requireTenantId(ctx);
 
-      const batchRows = await db.select({ id: inventoryBatches.id, productId: inventoryBatches.productId, quantity: inventoryBatches.quantity, unitCost: inventoryBatches.unitCost, expiryDate: inventoryBatches.expiryDate, createdAt: inventoryBatches.createdAt, productName: products.name, productCode: products.code }).from(inventoryBatches).innerJoin(products, eq(inventoryBatches.productId, products.id)).where(
-        and(eq(inventoryBatches.tenantId, tid), gt(inventoryBatches.quantity, 0))
-      );
+      const batchRows = await db
+        .select({
+          id: inventoryBatches.id,
+          productId: inventoryBatches.productId,
+          quantity: inventoryBatches.quantity,
+          unitCost: inventoryBatches.unitCost,
+          expiryDate: inventoryBatches.expiryDate,
+          createdAt: inventoryBatches.createdAt,
+          productName: products.name,
+          productCode: products.code,
+        })
+        .from(inventoryBatches)
+        .innerJoin(products, eq(inventoryBatches.productId, products.id))
+        .where(
+          and(
+            eq(inventoryBatches.tenantId, tid),
+            gt(inventoryBatches.quantity, 0)
+          )
+        );
 
       const now = new Date();
       const rows = batchRows.map((b: any) => {
-        const age = Math.floor((now.getTime() - new Date(b.createdAt).getTime()) / (1000 * 60 * 60 * 24));
+        const age = Math.floor(
+          (now.getTime() - new Date(b.createdAt).getTime()) /
+            (1000 * 60 * 60 * 24)
+        );
         let agingBucket = "0-30";
         if (age > 365) agingBucket = "365+";
         else if (age > 180) agingBucket = "180-365";
         else if (age > 90) agingBucket = "90-180";
         else if (age > 30) agingBucket = "30-90";
 
-        return { ...b, age, agingBucket, value: toNum(b.quantity) * toNum(b.unitCost), isExpired: b.expiryDate ? new Date(b.expiryDate) < now : false };
+        return {
+          ...b,
+          age,
+          agingBucket,
+          value: toNum(b.quantity) * toNum(b.unitCost),
+          isExpired: b.expiryDate ? new Date(b.expiryDate) < now : false,
+        };
       });
 
       return { rows };
     }),
 
   inventoryMovement: tenantProcedure
-    .input(z.object({ fromDate: z.string(), toDate: z.string(), productId: z.number().optional() }))
+    .input(
+      z.object({
+        fromDate: z.string(),
+        toDate: z.string(),
+        productId: z.number().optional(),
+      })
+    )
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return { rows: [], summary: {} };
@@ -624,17 +866,28 @@ export const inventoryReportsRouter = router({
           );
 
       const rows = await db
-        .select({ id: inventoryMovements.id, type: inventoryMovements.type, quantity: inventoryMovements.quantity, referenceType: inventoryMovements.referenceType, notes: inventoryMovements.notes, productId: products.id, productName: products.name })
+        .select({
+          id: inventoryMovements.id,
+          type: inventoryMovements.type,
+          quantity: inventoryMovements.quantity,
+          referenceType: inventoryMovements.referenceType,
+          notes: inventoryMovements.notes,
+          productId: products.id,
+          productName: products.name,
+        })
         .from(inventoryMovements)
         .innerJoin(products, eq(inventoryMovements.productId, products.id))
         .where(queryConditions)
         .orderBy(desc(inventoryMovements.createdAt));
 
-      const summary = rows.reduce((acc: any, tx: any) => {
-        if (tx.type === "in") acc.totalIn += toNum(tx.quantity);
-        else acc.totalOut += toNum(tx.quantity);
-        return acc;
-      }, { totalIn: 0, totalOut: 0 });
+      const summary = rows.reduce(
+        (acc: any, tx: any) => {
+          if (tx.type === "in") acc.totalIn += toNum(tx.quantity);
+          else acc.totalOut += toNum(tx.quantity);
+          return acc;
+        },
+        { totalIn: 0, totalOut: 0 }
+      );
 
       return { rows, summary };
     }),
@@ -644,13 +897,27 @@ export const inventoryReportsRouter = router({
     if (!db) return { rows: [] };
     const tid = requireTenantId(ctx);
 
-    const prodRows = await db.select({ id: products.id, code: products.code, name: products.name, minStock: products.minStock, currentStock: products.currentStock }).from(products).where(eq(products.tenantId, tid));
+    const prodRows = await db
+      .select({
+        id: products.id,
+        code: products.code,
+        name: products.name,
+        minStock: products.minStock,
+        currentStock: products.currentStock,
+      })
+      .from(products)
+      .where(eq(products.tenantId, tid));
 
-    const rows = prodRows.filter((p: any) => toNum(p.currentStock) <= toNum(p.minStock) && toNum(p.minStock) > 0).map((p: any) => ({
-      ...p,
-      shortage: toNum(p.minStock) - toNum(p.currentStock),
-      percentage: (toNum(p.currentStock) / toNum(p.minStock)) * 100,
-    }));
+    const rows = prodRows
+      .filter(
+        (p: any) =>
+          toNum(p.currentStock) <= toNum(p.minStock) && toNum(p.minStock) > 0
+      )
+      .map((p: any) => ({
+        ...p,
+        shortage: toNum(p.minStock) - toNum(p.currentStock),
+        percentage: (toNum(p.currentStock) / toNum(p.minStock)) * 100,
+      }));
 
     return { rows };
   }),

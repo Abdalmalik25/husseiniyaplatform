@@ -3,20 +3,42 @@
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
 ---
+## [2.14.1] — 2026-09-03 · Release hardening — إصلاحات lint + تنظيف النشر الرسمي
+
+### Fixed
+
+- **ESLint zero-error** — 3 أخطاء `no-useless-assignment`:
+  - `client/src/pages/Billing.tsx` (حقل `credentials` في `saveGateway`) — إزالة التهيئة الفائضة
+  - `server/billingRouter.ts` (متغيرا `delivered`/`channel` في إرسال كوب التفعيل) — التصريح بدون تهيئة مسبقة زائدة
+- **تطبيق هجرة `0013_search_optimization.sql`** — فهارس pg_trgm إضافية للبحث الموحّد (مطبّقة، 8 statements، checksum ثابت)
+
+### Chore
+
+- **إضافة `test-results/`, `playwright-report/`, `blob-report/` إلى `.gitignore`** — منع رفع نتائج Playwright المحلية
+- **حذف ملفات الفحص المؤقتة من المستودع** (`tsc-*.txt`, `typecheck.log`, `k6-*.log`, `srv*.log`, `static-srv.log`, `vitest-out.txt` وغيرها)
+
+### Verified
+
+- `pnpm check` 0 أخطاء · `pnpm lint` 0 أخطاء · `pnpm test` **157/157 (1 skipped يتطلب DB)` · `pnpm build` EXIT=0 مع تطبيق migrations
+
+---
 
 ## [2.13.0] — 2026-08-31 — سدّ الديون التقنية والوظيفية
 
 ### Added
+
 - **بحث موحّد في لوحة الأوامر (⌘/Ctrl+K)** — ترقية `CommandPalette.tsx` لاستخدام `query.globalSearch` (محرك trigram): نداء **واحد** بدل 3 نداءات متوازية، مع إضافة **الحسابات والقيود المحاسبية** للنتائج الحية، ومجموعة **"إجراءات ذكية مقترحة"** مبنية على نية الاستعلام (`suggestQuickActions`)
 - مفاتيح i18n جديدة: `search.*` في `ar.json` و `en.json`
 
 ### Fixed
+
 - **`px^4` → `px-4`** — كلاس Tailwind تالف في عنصر المورّدين باللوحة
 - **خاصية `shrink-0` العارية** على مكوّن أيقونة lucide (props غير صالحة)
 - **`serverVersion: "1.1.0"` مُشفّر يدوياً** في `routers.ts` → `ENV.appVersion` (مصدر الحقيقة الوحيد = package.json عبر `__APP_VERSION__`)
 - **9 تحذيرات `no-console`** في `pos/hardwareIntegration.ts` → مساعد `devLog` مُقيّد بـ DEV
 
 ### Performance
+
 - **`HeroAurora`**: حذف Orb 4 و Orb 5 (الأضعف بصرياً) — تقليل تكلفة GPU بنسبة ~40% مع فرق بصري لا يُذكر
 - **`scripts/build-server.cjs`**: `minify: true` + `keepNames: true` + `legalComments: "none"` — حزم serverless أصغر (cold-start أسرع) مع stack traces مقروءة
 
@@ -35,6 +57,20 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 - **راوتر الاستعلام الذكي** — `server/queryRouter.ts` (`query.*` مُدمج في `appRouter`): `globalSearch`، `accountBalances`، `inventoryHealth`، `salesTrend`، `activityTrace`، `tenantMasterSummary`، `dashboardSummary` (KPIs متوازية بـ Promise.all) — كلها tenantProcedure مع فلترة tenantId إلزامية
 - **E2E رحلة المؤسسة الكاملة** — `e2e/enterprise-journey.spec.ts`: بوابة الدخول → 11 ورksبيس نظام (app/accounting/commercial/inventory/procurement/projects/hr/support/pos/permissions/basic-data) → عزل صفر-ثقة (tRPC بدون جلسة = UNAUTHORIZED) → رحلة مُصادقة شرطية عبر E2E_USERNAME/E2E_PASSWORD
 - **Playwright channel: chrome** — `playwright.config.ts` يستخدم Chrome النظامي (لا تنزيل متصفح، صالح للبيئات المعزولة)
+- **دورة استعادة الحساب الكاملة (Auth Cycle)** — إغلاق حلقة «نسيت كلمة المرور» و«تحقق البريد» من طرف إلى طرف:
+  - صفحة `/reset-password` (`ResetPassword.tsx`) — نموذج كلمة مرور قوية مع مطابقة الحقلين، رسائل أمان واضحة، وCTA واحد بعد النجاح
+  - صفحة `/verify-email` (`VerifyEmail.tsx`) — تحقق تلقائي من الرمز عند فتح الرابط + نموذج إعادة إرسال ذكي عند الانتهاء/الخطأ (يمنع المأزق)
+  - تعريض `auth.verifyEmail` و `auth.resendVerificationEmail` على روتر التطبيق الرئيسي (كانا محبوسين في `authRouter` غير المُستخدم)
+  - `APP_URL` بيئة جديدة تُبنى منها روابط رسائل البريد — تنتهي صلاحية الرمز بعد الاستخدام فوراً (use-once token)
+
+### Fixed
+
+- **روابط رسائل البريد كانت تُبنى من `OAUTH_SERVER_URL` (بوابة OAuth الخارجية)** → تنقل إلى نطاق خاطئ؛ الآن تُبنى من `APP_URL` (نطاق المنصة) مع fallback إلى `https://alhusainiaye.vercel.app`
+- **محمّل i18n** — إزالة `import attribute` من الاستيراد الديناميكي `ar.json/en.json` لضمان التوافق الموحّد في تطوير Vite والمتصفحات وتفادي أعطال التحميل الخادعة
+
+### Performance & Observability
+
+- **`/api/performance`** — نقطة تتبع أداء فورية (ذواكر/uptime/عدد الطلبات) + `performanceMiddleware` يمرّر `X-Request-ID` لكل نداء API مع `healthCache` عميق لفحص قاعدة البيانات بلا إرهاق (تنعش 5 ثوانٍ)
 
 ### Fixed
 

@@ -94,7 +94,7 @@ export function HeroShowcase() {
               onClick={() => setActive(k)}
               className={`group flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
                 on
-                  ? "bg-brand text-ink border-brand shadow-lg shadow-brand/30"
+                  ? "bg-brand text-ink-deep border-brand shadow-lg shadow-brand/30"
                   : "bg-white/5 text-white/70 border-white/10 hover:bg-white/10 hover:text-white"
               }`}
             >
@@ -124,7 +124,7 @@ export function HeroShowcase() {
         {/* content (re-mounts per module to replay animations) */}
         <div
           key={active}
-          className="p-5 sm:p-7 bg-gradient-to-br from-[#0e2a2b]/50 to-[#0a1f20]/70"
+          className="p-5 sm:p-7 bg-gradient-to-br from-ink/50 to-ink-deep/70"
         >
           <div className="flex items-center gap-3 mb-5">
             <div

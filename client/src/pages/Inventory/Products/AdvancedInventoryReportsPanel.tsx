@@ -383,7 +383,7 @@ export function AdvancedInventoryReportsPanel() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[#102a2b]">
+          <h2 className="text-lg font-bold text-ink">
             تقارير المخزون المتقدمة
           </h2>
           <p className="text-xs text-gray-500">
@@ -607,7 +607,7 @@ export function AdvancedInventoryReportsPanel() {
                       <td className="p-2 text-center font-mono">
                         {formatInt(p.agingBuckets["365+"] || 0)}
                       </td>
-                      <td className="p-2 text-left font-mono text-[#b87945]">
+                      <td className="p-2 text-left font-mono text-brand">
                         {formatNum(p.totalValue)} ر.ي
                       </td>
                       <td className="p-2 text-left text-[10px] text-gray-500">
@@ -649,7 +649,7 @@ export function AdvancedInventoryReportsPanel() {
                         )
                       )}
                     </td>
-                    <td className="p-2 text-left font-mono text-[#b87945]">
+                    <td className="p-2 text-left font-mono text-brand">
                       {formatNum(totalAgingValue)} ر.ي
                     </td>
                     <td className="p-2"></td>
@@ -785,7 +785,7 @@ export function AdvancedInventoryReportsPanel() {
             </Card>
             <Card className="border-0 shadow-sm bg-white p-3">
               <p className="text-[10px] text-gray-500">إجمالي الأصناف</p>
-              <p className="font-bold text-lg text-[#102a2b]">
+              <p className="font-bold text-lg text-ink">
                 {abcAnalysis.length}
               </p>
             </Card>
@@ -826,7 +826,7 @@ export function AdvancedInventoryReportsPanel() {
                       <td className="p-2 text-center font-mono">
                         {formatNum(parseFloat(p.purchasePrice || "0"))}
                       </td>
-                      <td className="p-2 text-left font-mono text-[#b87945]">
+                      <td className="p-2 text-left font-mono text-brand">
                         {formatNum(p.stockValue)} ر.ي
                       </td>
                       <td className="p-2 text-left font-mono">
@@ -861,7 +861,7 @@ export function AdvancedInventoryReportsPanel() {
         <TabsContent value="dead" className="space-y-3">
           <Card className="border-0 shadow-sm bg-white">
             <CardHeader className="p-3">
-              <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-2">
+              <CardTitle className="text-sm font-bold text-ink flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-red-500" />
                 الأصناف الكاسدة والميتة (بدون حركة مبيعات/إدخال لفترات طويلة)
               </CardTitle>

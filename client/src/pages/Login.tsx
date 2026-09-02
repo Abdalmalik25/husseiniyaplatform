@@ -21,11 +21,6 @@ import {
   Coins,
   Clock,
   ChevronDown,
-  Building2,
-  Users,
-  Briefcase,
-  Wrench,
-  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
@@ -40,174 +35,6 @@ const CURRENCIES = [
   { code: "AED", label: "درهم إماراتي (AED)" },
   { code: "EGP", label: "جنيه مصري (EGP)" },
 ];
-
-// ── حسابات تجريبية — كلها لمستأجر تجريبي واحد (كمثال)، والمكتبة مشترك كغيرها
-// مبدأ تعدد المستأجرين: لا تفضيل لمستأجر على آخر — هذه مجرد أدوار للتجربة
-const DEMO_ACCOUNTS: Array<{
-  username: string;
-  password: string;
-  label: string;
-  role: string;
-  icon: typeof Sparkles;
-  color: string;
-  featured?: boolean;
-}> = [
-  {
-    username: "library_owner",
-    password: "Library@2024",
-    label: "المالك — وصول كامل (تجربة)",
-    role: "مالك · كل الصلاحيات",
-    icon: Building2,
-    color: "text-brand-300",
-    featured: true,
-  },
-  {
-    username: "admin",
-    password: "admin123",
-    label: "المدير — تجربة سريعة",
-    role: "مدير · لوحة كاملة",
-    icon: ShieldCheck,
-    color: "text-emerald-400",
-    featured: true,
-  },
-  {
-    username: "mohamed_accounting",
-    password: "Mohamed@2024",
-    label: "مدير الحسابات — تجربة",
-    role: "محاسب · قيود وتقارير",
-    icon: Briefcase,
-    color: "text-amber-400",
-    featured: true,
-  },
-  {
-    username: "hail_manager",
-    password: "Hail@2024",
-    label: "هايل — مدير تنفيذي",
-    role: "مدير · تشغيل",
-    icon: Users,
-    color: "text-sky-400",
-  },
-  {
-    username: "abduljabbar_sales",
-    password: "Abdujabbar@2024",
-    label: "عبدالجبار — محاسب مبيعات",
-    role: "مبيعات · فواتير",
-    icon: Coins,
-    color: "text-sky-400",
-  },
-  {
-    username: "sami_sales",
-    password: "Sami@2024",
-    label: "سامي — مبيعات وخدمة عملاء",
-    role: "مبيعات · متجر",
-    icon: Users,
-    color: "text-purple-400",
-  },
-  {
-    username: "imad_support",
-    password: "Imad@2024",
-    label: "عماد — الدعم والصيانة",
-    role: "دعم · صيانة",
-    icon: Wrench,
-    color: "text-rose-400",
-  },
-  {
-    username: "abdulrazzaq_audit",
-    password: "Abdurazzaq@2024",
-    label: "عبدالرزاق — مراجعة",
-    role: "مراجع · تدقيق",
-    icon: Search,
-    color: "text-orange-400",
-  },
-];
-
-function DemoAccountsSection({
-  onSelect,
-  isPending,
-}: {
-  onSelect: (u: string, p: string) => void;
-  isPending: boolean;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const featured = DEMO_ACCOUNTS.filter(a => a.featured);
-  const others = DEMO_ACCOUNTS.filter(a => !a.featured);
-  return (
-    <div className="space-y-2">
-      <div className="grid grid-cols-1 gap-2">
-        {featured.map(acc => {
-          const Icon = acc.icon;
-          return (
-            <button
-              key={acc.username}
-              type="button"
-              disabled={isPending}
-              onClick={() => onSelect(acc.username, acc.password)}
-              className="group flex items-center gap-3 w-full text-right bg-white/[0.06] hover:bg-white/[0.10] border border-white/10 hover:border-brand/30 rounded-xl px-3 py-2.5 transition-all text-xs disabled:opacity-60"
-            >
-              <span className="w-9 h-9 rounded-lg bg-ink border border-white/10 flex items-center justify-center shrink-0 group-hover:border-brand/30 transition-colors">
-                <Icon className={`w-4 h-4 ${acc.color}`} />
-              </span>
-              <span className="flex-1 min-w-0">
-                <span className="block font-bold text-white leading-tight truncate">
-                  {acc.label}
-                </span>
-                <span className="block text-[10px] text-white/50">
-                  {acc.role} · {acc.username}
-                </span>
-              </span>
-              <ChevronLeft className="w-3.5 h-3.5 text-white/30 group-hover:text-brand-300 shrink-0" />
-            </button>
-          );
-        })}
-      </div>
-      <button
-        type="button"
-        onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center justify-center gap-1.5 text-[11px] text-white/60 hover:text-white py-1.5 rounded-lg hover:bg-white/5 transition-colors"
-        aria-expanded={expanded}
-      >
-        <span>
-          {expanded
-            ? "إخفاء الأدوار الأخرى"
-            : `عرض ${others.length} أدوار إضافية (مبيعات، دعم، مراجعة)`}
-        </span>
-        <ChevronDown
-          className={`w-3.5 h-3.5 transition-transform ${expanded ? "rotate-180" : ""}`}
-        />
-      </button>
-      {expanded && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-1 duration-200">
-          {others.map(acc => {
-            const Icon = acc.icon;
-            return (
-              <button
-                key={acc.username}
-                type="button"
-                disabled={isPending}
-                onClick={() => onSelect(acc.username, acc.password)}
-                className="flex items-center gap-2 w-full text-right bg-white/[0.04] hover:bg-white/[0.08] border border-white/10 rounded-xl px-2.5 py-2 transition-all text-xs disabled:opacity-60"
-              >
-                <Icon className={`w-3.5 h-3.5 ${acc.color} shrink-0`} />
-                <span className="flex-1 min-w-0">
-                  <span className="block font-bold text-white/90 leading-tight truncate text-[11px]">
-                    {acc.label}
-                  </span>
-                  <span className="block text-[10px] text-white/45 truncate">
-                    {acc.role}
-                  </span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-      <p className="text-[10px] text-white/35 text-center leading-relaxed px-2">
-        كل حساب يعزل بياناته تماماً — جرّب دوراً مختلفاً لتستكشف الصلاحيات
-        والتقارير الخاصة به
-      </p>
-    </div>
-  );
-}
 
 export default function Login() {
   const [, setLocation] = useLocation();
@@ -247,6 +74,9 @@ export default function Login() {
   const [regCountry, setRegCountry] = useState("اليمن");
   const [regCurrency, setRegCurrency] = useState("YER");
   const [regEmail, setRegEmail] = useState("");
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
 
   const goApp = () => {
     setLocation(redirectTo && redirectTo.startsWith("/") ? redirectTo : "/app");
@@ -306,6 +136,14 @@ export default function Login() {
     },
   });
 
+  const forgotPassword = trpc.auth.forgotPassword.useMutation({
+    onSuccess: () => {
+      toast.success("إذا كان البريد مسجلاً، ستصلك تعليمات إعادة التعيين");
+      setForgotEmail("");
+    },
+    onError: () => toast.error("تعذر إرسال طلب إعادة التعيين، حاول لاحقاً"),
+  });
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setNotFound(false);
@@ -324,8 +162,12 @@ export default function Login() {
       toast.error("الرجاء تعبئة اسم المنشأة واسم المستخدم وكلمة المرور");
       return;
     }
-    if (regPassword.length < 6) {
-      toast.error("كلمة المرور يجب ألا تقل عن 6 أحرف");
+    if (regPassword.length < 8) {
+      toast.error("كلمة المرور يجب ألا تقل عن 8 أحرف");
+      return;
+    }
+    if (!acceptTerms) {
+      toast.error("يجب الموافقة على شروط الاستخدام وسياسة الخصوصية");
       return;
     }
     register.mutate({
@@ -335,6 +177,7 @@ export default function Login() {
       country: regCountry,
       currency: regCurrency,
       email: regEmail.trim() || undefined,
+      acceptTerms: true,
     });
   };
 
@@ -389,7 +232,7 @@ export default function Login() {
 
           <div className="space-y-3 pt-2 text-xs text-slate-200">
             <div className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-2xl">
-              <div className="p-2 bg-brand rounded-xl text-ink font-bold">
+              <div className="p-2 bg-brand rounded-xl text-ink-deep font-bold">
                 <Clock className="w-4 h-4" />
               </div>
               <div>
@@ -433,13 +276,13 @@ export default function Login() {
                 <TabsList className="grid grid-cols-2 bg-ink p-1 rounded-xl border border-white/15 h-10">
                   <TabsTrigger
                     value="login"
-                    className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink"
+                    className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep"
                   >
                     تسجيل الدخول
                   </TabsTrigger>
                   <TabsTrigger
                     value="register"
-                    className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink"
+                    className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep"
                   >
                     فتح حساب جديد
                   </TabsTrigger>
@@ -451,179 +294,225 @@ export default function Login() {
               {/* ── Tab 1: Existing User Login ─────────────── */}
               {activeTab === "login" && (
                 <div className="space-y-4 animate-in fade-in duration-200">
-                  {locked && (
-                    <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] text-rose-200">
-                      <AlertTriangle className="w-4 h-4 shrink-0" />
-                      تم قفل الحساب مؤقتاً بسبب محاولات متكررة. حاول بعد{" "}
-                      {locked} دقيقة.
-                    </div>
-                  )}
-                  {notFound && (
-                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[11px] text-amber-200">
-                      <div className="flex items-center gap-2 font-bold mb-1">
-                        <AlertTriangle className="w-4 h-4" /> لا يوجد حساب مسجل
-                        بهذا الاسم
+                  {showForgot ? (
+                    <form
+                      onSubmit={e => {
+                        e.preventDefault();
+                        forgotPassword.mutate({ email: forgotEmail.trim() });
+                      }}
+                      className="space-y-4"
+                    >
+                      <div className="space-y-1.5">
+                        <Label className="text-xs font-bold text-slate-300">
+                          البريد الإلكتروني المسجل
+                        </Label>
+                        <Input
+                          required
+                          type="email"
+                          value={forgotEmail}
+                          onChange={e => setForgotEmail(e.target.value)}
+                          placeholder="name@company.com"
+                          autoComplete="email"
+                          className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl"
+                        />
                       </div>
-                      <p className="mb-2">
-                        يمكنك فتح حساب وتهيئة منشأتك مجاناً في دقيقة.
+                      <p className="text-[11px] text-slate-400 leading-relaxed">
+                        سنرسل رابطًا مؤقتًا لإعادة تعيين كلمة المرور إن كان
+                        البريد مرتبطًا بحساب.
                       </p>
-                      <Button
-                        size="sm"
-                        onClick={() => {
-                          setActiveTab("register");
-                          setNotFound(false);
-                        }}
-                        className="bg-brand hover:bg-brand-deep text-ink font-bold text-[11px] h-8"
-                      >
-                        <UserPlus className="w-3.5 h-3.5" /> فتح حساب جديد
-                      </Button>
-                    </div>
-                  )}
-
-                  {mfaRequired && (
-                    <div className="space-y-3 p-4 rounded-xl bg-brand/10 border border-brand/30 animate-in fade-in">
-                      <p className="text-xs font-black text-brand-300 flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4" /> التحقق الثنائي مطلوب
-                        — OWASP A07
-                      </p>
-                      <p className="text-[11px] text-slate-300 leading-relaxed">
-                        أدخل رمز 6 أرقام من تطبيق Authenticator
-                        (Google/Microsoft Authenticator) المرتبط بحسابك
-                      </p>
-                      <Input
-                        value={mfaCode}
-                        onChange={e =>
-                          setMfaCode(
-                            e.target.value.replace(/\D/g, "").slice(0, 6)
-                          )
-                        }
-                        placeholder="000000"
-                        className="h-11 bg-ink border-white/15 text-white text-center font-mono text-lg tracking-[0.3em]"
-                        maxLength={6}
-                        inputMode="numeric"
-                        autoFocus
-                      />
                       <div className="flex gap-2">
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => {
-                            setMfaRequired(false);
-                            setMfaCode("");
-                          }}
-                          className="flex-1 border-white/15 text-white/70 h-10"
+                          onClick={() => setShowForgot(false)}
+                          className="border-white/15 text-white/70 h-10"
                         >
                           رجوع
                         </Button>
                         <Button
-                          type="button"
-                          disabled={verifyMfa.isPending || mfaCode.length !== 6}
-                          onClick={() =>
-                            verifyMfa.mutate({
-                              username: mfaUsername,
-                              token: mfaCode,
-                            })
-                          }
-                          className="flex-1 bg-brand hover:bg-brand-deep text-ink font-black h-10"
+                          type="submit"
+                          disabled={forgotPassword.isPending}
+                          className="flex-1 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black h-10"
                         >
-                          {verifyMfa.isPending ? "جاري التحقق…" : "تحقق ودخول"}
+                          {forgotPassword.isPending
+                            ? "جاري الإرسال…"
+                            : "إرسال رابط الاستعادة"}
                         </Button>
                       </div>
-                      <p className="text-[10px] text-white/30 text-center">
-                        الرمز يتغير كل 30 ثانية — لا تشاركه
-                      </p>
-                    </div>
-                  )}
-
-                  {!mfaRequired && (
-                    <form onSubmit={handleLogin} className="space-y-4">
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                          <KeyRound className="w-3.5 h-3.5 text-brand-300" />{" "}
-                          اسم المستخدم
-                        </Label>
-                        <Input
-                          required
-                          type="text"
-                          name="username"
-                          placeholder="اسم المستخدم"
-                          value={username}
-                          onChange={e => setUsername(e.target.value)}
-                          className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl"
-                          autoComplete="username"
-                          autoFocus
-                          aria-label="اسم المستخدم"
-                          aria-describedby="login-error"
-                        />
-                      </div>
-                      <div className="space-y-1.5">
-                        <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
-                          <Lock className="w-3.5 h-3.5 text-brand-300" /> كلمة
-                          المرور
-                        </Label>
-                        <div className="relative">
-                          <Input
-                            required
-                            type={showPassword ? "text" : "password"}
-                            name="password"
-                            placeholder="••••••••"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl font-mono pl-10"
-                            autoComplete="current-password"
-                            aria-label="كلمة المرور"
-                            aria-describedby="login-error"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                          >
-                            {showPassword ? (
-                              <EyeOff className="w-4 h-4" />
-                            ) : (
-                              <Eye className="w-4 h-4" />
-                            )}
-                          </button>
+                    </form>
+                  ) : (
+                    <>
+                      {locked && (
+                        <div className="flex items-center gap-2 rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] text-rose-200">
+                          <AlertTriangle className="w-4 h-4 shrink-0" />
+                          تم قفل الحساب مؤقتاً بسبب محاولات متكررة. حاول بعد{" "}
+                          {locked} دقيقة.
                         </div>
-                      </div>
-                      <Button
-                        type="submit"
-                        disabled={login.isPending}
-                        className="w-full bg-brand hover:bg-brand-deep text-ink font-black text-xs h-11 rounded-xl shadow-lg flex items-center justify-center gap-2"
-                      >
-                        <Zap className="w-4 h-4" />
-                        {login.isPending ? "جاري التحقق…" : "دخول النظام"}
-                      </Button>
-
-                      {loginError && (
-                        <div
-                          id="login-error"
-                          role="alert"
-                          aria-live="assertive"
-                          className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] text-rose-200"
-                        >
-                          {loginError}
+                      )}
+                      {notFound && (
+                        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-[11px] text-amber-200">
+                          <div className="flex items-center gap-2 font-bold mb-1">
+                            <AlertTriangle className="w-4 h-4" /> لا يوجد حساب
+                            مسجل بهذا الاسم
+                          </div>
+                          <p className="mb-2">
+                            يمكنك فتح حساب وتهيئة منشأتك مجاناً في دقيقة.
+                          </p>
+                          <Button
+                            size="sm"
+                            type="button"
+                            onClick={() => {
+                              setActiveTab("register");
+                              setNotFound(false);
+                            }}
+                            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-[11px] h-8"
+                          >
+                            <UserPlus className="w-3.5 h-3.5" /> فتح حساب جديد
+                          </Button>
                         </div>
                       )}
 
-                      <div className="relative flex items-center justify-center my-2">
-                        <div className="border-t border-white/10 w-full" />
-                        <span className="bg-ink px-3 text-[10px] text-white/40 absolute font-mono rounded-full border border-white/10">
-                          أو جرّب بحساب تجريبي
-                        </span>
-                      </div>
+                      {mfaRequired && (
+                        <div className="space-y-3 p-4 rounded-xl bg-brand/10 border border-brand/30 animate-in fade-in">
+                          <p className="text-xs font-black text-brand-300 flex items-center gap-2">
+                            <ShieldCheck className="w-4 h-4" /> التحقق الثنائي
+                            مطلوب — OWASP A07
+                          </p>
+                          <p className="text-[11px] text-slate-300 leading-relaxed">
+                            أدخل رمز 6 أرقام من تطبيق Authenticator
+                            (Google/Microsoft Authenticator) المرتبط بحسابك
+                          </p>
+                          <Input
+                            value={mfaCode}
+                            onChange={e =>
+                              setMfaCode(
+                                e.target.value.replace(/\D/g, "").slice(0, 6)
+                              )
+                            }
+                            placeholder="000000"
+                            className="h-11 bg-ink border-white/15 text-white text-center font-mono text-lg tracking-[0.3em]"
+                            maxLength={6}
+                            inputMode="numeric"
+                            autoFocus
+                          />
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={() => {
+                                setMfaRequired(false);
+                                setMfaCode("");
+                              }}
+                              className="flex-1 border-white/15 text-white/70 h-10"
+                            >
+                              رجوع
+                            </Button>
+                            <Button
+                              type="button"
+                              disabled={
+                                verifyMfa.isPending || mfaCode.length !== 6
+                              }
+                              onClick={() =>
+                                verifyMfa.mutate({
+                                  username: mfaUsername,
+                                  token: mfaCode,
+                                })
+                              }
+                              className="flex-1 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black h-10"
+                            >
+                              {verifyMfa.isPending
+                                ? "جاري التحقق…"
+                                : "تحقق ودخول"}
+                            </Button>
+                          </div>
+                          <p className="text-[10px] text-white/30 text-center">
+                            الرمز يتغير كل 30 ثانية — لا تشاركه
+                          </p>
+                        </div>
+                      )}
 
-                      {/* حسابات تجريبية — 3 مميزة + باقي الأدوار في قسم قابل للطي */}
-                      <DemoAccountsSection
-                        onSelect={(u, p) => {
-                          setUsername(u);
-                          setPassword(p);
-                          login.mutate({ username: u, password: p });
-                        }}
-                        isPending={login.isPending}
-                      />
-                    </form>
+                      {!mfaRequired && (
+                        <form onSubmit={handleLogin} className="space-y-4">
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
+                              <KeyRound className="w-3.5 h-3.5 text-brand-300" />{" "}
+                              اسم المستخدم
+                            </Label>
+                            <Input
+                              required
+                              type="text"
+                              name="username"
+                              placeholder="اسم المستخدم"
+                              value={username}
+                              onChange={e => setUsername(e.target.value)}
+                              className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl"
+                              autoComplete="username"
+                              autoFocus
+                              aria-label="اسم المستخدم"
+                              aria-describedby="login-error"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
+                              <Lock className="w-3.5 h-3.5 text-brand-300" />{" "}
+                              كلمة المرور
+                            </Label>
+                            <div className="relative">
+                              <Input
+                                required
+                                type={showPassword ? "text" : "password"}
+                                name="password"
+                                placeholder="••••••••"
+                                value={password}
+                                onChange={e => setPassword(e.target.value)}
+                                className="h-10 bg-ink border-white/15 text-white text-xs rounded-xl font-mono pl-10"
+                                autoComplete="current-password"
+                                aria-label="كلمة المرور"
+                                aria-describedby="login-error"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => setShowPassword(!showPassword)}
+                                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                              >
+                                {showPassword ? (
+                                  <EyeOff className="w-4 h-4" />
+                                ) : (
+                                  <Eye className="w-4 h-4" />
+                                )}
+                              </button>
+                            </div>
+                          </div>
+                          <Button
+                            type="submit"
+                            disabled={login.isPending}
+                            className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black text-xs h-11 rounded-xl shadow-lg flex items-center justify-center gap-2"
+                          >
+                            <Zap className="w-4 h-4" />
+                            {login.isPending ? "جاري التحقق…" : "دخول النظام"}
+                          </Button>
+
+                          {loginError && (
+                            <div
+                              id="login-error"
+                              role="alert"
+                              aria-live="assertive"
+                              className="rounded-xl border border-rose-500/40 bg-rose-500/10 p-3 text-[11px] text-rose-200"
+                            >
+                              {loginError}
+                            </div>
+                          )}
+
+                          <button
+                            type="button"
+                            onClick={() => setShowForgot(true)}
+                            className="w-full text-[11px] text-brand-300 hover:text-brand-200"
+                          >
+                            نسيت كلمة المرور؟
+                          </button>
+                        </form>
+                      )}
+                    </>
                   )}
                 </div>
               )}
@@ -666,13 +555,26 @@ export default function Login() {
                         <Input
                           required
                           type="password"
-                          placeholder="6 أحرف على الأقل"
+                          placeholder="8 أحرف على الأقل"
                           value={regPassword}
                           onChange={e => setRegPassword(e.target.value)}
                           className="h-9 bg-ink border-white/15 text-white text-xs rounded-xl font-mono"
                         />
                       </div>
                     </div>
+
+                    <label className="flex items-start gap-2 text-[11px] text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={acceptTerms}
+                        onChange={e => setAcceptTerms(e.target.checked)}
+                        className="mt-0.5 accent-brand"
+                      />
+                      <span>
+                        أوافق على شروط الاستخدام وسياسة الخصوصية وأقر بصحة
+                        بيانات المنشأة.
+                      </span>
+                    </label>
 
                     <div className="grid grid-cols-2 gap-3">
                       <div className="space-y-1">
@@ -753,8 +655,8 @@ export default function Login() {
                       </Button>
                       <Button
                         type="submit"
-                        disabled={register.isPending}
-                        className="flex-1 bg-brand hover:bg-brand-deep text-ink font-black text-xs h-11 rounded-xl gap-2 shadow-xl"
+                        disabled={register.isPending || !acceptTerms}
+                        className="flex-1 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black text-xs h-11 rounded-xl gap-2 shadow-xl"
                       >
                         <Zap className="w-4 h-4" />
                         <span>

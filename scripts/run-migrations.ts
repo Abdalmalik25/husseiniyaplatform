@@ -21,6 +21,7 @@ import * as path from "path";
 import {
   checksumOf,
   classifyStatementError,
+  isDestructiveMigrationStatement,
   splitMigrationStatements,
 } from "../server/_core/migrate";
 
@@ -121,12 +122,22 @@ async function main() {
       continue;
     }
     if (previous !== undefined) {
-      console.warn(
-        `[migrations] ⚠ ${file} — applied once but content changed; re-running idempotently.`
+      throw new Error(
+        `[migrations] Refusing to modify applied migration ${file}. ` +
+          "Create a new migration file instead of editing an applied one."
       );
     }
 
     const statements = splitMigrationStatements(text);
+    const destructiveStatement = statements.find(
+      isDestructiveMigrationStatement
+    );
+    if (destructiveStatement) {
+      throw new Error(
+        `[migrations] Refusing destructive statement in ${file}: ` +
+          destructiveStatement.slice(0, 120)
+      );
+    }
     console.log(
       `[migrations] → ${file} (${statements.length} statements, checksum ${checksum})`
     );

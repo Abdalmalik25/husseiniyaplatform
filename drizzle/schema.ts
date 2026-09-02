@@ -1758,6 +1758,7 @@ export const salesInvoices = pgTable(
     tenantId: integer("tenantId").notNull(),
     ...govColumns(),
     invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
+    orderId: integer("orderId"),
     customerId: integer("customerId"),
     branchId: integer("branchId"),
     status: salesInvoiceStatusEnum("status").default("draft").notNull(),
@@ -1809,6 +1810,8 @@ export const salesInvoices = pgTable(
   t => [
     index("idx_salesInvoices_tenant").on(t.tenantId),
     index("idx_salesInvoices_customer").on(t.customerId),
+    index("idx_salesInvoices_order").on(t.orderId),
+    uniqueIndex("uq_salesInvoices_tenant_order").on(t.tenantId, t.orderId),
     index("idx_salesInvoices_status").on(t.status),
     index("idx_salesInvoices_currency").on(t.currencyId),
     index("idx_salesInvoices_salesRep").on(t.salesRepId),
@@ -2094,6 +2097,165 @@ export const payments = pgTable(
   ]
 );
 
+// ─── Subscription Voucher/Codes (flexible local payment) ─────────
+/**
+ * subscription_codes — أكوام تفعيل اشتراك قابلة للاستخدام مرة واحدة.
+ *
+ * يتيح للمالك إنشاء أكوام بأسعار/عملات/دول مختارة، ثم إرسالها للعملاء
+ * عبر إيميل، واتساب نصّي، أو نسخ يدوي — بما يناسب السوق المحلي تماماً.
+ *
+ * التدفق:
+ *  1. العميل يفتتح /claim ويُدخل الكود.
+ *  2. claimSubscription يفتح المستأجر الحالي كـ "trial" (أو يرفعه)
+ *     ويكتب سجلاً دفع voucher غير مربوط بمعالج خارجي.
+ * لا يلزم بوابة دفع إلكترونية — كل بلد يُدير طريقته الخاصة، ويبقى
+ * النظام يعمل بلا انقطاع بينما يُكتمل الدفع.
+ */
+export const subscriptionCodes = pgTable(
+  "subscription_codes",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    code: varchar("code", { length: 40 }).notNull().unique(),
+    planId: integer("planId")
+      .references(() => subscriptionPlans.id)
+      .notNull(),
+    name: varchar("name", { length: 120 }).notNull(),
+    country: varchar("country", { length: 60 }).default("عالمي").notNull(),
+    countryCode: varchar("countryCode", { length: 2 }).default("GL").notNull(),
+    currency: varchar("currency", { length: 10 }).default("USD").notNull(),
+    /** السعر الذي سيدفعه العميل (بعد التطبيق على العمولة/الرسوم). */
+    price: decimal("price", { precision: 10, scale: 2 }).notNull(),
+    /** من ربح المنصة/البائع — يُظهر للعميل كقيمة الأكوام. */
+    faceValue: decimal("faceValue", { precision: 10, scale: 2 }),
+    periodMonths: integer("periodMonths").default(1).notNull(),
+    /**
+     * كيف أُنشئ الأكوام:
+     *  - single   : كوب واحد للمستأجر (default)
+     *  - multi    : كوب مشارك بين مستأجرين (pool) — غير مفعل حالياً
+     */
+    scope: varchar("scope", { length: 20 }).default("single").notNull(),
+    /**
+     * وسيلة الإرسال — تحدد طريقة استلام العميل للكود:
+     * email | whatsapp | manual(نسخ يدوي).
+     */
+    deliveryMode: varchar("deliveryMode", { length: 20 })
+      .default("manual")
+      .notNull(),
+    deliveryTarget: varchar("deliveryTarget", { length: 255 }), // email أو رقم واتس
+    /** كلبلب: draft | active | used | revoked */
+    status: varchar("status", { length: 20 }).default("draft").notNull(),
+    /** معرف المنشئ (موظف أو صاحب المنصة). */
+    createdBy: varchar("createdBy", { length: 255 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    activatedAt: timestamp("activatedAt"),
+    /**
+     * بيانات دفع غير مربوطة بمعالج خارجي — تُكتب عند الاستخدام.
+     * { method: "voucher"|"whatsapp"|"bank_transfer"|"cash", note: "..." }
+     */
+    redemption: jsonb("redemption"),
+    sortOrder: integer("sortOrder").default(0).notNull(),
+  },
+  t => [
+    index("idx_subscription_code_status").on(t.status),
+    index("idx_subscription_code_country").on(t.countryCode),
+    check("chk_subscription_code_price_positive", sql`${t.price} >= 0`),
+  ]
+);
+
+export type SubscriptionCode = typeof subscriptionCodes.$inferSelect;
+export type InsertSubscriptionCode = typeof subscriptionCodes.$inferInsert;
+
+// ─── Payment Gateways (dynamic, per-country payment variables) ─────
+/**
+ *.payment_gateways — منصة تُديرها إدارة المنصة (المالك):
+ * كل صف يمثل وسيلة دفع قابلة للتخصيص لأي دولة/عملة/مزوّد.
+ * `providerType` يحدد مخطط الحقول الديناميكية في العميل (PROVIDER_FIELD_SCHEMAS)،
+ * و`credentials` يُخزَّن JSON نصياً بنمط نفسه (zatcaConfig/posConfig).
+ */
+export const paymentGateways = pgTable(
+  "payment_gateways",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    code: varchar("code", { length: 60 }).notNull().unique(),
+    providerType: varchar("providerType", { length: 40 })
+      .notNull(), // tap | moyasar | stripe | bank_transfer | cash | whatsapp | manual
+    name: varchar("name", { length: 120 }).notNull(),
+    country: varchar("country", { length: 60 }).default("عالمي").notNull(),
+    countryCode: varchar("countryCode", { length: 2 }).default("GL").notNull(),
+    currency: varchar("currency", { length: 10 }).default("USD").notNull(),
+    mode: varchar("mode", { length: 10 }).default("test").notNull(), // test | live
+    credentials: text("credentials"), // JSON ديناميكي حسب المزوّد
+    feePercent: decimal("feePercent", { precision: 5, scale: 2 })
+      .default("0")
+      .notNull(),
+    feeFixed: decimal("feeFixed", { precision: 10, scale: 2 })
+      .default("0")
+      .notNull(),
+    instructions: text("instructions"), // تعليمات للوسائل اليدوية
+    checkoutUrlTemplate: text("checkoutUrlTemplate"), // قالب رابط دفع مستضاف (يستقبل {amount} و{invoice})
+    isActive: boolean("isActive").default(true).notNull(),
+    sortOrder: integer("sortOrder").default(0).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    // Sync columns
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_payment_gateway_active").on(t.isActive),
+    index("idx_payment_gateway_country").on(t.countryCode),
+    check(
+      "chk_payment_gateway_mode_valid",
+      sql`${t.mode} IN ('test', 'live')`
+    ),
+  ]
+);
+
+export type PaymentGateway = typeof paymentGateways.$inferSelect;
+export type InsertPaymentGateway = typeof paymentGateways.$inferInsert;
+
+// ─── Subscription Policies (flexible, never-blocks-the-business) ──
+/**
+ * subscription_policies — سياسة اشتراك مرنة وجاذبة قابلة للتعديل من اللوحة:
+ * انتهاء الاشتراك لا يوقف العمل أبداً؛ تُقيَّد ميزات غير حرجة فقط،
+ * والعمليات اليومية (المبيعات/المشتريات/الاستعلام) تبقى متاحة.
+ */
+export const subscriptionPolicies = pgTable(
+  "subscription_policies",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    code: varchar("code", { length: 50 }).notNull().unique(), // 'default'
+    name: varchar("name", { length: 120 }).notNull(),
+    trialDays: integer("trialDays").default(14).notNull(),
+    /** مهلة كاملة الصلاحيات بعد انتهاء الدورة (بدون أي قيود). */
+    graceDays: integer("graceDays").default(30).notNull(),
+    /** الصلاحيات الكاملة أثناء المهلة — افتراضياً نعم (جاذبية للعميل). */
+    graceFullAccess: boolean("graceFullAccess").default(true).notNull(),
+    /** الأيام بعد المهلة قبل الانتقال للقراءة فقط (لمدة قصوى إجمالية). */
+    maxOverdueDays: integer("maxOverdueDays").default(120).notNull(),
+    /** أكواد الميزات المقيدة عند تجاوز المهلة (JSON array). */
+    restrictedFeatures: jsonb("restrictedFeatures"),
+    /** أيام التذكير قبل انتهاء الدورة (JSON array) — السالب = بعد الانتهاء. */
+    dunningReminderDays: jsonb("dunningReminderDays"),
+    isActive: boolean("isActive").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    check("chk_policy_trial_days_positive", sql`${t.trialDays} >= 0`),
+    check("chk_policy_grace_days_positive", sql`${t.graceDays} >= 0`),
+    check("chk_policy_overdue_days_positive", sql`${t.maxOverdueDays} >= 0`),
+  ]
+);
+
+export type SubscriptionPolicy = typeof subscriptionPolicies.$inferSelect;
+export type InsertSubscriptionPolicy = typeof subscriptionPolicies.$inferInsert;
+
 // ─── Subscription Plans ──────────────────────────────────────────
 export const subscriptionPlans = pgTable(
   "subscription_plans",
@@ -2113,6 +2275,13 @@ export const subscriptionPlans = pgTable(
     maxBranches: integer("maxBranches").default(1).notNull(),
     maxTransactions: integer("maxTransactions").default(1000).notNull(),
     features: jsonb("features"),
+    /**
+     * تسعير مرن لكل دولة — JSON array:
+     * [{ countryCode:"SA", country:"السعودية", currency:"SAR",
+     *    priceMonthly:"149", priceYearly:"1490", taxPercent:15 }]
+     * عند غيابه تُستخدم priceMonthly/priceYearly العامة.
+     */
+    countryPricing: jsonb("countryPricing"),
     isActive: boolean("isActive").default(true).notNull(),
     sortOrder: integer("sortOrder").default(0).notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),

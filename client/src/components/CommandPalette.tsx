@@ -243,7 +243,7 @@ export function CommandPalette() {
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
                 >
-                  <Package className="w-4 h-4 text-[#b87945] shrink-0" />
+                  <Package className="w-4 h-4 text-brand shrink-0" />
                   <span className="flex-1">{p.name}</span>
                   <span className="text-[10px] opacity-60">{p.code}</span>
                 </Command.Item>
@@ -256,7 +256,7 @@ export function CommandPalette() {
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
                 >
-                  <Users className="w-4 h-4 text-[#1f7a6d] shrink-0" />
+                  <Users className="w-4 h-4 text-teal-700 shrink-0" />
                   <span className="flex-1">{c.name}</span>
                   <span className="text-[10px] opacity-60">{c.code}</span>
                 </Command.Item>
@@ -269,7 +269,7 @@ export function CommandPalette() {
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
                 >
-                  <Building2 className="w-4 h-4 text-[#0e2a2b] shrink-0" />
+                  <Building2 className="w-4 h-4 text-ink shrink-0" />
                   <span className="flex-1">{s.name}</span>
                   <span className="text-[10px] opacity-60">{s.code}</span>
                 </Command.Item>
@@ -282,7 +282,7 @@ export function CommandPalette() {
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
                 >
-                  <BookText className="w-4 h-4 text-[#7dd3fc] shrink-0" />
+                  <BookText className="w-4 h-4 text-sky-300 shrink-0" />
                   <span className="flex-1">{a.name}</span>
                   <span className="text-[10px] opacity-60">{a.code}</span>
                 </Command.Item>
@@ -295,7 +295,7 @@ export function CommandPalette() {
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
                 >
-                  <ReceiptText className="w-4 h-4 text-[#fbbf24] shrink-0" />
+                  <ReceiptText className="w-4 h-4 text-amber-400 shrink-0" />
                   <span className="flex-1">{tx.name}</span>
                   <span className="text-[10px] opacity-60">{tx.code}</span>
                 </Command.Item>
@@ -369,7 +369,7 @@ export function CommandPalette() {
                   className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
                   style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
                 >
-                  <Sparkles className="w-4 h-4 text-[#d4a574] shrink-0" />
+                  <Sparkles className="w-4 h-4 text-brand-300 shrink-0" />
                   <span className="flex-1">{s.label}</span>
                 </Command.Item>
               ))}
@@ -417,7 +417,7 @@ export function CommandPalette() {
               className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-gray-200 cursor-pointer hover:bg-gray-800 hover:text-white transition-all duration-200 aria-selected:bg-gray-800 aria-selected:text-white"
               style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}
             >
-              <Phone className="w-4 h-4 text-[#b87945] shrink-0" />
+              <Phone className="w-4 h-4 text-brand shrink-0" />
               <span className="flex-1">تواصل واتساب مع الدعم</span>
             </Command.Item>
           </Command.Group>

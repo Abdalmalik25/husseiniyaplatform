@@ -56,7 +56,7 @@ export function SiteFooter() {
 
   return (
     <footer
-      className="relative bg-[#0a1f20] text-white/65 font-display overflow-hidden"
+      className="relative bg-ink-deep text-white/65 font-display overflow-hidden"
       dir="rtl"
     >
       {/* Tech grid background */}
@@ -149,7 +149,7 @@ export function SiteFooter() {
                 )}
                 target="_blank"
                 rel="noopener"
-                className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-ink text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:scale-105"
+                className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-[11px] font-bold px-3 py-1.5 rounded-full transition-all hover:scale-105"
               >
                 <MessageSquare className="w-3.5 h-3.5" />
                 واتساب
@@ -262,7 +262,7 @@ export function SiteFooter() {
                   <Button
                     type="submit"
                     size="sm"
-                    className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-9 px-4 rounded-lg w-full"
+                    className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-4 rounded-lg w-full"
                   >
                     <Send className="w-3.5 h-3.5 ml-1.5" />
                     اشترك مجاناً
@@ -310,7 +310,7 @@ export function SiteFooter() {
       {/* Floating scroll-to-top button */}
       <button
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="fixed bottom-6 left-6 z-50 w-11 h-11 rounded-full bg-ink border border-brand/30 text-brand hover:bg-brand hover:text-ink hover:border-brand transition-all hover:scale-110 shadow-xl glow-brand-sm flex items-center justify-center group"
+        className="fixed bottom-6 left-6 z-50 w-11 h-11 rounded-full bg-ink border border-brand/30 text-brand hover:bg-brand hover:text-ink-deep hover:border-brand transition-all hover:scale-110 shadow-xl glow-brand-sm flex items-center justify-center group"
         aria-label="الصعود للأعلى"
       >
         <ArrowUp className="w-4 h-4 bounce-up" />

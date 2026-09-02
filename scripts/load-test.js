@@ -114,9 +114,7 @@ const ACTIVE_SCENARIO = __ENV.K6_SCENARIO || "smoke";
 if (options.scenarios[ACTIVE_SCENARIO]) {
   options.scenarios = { [ACTIVE_SCENARIO]: options.scenarios[ACTIVE_SCENARIO] };
 } else {
-  console.warn(
-    `⚠️  Unknown scenario "${ACTIVE_SCENARIO}" — running "smoke".`
-  );
+  console.warn(`⚠️  Unknown scenario "${ACTIVE_SCENARIO}" — running "smoke".`);
   options.scenarios = { smoke: options.scenarios.smoke };
 }
 
@@ -199,8 +197,7 @@ export default function () {
     check(catalogRes, {
       // Public store may be rate-limited (429) by design under load — 429 is
       // expected behaviour, not a hard failure.
-      "catalog: ok or rate-limited": r =>
-        r.status === 200 || r.status === 429,
+      "catalog: ok or rate-limited": r => r.status === 200 || r.status === 429,
       "catalog: returns items array": r =>
         r.status === 429 || Array.isArray(r.json("items")),
     });
@@ -223,10 +220,18 @@ export default function () {
         r.status === 200 || r.status === 404 || r.status === 429,
     });
     errorRate.add(
-      !(trackRes.status === 200 || trackRes.status === 404 || trackRes.status === 429)
+      !(
+        trackRes.status === 200 ||
+        trackRes.status === 404 ||
+        trackRes.status === 429
+      )
     );
     if (
-      !(trackRes.status === 200 || trackRes.status === 404 || trackRes.status === 429)
+      !(
+        trackRes.status === 200 ||
+        trackRes.status === 404 ||
+        trackRes.status === 429
+      )
     ) {
       console.error(
         `track unexpected: HTTP ${trackRes.status} body: ${trackRes.body.slice(0, 200)}`

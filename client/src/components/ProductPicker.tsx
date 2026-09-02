@@ -67,7 +67,7 @@ export function ProductPicker({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="bg-white max-w-lg max-h-[80vh] flex flex-col p-0">
         <DialogHeader className="p-3 border-b">
-          <DialogTitle className="text-sm text-[#102a2b]">{title}</DialogTitle>
+          <DialogTitle className="text-sm text-ink">{title}</DialogTitle>
         </DialogHeader>
 
         <div className="p-3 border-b">
@@ -118,12 +118,12 @@ export function ProductPicker({
                     onOpenChange(false);
                     setSearch("");
                   }}
-                  className="w-full text-right flex items-center gap-2 p-2 rounded-lg border hover:bg-[#fbf3ea] transition-colors"
+                  className="w-full text-right flex items-center gap-2 p-2 rounded-lg border hover:bg-brand-50 transition-colors"
                 >
                   <div
                     className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${
                       p.type === "goods"
-                        ? "bg-[#b87945]/15 text-[#b87945]"
+                        ? "bg-brand/15 text-brand"
                         : "bg-blue-100 text-blue-600"
                     }`}
                   >
@@ -134,7 +134,7 @@ export function ProductPicker({
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-[#102a2b] truncate">
+                    <p className="text-xs font-bold text-ink truncate">
                       {p.name}
                     </p>
                     <p className="text-[10px] text-gray-400 font-mono">
@@ -143,7 +143,7 @@ export function ProductPicker({
                     </p>
                   </div>
                   <div className="text-left shrink-0">
-                    <p className="text-xs font-bold text-[#102a2b]">
+                    <p className="text-xs font-bold text-ink">
                       {fmtPrice(p[priceField])} ر.ي
                     </p>
                     {p.type === "goods" && (

@@ -94,7 +94,7 @@ export function BarcodeScanner({
           <button
             type="button"
             onClick={start}
-            className="h-9 px-3 rounded-lg bg-[#102a2b] text-white text-xs flex items-center gap-1.5 hover:bg-[#0c2021]"
+            className="h-9 px-3 rounded-lg bg-ink text-white text-xs flex items-center gap-1.5 hover:bg-ink-deep"
           >
             <Camera className="w-4 h-4" /> كاميرا
           </button>

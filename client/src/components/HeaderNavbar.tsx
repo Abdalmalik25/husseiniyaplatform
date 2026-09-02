@@ -1,7 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
 import { withViewTransition } from "@/lib/viewTransition";
-import { AnimatePresence, motion, useScroll, useSpring } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
   RefreshCw,
@@ -22,13 +22,14 @@ import { useI18n } from "@/lib/i18n";
 import { BrandLogo } from "@/components/BrandLogo";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { MARKETING_NAV, UTILITY_LINKS, type NavItem } from "@/lib/nav";
+import { APP_NAV, MARKETING_NAV, UTILITY_LINKS, type NavItem } from "@/lib/nav";
 import { Zap, ArrowLeft, MessageSquare } from "lucide-react";
 import { uamexDemoLink, brand } from "@/lib/brand";
 
 interface HeaderNavbarProps {
   institutionName?: string;
   onOpenSettings?: () => void;
+  publicOnly?: boolean;
 }
 
 /**
@@ -85,7 +86,10 @@ function prefetchRoute(path: string) {
   void loader().catch(() => {});
 }
 
-export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
+export function HeaderNavbar({
+  onOpenSettings,
+  publicOnly = false,
+}: HeaderNavbarProps) {
   const [location, setLocation] = useLocation();
   const { isOnline, isSyncing } = useOffline();
   const { user, isAuthenticated } = useAuth();
@@ -93,14 +97,21 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
   const [mobileOpen, setMobileOpen] = React.useState(false);
   const [openCluster, setOpenCluster] = React.useState<string | null>(null);
   const [scrolled, setScrolled] = React.useState(false);
-
-  /* شريط تقدّم التمرير — فيزياء نابضة ناعمة */
-  const { scrollYProgress } = useScroll();
-  const progress = useSpring(scrollYProgress, {
-    stiffness: 140,
-    damping: 28,
-    mass: 0.4,
-  });
+  const isWorkspace =
+    !publicOnly &&
+    isAuthenticated &&
+    APP_NAV.some(item => location === item.path);
+  const workspaceNav = APP_NAV.filter(item =>
+    [
+      "/app",
+      "/accounting",
+      "/commercial",
+      "/inventory",
+      "/reports",
+      "/settings",
+    ].includes(item.path)
+  );
+  const mobileNav = isWorkspace ? APP_NAV.slice(0, 12) : MARKETING_NAV;
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -194,12 +205,6 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
       <div
         className={`bg-ink/75 backdrop-blur-2xl border-b transition-all duration-500 ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}
       >
-        {/* ── Scroll progress indicator ── */}
-        <motion.div
-          style={{ scaleX: progress, transformOrigin: "100% 50%" }}
-          className="absolute top-0 inset-x-0 h-[2px] z-20 bg-gradient-to-l from-brand via-[#e2b17a] to-brand"
-        />
-
         <div
           className={`max-w-7xl mx-auto px-4 flex items-center justify-between gap-3 transition-all duration-300 ${
             scrolled ? "py-1.5" : "py-2.5"
@@ -217,30 +222,34 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
               className="transition-transform duration-300 group-hover/brand:scale-105 drop-shadow-[0_2px_10px_rgba(184,121,69,0.35)]"
             />
             <div className="hidden lg:flex items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border font-mono font-bold text-[10px] transition-colors ${
-                  isOnline
-                    ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-                    : "border-rose-400/30 bg-rose-400/10 text-rose-300"
-                }`}
-                title={
-                  isOnline
-                    ? "متصل بالخادم"
-                    : "وضع عدم الاتصال — ستتم المزامنة تلقائياً"
-                }
-              >
-                {isSyncing ? (
-                  <RefreshCw className="w-3 h-3 animate-spin" />
-                ) : (
-                  <span
-                    className={`w-1.5 h-1.5 rounded-full ${
-                      isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-400"
-                    }`}
-                  />
-                )}
-                {isSyncing ? "مزامنة…" : isOnline ? "متصل" : "أوفلاين"}
-              </span>
-              {isAuthenticated && (
+              {!publicOnly && (
+                <span
+                  className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border font-mono font-bold text-[10px] transition-colors ${
+                    isOnline
+                      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
+                      : "border-rose-400/30 bg-rose-400/10 text-rose-300"
+                  }`}
+                  title={
+                    isOnline
+                      ? "متصل بالخادم"
+                      : "وضع عدم الاتصال — ستتم المزامنة تلقائياً"
+                  }
+                >
+                  {isSyncing ? (
+                    <RefreshCw className="w-3 h-3 animate-spin" />
+                  ) : (
+                    <span
+                      className={`w-1.5 h-1.5 rounded-full ${
+                        isOnline
+                          ? "bg-emerald-400 animate-pulse"
+                          : "bg-rose-400"
+                      }`}
+                    />
+                  )}
+                  {isSyncing ? "مزامنة…" : isOnline ? "متصل" : "أوفلاين"}
+                </span>
+              )}
+              {isAuthenticated && !publicOnly && (
                 <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border border-brand/30 bg-brand/10 text-brand-300 font-mono font-bold text-[10px]">
                   <ShieldCheck className="w-3 h-3" />
                   {user?.name || "مشرف المنصة"}
@@ -296,7 +305,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
                   <Icon className="w-3.5 h-3.5 transition-transform duration-300 group-hover:-translate-y-0.5" />
                   {item.label}
                   <span
-                    className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-gradient-to-l from-[#b87945] to-[#e2b17a] transition-all duration-300 ${isActive ? "w-2/3" : "w-0 group-hover:w-2/3"}`}
+                    className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-0.5 rounded-full bg-gradient-to-l from-brand to-brand-300 transition-all duration-300 ${isActive ? "w-2/3" : "w-0 group-hover:w-2/3"}`}
                   />
                 </Button>
               );
@@ -355,7 +364,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
                               aria-current={isActive ? "page" : undefined}
                               className={`w-full flex items-start gap-3 rounded-xl px-3 py-2.5 text-right transition-colors duration-200 group/item ${isActive ? "bg-brand/10" : "hover:bg-white/5"}`}
                             >
-                              <span className="mt-0.5 w-9 h-9 shrink-0 rounded-lg bg-brand/10 border border-brand/25 text-brand-300 flex items-center justify-center transition-colors duration-300 group-hover/item:bg-brand group-hover/item:text-ink">
+                              <span className="mt-0.5 w-9 h-9 shrink-0 rounded-lg bg-brand/10 border border-brand/25 text-brand-300 flex items-center justify-center transition-colors duration-300 group-hover/item:bg-brand group-hover/item:text-ink-deep">
                                 <Icon className="w-4 h-4" />
                               </span>
                               <span className="flex flex-col gap-0.5">
@@ -399,27 +408,63 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
             {/* Primary CTA — تأثير Shine انسيابي عند المرور */}
             <Button
               onClick={() => setLocation("/app")}
-              className="relative overflow-hidden group/cta bg-brand hover:bg-brand-deep text-ink font-black h-9 px-4 rounded-xl shadow-lg shadow-brand/25 hover:shadow-brand/40 hover:-translate-y-px transition-all flex items-center gap-1.5 text-xs mr-1"
+              className="relative overflow-hidden group/cta bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black h-9 px-4 rounded-xl shadow-lg shadow-brand/25 hover:shadow-brand/40 hover:-translate-y-px transition-all flex items-center gap-1.5 text-xs mr-1"
             >
               <span className="pointer-events-none absolute inset-0 -translate-x-full group-hover/cta:translate-x-full transition-transform duration-700 ease-out bg-gradient-to-l from-transparent via-white/40 to-transparent" />
               <Zap className="w-4 h-4 fill-current" />
-              {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
+              {isAuthenticated ? "لوحة التحكم" : "ابدأ الآن"}
               <ArrowLeft className="w-3.5 h-3.5 transition-transform duration-300 group-hover/cta:-translate-x-0.5" />
             </Button>
           </nav>
 
+          {isWorkspace && (
+            <nav
+              className="hidden md:flex items-center gap-1"
+              aria-label="تنقل مساحة العمل"
+            >
+              {workspaceNav.map(item => {
+                const Icon = item.icon;
+                const active = location === item.path;
+                return (
+                  <Button
+                    key={item.path}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigateOrScroll(item.path)}
+                    className={`${baseBtn} ${navClass(active, item.highlight)}`}
+                    aria-current={active ? "page" : undefined}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                    {item.label}
+                  </Button>
+                );
+              })}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setLocation("/erp")}
+                className={`${baseBtn} ${navClass(location === "/erp")}`}
+                aria-current={location === "/erp" ? "page" : undefined}
+              >
+                <Layers className="h-3.5 w-3.5 text-brand-300" />
+                المزيد
+                <ChevronDown className="h-3 w-3" />
+              </Button>
+            </nav>
+          )}
+
           {/* Actions — يمين الشريط: تنقل رئيسي فقط + إجراءات */}
           <div className="flex items-center gap-2">
             {/* Super-admin tenant switcher (owner only) */}
-            <TenantSwitcher />
+            {!publicOnly && <TenantSwitcher />}
 
             {/* Account security — login activity & map (signed-in users only) */}
-            {isAuthenticated && (
+            {isAuthenticated && !publicOnly && (
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setLocation("/security")}
-                className="text-white/70 hover:text-white hover:bg-white/5 h-8 px-2.5 rounded-lg flex items-center gap-1.5 text-xs font-medium hidden sm:flex"
+                className="hidden sm:flex text-white/70 hover:text-white hover:bg-white/5 h-8 px-2.5 rounded-lg items-center gap-1.5 text-xs font-medium"
               >
                 <ShieldCheck className="w-3.5 h-3.5 text-brand-300" />
                 <span>الأمان</span>
@@ -485,7 +530,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
                   setLocation("/app");
                   setMobileOpen(false);
                 }}
-                className="relative overflow-hidden w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-brand text-ink font-black text-xs shadow-lg"
+                className="relative overflow-hidden w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl bg-brand text-ink-deep font-black text-xs shadow-lg"
               >
                 <Zap className="w-4 h-4 fill-current" />
                 {isAuthenticated ? "لوحة التحكم" : "دخول النظام"}
@@ -507,7 +552,7 @@ export function HeaderNavbar({ onOpenSettings }: HeaderNavbarProps) {
 
               <div className="section-divider" />
 
-              {MARKETING_NAV.map((item, index) => {
+              {mobileNav.map((item, index) => {
                 const Icon = item.icon;
                 const isActive = location === item.path;
                 return (

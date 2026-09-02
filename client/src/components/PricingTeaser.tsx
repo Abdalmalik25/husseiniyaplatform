@@ -58,7 +58,7 @@ export function PricingTeaser() {
               {/* Popular badge */}
               {plan.highlight && (
                 <div className="absolute -top-3 right-6">
-                  <span className="inline-flex items-center gap-1 bg-brand text-ink text-[10px] font-black px-3 py-1 rounded-full shadow-lg">
+                  <span className="inline-flex items-center gap-1 bg-brand text-ink-deep text-[10px] font-black px-3 py-1 rounded-full shadow-lg">
                     <Star className="w-3 h-3 fill-current" />
                     الأكثر طلباً
                   </span>
@@ -77,15 +77,13 @@ export function PricingTeaser() {
                   <span className="text-3xl font-black tabular-nums">
                     {plan.price}
                   </span>
-                  {plan.price !== "مجانية" && plan.price !== "مخصصة" && (
-                    <span
-                      className={`text-xs mb-1 ${
-                        plan.highlight ? "text-white/50" : "text-muted-foreground"
-                      }`}
-                    >
-                      {plan.period}
-                    </span>
-                  )}
+                  <span
+                    className={`text-xs mb-1 ${
+                      plan.highlight ? "text-white/50" : "text-muted-foreground"
+                    }`}
+                  >
+                    {plan.period}
+                  </span>
                 </div>
                 <p
                   className={`text-xs mt-2 leading-relaxed ${
@@ -107,7 +105,9 @@ export function PricingTeaser() {
                     />
                     <span
                       className={`text-xs leading-relaxed ${
-                        plan.highlight ? "text-white/80" : "text-muted-foreground"
+                        plan.highlight
+                          ? "text-white/80"
+                          : "text-muted-foreground"
                       }`}
                     >
                       {f}
@@ -139,7 +139,7 @@ export function PricingTeaser() {
                 }}
                 className={`w-full h-11 text-sm font-bold rounded-xl transition-all ${
                   plan.highlight
-                    ? "bg-brand hover:bg-brand-deep text-ink shadow-lg shadow-brand/30"
+                    ? "bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep shadow-lg shadow-brand/30"
                     : "bg-foreground text-background hover:bg-ink hover:text-white"
                 }`}
               >
@@ -152,9 +152,7 @@ export function PricingTeaser() {
 
         {/* Footnote + full pricing link */}
         <div className="text-center space-y-4 reveal">
-          <p className="text-xs text-muted-foreground">
-            {brand.pricing.note}
-          </p>
+          <p className="text-xs text-muted-foreground">{brand.pricing.note}</p>
           <div className="flex flex-wrap items-center justify-center gap-4">
             <a
               href="/pricing"

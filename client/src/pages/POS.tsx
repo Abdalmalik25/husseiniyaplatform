@@ -261,7 +261,7 @@ export default function POS() {
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0e2a2b] text-[#b87945]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-ink text-brand">
               <ShoppingCart className="h-6 w-6" />
             </div>
             <div>
@@ -273,7 +273,7 @@ export default function POS() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {lastInvoice && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#0d9488]/10 px-3 py-1 text-[11px] font-bold text-[#0d9488]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-teal-600/10 px-3 py-1 text-[11px] font-bold text-teal-600">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 {lastInvoice}
               </span>
@@ -339,7 +339,7 @@ export default function POS() {
           ) : (
             <Button
               size="sm"
-              className="bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+              className="bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
               disabled={openSession.isPending}
               onClick={() =>
                 openSession.mutate({
@@ -525,7 +525,7 @@ export default function POS() {
                 </div>
                 <div className="flex justify-between border-t border-border pt-1">
                   <span className="font-bold text-foreground">الإجمالي</span>
-                  <span className="font-bold text-[#0e2a2b]">
+                  <span className="font-bold text-ink">
                     {fmt(totalAfterOffers)}
                   </span>
                 </div>
@@ -555,7 +555,7 @@ export default function POS() {
                         onClick={() => setPaymentMethod(m.value)}
                         className={`flex flex-col items-center gap-0.5 rounded-lg border py-1.5 text-[10px] font-bold transition-colors ${
                           paymentMethod === m.value
-                            ? "border-[#b87945] bg-[#b87945]/10 text-[#b87945]"
+                            ? "border-brand bg-brand/10 text-brand"
                             : "border-border text-muted-foreground hover:bg-muted"
                         }`}
                       >
@@ -581,7 +581,7 @@ export default function POS() {
               </div>
 
               <Button
-                className="h-11 w-full bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                className="h-11 w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                 onClick={submit}
                 disabled={createSale.isPending || cart.length === 0}
               >
@@ -623,7 +623,7 @@ export default function POS() {
                       className={`flex flex-col items-start gap-1 rounded-2xl border border-border bg-card p-3 text-right transition-colors ${
                         out
                           ? "cursor-not-allowed opacity-50"
-                          : "hover:border-[#b87945] hover:bg-[#b87945]/5"
+                          : "hover:border-brand hover:bg-brand/5"
                       }`}
                     >
                       <div className="flex w-full items-center justify-between">
@@ -633,8 +633,8 @@ export default function POS() {
                         <span
                           className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
                             p.type === "service"
-                              ? "bg-[#0d9488]/10 text-[#0d9488]"
-                              : "bg-[#b87945]/10 text-[#b87945]"
+                              ? "bg-teal-600/10 text-teal-600"
+                              : "bg-brand/10 text-brand"
                           }`}
                         >
                           {p.type === "service" ? "خدمة" : "سلعة"}
@@ -644,7 +644,7 @@ export default function POS() {
                         {p.name}
                       </span>
                       <div className="flex w-full items-center justify-between">
-                        <span className="text-[12px] font-bold text-[#0e2a2b]">
+                        <span className="text-[12px] font-bold text-ink">
                           {fmt(Number(p.salePrice || 0))}
                         </span>
                         {p.type === "goods" && (
@@ -734,7 +734,7 @@ function CartLineRow({
             <Plus className="h-3 w-3" />
           </button>
         </div>
-        <span className="text-[12px] font-bold text-[#0e2a2b]">
+        <span className="text-[12px] font-bold text-ink">
           {fmt(line.unitPrice * line.quantity)}
         </span>
       </div>

@@ -109,7 +109,7 @@ export default function Reports() {
     });
 
   return (
-    <div className="min-h-screen bg-[#fbf8f2]" dir="rtl">
+    <div className="min-h-screen bg-sand" dir="rtl">
       <HeaderNavbar />
 
       <main className="max-w-5xl mx-auto p-3 space-y-3">
@@ -143,12 +143,12 @@ export default function Reports() {
           </Card>
           <Card className="border-0 shadow-sm bg-white p-3">
             <div className="flex items-center gap-2">
-              <div className="bg-[#b87945] text-white w-8 h-8 rounded-lg flex items-center justify-center">
+              <div className="bg-brand text-white w-8 h-8 rounded-lg flex items-center justify-center">
                 <DollarSign className="w-4 h-4" />
               </div>
               <div>
                 <p className="text-[10px] text-gray-500">صافي الدخل</p>
-                <p className="font-bold text-xs text-[#102a2b]">
+                <p className="font-bold text-xs text-ink">
                   {formatNum(summaryData?.netIncome || 0)} ر.ي
                 </p>
               </div>
@@ -170,10 +170,10 @@ export default function Reports() {
         </div>
 
         {/* Institutional Header & Action Toolbar */}
-        <div className="bg-[#102a2b] text-white p-4 sm:p-5 rounded-2xl shadow-md space-y-3">
+        <div className="bg-ink text-white p-4 sm:p-5 rounded-2xl shadow-md space-y-3">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
             <div>
-              <Badge className="bg-[#b87945] text-[#102a2b] font-bold text-xs mb-1">
+              <Badge className="bg-brand text-ink-deep font-bold text-xs mb-1">
                 المشترك الأول والافتراضي المعتمد
               </Badge>
               <h1 className="text-xl sm:text-2xl font-bold font-display text-white">
@@ -293,7 +293,7 @@ export default function Reports() {
                     report: { title, columns, rows },
                   });
                 }}
-                className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
+                className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
               >
                 <Printer className="w-4 h-4" />
                 طباعة التقرير بـ QR
@@ -328,7 +328,7 @@ export default function Reports() {
             size="sm"
             onClick={() => processAlerts.mutate()}
             disabled={processAlerts.isPending}
-            className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
+            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
           >
             <FileText className="w-4 h-4" />
             {processAlerts.isPending
@@ -366,7 +366,7 @@ export default function Reports() {
           <TabsContent value="trialBalance">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   ميزان العموم
                 </CardTitle>
               </CardHeader>
@@ -477,7 +477,7 @@ export default function Reports() {
           <TabsContent value="incomeStatement">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   قائمة الدخل (الأرباح والخسائر)
                 </CardTitle>
               </CardHeader>
@@ -540,7 +540,7 @@ export default function Reports() {
                       </div>
                     </div>
                     <div
-                      className={`flex justify-between py-3 font-bold text-sm px-3 rounded-lg ${incomeStatement.netIncome >= 0 ? "bg-[#102a2b] text-[#b87945]" : "bg-red-600 text-white"}`}
+                      className={`flex justify-between py-3 font-bold text-sm px-3 rounded-lg ${incomeStatement.netIncome >= 0 ? "bg-ink text-brand" : "bg-red-600 text-white"}`}
                     >
                       <span>صافي الدخل</span>
                       <span>{formatNum(incomeStatement.netIncome)} ر.ي</span>
@@ -555,7 +555,7 @@ export default function Reports() {
           <TabsContent value="balanceSheet">
             <Card className="border-0 shadow-sm bg-white">
               <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-[#102a2b]">
+                <CardTitle className="text-sm font-bold text-ink">
                   الميزان العمومي
                 </CardTitle>
               </CardHeader>
@@ -656,7 +656,7 @@ export default function Reports() {
           {/* Daily Sales Report */}
           <TabsContent value="daily">
             <div className="space-y-3">
-              <div className="bg-[#102a2b] text-white p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="bg-ink text-white p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
                   <h1 className="text-lg font-bold font-display">
                     التقرير اليومي للمبيعات
@@ -670,7 +670,7 @@ export default function Reports() {
                     type="date"
                     value={reportDate}
                     onChange={e => setReportDate(e.target.value)}
-                    className="h-9 text-xs bg-white text-[#102a2b] w-auto"
+                    className="h-9 text-xs bg-white text-ink w-auto"
                   />
                   <Button
                     size="sm"
@@ -709,7 +709,7 @@ export default function Reports() {
                         notes: `إجمالي المبيعات: ${d.totalSales?.toLocaleString()} YER | المحصل: ${d.totalPaid?.toLocaleString()} YER | الآجل: ${d.credit?.toLocaleString()} YER | اليوم السابق: ${d.previousDayTotal?.toLocaleString()} YER`,
                       });
                     }}
-                    className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
+                    className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
                   >
                     <Printer className="w-4 h-4" />
                     طباعة
@@ -720,7 +720,7 @@ export default function Reports() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
                 <Card className="border-0 shadow-sm bg-white p-3">
                   <p className="text-[10px] text-gray-500">عدد الفواتير</p>
-                  <p className="font-bold text-lg text-[#102a2b]">
+                  <p className="font-bold text-lg text-ink">
                     {dailyData?.invoiceCount ?? 0}
                   </p>
                 </Card>
@@ -732,7 +732,7 @@ export default function Reports() {
                 </Card>
                 <Card className="border-0 shadow-sm bg-white p-3">
                   <p className="text-[10px] text-gray-500">المبلغ المحصل</p>
-                  <p className="font-bold text-lg text-[#b87945]">
+                  <p className="font-bold text-lg text-brand">
                     {formatNum(dailyData?.totalPaid || 0)} ر.ي
                   </p>
                 </Card>
@@ -747,7 +747,7 @@ export default function Reports() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <Card className="border-0 shadow-sm bg-white">
                   <CardHeader className="p-3">
-                    <CardTitle className="text-sm font-bold text-[#102a2b]">
+                    <CardTitle className="text-sm font-bold text-ink">
                       توزيع أساليب الدفع
                     </CardTitle>
                   </CardHeader>
@@ -776,7 +776,7 @@ export default function Reports() {
                           </div>
                           <div className="h-2 bg-gray-100 rounded mt-1 overflow-hidden">
                             <div
-                              className="h-full bg-[#b87945]"
+                              className="h-full bg-brand"
                               style={{ width: `${pct}%` }}
                             />
                           </div>
@@ -788,7 +788,7 @@ export default function Reports() {
 
                 <Card className="border-0 shadow-sm bg-white">
                   <CardHeader className="p-3">
-                    <CardTitle className="text-sm font-bold text-[#102a2b]">
+                    <CardTitle className="text-sm font-bold text-ink">
                       أفضل الأصناف مبيعاً
                     </CardTitle>
                   </CardHeader>
@@ -824,7 +824,7 @@ export default function Reports() {
                               <td className="p-1.5 text-center font-mono">
                                 {p.qty}
                               </td>
-                              <td className="p-1.5 text-left font-mono text-[#b87945]">
+                              <td className="p-1.5 text-left font-mono text-brand">
                                 {formatNum(p.revenue)} ر.ي
                               </td>
                             </tr>
@@ -842,7 +842,7 @@ export default function Reports() {
                     <p className="text-[10px] text-gray-500">
                       إجمالي مبيعات اليوم السابق
                     </p>
-                    <p className="font-bold text-xs text-[#102a2b]">
+                    <p className="font-bold text-xs text-ink">
                       {formatNum(dailyData?.previousDayTotal || 0)} ر.ي
                     </p>
                   </div>
@@ -868,8 +868,8 @@ export default function Reports() {
             <div className="grid gap-3 lg:grid-cols-2">
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-[#b87945]" /> المستندات
+                  <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-brand" /> المستندات
                     حسب النوع
                   </CardTitle>
                 </CardHeader>
@@ -885,10 +885,10 @@ export default function Reports() {
                           key={b.entityType || "غير محدد"}
                           className="flex items-center justify-between rounded-lg border p-2"
                         >
-                          <span className="text-[12px] font-bold text-[#102a2b]">
+                          <span className="text-[12px] font-bold text-ink">
                             {b.entityType || "غير محدد"}
                           </span>
-                          <span className="text-[12px] font-mono text-[#b87945]">
+                          <span className="text-[12px] font-mono text-brand">
                             {b.count}
                           </span>
                         </div>
@@ -900,8 +900,8 @@ export default function Reports() {
 
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-[#102a2b] flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-[#b87945]" /> أحدث
+                  <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
+                    <FileText className="w-4 h-4 text-brand" /> أحدث
                     المستندات
                   </CardTitle>
                 </CardHeader>
@@ -941,7 +941,7 @@ export default function Reports() {
             <div className="grid gap-3 lg:grid-cols-2">
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-[#102a2b]">
+                  <CardTitle className="text-sm font-bold text-ink">
                     الربحية حسب مندوب المبيعات
                   </CardTitle>
                 </CardHeader>
@@ -974,7 +974,7 @@ export default function Reports() {
                             <td className="p-1.5 text-left font-mono text-emerald-600">
                               {fmtNum(r.commission)} ر.ي
                             </td>
-                            <td className="p-1.5 text-left font-mono text-[#b87945]">
+                            <td className="p-1.5 text-left font-mono text-brand">
                               {fmtNum(r.bonus)} ر.ي
                             </td>
                           </tr>
@@ -987,7 +987,7 @@ export default function Reports() {
 
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-[#102a2b]">
+                  <CardTitle className="text-sm font-bold text-ink">
                     الخصومات والعروض
                   </CardTitle>
                 </CardHeader>
@@ -997,13 +997,12 @@ export default function Reports() {
                       إجمالي الخصم الممنوح (الفواتير النشطة)
                     </span>
                     <span className="font-bold text-rose-600">
-                      {fmtNum(profitability?.discountTotal || 0)}{" "}
-                      ر.ي
+                      {fmtNum(profitability?.discountTotal || 0)} ر.ي
                     </span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg border p-2 text-[12px]">
                     <span className="text-slate-600">فواتير بها خصم</span>
-                    <span className="font-bold text-[#b87945]">
+                    <span className="font-bold text-brand">
                       {profitability?.discountedInvoices ?? 0}
                     </span>
                   </div>

@@ -265,7 +265,7 @@ export default function Requisitions() {
                 )}
               </div>
               <Button
-                className="w-full bg-brand text-ink hover:bg-brand-600"
+                className="w-full bg-brand text-ink-deep hover:bg-brand-600 hover:text-sand"
                 disabled={!itemName || create.isPending}
                 onClick={() =>
                   create.mutate({
@@ -387,7 +387,7 @@ export default function Requisitions() {
                             {r.status === "approved" && (
                               <Button
                                 size="sm"
-                                className="h-7 px-2 text-[11px] bg-brand text-ink hover:bg-brand-600"
+                                className="h-7 px-2 text-[11px] bg-brand text-ink-deep hover:bg-brand-600 hover:text-sand"
                                 onClick={() => {
                                   setActualCost(r.estimatedCost ?? "");
                                   setReceiveFor(r.id);
@@ -546,7 +546,7 @@ export default function Requisitions() {
           </div>
           <DialogFooter>
             <Button
-              className="bg-brand text-ink hover:bg-brand-600"
+              className="bg-brand text-ink-deep hover:bg-brand-600 hover:text-sand"
               disabled={receive.isPending}
               onClick={() =>
                 receive.mutate({

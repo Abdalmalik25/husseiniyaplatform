@@ -281,7 +281,7 @@ export default function DownloadPage() {
 
   return (
     <div
-      className="min-h-screen bg-gradient-to-br from-[#fbf8f2] to-[#f0ebe3] flex flex-col"
+      className="min-h-screen bg-gradient-to-br from-sand to-muted flex flex-col"
       dir="rtl"
     >
       <HeaderNavbar />
@@ -291,11 +291,11 @@ export default function DownloadPage() {
         <Card className="border-0 shadow-md bg-white">
           <CardContent className="p-5">
             <div className="flex items-center gap-3 mb-4">
-              <div className="bg-[#102a2b] text-[#b87945] w-12 h-12 rounded-xl flex items-center justify-center">
+              <div className="bg-ink text-brand w-12 h-12 rounded-xl flex items-center justify-center">
                 {getDeviceIcon(deviceInfo.type)}
               </div>
               <div>
-                <h2 className="font-bold text-[#102a2b] text-lg">
+                <h2 className="font-bold text-ink text-lg">
                   تم اكتشاف جهازك
                 </h2>
                 <p className="text-xs text-gray-500">
@@ -323,7 +323,7 @@ export default function DownloadPage() {
                   <Button
                     onClick={handleInstall}
                     disabled={isInstalling}
-                    className="w-full bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold h-12 text-sm"
+                    className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold h-12 text-sm"
                   >
                     <Download className="w-4 h-4 ml-2" />
                     {isInstalling ? "جاري التثبيت..." : "تثبيت التطبيق الآن"}
@@ -332,7 +332,7 @@ export default function DownloadPage() {
 
                 {/* QR Code */}
                 <div className="flex flex-col items-center gap-2 py-3">
-                  <QrCode className="w-5 h-5 text-[#102a2b]" />
+                  <QrCode className="w-5 h-5 text-ink" />
                   <p className="text-xs text-gray-500">
                     امسح الرمز للتحميل على جهاز آخر
                   </p>
@@ -345,7 +345,7 @@ export default function DownloadPage() {
                 <Button
                   variant="outline"
                   onClick={copyLink}
-                  className="w-full border-[#102a2b]/20 text-[#102a2b] h-10 text-xs"
+                  className="w-full border-ink/20 text-ink h-10 text-xs"
                 >
                   <Copy className="w-4 h-4 ml-2" />
                   نسخ رابط التحميل
@@ -359,13 +359,13 @@ export default function DownloadPage() {
         {!deviceInfo.isStandalone && deviceInfo.instructions.length > 0 && (
           <Card className="border-0 shadow-md bg-white">
             <CardContent className="p-5">
-              <h3 className="font-bold text-[#102a2b] text-sm mb-3">
+              <h3 className="font-bold text-ink text-sm mb-3">
                 خطوات التثبيت على {getDeviceLabel(deviceInfo.type)}
               </h3>
               <ol className="space-y-3">
                 {deviceInfo.instructions.map((step, i) => (
                   <li key={i} className="flex items-start gap-3">
-                    <span className="bg-[#b87945] text-[#102a2b] w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
+                    <span className="bg-brand text-ink-deep w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0">
                       {i + 1}
                     </span>
                     <span className="text-sm text-gray-700 leading-relaxed">
@@ -379,9 +379,9 @@ export default function DownloadPage() {
         )}
 
         {/* Features Card */}
-        <Card className="border-0 shadow-md bg-[#102a2b] text-white">
+        <Card className="border-0 shadow-md bg-ink text-white">
           <CardContent className="p-5">
-            <h3 className="font-bold text-[#b87945] text-sm mb-3">
+            <h3 className="font-bold text-brand text-sm mb-3">
               مميزات التطبيق
             </h3>
             <div className="grid grid-cols-2 gap-2">
@@ -404,7 +404,7 @@ export default function DownloadPage() {
                   key={i}
                   className="flex items-center gap-2 text-xs text-white/80"
                 >
-                  <span className="text-[#b87945]">{f.icon}</span>
+                  <span className="text-brand">{f.icon}</span>
                   {f.text}
                 </div>
               ))}
@@ -420,7 +420,7 @@ export default function DownloadPage() {
               onClick={() =>
                 window.open("https://alhusainiaye.vercel.app", "_blank")
               }
-              className="w-full border-[#102a2b]/20 text-[#102a2b] h-10 text-xs"
+              className="w-full border-ink/20 text-ink h-10 text-xs"
             >
               <ExternalLink className="w-4 h-4 ml-2" />
               زيارة موقع الحسينية الرسمي

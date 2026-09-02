@@ -251,14 +251,14 @@ export function StockReservationsPanel() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[#102a2b]">حجوزات المخزون</h2>
+          <h2 className="text-lg font-bold text-ink">حجوزات المخزون</h2>
           <p className="text-xs text-gray-500">
             إدارة الحجوزات والتخصيصات لأوامر المبيعات والإنتاج
           </p>
         </div>
         <Button
           size="sm"
-          className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+          className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
           onClick={() => setShowCreateDialog(true)}
           disabled={!selectedWarehouseId}
         >
@@ -278,7 +278,7 @@ export function StockReservationsPanel() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <Card className="border-0 shadow-sm bg-white p-3">
               <p className="text-[10px] text-gray-500">إجمالي الحجوزات</p>
-              <p className="font-bold text-lg text-[#102a2b]">
+              <p className="font-bold text-lg text-ink">
                 {totalReservations}
               </p>
             </Card>
@@ -288,7 +288,7 @@ export function StockReservationsPanel() {
             </Card>
             <Card className="border-0 shadow-sm bg-white p-3">
               <p className="text-[10px] text-gray-500">إجمالي الكمية</p>
-              <p className="font-bold text-lg text-[#102a2b]">
+              <p className="font-bold text-lg text-ink">
                 {formatNum(totalQty)}
               </p>
             </Card>
@@ -667,7 +667,7 @@ export function StockReservationsPanel() {
               <Button
                 type="submit"
                 size="sm"
-                className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b]"
+                className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep"
                 disabled={createReservation.isPending}
               >
                 {createReservation.isPending

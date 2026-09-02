@@ -138,7 +138,7 @@ export function EntityDocuments({
             />
             <Button
               size="sm"
-              className="w-full bg-[#b87945] text-[#102a2b]"
+              className="w-full bg-brand text-ink-deep"
               disabled={!title || link.isPending}
               onClick={() =>
                 link.mutate({

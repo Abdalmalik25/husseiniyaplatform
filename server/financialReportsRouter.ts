@@ -745,7 +745,10 @@ export const financialReportsRouter = router({
         .where(eq(accounts.tenantId, tid));
       const acctType = new Map(acctRows.map(a => [a.id, a.type]));
 
-      const agg = new Map<number, { revenue: number; expense: number; count: number }>();
+      const agg = new Map<
+        number,
+        { revenue: number; expense: number; count: number }
+      >();
       let unassigned = 0;
       for (const tx of txRows) {
         const v = toNum(tx.amount);
@@ -779,7 +782,9 @@ export const financialReportsRouter = router({
           costCenterId: id === 0 ? null : id,
           code: id === 0 ? "—" : (ccMap.get(id)?.code ?? "؟"),
           name:
-            id === 0 ? "بدون مركز تكلفة" : (ccMap.get(id)?.name ?? "مركز محذوف"),
+            id === 0
+              ? "بدون مركز تكلفة"
+              : (ccMap.get(id)?.name ?? "مركز محذوف"),
           revenue: v.revenue,
           expense: v.expense,
           net: v.revenue - v.expense,

@@ -23,6 +23,7 @@ import { queryRouter } from "./queryRouter";
 import { modulesRouter } from "./modulesRouter";
 import { aliasAiRouter } from "./aliasAiRouter";
 import { backupRouter } from "./backupRouter";
+import { billingRouter } from "./billingRouter";
 import { costCentersRouter } from "./costCentersRouter";
 import { beneficiariesRouter } from "./beneficiariesRouter";
 import { financialReportsRouter } from "./financialReportsRouter";
@@ -69,6 +70,7 @@ import {
   processRecurringExpenseRun,
 } from "./automation";
 import { TRPCError } from "@trpc/server";
+import * as authService from "./services/authService";
 
 // Helper function for monthly frequency factor
 function getMonthlyFactor(frequency: string): number {
@@ -133,6 +135,9 @@ import {
   cycleCounts,
   cycleCountLines,
   inventoryValuationLayers,
+  tenantSubscriptions,
+  subscriptionPlans,
+  subscriptionPolicies,
 } from "../drizzle/schema";
 import {
   eq,
@@ -322,7 +327,8 @@ async function seedDefaultAccountsForTenant(
     if (existingSettings.length === 0) {
       await db.insert(settings).values({
         tenantId,
-        institutionName: overrides?.institutionName ?? "مؤسسة الحسينية لخدمات الأعمال",
+        institutionName:
+          overrides?.institutionName ?? "مؤسسة الحسينية لخدمات الأعمال",
         currency: overrides?.currency ?? "ريال يمني (YER)",
         accountingPeriod: overrides?.accountingPeriod ?? "السنة المالية 2026",
         managerName: overrides?.managerName ?? "إدارة المؤسسة",
@@ -832,7 +838,10 @@ async function postInvoiceGlEntries(
   // ─── Integration backbone: group all legs under one journal entry ─────
   if (pending.length > 0) {
     validateOrThrow(
-      pending.map(p => ({ type: p.type as "debit" | "credit", amount: p.amount })),
+      pending.map(p => ({
+        type: p.type as "debit" | "credit",
+        amount: p.amount,
+      })),
       `فاتورة ${opts.invoiceNumber}`
     );
     const total = pending.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
@@ -899,12 +908,15 @@ async function postPaymentGlEntries(
   );
   const paymentAccountCode =
     pmDef?.accountCode ||
-    (opts.kind === "sale" ? cfg.postingRules.cashCode : cfg.postingRules.cashCode);
+    (opts.kind === "sale"
+      ? cfg.postingRules.cashCode
+      : cfg.postingRules.cashCode);
 
   const cashAcc = await findAccount(paymentAccountCode);
   if (!cashAcc) return; // chart not seeded — skip auto-posting
 
-  const refCode = opts.kind === "sale" ? cfg.postingRules.receivablesCode : "2010";
+  const refCode =
+    opts.kind === "sale" ? cfg.postingRules.receivablesCode : "2010";
   const refAcc = await findAccount(refCode);
   if (!refAcc) return;
 
@@ -983,7 +995,10 @@ async function postPaymentGlEntries(
   ];
 
   validateOrThrow(
-    pending.map(p => ({ type: p.type as "debit" | "credit", amount: p.amount })),
+    pending.map(p => ({
+      type: p.type as "debit" | "credit",
+      amount: p.amount,
+    })),
     `دفعة فاتورة ${opts.invoiceNumber}`
   );
   const total = pending.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
@@ -1009,6 +1024,7 @@ async function postPaymentGlEntries(
 
 export const appRouter = router({
   system: systemRouter,
+  billing: billingRouter,
   erp: erpRouter,
   modules: modulesRouter,
   aliasAi: aliasAiRouter,
@@ -1030,6 +1046,35 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+    forgotPassword: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => authService.requestPasswordReset(input)),
+    resetPassword: publicProcedure
+      .input(
+        z
+          .object({
+            token: z.string().min(32).max(128),
+            password: z.string().min(8).max(200),
+            confirmPassword: z.string().min(8).max(200),
+          })
+          .refine(data => data.password === data.confirmPassword, {
+            message: "كلمات المرور غير متطابقة",
+            path: ["confirmPassword"],
+          })
+      )
+      .mutation(async ({ input }) => authService.resetPassword(input)),
+
+    // Verify a user's email address with the one-time token from the link.
+    verifyEmail: publicProcedure
+      .input(z.object({ token: z.string().min(32).max(128) }))
+      .mutation(async ({ input }) => authService.verifyEmail(input)),
+
+    // Resend the verification link to a user's inbox (anti-enumeration safe).
+    resendVerificationEmail: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) =>
+        authService.resendVerificationEmail(input)
+      ),
 
     // Self-contained owner login (no external OAuth provider required).
     // Issues a signed session cookie for the configured owner openId.
@@ -1270,15 +1315,38 @@ export const appRouter = router({
       }),
 
     verifyMfa: publicProcedure
-      .input(z.object({ username: z.string().min(1), token: z.string().min(6).max(6) }))
+      .input(
+        z.object({
+          username: z.string().min(1),
+          token: z.string().min(6).max(6),
+        })
+      )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
-        if (!db) throw new TRPCError({ code: "INTERNAL_SERVER_ERROR", message: "قاعدة البيانات غير متاحة" });
+        if (!db)
+          throw new TRPCError({
+            code: "INTERNAL_SERVER_ERROR",
+            message: "قاعدة البيانات غير متاحة",
+          });
         const uname = input.username.trim();
-        const user = (await db.select().from(users).where(eq(users.username, uname)).limit(1))[0];
-        if (!user || !(user as any).mfaSecret) throw new TRPCError({ code: "NOT_FOUND", message: "المستخدم غير موجود" });
+        const user = (
+          await db
+            .select()
+            .from(users)
+            .where(eq(users.username, uname))
+            .limit(1)
+        )[0];
+        if (!user || !(user as any).mfaSecret)
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "المستخدم غير موجود",
+          });
         const ok = verifyToken((user as any).mfaSecret, input.token);
-        if (!ok) throw new TRPCError({ code: "UNAUTHORIZED", message: "رمز التحقق غير صحيح" });
+        if (!ok)
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "رمز التحقق غير صحيح",
+          });
         const ip = getClientIp(ctx.req);
         const geo = await geolocate(ip);
         const ua = ctx.req.headers["user-agent"];
@@ -1300,38 +1368,82 @@ export const appRouter = router({
         } catch {
           // تسجيل محاولة الدخول اختياري — فشله لا يمنع الدخول
         }
-        const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || uname });
+        const sessionToken = await sdk.createSessionToken(user.openId, {
+          name: user.name || uname,
+        });
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_MONTH_MS });
-        return { ok: true as const, user: { id: user.id, name: user.name, tenantId: user.tenantId, role: user.role } };
+        ctx.res.cookie(COOKIE_NAME, sessionToken, {
+          ...cookieOptions,
+          maxAge: ONE_MONTH_MS,
+        });
+        return {
+          ok: true as const,
+          user: {
+            id: user.id,
+            name: user.name,
+            tenantId: user.tenantId,
+            role: user.role,
+          },
+        };
       }),
 
     setupMfa: tenantProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();
-      if (!db || !ctx.user) throw new TRPCError({ code: "UNAUTHORIZED", message: "غير مصرح" });
+      if (!db || !ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "غير مصرح" });
       const secret = generateSecret();
-      const url = otpauthUrl(secret, ctx.user.username || ctx.user.name || "user");
+      const url = otpauthUrl(
+        secret,
+        ctx.user.username || ctx.user.name || "user"
+      );
       // احفظ مؤقتاً — لن يُفعل حتى يتحقق المستخدم برمز
-      await db.update(users).set({ mfaSecret: secret } as any).where(eq(users.id, ctx.user.id));
+      await db
+        .update(users)
+        .set({ mfaSecret: secret } as any)
+        .where(eq(users.id, ctx.user.id));
       return { secret, otpauthUrl: url };
     }),
 
-    verifySetupMfa: tenantProcedure.input(z.object({ token: z.string().min(6).max(6) })).mutation(async ({ input, ctx }) => {
-      const db = await getDb();
-      if (!db || !ctx.user) throw new TRPCError({ code: "UNAUTHORIZED", message: "غير مصرح" });
-      const row = (await db.select().from(users).where(eq(users.id, ctx.user.id)).limit(1))[0];
-      const secret = (row as any)?.mfaSecret;
-      if (!secret) throw new TRPCError({ code: "BAD_REQUEST", message: "لم يتم إنشاء سر" });
-      const ok = verifyToken(secret, input.token);
-      if (!ok) throw new TRPCError({ code: "UNAUTHORIZED", message: "رمز غير صحيح" });
-      await db.update(users).set({ mfaEnabled: true } as any).where(eq(users.id, ctx.user.id));
-      return { ok: true as const };
-    }),
+    verifySetupMfa: tenantProcedure
+      .input(z.object({ token: z.string().min(6).max(6) }))
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.user)
+          throw new TRPCError({ code: "UNAUTHORIZED", message: "غير مصرح" });
+        const row = (
+          await db
+            .select()
+            .from(users)
+            .where(eq(users.id, ctx.user.id))
+            .limit(1)
+        )[0];
+        const secret = (row as any)?.mfaSecret;
+        if (!secret)
+          throw new TRPCError({
+            code: "BAD_REQUEST",
+            message: "لم يتم إنشاء سر",
+          });
+        const ok = verifyToken(secret, input.token);
+        if (!ok)
+          throw new TRPCError({
+            code: "UNAUTHORIZED",
+            message: "رمز غير صحيح",
+          });
+        await db
+          .update(users)
+          .set({ mfaEnabled: true } as any)
+          .where(eq(users.id, ctx.user.id));
+        return { ok: true as const };
+      }),
 
     disableMfa: tenantProcedure.mutation(async ({ ctx }) => {
       const db = await getDb();
-      if (!db || !ctx.user) throw new TRPCError({ code: "UNAUTHORIZED", message: "غير مصرح" });
-      await db.update(users).set({ mfaEnabled: false, mfaSecret: null } as any).where(eq(users.id, ctx.user.id));
+      if (!db || !ctx.user)
+        throw new TRPCError({ code: "UNAUTHORIZED", message: "غير مصرح" });
+      await db
+        .update(users)
+        .set({ mfaEnabled: false, mfaSecret: null } as any)
+        .where(eq(users.id, ctx.user.id));
       return { ok: true as const };
     }),
 
@@ -1348,10 +1460,11 @@ export const appRouter = router({
               /^[a-zA-Z0-9_.-]+$/,
               "اسم المستخدم: حروف وأرقام و . _ - فقط"
             ),
-          password: z.string().min(6).max(200),
+          password: z.string().min(8).max(200),
           country: z.string().max(100).optional(),
           currency: z.string().max(50).optional(),
           email: z.string().email().optional().or(z.literal("")),
+          acceptTerms: z.literal(true),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -1403,6 +1516,44 @@ export const appRouter = router({
           .update(tenants)
           .set({ ownerUserId: userRow.id })
           .where(eq(tenants.id, tid));
+
+        // Trial subscription provisioning (same as authService.registerUser).
+        const policyRows = await db
+          .select({ trialDays: subscriptionPolicies.trialDays })
+          .from(subscriptionPolicies)
+          .where(eq(subscriptionPolicies.code, "default"))
+          .limit(1);
+        const trialDays = policyRows[0]?.trialDays ?? 14;
+        const trialPlan = await db
+          .select({ id: subscriptionPlans.id })
+          .from(subscriptionPlans)
+          .where(eq(subscriptionPlans.code, "starter"))
+          .limit(1);
+        const trialStart = new Date();
+        const trialEnd = new Date(Date.now() + trialDays * 86_400_000);
+        const existingSub = await db
+          .select({ id: tenantSubscriptions.id })
+          .from(tenantSubscriptions)
+          .where(eq(tenantSubscriptions.tenantId, tid))
+          .limit(1);
+        if (existingSub.length === 0) {
+          await db.insert(tenantSubscriptions).values({
+            tenantId: tid,
+            planId: trialPlan[0]?.id ?? 1,
+            status: "trial",
+            billingCycle: "monthly",
+            currentPeriodStart: trialStart,
+            currentPeriodEnd: trialEnd,
+            paymentProvider: "trial",
+          });
+        }
+        await db
+          .update(settings)
+          .set({
+            subscriptionStatus: "trial",
+            trialEndsAt: trialEnd,
+          })
+          .where(eq(settings.tenantId, tid));
 
         const token = await sdk.createSessionToken(userRow.openId, {
           name: input.name.trim(),
@@ -2669,9 +2820,10 @@ export const appRouter = router({
         // Verify cost center (header/lines) belongs to this tenant.
         const ccIds = [
           ...new Set(
-            [input.costCenterId, ...input.lines.map(l => l.costCenterId)].filter(
-              (v): v is number => v != null
-            )
+            [
+              input.costCenterId,
+              ...input.lines.map(l => l.costCenterId),
+            ].filter((v): v is number => v != null)
           ),
         ];
         if (ccIds.length > 0) {
@@ -9427,7 +9579,12 @@ ${analysisText}
           const prior = await tx
             .select()
             .from(salesInvoices)
-            .where(ilike(salesInvoices.notes, `%${order.orderNumber}%`))
+            .where(
+              and(
+                eq(salesInvoices.tenantId, ctx.tenantId!),
+                eq(salesInvoices.orderId, order.id)
+              )
+            )
             .limit(1);
           if (prior.length > 0)
             throw new Error(
@@ -9447,6 +9604,7 @@ ${analysisText}
             .values({
               invoiceNumber,
               customerId: order.customerId || null,
+              orderId: order.id,
               status,
               subtotal: subtotal.toFixed(2),
               discount: "0",
@@ -9526,10 +9684,7 @@ ${analysisText}
           .select({ id: orders.id })
           .from(orders)
           .where(
-            and(
-              eq(orders.id, input.orderId),
-              eq(orders.tenantId, ctx.tenantId)
-            )
+            and(eq(orders.id, input.orderId), eq(orders.tenantId, ctx.tenantId))
           )
           .limit(1);
         if (order.length === 0) return [];

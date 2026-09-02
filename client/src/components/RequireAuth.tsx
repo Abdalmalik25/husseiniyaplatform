@@ -32,7 +32,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   if (shouldShowLoading) {
     return (
       <div
-        className="min-h-screen bg-[#0d1b1c] flex items-center justify-center p-4"
+        className="min-h-screen bg-ink-deep flex items-center justify-center p-4"
         dir="rtl"
       >
         <div className="text-center space-y-3">
@@ -54,7 +54,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   if (status === "error") {
     return (
       <div
-        className="min-h-screen bg-[#0d1b1c] flex items-center justify-center p-4"
+        className="min-h-screen bg-ink-deep flex items-center justify-center p-4"
         dir="rtl"
       >
         <div className="w-full max-w-md space-y-6 text-center">
@@ -70,14 +70,14 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
               قاعدة البيانات). جلستك لم تُفقد — أعد المحاولة بعد لحظات.
             </p>
           </div>
-          <Card className="bg-[#162e30] border-[#1e3a3c] text-white p-6 space-y-4 shadow-xl text-right">
+          <Card className="bg-ink-800 border-ink-600 text-white p-6 space-y-4 shadow-xl text-right">
             <div className="flex items-center gap-2 text-xs font-bold text-amber-300">
               <AlertTriangle className="w-4 h-4" />
               هذه مشكلة اتصال مؤقتة وليست انتهاء للجلسة
             </div>
             <Button
               onClick={() => refresh().catch(() => undefined)}
-              className="w-full bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-10 font-bold"
+              className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-10 font-bold"
             >
               <RefreshCw className="w-4 h-4" />
               إعادة المحاولة الآن
@@ -91,11 +91,11 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) {
     return (
       <div
-        className="min-h-screen bg-[#0d1b1c] flex flex-col items-center justify-center p-4 text-white"
+        className="min-h-screen bg-ink-deep flex flex-col items-center justify-center p-4 text-white"
         dir="rtl"
       >
         <div className="w-full max-w-md space-y-6 text-center">
-          <div className="bg-[#b87945] text-[#102a2b] w-14 h-14 rounded-2xl mx-auto flex items-center justify-center font-bold shadow-lg">
+          <div className="bg-brand text-ink-deep w-14 h-14 rounded-2xl mx-auto flex items-center justify-center font-bold shadow-lg">
             <Building2 className="w-7 h-7" />
           </div>
           <div>
@@ -107,8 +107,8 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
             </p>
           </div>
 
-          <Card className="bg-[#162e30] border-[#1e3a3c] text-white p-6 space-y-4 shadow-xl text-right">
-            <div className="flex items-center gap-2 text-xs font-bold text-[#d4a574]">
+          <Card className="bg-ink-800 border-ink-600 text-white p-6 space-y-4 shadow-xl text-right">
+            <div className="flex items-center gap-2 text-xs font-bold text-brand-300">
               <Lock className="w-4 h-4" />
               هذه الصفحة تتطلب تسجيل دخول واشتراكاً مفعّلاً
             </div>
@@ -133,7 +133,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
             </ul>
             <Button
               onClick={() => goLogin(window.location.pathname)}
-              className="w-full bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-10 font-bold"
+              className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-10 font-bold"
             >
               <Zap className="w-4 h-4 fill-current" />
               تسجيل الدخول أو تفعيل التجربة المجانية

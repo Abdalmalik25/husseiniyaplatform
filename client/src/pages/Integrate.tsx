@@ -35,9 +35,9 @@ function CodeBlock({ code, lang = "html" }: { code: string; lang?: string }) {
     }
   };
   return (
-    <div className="relative bg-[#0a1f20] border border-[#1e3a3c] rounded-xl overflow-hidden">
-      <div className="flex items-center justify-between px-3 py-1.5 bg-[#102a2b] border-b border-[#1e3a3c]">
-        <span className="text-[10px] font-mono text-[#d4a574] uppercase">
+    <div className="relative bg-ink-deep border border-ink-600 rounded-xl overflow-hidden">
+      <div className="flex items-center justify-between px-3 py-1.5 bg-ink border-b border-ink-600">
+        <span className="text-[10px] font-mono text-brand-300 uppercase">
           {lang}
         </span>
         <button
@@ -136,22 +136,22 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
 
   return (
     <div
-      className="min-h-screen bg-[#fbf8f2] text-[#0e2a2b] pb-20 font-sans"
+      className="min-h-screen bg-sand text-ink pb-20 font-sans"
       dir="rtl"
     >
       <HeaderNavbar />
 
       {/* Hero */}
-      <section className="relative brand-gradient text-white py-16 px-4 overflow-hidden border-b border-[#1e3a3c]">
+      <section className="relative brand-gradient text-white py-16 px-4 overflow-hidden border-b border-ink-600">
         <div className="absolute inset-0 brand-dotgrid opacity-10" />
         <div className="max-w-6xl mx-auto text-center relative z-10 space-y-5">
-          <div className="inline-flex items-center gap-2 bg-[#1e3a3c] border border-[#b87945]/50 text-[#d4a574] px-3.5 py-1.5 rounded-full text-xs font-semibold shadow">
-            <Code2 className="w-3.5 h-3.5 text-[#b87945]" />
+          <div className="inline-flex items-center gap-2 bg-ink-600 border border-brand/50 text-brand-300 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow">
+            <Code2 className="w-3.5 h-3.5 text-brand" />
             مركز التكامل مع موقعك ومنصتك
           </div>
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-black font-display tracking-tight text-balance">
             دمج منظومة الحسينية مع موقعك <br />
-            <span className="text-[#d4a574]">بسطرين من الكود</span>
+            <span className="text-brand-300">بسطرين من الكود</span>
           </h1>
           <p className="max-w-3xl mx-auto text-xs sm:text-base text-slate-300 leading-relaxed font-light text-pretty">
             اربط متجرك الإلكتروني، موقع الووردبريس، أو نظامك الداخلي بالمنصة عبر
@@ -161,7 +161,7 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
             <Button
               onClick={() => setLocation("/store")}
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#0e2a2b] font-black text-sm h-11 px-6 rounded-2xl flex items-center gap-2"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black text-sm h-11 px-6 rounded-2xl flex items-center gap-2"
             >
               <ShoppingCart className="w-4 h-4" />
               جرّب المتجر المباشر
@@ -169,9 +169,9 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
             <a href="#methods">
               <Button
                 variant="outline"
-                className="border-[#2a4e50] bg-[#1e3a3c] text-white hover:bg-[#25484a] text-sm h-11 px-5 rounded-2xl flex items-center gap-2"
+                className="border-ink-500 bg-ink-600 text-white hover:bg-ink-500 text-sm h-11 px-5 rounded-2xl flex items-center gap-2"
               >
-                <Layers className="w-4 h-4 text-[#d4a574]" />
+                <Layers className="w-4 h-4 text-brand-300" />
                 استعرض طرق الدمج
               </Button>
             </a>
@@ -195,7 +195,7 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
                 className="border border-slate-200 bg-white shadow-sm"
               >
                 <CardContent className="p-4 text-center space-y-2">
-                  <div className="mx-auto w-10 h-10 rounded-xl bg-[#0e2a2b] text-[#d4a574] flex items-center justify-center">
+                  <div className="mx-auto w-10 h-10 rounded-xl bg-ink text-brand-300 flex items-center justify-center">
                     <Icon className="w-5 h-5" />
                   </div>
                   <p className="text-xs font-bold text-slate-900">{c.t}</p>
@@ -208,28 +208,28 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
 
         {/* Methods */}
         <Tabs defaultValue="iframe" className="w-full">
-          <TabsList className="grid grid-cols-2 md:grid-cols-4 bg-[#162e30] p-1 rounded-xl border border-[#1e3a3c] h-auto">
+          <TabsList className="grid grid-cols-2 md:grid-cols-4 bg-ink-800 p-1 rounded-xl border border-ink-600 h-auto">
             <TabsTrigger
               value="iframe"
-              className="text-xs font-bold data-[state=active]:bg-[#b87945] data-[state=active]:text-[#0e2a2b] rounded-lg py-2"
+              className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep rounded-lg py-2"
             >
               تضمين iframe
             </TabsTrigger>
             <TabsTrigger
               value="js"
-              className="text-xs font-bold data-[state=active]:bg-[#b87945] data-[state=active]:text-[#0e2a2b] rounded-lg py-2"
+              className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep rounded-lg py-2"
             >
               جسر JavaScript
             </TabsTrigger>
             <TabsTrigger
               value="api"
-              className="text-xs font-bold data-[state=active]:bg-[#b87945] data-[state=active]:text-[#0e2a2b] rounded-lg py-2"
+              className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep rounded-lg py-2"
             >
               واجهة REST
             </TabsTrigger>
             <TabsTrigger
               value="webhook"
-              className="text-xs font-bold data-[state=active]:bg-[#b87945] data-[state=active]:text-[#0e2a2b] rounded-lg py-2"
+              className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep rounded-lg py-2"
             >
               ويب هوك
             </TabsTrigger>
@@ -238,12 +238,12 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <TabsContent value="iframe" className="space-y-4 pt-4">
             <div>
               <h3 className="text-lg font-bold font-display text-slate-900 flex items-center gap-2">
-                <Globe className="w-5 h-5 text-[#b87945]" /> 1) تضمين المتجر في
+                <Globe className="w-5 h-5 text-brand" /> 1) تضمين المتجر في
                 صفحة (PHP / WordPress)
               </h3>
               <p className="text-xs text-slate-600 mt-1">
                 حمّل الملف{" "}
-                <code className="font-mono text-[#b87945]">Store.php</code> إلى
+                <code className="font-mono text-brand">Store.php</code> إلى
                 جذر موقعك، أو الصق الكتلة أسفل في صفحة ووردبريس عبر "HTML مخصص".
               </p>
             </div>
@@ -254,7 +254,7 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <TabsContent value="js" className="space-y-4 pt-4">
             <div>
               <h3 className="text-lg font-bold font-display text-slate-900 flex items-center gap-2">
-                <Code2 className="w-5 h-5 text-[#b87945]" /> 2) جسر التكامل
+                <Code2 className="w-5 h-5 text-brand" /> 2) جسر التكامل
                 SyncJav.js
               </h3>
               <p className="text-xs text-slate-600 mt-1">
@@ -276,7 +276,7 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <TabsContent value="api" className="space-y-4 pt-4">
             <div>
               <h3 className="text-lg font-bold font-display text-slate-900 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-[#b87945]" /> 3) واجهة REST
+                <BookOpen className="w-5 h-5 text-brand" /> 3) واجهة REST
                 عامة (CORS-m enabled)
               </h3>
               <p className="text-xs text-slate-600 mt-1">
@@ -291,12 +291,12 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <TabsContent value="webhook" className="space-y-4 pt-4">
             <div>
               <h3 className="text-lg font-bold font-display text-slate-900 flex items-center gap-2">
-                <Webhook className="w-5 h-5 text-[#b87945]" /> 4) ويب هوك
+                <Webhook className="w-5 h-5 text-brand" /> 4) ويب هوك
                 للطلبات الجديدة
               </h3>
               <p className="text-xs text-slate-600 mt-1">
                 اضبط متغير البيئة{" "}
-                <code className="font-mono text-[#b87945]">
+                <code className="font-mono text-brand">
                   ORDER_WEBHOOK_URL
                 </code>{" "}
                 على Vercel لاستقبال إشعار JSON مع كل طلب جديد.
@@ -307,9 +307,9 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
         </Tabs>
 
         {/* Multi-tenant note */}
-        <section className="bg-[#162e30] text-white rounded-3xl p-6 md:p-8 border border-[#1e3a3c] space-y-4">
+        <section className="bg-ink-800 text-white rounded-3xl p-6 md:p-8 border border-ink-600 space-y-4">
           <h3 className="text-lg font-bold font-display flex items-center gap-2">
-            <Layers className="w-5 h-5 text-[#d4a574]" /> تعدد المستأجرين في
+            <Layers className="w-5 h-5 text-brand-300" /> تعدد المستأجرين في
             التكامل
           </h3>
           <p className="text-xs text-slate-300 leading-relaxed">
@@ -322,7 +322,7 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
               <Badge
                 key={k}
                 variant="outline"
-                className="border-[#b87945]/50 text-[#d4a574] font-mono"
+                className="border-brand/50 text-brand-300 font-mono"
               >
                 {k}
               </Badge>

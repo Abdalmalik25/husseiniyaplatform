@@ -111,7 +111,7 @@ export function LiveDashboardPreview() {
     return () => clearInterval(t);
   }, []);
 
-  const getKpiValue = (kpi: typeof KPI_DATA[number]) => {
+  const getKpiValue = (kpi: (typeof KPI_DATA)[number]) => {
     const jitter = Math.sin((tick + kpi.value) / 3) * 0.005;
     const adjusted = kpi.value * (1 + jitter);
     return Math.round(adjusted).toLocaleString("en-US");
@@ -137,8 +137,8 @@ export function LiveDashboardPreview() {
             واجهة يفهمها مدير المؤسسة في 60 ثانية
           </h2>
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-            لوحة قيادة تنفيذية حقيقية — أرقام لحظية، مؤشرات قابلة للقراءة،
-            وتدفق عمليات لا يضيع فيه ريال.
+            لوحة قيادة تنفيذية حقيقية — أرقام لحظية، مؤشرات قابلة للقراءة، وتدفق
+            عمليات لا يضيع فيه ريال.
           </p>
         </div>
 
@@ -264,7 +264,8 @@ export function LiveDashboardPreview() {
                           style={{
                             height: `${bar.height}%`,
                             minHeight: "8px",
-                            transition: "height 600ms cubic-bezier(0.4, 0, 0.2, 1)",
+                            transition:
+                              "height 600ms cubic-bezier(0.4, 0, 0.2, 1)",
                           }}
                         >
                           <div className="absolute -top-7 right-1/2 translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-ink text-white text-[9px] px-1.5 py-0.5 rounded font-mono whitespace-nowrap">
@@ -396,7 +397,9 @@ export function LiveDashboardPreview() {
               <div className="w-6 h-6 rounded-md bg-brand/15 border border-brand/30 flex items-center justify-center">
                 <ArrowUpRight className="w-3 h-3 text-brand" />
               </div>
-              <p className="text-[10px] font-bold text-foreground">رؤية لحظية</p>
+              <p className="text-[10px] font-bold text-foreground">
+                رؤية لحظية
+              </p>
             </div>
             <p className="text-[10px] text-muted-foreground leading-relaxed">
               كل قيد يُحدّث الميزانية والقوائم فوراً — لا انتظار.
@@ -426,7 +429,7 @@ export function LiveDashboardPreview() {
           <div className="inline-flex flex-wrap items-center justify-center gap-3">
             <button
               onClick={() => (window.location.hash = "uamex")}
-              className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-7 py-3 rounded-2xl text-sm shadow-xl shadow-brand/30 transition-all hover:scale-105"
+              className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black px-7 py-3 rounded-2xl text-sm shadow-xl shadow-brand/30 transition-all hover:scale-105"
             >
               <BarChart3 className="w-5 h-5 fill-current" />
               ادخل لوحة القيادة مباشرة

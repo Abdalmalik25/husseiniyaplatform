@@ -35,23 +35,32 @@ export default [
         version: "detect",
       },
     },
-    },
+  },
   {
-    // Operational scripts (*.mjs, *.cjs at root and in scripts/)
-    // These are standalone Node.js scripts that use console/process globals.
-    files: ["*.mjs", "*.cjs", "scripts/**/*.mjs", "scripts/**/*.cjs"],
+    // Operational scripts and agent stubs are intentionally not part of the
+    // production web bundle; disable the Node/browser-only lint noise there.
+    files: [
+      "*.mjs",
+      "*.cjs",
+      "agents/**/*.ts",
+      "agents/**/*.mjs",
+      "scripts/**/*.mjs",
+      "scripts/**/*.cjs",
+      "scripts/agents/**/*.mjs",
+      "e2e/**/*.ts",
+    ],
     languageOptions: {
       globals: {
         ...globals.node,
         ...globals.nodeBuiltin,
-        // Operational scripts use Playwright page.evaluate / page.$eval,
-        // whose callbacks execute in a browser context (document, window).
         ...globals.browser,
       },
     },
     rules: {
       "@typescript-eslint/no-require-imports": "off",
       "no-console": "off",
+      "no-empty": "off",
+      "no-undef": "off",
     },
   },
   {

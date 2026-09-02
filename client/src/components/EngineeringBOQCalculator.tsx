@@ -84,14 +84,14 @@ export function EngineeringBOQCalculator() {
   };
 
   return (
-    <Card className="border-2 border-[#b87945]/40 bg-[#102a2b] text-white shadow-xl p-5 sm:p-6 rounded-3xl space-y-5">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-[#1e3a3c] pb-3 gap-2">
+    <Card className="border-2 border-brand/40 bg-ink text-white shadow-xl p-5 sm:p-6 rounded-3xl space-y-5">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-ink-600 pb-3 gap-2">
         <div>
-          <Badge className="bg-[#b87945] text-[#102a2b] font-bold text-[10px] mb-1">
+          <Badge className="bg-brand text-ink-deep font-bold text-[10px] mb-1">
             محرك الحاسبة الإنشائية الذكي
           </Badge>
           <CardTitle className="text-lg font-bold font-display text-white flex items-center gap-2">
-            <HardHat className="w-5 h-5 text-[#d4a574]" />
+            <HardHat className="w-5 h-5 text-brand-300" />
             حاسبة الكميات والهيكل الإنشائي للمقاولين والملاك (BOQ Estimator)
           </CardTitle>
         </div>
@@ -99,7 +99,7 @@ export function EngineeringBOQCalculator() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {/* Form Controls */}
-        <div className="space-y-3 bg-[#162e30] p-4 rounded-2xl border border-[#1e3a3c]">
+        <div className="space-y-3 bg-ink-800 p-4 rounded-2xl border border-ink-600">
           <div className="space-y-1">
             <Label className="text-xs text-slate-300">
               مساحة الأرض / المسقط المعماري ($m^2$)
@@ -108,7 +108,7 @@ export function EngineeringBOQCalculator() {
               type="number"
               value={areaSqM}
               onChange={e => setAreaSqM(Math.max(10, Number(e.target.value)))}
-              className="h-9 bg-[#102a2b] border-[#2a4e50] text-white text-xs font-mono"
+              className="h-9 bg-ink border-ink-500 text-white text-xs font-mono"
             />
           </div>
 
@@ -119,7 +119,7 @@ export function EngineeringBOQCalculator() {
                 type="number"
                 value={floors}
                 onChange={e => setFloors(Math.max(1, Number(e.target.value)))}
-                className="h-9 bg-[#102a2b] border-[#2a4e50] text-white text-xs font-mono"
+                className="h-9 bg-ink border-ink-500 text-white text-xs font-mono"
               />
             </div>
             <div className="space-y-1">
@@ -127,7 +127,7 @@ export function EngineeringBOQCalculator() {
               <select
                 value={structureType}
                 onChange={(e: any) => setStructureType(e.target.value)}
-                className="w-full h-9 bg-[#102a2b] border border-[#2a4e50] text-white text-xs rounded-md px-2"
+                className="w-full h-9 bg-ink border border-ink-500 text-white text-xs rounded-md px-2"
               >
                 <option value="residential">عمارة / مبنى سكني</option>
                 <option value="commercial">مبنى تجاري / استثماري</option>
@@ -138,23 +138,23 @@ export function EngineeringBOQCalculator() {
         </div>
 
         {/* Dynamic Estimated Output Cards */}
-        <div className="space-y-3 bg-[#162e30] p-4 rounded-2xl border border-[#1e3a3c]">
-          <h4 className="text-xs font-bold text-[#d4a574] border-b border-[#1e3a3c] pb-1.5 flex items-center gap-1">
+        <div className="space-y-3 bg-ink-800 p-4 rounded-2xl border border-ink-600">
+          <h4 className="text-xs font-bold text-brand-300 border-b border-ink-600 pb-1.5 flex items-center gap-1">
             <FileSpreadsheet className="w-4 h-4" /> التقدير التكتيكي الأولي لحصر
             الكميات:
           </h4>
 
           <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="bg-[#102a2b] p-2.5 rounded-xl border border-[#2a4e50]">
+            <div className="bg-ink p-2.5 rounded-xl border border-ink-500">
               <span className="text-[10px] text-slate-400 block">
                 إجمالي المساحة المسقوفة
               </span>
-              <strong className="text-sm text-[#d4a574] font-mono">
+              <strong className="text-sm text-brand-300 font-mono">
                 {totalBuiltArea} م²
               </strong>
             </div>
 
-            <div className="bg-[#102a2b] p-2.5 rounded-xl border border-[#2a4e50]">
+            <div className="bg-ink p-2.5 rounded-xl border border-ink-500">
               <span className="text-[10px] text-slate-400 block">
                 حديد التسليح التقديري
               </span>
@@ -163,7 +163,7 @@ export function EngineeringBOQCalculator() {
               </strong>
             </div>
 
-            <div className="bg-[#102a2b] p-2.5 rounded-xl border border-[#2a4e50]">
+            <div className="bg-ink p-2.5 rounded-xl border border-ink-500">
               <span className="text-[10px] text-slate-400 block">
                 إجمالي الخرسانات المسلحة
               </span>
@@ -172,7 +172,7 @@ export function EngineeringBOQCalculator() {
               </strong>
             </div>
 
-            <div className="bg-[#102a2b] p-2.5 rounded-xl border border-[#2a4e50]">
+            <div className="bg-ink p-2.5 rounded-xl border border-ink-500">
               <span className="text-[10px] text-slate-400 block">
                 كمية الحفر والردم 3D
               </span>
@@ -186,7 +186,7 @@ export function EngineeringBOQCalculator() {
             <Button
               size="sm"
               onClick={handlePrintBOQEstimate}
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-8 flex-1"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-8 flex-1"
             >
               طباعة كراسة حصر BOQ بـ QR
             </Button>

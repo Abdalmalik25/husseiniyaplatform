@@ -92,9 +92,9 @@ export function CookieConsent() {
       className="fixed bottom-3 right-3 left-3 sm:left-auto sm:bottom-4 sm:right-4 z-[60] max-w-md animate-in slide-in-from-bottom-4 fade-in duration-500"
       dir="rtl"
     >
-      <div className="relative bg-[#0a1f20] text-white/90 rounded-2xl border border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl overflow-hidden">
+      <div className="relative bg-ink-deep text-white/90 rounded-2xl border border-white/10 shadow-2xl shadow-black/50 backdrop-blur-xl overflow-hidden">
         {/* Brand accent line */}
-        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-l from-brand via-[#e2b17a] to-brand" />
+        <div className="absolute top-0 inset-x-0 h-[2px] bg-gradient-to-l from-brand via-brand-300 to-brand" />
 
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-3 mb-3">
@@ -113,8 +113,8 @@ export function CookieConsent() {
                 id="cookie-consent-desc"
                 className="text-[11px] text-white/65 leading-relaxed mt-1.5"
               >
-                نستخدم ملفات تعريف الارتباط لتحسين تجربتك وقياس أداء المنصة. يمكنك
-                قبول الكل، أو رفض غير الضروري، أو تخصيص تفضيلاتك.
+                نستخدم ملفات تعريف الارتباط لتحسين تجربتك وقياس أداء المنصة.
+                يمكنك قبول الكل، أو رفض غير الضروري، أو تخصيص تفضيلاتك.
               </p>
             </div>
             <button
@@ -133,7 +133,7 @@ export function CookieConsent() {
                   type="checkbox"
                   checked
                   disabled
-                  className="accent-[#b87945]"
+                  className="accent-brand"
                 />
                 <span>
                   <strong className="text-white/90">ضرورية</strong> — لتشغيل
@@ -145,11 +145,11 @@ export function CookieConsent() {
                   type="checkbox"
                   checked={analytics}
                   onChange={e => setAnalytics(e.target.checked)}
-                  className="accent-[#b87945]"
+                  className="accent-brand"
                 />
                 <span>
-                  <strong className="text-white/90">تحليلية</strong> — لقياس أداء
-                  الصفحات
+                  <strong className="text-white/90">تحليلية</strong> — لقياس
+                  أداء الصفحات
                 </span>
               </label>
               <label className="flex items-center gap-2.5 text-[11px] text-white/70 cursor-pointer">
@@ -157,10 +157,11 @@ export function CookieConsent() {
                   type="checkbox"
                   checked={marketing}
                   onChange={e => setMarketing(e.target.checked)}
-                  className="accent-[#b87945]"
+                  className="accent-brand"
                 />
                 <span>
-                  <strong className="text-white/90">تسويقية</strong> — لعروض مخصصة
+                  <strong className="text-white/90">تسويقية</strong> — لعروض
+                  مخصصة
                 </span>
               </label>
             </div>
@@ -170,7 +171,7 @@ export function CookieConsent() {
             <Button
               onClick={() => decide("all")}
               size="sm"
-              className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-9 px-4 rounded-lg flex-1 sm:flex-none"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-4 rounded-lg flex-1 sm:flex-none"
             >
               قبول الجميع
             </Button>

@@ -87,7 +87,7 @@ export default function ProcurementWorkspace() {
 
   return (
     <div dir="rtl" className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="border-b bg-[#102a2c] text-white">
+      <header className="border-b bg-ink text-white">
         <div className="mx-auto max-w-7xl px-5 py-7">
           <Button
             variant="ghost"

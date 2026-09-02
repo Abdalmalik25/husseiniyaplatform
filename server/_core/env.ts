@@ -17,11 +17,18 @@ export const ENV = {
   cookieSecret: requireEnv("JWT_SECRET", process.env.JWT_SECRET, 32),
   databaseUrl: process.env.DATABASE_URL ?? "",
   oAuthServerUrl: process.env.OAUTH_SERVER_URL ?? "",
+  /** النطاق العام للمنصة — تُبنى منه روابط رسائل البريد (تحقق/استعادة). */
+  appUrl: process.env.APP_URL ?? "https://alhusainiaye.vercel.app",
   ownerOpenId: process.env.OWNER_OPEN_ID ?? "",
   ownerPassword: process.env.OWNER_PASSWORD ?? "",
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  smtpHost: process.env.SMTP_HOST ?? "",
+  smtpPort: Number(process.env.SMTP_PORT ?? 587),
+  smtpUser: process.env.SMTP_USER ?? "",
+  smtpPass: process.env.SMTP_PASS ?? "",
+  emailFrom: process.env.EMAIL_FROM ?? "no-reply@alhusainia.local",
   /** Master secret for encrypted backups (AES-256-GCM). Required in production. */
   backupEncryptionKey: requireEnv(
     "BACKUP_ENCRYPTION_KEY",
@@ -41,6 +48,11 @@ if (ENV.isProduction) {
   if (!ENV.databaseUrl) {
     console.warn(
       "[ENV] DATABASE_URL is not set — health checks will report degraded"
+    );
+  }
+  if (!ENV.smtpHost || !ENV.smtpUser || !ENV.smtpPass) {
+    console.warn(
+      "[ENV] SMTP credentials are not configured — transactional emails will be logged to console only"
     );
   }
   if (!ENV.backupEncryptionKey || ENV.backupEncryptionKey.length < 16) {

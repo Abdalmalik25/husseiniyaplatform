@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useLocation } from "wouter";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
 import {
@@ -64,77 +63,15 @@ import {
 import { methodology, standardsGlossary } from "@/lib/methodology";
 import { HeroBackground } from "@/components/ModernBackground";
 import { HeroAurora } from "@/components/HeroAurora";
-import { AnimatedCounter } from "@/components/AnimatedCounter";
 import { CookieConsent } from "@/components/CookieConsent";
 import { StickySectionNav } from "@/components/StickySectionNav";
 import { HowItWorks } from "@/components/HowItWorks";
-import { Testimonials } from "@/components/Testimonials";
-import { CustomerLogos } from "@/components/CustomerLogos";
 import { WhyUsComparison } from "@/components/WhyUsComparison";
 import { PricingTeaser } from "@/components/PricingTeaser";
-import { ExecutiveStatsBar } from "@/components/ExecutiveStatsBar";
-import { LiveDashboardPreview } from "@/components/LiveDashboardPreview";
 import { IndustrySolutions } from "@/components/IndustrySolutions";
 import { IntegrationsEcosystem } from "@/components/IntegrationsEcosystem";
 import { ComplianceTrustCenter } from "@/components/ComplianceTrustCenter";
 import { MilestonesTimeline } from "@/components/MilestonesTimeline";
-
-// ── قصص التحوّل — أدلة كمّية قبل/بعد (لا صفات تسويقية) ──────────────
-const CASE_STUDIES = [
-  {
-    sector: "شركة مقاولات وبناء",
-    icon: HardHat,
-    challenge:
-      "فواتير ومستخلصات تُعدّ يدويًا على Excel، وتحصيل متأخر يخنق السيولة.",
-    results: [
-      {
-        metric: "زمن إعداد الفاتورة والمستخلص",
-        before: "٣ أيام عمل",
-        after: "٢٥ دقيقة",
-      },
-      {
-        metric: "متوسط تأخّر تحصيل المستحقات",
-        before: "٤٥ يومًا",
-        after: "١٢ يومًا",
-      },
-      {
-        metric: "أخطاء جداول الكميات",
-        before: "متكررة يدويًا",
-        after: "٠ — مراجعة آلية",
-      },
-    ],
-  },
-  {
-    sector: "مؤسسة تجارة وتوريد",
-    icon: Package,
-    challenge:
-      "جرد شهري يوقف البيع يومًا كاملًا، وأرباح «تقديرية» لا تكشف ربحية الصنف.",
-    results: [
-      {
-        metric: "معرفة المخزون الحالي",
-        before: "جرد يوم كامل",
-        after: "لحظي مستمر",
-      },
-      { metric: "ربحية كل صنف", before: "تقدير إجمالي", after: "دقيقة للقطعة" },
-      { metric: "قرارات الشراء", before: "بالحدس", after: "بيانات طلب ذكية" },
-    ],
-  },
-  {
-    sector: "مكتبة وخدمات طلابية",
-    icon: GraduationCap,
-    challenge:
-      "طلبات تضيع بين واتساب والدفتر، والعميل يسأل: «وين وصلت طلبيتي؟».",
-    results: [
-      {
-        metric: "طلبات ضائعة شهريًا",
-        before: "نحو ١٠٪",
-        after: "٠ — تتبع بكود",
-      },
-      { metric: "شفافية زمن التسليم", before: "غير معروف", after: "مؤشر يومي" },
-      { metric: "عودة العميل", before: "عشوائي", after: "متابعة ونظام ولاء" },
-    ],
-  },
-];
 
 /** بنية الثقة المؤسسية — كل بند قابل للتحقق في معمارية المنصة فعليًا. */
 const ENTERPRISE_ASSURANCES = [
@@ -227,7 +164,6 @@ function useScrollReveal() {
 }
 
 export default function Landing() {
-  const [, setLocation] = useLocation();
   const [activeUamexModule, setActiveUamexModule] = useState(0);
   /* حاسبة «الخسارة الصامتة» — تسويق استشاري كمّي بالأرقام */
   const [teamSize, setTeamSize] = useState(5);
@@ -249,7 +185,7 @@ export default function Landing() {
       className="min-h-screen bg-sand text-ink dark:bg-background dark:text-foreground font-display"
       dir="rtl"
     >
-      <HeaderNavbar />
+      <HeaderNavbar publicOnly />
       <StickySectionNav />
 
       {/* ═══════════════════════════════════════════════════════════
@@ -267,7 +203,7 @@ export default function Landing() {
             {brand.names.version} — اعتماد تحديثات وترقية مكونات
           </span>
           <span className="hidden sm:inline text-white/60">
-            نظام إدارة الأعمال الموحّد — جاهز للبدء الفوري
+            نظام إدارة الأعمال الموحّد — بياناتك الفعلية، وقرارك التالي
           </span>
         </div>
 
@@ -285,7 +221,7 @@ export default function Landing() {
           <div className="space-y-5">
             <h1 className="text-hero text-4xl sm:text-5xl md:text-6xl text-balance">
               إذا كنت{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-l from-brand via-brand-300 to-[#e7c9a6] border-b-2 border-brand/30 pb-1">
+              <span className="text-transparent bg-clip-text bg-gradient-to-l from-brand via-brand-300 to-brand-200 border-b-2 border-brand/30 pb-1">
                 {heroPhrase}
                 <span className="animate-pulse text-brand">|</span>
               </span>
@@ -301,23 +237,23 @@ export default function Landing() {
 
           {/* الرسالة الداعمة — لغة مجالس الإدارة، لا كتيب تسويق */}
           <p className="max-w-3xl mx-auto text-base sm:text-xl text-white/70 leading-relaxed font-light text-pretty">
-            لسنا مزوّد برنامج. نحن شريك حوكمة يضعك أمام حقيقة واحدة قابلة
+            لسنا مجرد مزوّد برامج. نحن شريك حوكمة يضعك أمام حقيقة واحدة قابلة
             للتدقيق:{" "}
             <strong className="text-white font-bold">قوائم IFRS</strong> تُقرأ
             في دقيقة،{" "}
             <strong className="text-white font-bold">ضوابط COSO</strong> تمنع
-            التجاوز دون تعطيل،{" "}
-            <strong className="text-white font-bold">ومشاريع PMBOK</strong>{" "}
-            تُسلّم ضمن النطاق والكلفة — كلها في{" "}
-            <strong className="text-brand-300 font-black">Uamex_erp</strong>{" "}
-            مصدر الحقيقة الوحيد.
+            الانحراف دون إبطاء التشغيل، و
+            <strong className="text-white font-bold">مشاريع PMBOK</strong>{" "}
+            تُسلّم في الوقت المحدد وبالميزانية المتوقعة — كل ذلك ضمن{" "}
+            <strong className="text-brand-300 font-black">Uamex_erp</strong>،
+            مصدر الحقيقة الموحد للقرار.
           </p>
 
           {/* الـ CTAs — صوت واحد، قرار واحد */}
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button
               onClick={() => goLogin()}
-              className="bg-brand hover:bg-brand-deep text-ink font-black text-sm sm:text-base h-12 px-8 shadow-2xl rounded-2xl flex items-center gap-2 transition-all hover:scale-105"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black text-sm sm:text-base h-12 px-8 shadow-2xl rounded-2xl flex items-center gap-2 transition-all hover:scale-105"
             >
               <Zap className="w-5 h-5 fill-current" />
               ابدأ تجربة Uamex_erp مجاناً — 14 يوماً
@@ -363,21 +299,33 @@ export default function Landing() {
             </span>
           </div>
 
-          {/* الإحصاءات */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-w-4xl mx-auto pt-4">
-            {brand.stats.map((stat, i) => (
-              <div
-                key={i}
-                className="bg-white/5 backdrop-blur border border-white/10 p-4 rounded-2xl text-center shadow-lg"
-              >
-                <div className="text-2xl font-black text-brand-300 font-mono">
-                  <AnimatedCounter value={stat.value} />
+          <div className="mx-auto max-w-5xl pt-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              {[
+                {
+                  title: "إدارة حقيقية",
+                  text: "من المحاسبة إلى المشاريع إلى المشتريات — منصة موحدة لا شاشات متفرقة.",
+                },
+                {
+                  title: "أمان وثقة",
+                  text: "تشفير، سجل تدقيق، صلاحيات ثلاثية، وتوثيق كامل لكل قرار ومرجع.",
+                },
+                {
+                  title: "أثر قابل للقياس",
+                  text: "تجربة عمليّة تُقاس بزمن الإغلاق، دقة التقدير، وسرعة اتخاذ القرار.",
+                },
+              ].map(item => (
+                <div
+                  key={item.title}
+                  className="rounded-2xl border border-white/10 bg-white/5 p-4 text-right backdrop-blur-sm"
+                >
+                  <p className="text-sm font-black text-white">{item.title}</p>
+                  <p className="mt-1 text-[11px] leading-relaxed text-white/65">
+                    {item.text}
+                  </p>
                 </div>
-                <div className="text-[11px] text-white/60 mt-1 leading-tight">
-                  {stat.label}
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </section>
@@ -395,12 +343,6 @@ export default function Landing() {
           ))}
         </div>
       </div>
-
-      {/* شريط شعارات العملاء — دليل اجتماعي قبل كل شيء */}
-      <CustomerLogos />
-
-      {/* شريط المؤشرات التنفيذية — Live stats bar */}
-      <ExecutiveStatsBar />
 
       {/* ═══════════════════════════════════════════════════════════
           منهجية الحسينية — 4 أطوار استشارية بمستوى Big Four
@@ -490,11 +432,6 @@ export default function Landing() {
       </section>
 
       {/* ═══════════════════════════════════════════════════════════
-          عرض حي للمنصة — Live Dashboard Preview
-      ═══════════════════════════════════════════════════════════ */}
-      <LiveDashboardPreview />
-
-      {/* ═══════════════════════════════════════════════════════════
           قسم: الخسارة الصامتة — Cost of Inaction (تسويق كمّي استشاري)
       ═══════════════════════════════════════════════════════════ */}
       <section id="cost-of-inaction" className="py-20 px-4 scroll-mt-20">
@@ -505,7 +442,7 @@ export default function Landing() {
             </Badge>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
               كل شهر تأجيل له ثمن محدد —{" "}
-              <span className="text-[#b87945]">احسبه بنفسك</span>
+              <span className="text-brand">احسبه بنفسك</span>
             </h2>
             <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
               لا نطلب منك أن تؤمن بوعودنا تسويقية، بل بأرقامك أنت: حرّك المؤشرين
@@ -529,7 +466,7 @@ export default function Landing() {
                         htmlFor="roi-team"
                         className="text-sm font-bold text-foreground flex items-center gap-2"
                       >
-                        <Users className="w-4 h-4 text-[#b87945]" />
+                        <Users className="w-4 h-4 text-brand" />
                         حجم الفريق الإداري
                       </label>
                       <span className="font-mono font-black text-brand text-lg">
@@ -544,7 +481,7 @@ export default function Landing() {
                       value={teamSize}
                       onChange={e => setTeamSize(Number(e.target.value))}
                       aria-valuetext={`${teamSize} فرد`}
-                      className="w-full accent-[#b87945]"
+                      className="w-full accent-brand"
                     />
                     <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
                       <span>١</span>
@@ -558,7 +495,7 @@ export default function Landing() {
                         htmlFor="roi-hours"
                         className="text-sm font-bold text-foreground flex items-center gap-2"
                       >
-                        <Calculator className="w-4 h-4 text-[#b87945]" />
+                        <Calculator className="w-4 h-4 text-brand" />
                         ساعات مهدرة أسبوعيًا للفرد في المتابعة اليدوية
                       </label>
                       <span className="font-mono font-black text-brand text-lg">
@@ -573,7 +510,7 @@ export default function Landing() {
                       value={hoursLost}
                       onChange={e => setHoursLost(Number(e.target.value))}
                       aria-valuetext={`${hoursLost} ساعة`}
-                      className="w-full accent-[#b87945]"
+                      className="w-full accent-brand"
                     />
                     <div className="flex justify-between text-[10px] text-muted-foreground mt-1">
                       <span>١</span>
@@ -589,7 +526,7 @@ export default function Landing() {
                   </p>
                 </div>
                 {/* النتيجة الكمّية + CTA */}
-                <div className="lg:col-span-2 bg-gradient-to-br from-[#102a2b] to-[#1a3d3f] rounded-3xl p-8 text-white flex flex-col justify-between relative overflow-hidden">
+                <div className="lg:col-span-2 bg-gradient-to-br from-ink to-ink-600 rounded-3xl p-8 text-white flex flex-col justify-between relative overflow-hidden">
                   <TrendingUp className="absolute -bottom-4 -left-4 w-28 h-28 text-white/[0.04] rotate-12" />
                   <div className="relative">
                     <p className="text-white/55 text-xs font-bold mb-2">
@@ -611,7 +548,7 @@ export default function Landing() {
                   <div className="relative mt-6 space-y-2.5">
                     <button
                       onClick={() => goLogin()}
-                      className="w-full bg-brand hover:bg-brand-deep text-ink font-black py-3 rounded-xl text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg shadow-brand/30"
+                      className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black py-3 rounded-xl text-sm transition-all hover:-translate-y-0.5 flex items-center justify-center gap-2 shadow-lg shadow-brand/30"
                     >
                       <Zap className="w-4 h-4 fill-current" />
                       استعد هذه الساعات — ابدأ مجاناً
@@ -716,10 +653,10 @@ export default function Landing() {
                   alt="الياس — المساعد"
                   width={36}
                   height={36}
-                  className="rounded-full shadow ring-1 ring-[#d4a574]/40 object-cover"
+                  className="rounded-full shadow ring-1 ring-brand-300/40 object-cover"
                   loading="lazy"
                 />
-                <span className="text-[10px] text-[#d4a574] font-bold">
+                <span className="text-[10px] text-brand-300 font-bold">
                   الياس AI
                 </span>
               </span>
@@ -873,7 +810,7 @@ export default function Landing() {
             <div className="flex flex-wrap items-center justify-center gap-4">
               <Button
                 onClick={() => goLogin()}
-                className="bg-brand hover:bg-brand-deep text-ink font-black h-14 px-10 rounded-2xl shadow-2xl shadow-brand/40 text-base hover:scale-105 transition-all"
+                className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black h-14 px-10 rounded-2xl shadow-2xl shadow-brand/40 text-base hover:scale-105 transition-all"
               >
                 <Zap className="w-5 h-5 ml-2 fill-current" />
                 ابدأ تجربة Uamex_erp مجاناً — 14 يوماً
@@ -977,7 +914,7 @@ export default function Landing() {
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
+                className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
               >
                 <MessageSquare className="w-4 h-4" />
                 اطلب استشارة مجانية
@@ -1000,11 +937,11 @@ export default function Landing() {
       ═══════════════════════════════════════════════════════════ */}
       <section
         id="engineering"
-        className="py-20 px-4 scroll-mt-20 bg-gradient-to-b from-sand to-[#f5ede0] dark:from-background dark:to-card"
+        className="py-20 px-4 scroll-mt-20 bg-gradient-to-b from-sand to-muted dark:from-background dark:to-card"
       >
         <div className="max-w-7xl mx-auto">
           <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
-            <Badge className="bg-[#b87945]/10 text-[#b87945] border border-[#b87945]/30 font-bold text-xs px-3 py-1">
+            <Badge className="bg-brand/10 text-brand border border-brand/30 font-bold text-xs px-3 py-1">
               ٣ · الخدمات الهندسية والعقارية والمقاولات
             </Badge>
             <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
@@ -1018,7 +955,7 @@ export default function Landing() {
               {brand.divisions.engineering.personas.map(p => (
                 <span
                   key={p}
-                  className="text-xs bg-[#b87945]/10 border border-[#b87945]/20 text-[#9a6334] dark:text-brand-300 px-3 py-1 rounded-full font-medium"
+                  className="text-xs bg-brand/10 border border-brand/20 text-brand-deep dark:text-brand-300 px-3 py-1 rounded-full font-medium"
                 >
                   {p}
                 </span>
@@ -1039,16 +976,16 @@ export default function Landing() {
               return (
                 <div
                   key={i}
-                  className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group border border-[#b87945]/10"
+                  className="reveal surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all group border border-brand/10"
                   data-reveal-delay={i * 100}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-11 h-11 rounded-xl bg-[#b87945]/10 border border-[#b87945]/20 flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-[#b87945]" />
+                    <div className="w-11 h-11 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5 text-brand" />
                     </div>
                     <div>
                       <p className="font-bold text-foreground text-sm mb-2">
-                        <span className="text-[#b87945]">السؤال: </span>
+                        <span className="text-brand">السؤال: </span>
                         {item.q}
                       </p>
                       <p className="text-xs text-muted-foreground leading-relaxed">
@@ -1066,7 +1003,7 @@ export default function Landing() {
 
           {/* بطاقة الخدمات + كيفية التواصل */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 reveal">
-            <div className="lg:col-span-2 bg-gradient-to-br from-[#102a2b] to-[#1a3d3f] rounded-3xl p-8 text-white">
+            <div className="lg:col-span-2 bg-gradient-to-br from-ink to-ink-600 rounded-3xl p-8 text-white">
               <h3 className="font-bold text-lg mb-6 flex items-center gap-2">
                 <HardHat className="w-5 h-5 text-brand" />
                 الخدمات الهندسية والمساحية
@@ -1085,7 +1022,7 @@ export default function Landing() {
             </div>
 
             {/* CTA Card */}
-            <div className="bg-gradient-to-br from-[#b87945] to-[#9a6334] rounded-3xl p-8 text-ink flex flex-col justify-between">
+            <div className="bg-gradient-to-br from-brand to-brand-deep rounded-3xl p-8 text-ink flex flex-col justify-between">
               <div>
                 <HardHat className="w-10 h-10 mb-4 opacity-80" />
                 <h3 className="font-black text-xl mb-2">
@@ -1215,7 +1152,7 @@ export default function Landing() {
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="mt-6 flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black py-3 rounded-xl text-sm transition-all"
+                className="mt-6 flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black py-3 rounded-xl text-sm transition-all"
               >
                 <MessageSquare className="w-4 h-4" />
                 تواصل عبر واتساب
@@ -1401,73 +1338,10 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ═══════════════════════════════════════════════════════════
-          قصص تحوّل بالأرقام — دليل عملي لا وعود
-      ═══════════════════════════════════════════════════════════ */}
-      <section id="case-studies" className="py-20 px-4 scroll-mt-20">
+      {/* ── شريط الثقة المؤسسي: بنية أمنية قابلة للتحقق ── */}
+      <section id="trust-center" className="py-20 px-4 scroll-mt-20">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-3 max-w-3xl mx-auto mb-14 reveal">
-            <Badge className="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 font-bold text-xs px-3 py-1">
-              نتائج موثّقة — قبل / بعد
-            </Badge>
-            <h2 className="text-2xl sm:text-4xl font-extrabold text-foreground leading-tight">
-              تحوّلات حقيقية تُقاس بالأرقام لا بالصفات
-            </h2>
-            <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-              ثلاث قطاعات وثلاث بدايات مختلفة — ومنهجية واحدة: تشخيص دقيق، تدخّل
-              هندسي، ثم قياس الأثر بالأرقام.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {CASE_STUDIES.map(cs => {
-              const Icon = cs.icon;
-              return (
-                <div
-                  key={cs.sector}
-                  className="reveal surface rounded-3xl p-7 flex flex-col hover:-translate-y-1 hover:shadow-xl transition-all duration-300"
-                >
-                  <div className="flex items-center gap-3 mb-4">
-                    <span className="w-11 h-11 rounded-2xl bg-brand/10 border border-brand/25 flex items-center justify-center shrink-0">
-                      <Icon className="w-5 h-5 text-brand" />
-                    </span>
-                    <span className="font-black text-foreground text-sm">
-                      {cs.sector}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed mb-5">
-                    <span className="text-[#b87945] font-bold">التحدي: </span>
-                    {cs.challenge}
-                  </p>
-                  <ul className="space-y-3.5 mb-5">
-                    {cs.results.map(r => (
-                      <li key={r.metric} className="text-xs">
-                        <p className="text-muted-foreground mb-1.5">
-                          {r.metric}
-                        </p>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="line-through decoration-rose-400/60 text-rose-600/80 dark:text-rose-400/70 font-mono text-[11px]">
-                            {r.before}
-                          </span>
-                          <ArrowRight className="w-3 h-3 text-muted-foreground rotate-180 shrink-0" />
-                          <span className="font-black text-emerald-600 dark:text-emerald-400 font-mono">
-                            {r.after}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="mt-auto text-[10px] text-muted-foreground/70 border-t border-border/60 pt-3">
-                    من واقع تشغيل فعلي — التفاصيل الكاملة متاحة في دراسة الحالة
-                    عند الطلب.
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* ── شريط الثقة المؤسسي: بنية أمنية قابلة للتحقق ── */}
-          <div className="mt-16 reveal rounded-3xl border border-white/10 bg-[#0a1f20] text-white p-8 sm:p-10 relative overflow-hidden">
+          <div className="mt-16 reveal rounded-3xl border border-white/10 bg-ink-deep text-white p-8 sm:p-10 relative overflow-hidden">
             <ShieldCheck className="absolute -top-6 -left-6 w-44 h-44 text-white/[0.03]" />
             <div className="relative">
               <h3 className="font-black text-lg sm:text-xl mb-2">
@@ -1507,7 +1381,6 @@ export default function Landing() {
       <WhyUsComparison />
 
       {/* شهادات العملاء — أصوات حقيقية مع carousel تدوار متحكم به */}
-      <Testimonials />
 
       {/* تسعير شفاف — باقات تناسب كل مرحلة من النموّ */}
       <PricingTeaser />
@@ -1534,7 +1407,7 @@ export default function Landing() {
           <div className="flex flex-wrap items-center justify-center gap-4">
             <Button
               onClick={() => goLogin()}
-              className="bg-brand hover:bg-brand-deep text-ink font-black h-14 px-10 rounded-2xl shadow-2xl shadow-brand/40 text-base hover:scale-105 transition-all"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black h-14 px-10 rounded-2xl shadow-2xl shadow-brand/40 text-base hover:scale-105 transition-all"
             >
               <Zap className="w-5 h-5 ml-2 fill-current" />
               ابدأ مجاناً الآن
@@ -1565,12 +1438,12 @@ export default function Landing() {
       ═══════════════════════════════════════════════════════ */}
       <section
         id="methodology"
-        className="py-20 px-4 bg-[#0a1f20] text-white scroll-mt-20"
+        className="py-20 px-4 bg-ink-deep text-white scroll-mt-20"
         dir="rtl"
       >
         <div className="max-w-7xl mx-auto">
           <div className="text-center space-y-3 max-w-3xl mx-auto mb-14">
-            <Badge className="bg-[#d4a574]/10 text-[#d4a574] border border-[#d4a574]/30 font-bold text-xs px-3 py-1">
+            <Badge className="bg-brand-300/10 text-brand-300 border border-brand-300/30 font-bold text-xs px-3 py-1">
               المرجعية المنهجية — Methodology & Standards
             </Badge>
             <h2 className="text-2xl sm:text-4xl font-extrabold leading-tight">
@@ -1586,10 +1459,10 @@ export default function Landing() {
             {methodology.frameworks.map(fw => (
               <div
                 key={fw.code}
-                className="group bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-[#d4a574]/40 rounded-2xl p-5 transition-all duration-300"
+                className="group bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 hover:border-brand-300/40 rounded-2xl p-5 transition-all duration-300"
               >
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="font-mono font-black text-sm bg-[#d4a574]/15 text-[#e8c9a0] border border-[#d4a574]/30 rounded-lg px-2.5 py-1">
+                  <span className="font-mono font-black text-sm bg-brand-300/15 text-brand-200 border border-brand-300/30 rounded-lg px-2.5 py-1">
                     {fw.code}
                   </span>
                   <span className="text-xs font-bold text-white/85">
@@ -1602,7 +1475,7 @@ export default function Landing() {
                 {/* البند المرجعي + الأثر القابل للتدقيق */}
                 <div className="mt-4 pt-3 border-t border-white/[0.07] space-y-1.5">
                   <p
-                    className="text-[10px] font-mono text-[#d4a574]/80"
+                    className="text-[10px] font-mono text-brand-300/80"
                     dir="ltr"
                   >
                     {fw.ref}
@@ -1631,11 +1504,11 @@ export default function Landing() {
                 key={st.step}
                 className="relative bg-gradient-to-b from-white/[0.05] to-transparent border border-white/10 rounded-2xl p-5"
               >
-                <span className="absolute -top-3 right-5 w-8 h-8 rounded-full bg-gradient-to-l from-[#b87945] to-[#d4a574] text-[#0a1f20] font-black text-sm flex items-center justify-center shadow-lg">
+                <span className="absolute -top-3 right-5 w-8 h-8 rounded-full bg-gradient-to-l from-brand to-brand-300 text-ink-deep font-black text-sm flex items-center justify-center shadow-lg">
                   {st.step}
                 </span>
                 <div className="pt-3">
-                  <div className="text-sm font-black text-[#e8c9a0] mb-1.5">
+                  <div className="text-sm font-black text-brand-200 mb-1.5">
                     {st.title}
                   </div>
                   <p className="text-[11px] text-white/55 leading-relaxed">
@@ -1661,7 +1534,7 @@ export default function Landing() {
                   key={g.term}
                   className="bg-white/[0.03] hover:bg-white/[0.06] border border-white/10 rounded-xl px-4 py-3 transition-colors"
                 >
-                  <p className="text-xs font-black text-[#e8c9a0] mb-1">
+                  <p className="text-xs font-black text-brand-200 mb-1">
                     {g.term}
                     {g.en && (
                       <span
@@ -1983,9 +1856,7 @@ export default function Landing() {
                 availableLanguage: ["Arabic", "English"],
               },
             ],
-            sameAs: [
-              brand.contact.website,
-            ],
+            sameAs: [brand.contact.website],
             knowsAbout: [
               "IFRS",
               "COSO Internal Control",

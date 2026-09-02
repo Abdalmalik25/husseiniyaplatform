@@ -218,7 +218,7 @@ export function BatchTrackingPanel() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-[#102a2b]">
+          <h2 className="text-lg font-bold text-ink">
             تتبع الدفعات والأرقام التسلسلية
           </h2>
           <p className="text-xs text-gray-500">
@@ -227,7 +227,7 @@ export function BatchTrackingPanel() {
         </div>
         <Button
           size="sm"
-          className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] text-xs h-8"
+          className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
           onClick={() => setShowCreateDialog(true)}
           disabled={!selectedWarehouseId}
         >
@@ -247,11 +247,11 @@ export function BatchTrackingPanel() {
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
             <Card className="border-0 shadow-sm bg-white p-3">
               <p className="text-[10px] text-gray-500">إجمالي الدفعات</p>
-              <p className="font-bold text-lg text-[#102a2b]">{totalBatches}</p>
+              <p className="font-bold text-lg text-ink">{totalBatches}</p>
             </Card>
             <Card className="border-0 shadow-sm bg-white p-3">
               <p className="text-[10px] text-gray-500">إجمالي الكمية</p>
-              <p className="font-bold text-lg text-[#102a2b]">
+              <p className="font-bold text-lg text-ink">
                 {formatNum(totalQty)}
               </p>
             </Card>
@@ -402,7 +402,7 @@ export function BatchTrackingPanel() {
                           <td className="p-2 text-center font-mono text-green-600">
                             {formatNum(available)}
                           </td>
-                          <td className="p-2 text-center font-mono text-[#b87945]">
+                          <td className="p-2 text-center font-mono text-brand">
                             {formatNum(batch.unitCost)}
                           </td>
                           <td className="p-2 text-center text-[10px]">
@@ -657,7 +657,7 @@ export function BatchTrackingPanel() {
               <Button
                 type="submit"
                 size="sm"
-                className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b]"
+                className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep"
                 disabled={createBatch.isPending}
               >
                 {createBatch.isPending ? "جاري الإنشاء..." : "إنشاء الدفعة"}

@@ -16,7 +16,15 @@
  * IMPORTANT: every view derives tenantId from base tables and every consumer
  * must still filter by tenantId — the surface stays zero-trust.
  */
-import { pgView, integer, varchar, numeric, timestamp, boolean, date } from "drizzle-orm/pg-core";
+import {
+  pgView,
+  integer,
+  varchar,
+  numeric,
+  timestamp,
+  boolean,
+  date,
+} from "drizzle-orm/pg-core";
 
 /** Trial-balance style balances per tenant/account. */
 export const accountBalancesView = pgView("v_account_balances", {

@@ -203,7 +203,7 @@ export default function Analytics() {
                 onClick={() => setTimeFilter(filter)}
                 className={`text-xs font-bold px-4 py-2 rounded-lg transition-all ${
                   timeFilter.value === filter.value
-                    ? "bg-brand text-ink shadow"
+                    ? "bg-brand text-ink-deep shadow"
                     : "text-muted-foreground hover:text-foreground hover:bg-muted"
                 }`}
                 type="button"

@@ -23,7 +23,7 @@ const QUICK_ACTIONS = [
     label: "قيد سريع — إنشاء مباشر",
     icon: FileText,
     path: "/accounting?new=tx",
-    accent: "bg-brand text-ink",
+    accent: "bg-brand text-ink-deep",
     shortcut: "Ctrl+N",
   },
   {
@@ -150,7 +150,7 @@ export function GlobalQuickActions() {
               : "فتح الإجراءات السريعة — إنشاء بنقرة واحدة"
           }
           aria-expanded={open}
-          className={`h-12 w-12 rounded-full shadow-xl border border-white/20 p-0 flex items-center justify-center transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-ink ${open ? "bg-white text-ink" : "bg-brand text-ink hover:bg-brand-deep"}`}
+          className={`h-12 w-12 rounded-full shadow-xl border border-white/20 p-0 flex items-center justify-center transition-all focus-visible:ring-2 focus-visible:ring-brand focus-visible:ring-offset-2 focus-visible:ring-offset-ink ${open ? "bg-white text-ink-deep" : "bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"}`}
         >
           {open ? <X className="w-5 h-5" /> : <Plus className="w-5 h-5" />}
         </Button>

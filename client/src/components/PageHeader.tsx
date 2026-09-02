@@ -34,12 +34,12 @@ export function PageHeader({
       <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div className="space-y-2 max-w-2xl">
           {eyebrow && (
-            <Badge className="bg-[#1e3a3c] border border-[#b87945]/50 text-[#d4a574] font-bold text-[10px] px-2.5 py-1">
+            <Badge className="bg-ink-600 border border-brand/50 text-brand-300 font-bold text-[10px] px-2.5 py-1">
               {eyebrow}
             </Badge>
           )}
           <h1 className="text-xl sm:text-2xl font-black font-display tracking-tight text-balance flex items-center gap-2">
-            {Icon && <Icon className="w-6 h-6 text-[#d4a574]" />}
+            {Icon && <Icon className="w-6 h-6 text-brand-300" />}
             {title}
           </h1>
           {subtitle && (

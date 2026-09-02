@@ -24,7 +24,7 @@ export function InstallPrompt() {
         </p>
         <button
           onClick={handleInstallClick}
-          className="shrink-0 rounded-full bg-brand px-3 py-1.5 text-[11px] font-bold text-ink transition-colors hover:bg-brand-deep"
+          className="shrink-0 rounded-full bg-brand px-3 py-1.5 text-[11px] font-bold text-ink-deep transition-colors hover:bg-brand-deep hover:text-sand"
         >
           تثبيت
         </button>

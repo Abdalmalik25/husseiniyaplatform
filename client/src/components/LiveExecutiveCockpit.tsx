@@ -404,7 +404,7 @@ export function LiveExecutiveCockpit({
           <Button
             size="sm"
             onClick={() => setLocation("/commercial")}
-            className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-8 rounded-xl gap-1.5"
+            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-8 rounded-xl gap-1.5"
           >
             <ShoppingCart className="w-3.5 h-3.5" />
             <span>فاتورة بيع جديدة</span>

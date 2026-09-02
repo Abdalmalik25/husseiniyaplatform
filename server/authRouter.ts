@@ -248,7 +248,7 @@ export const authRouter = router({
           .min(3)
           .max(120)
           .regex(/^[a-zA-Z0-9_.-]+$/, "اسم المستخدم: حروف وأرقام و . _ - فقط"),
-        password: z.string().min(6).max(200),
+        password: z.string().min(8).max(200),
         country: z.string().max(100).optional(),
         currency: z.string().max(50).optional(),
         email: z.string().email().optional().or(z.literal("")),

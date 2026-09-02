@@ -11,10 +11,53 @@ import { registerStorageProxy } from "./storageProxy";
 import { registerWebApi } from "./webApi";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
-import { getDb } from "../db";
+import { getDb, warmDatabase } from "../db";
 import { sql } from "drizzle-orm";
 import { ENV } from "./env";
 import { logger } from "./logger";
+import {
+  performanceMiddleware,
+  getPerformanceStats,
+} from "./enterprise-performance";
+
+const healthCache = {
+  lastCheck: 0,
+  dbAvailable: false,
+  inFlight: false as Promise<boolean> | false,
+};
+
+async function checkDbHealth(): Promise<boolean> {
+  if (Date.now() - healthCache.lastCheck < 5000 && !healthCache.inFlight) {
+    return healthCache.dbAvailable;
+  }
+
+  if (healthCache.inFlight) {
+    return healthCache.inFlight;
+  }
+
+  const probe = (async () => {
+    let result = false;
+    try {
+      const db = await getDb();
+      if (db) {
+        await db.execute(sql`select 1`);
+        result = true;
+      }
+    } catch {
+      result = false;
+    }
+    healthCache.lastCheck = Date.now();
+    healthCache.dbAvailable = result;
+    return result;
+  })();
+
+  healthCache.inFlight = probe;
+  try {
+    return await probe;
+  } finally {
+    healthCache.inFlight = false;
+  }
+}
 
 if (ENV.sentryDsn) {
   Sentry.init({
@@ -36,6 +79,10 @@ export function createApp(): Express {
   app.disable("x-powered-by");
   app.set("trust proxy", 1);
 
+  // Serverless cold-start mitigation: begin the Neon handshake immediately so
+  // the first real query (login verify, health checks, etc.) is already warm.
+  void warmDatabase();
+
   // 12-factor request correlation — every request gets x-request-id early so
   // both access logs and error logs can be joined.
   app.use((req, _res, next) => {
@@ -45,6 +92,9 @@ export function createApp(): Express {
     (req as any).requestId = id;
     next();
   });
+
+  // Request correlation + performance instrumentation for all API calls.
+  app.use(performanceMiddleware);
 
   // Helmet security headers — aligned with vercel.json (CSP + COOP/CORP).
   app.use(
@@ -166,10 +216,7 @@ export function createApp(): Express {
     try {
       if (req.method === "POST" && req.body && typeof req.body === "object") {
         indices = Object.keys(req.body);
-      } else if (
-        req.method === "GET" &&
-        typeof req.query.input === "string"
-      ) {
+      } else if (req.method === "GET" && typeof req.query.input === "string") {
         const parsed = JSON.parse(req.query.input as string);
         if (parsed && typeof parsed === "object") indices = Object.keys(parsed);
       }
@@ -178,9 +225,7 @@ export function createApp(): Express {
     }
     const body =
       indices && indices.length > 0
-        ? Object.fromEntries(
-            indices.map(i => [i, { error: { json } }])
-          )
+        ? Object.fromEntries(indices.map(i => [i, { error: { json } }]))
         : { error: { json } };
     res.status(429).json(body);
   };
@@ -240,16 +285,7 @@ export function createApp(): Express {
   // Actually pings the database so a silent DB outage is detected (503).
   app.get("/api/health", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
-    let dbAvailable = false;
-    try {
-      const db = await getDb();
-      if (db) {
-        await db.execute(sql`select 1`);
-        dbAvailable = true;
-      }
-    } catch {
-      dbAvailable = false;
-    }
+    const dbAvailable = await checkDbHealth();
     res.status(dbAvailable ? 200 : 503).json({
       ok: true,
       dbAvailable,
@@ -265,6 +301,20 @@ export function createApp(): Express {
       time: new Date().toISOString(),
     });
   });
+
+  app.get("/api/performance", (_req, res) => {
+    const stats = getPerformanceStats();
+    res.setHeader("Cache-Control", "no-store, private");
+    res.status(200).json({
+      ok: true,
+      ...stats,
+      generatedAt: new Date().toISOString(),
+      requestId:
+        (res.getHeader("X-Request-ID") as string | undefined) ?? "unknown",
+      status: "Operational",
+    });
+  });
+
   registerStorageProxy(app);
 
   // SECURITY: Throttle the unauthenticated surfaces explicitly.

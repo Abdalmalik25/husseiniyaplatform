@@ -53,7 +53,7 @@ export function FloatingSupportWidget() {
               }
               className="w-full bg-white/5 hover:bg-white/10 text-white p-2.5 rounded-xl border border-white/10 flex items-center gap-2.5 transition-all text-right"
             >
-              <div className="p-1.5 bg-brand rounded-lg text-ink">
+              <div className="p-1.5 bg-brand rounded-lg text-ink-deep">
                 <HardHat className="w-4 h-4" />
               </div>
               <div>
@@ -130,7 +130,7 @@ export function FloatingSupportWidget() {
       <Button
         onClick={() => setIsOpen(!isOpen)}
         aria-label="فتح الدعم المباشر"
-        className="bg-brand hover:bg-brand-deep text-ink font-black h-12 px-4 rounded-full shadow-2xl flex items-center gap-2 transition-all hover:scale-105 border-2 border-white/20"
+        className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black h-12 px-4 rounded-full shadow-2xl flex items-center gap-2 transition-all hover:scale-105 border-2 border-white/20"
       >
         <MessageSquare className="w-5 h-5 fill-current" />
         <span className="text-xs hidden sm:inline">تواصل معنا المباشر</span>

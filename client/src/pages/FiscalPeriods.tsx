@@ -110,7 +110,7 @@ export default function FiscalPeriods() {
               بإعادة فتح استثنائية موثّقة
             </p>
           </div>
-          <Badge className="bg-brand text-ink font-bold">
+          <Badge className="bg-brand text-ink-deep font-bold">
             {list.data?.length ?? 0} فترة
           </Badge>
         </div>
@@ -153,7 +153,7 @@ export default function FiscalPeriods() {
               <Button
                 onClick={submit}
                 disabled={create.isPending}
-                className="w-full bg-brand hover:bg-brand-deep text-ink font-bold h-9"
+                className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold h-9"
               >
                 إنشاء
               </Button>
@@ -251,7 +251,7 @@ export default function FiscalPeriods() {
                                     />
                                   </Field>
                                   <Button
-                                    className="w-full bg-brand hover:bg-brand-deep text-ink font-bold h-9"
+                                    className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold h-9"
                                     disabled={
                                       !reopenReason.trim() ||
                                       reopenPeriod.isPending

@@ -166,17 +166,17 @@ export default function Settings() {
   };
 
   return (
-    <div className="min-h-screen bg-[#fbf8f2] text-[#102a2b] pb-20" dir="rtl">
+    <div className="min-h-screen bg-sand text-ink pb-20" dir="rtl">
       <HeaderNavbar />
 
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>
-            <Badge className="bg-[#b87945] text-[#102a2b] font-bold text-xs px-3 py-1 mb-1">
+            <Badge className="bg-brand text-ink-deep font-bold text-xs px-3 py-1 mb-1">
               تكوين المنصة
             </Badge>
             <h1 className="text-2xl font-bold font-display text-slate-900 flex items-center gap-2">
-              <SettingsIcon className="w-6 h-6 text-[#b87945]" />
+              <SettingsIcon className="w-6 h-6 text-brand" />
               إعدادات مؤسسة ومكتبة الحسينية
             </h1>
             <p className="text-xs text-slate-600 mt-1">
@@ -189,7 +189,7 @@ export default function Settings() {
           <Card className="border border-slate-200 shadow-sm bg-white">
             <CardHeader className="bg-slate-50 border-b border-slate-100 p-4">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
-                <Building2 className="w-5 h-5 text-[#b87945]" />
+                <Building2 className="w-5 h-5 text-brand" />
                 بيانات المؤسسة العامة
               </CardTitle>
               <CardDescription className="text-xs text-slate-600">
@@ -321,10 +321,10 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <Card className="border border-[#b87945]/30 shadow-sm bg-white">
+          <Card className="border border-brand/30 shadow-sm bg-white">
             <CardHeader className="bg-amber-50/60 border-b border-amber-100 p-4">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
-                <Globe className="w-5 h-5 text-[#b87945]" />
+                <Globe className="w-5 h-5 text-brand" />
                 البنية متعددة المستأجرين (مؤسسات · دول · فروع · عملات)
               </CardTitle>
               <CardDescription className="text-xs text-slate-600">
@@ -357,17 +357,17 @@ export default function Settings() {
               <p className="text-[11px] text-slate-500 bg-slate-50 border border-slate-200 rounded-lg p-2.5">
                 تلميح: تُربط الطلبات الواردة من موقعك الخارجي بالفرع والعملة
                 الصحيحين عبر حقول{" "}
-                <code className="font-mono text-[#b87945]">branchCode</code> و{" "}
-                <code className="font-mono text-[#b87945]">currency</code> في
+                <code className="font-mono text-brand">branchCode</code> و{" "}
+                <code className="font-mono text-brand">currency</code> في
                 مركز التكامل — راجع صفحة «مركز التكامل».
               </p>
             </CardContent>
           </Card>
 
-          <Card className="border border-[#102a2b]/15 shadow-sm bg-white">
-            <CardHeader className="bg-[#102a2b]/5 border-b border-slate-100 p-4">
+          <Card className="border border-ink/15 shadow-sm bg-white">
+            <CardHeader className="bg-ink/5 border-b border-slate-100 p-4">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
-                <Database className="w-5 h-5 text-[#102a2b]" />
+                <Database className="w-5 h-5 text-ink" />
                 تكوين نقاط البيع والمخزون (السعودية · اليمن)
               </CardTitle>
               <CardDescription className="text-xs text-slate-600">
@@ -423,10 +423,10 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <Card className="border border-[#102a2b]/15 shadow-sm bg-white">
-            <CardHeader className="bg-[#102a2b]/5 border-b border-slate-100 p-4">
+          <Card className="border border-ink/15 shadow-sm bg-white">
+            <CardHeader className="bg-ink/5 border-b border-slate-100 p-4">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
-                <Database className="w-5 h-5 text-[#102a2b]" />
+                <Database className="w-5 h-5 text-ink" />
                 الفواتير الإلكترونية السعودية (ZATCA)
               </CardTitle>
               <CardDescription className="text-xs text-slate-600">
@@ -477,10 +477,10 @@ export default function Settings() {
             </CardContent>
           </Card>
 
-          <Card className="border border-[#102a2b]/15 shadow-sm bg-white">
-            <CardHeader className="bg-[#102a2b]/5 border-b border-slate-100 p-4">
+          <Card className="border border-ink/15 shadow-sm bg-white">
+            <CardHeader className="bg-ink/5 border-b border-slate-100 p-4">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
-                <Globe className="w-5 h-5 text-[#102a2b]" />
+                <Globe className="w-5 h-5 text-ink" />
                 مواقع العمل والأجهزة (الرقابة وتتبع الأثر)
               </CardTitle>
               <CardDescription className="text-xs text-slate-600">
@@ -510,7 +510,7 @@ export default function Settings() {
                 />
                 <Button
                   size="sm"
-                  className="bg-[#102a2b] hover:bg-[#0c2021] text-xs"
+                  className="bg-ink hover:bg-ink-deep text-xs"
                   disabled={!wsCode || !wsName || createWs.isPending}
                   onClick={() =>
                     createWs.mutate({
@@ -564,7 +564,7 @@ export default function Settings() {
                 </select>
                 <Button
                   size="sm"
-                  className="bg-[#102a2b] hover:bg-[#0c2021] text-xs"
+                  className="bg-ink hover:bg-ink-deep text-xs"
                   disabled={!devCode || !devName || createDev.isPending}
                   onClick={() =>
                     createDev.mutate({
@@ -600,7 +600,7 @@ export default function Settings() {
             <Button
               type="submit"
               disabled={updateSettings.isPending}
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-10 px-6 rounded-xl flex items-center gap-2 shadow"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-10 px-6 rounded-xl flex items-center gap-2 shadow"
             >
               <Save className="w-4 h-4" />
               {updateSettings.isPending

@@ -24,17 +24,17 @@ export function BusinessLifecycleWizard() {
 
   return (
     <Card
-      className="border-2 border-[#102a2b]/30 bg-white shadow-xl rounded-3xl p-5 sm:p-6 space-y-6 font-sans"
+      className="border-2 border-ink/30 bg-white shadow-xl rounded-3xl p-5 sm:p-6 space-y-6 font-sans"
       dir="rtl"
     >
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 pb-4 gap-3">
         <div>
-          <Badge className="bg-[#102a2b] text-[#d4a574] font-bold text-xs mb-1">
+          <Badge className="bg-ink text-brand-300 font-bold text-xs mb-1">
             دورة العمل المؤسسية المعيارية
           </Badge>
           <CardTitle className="text-xl font-bold font-display text-slate-900 flex items-center gap-2">
-            <Sliders className="w-6 h-6 text-[#b87945]" />
+            <Sliders className="w-6 h-6 text-brand" />
             دورة العمل التجارية المتكاملة للمنشآت والمؤسسات
           </CardTitle>
           <CardDescription className="text-xs text-slate-600 mt-1">
@@ -50,11 +50,11 @@ export function BusinessLifecycleWizard() {
           onClick={() => setActiveStage("setup")}
           className={`p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
             activeStage === "setup"
-              ? "bg-[#102a2b] text-white shadow"
+              ? "bg-ink text-white shadow"
               : "text-slate-700 hover:bg-slate-200"
           }`}
         >
-          <Settings className="w-4 h-4 text-[#b87945]" />
+          <Settings className="w-4 h-4 text-brand" />
           <span>1. التهيئة والبيانات</span>
         </button>
 
@@ -62,11 +62,11 @@ export function BusinessLifecycleWizard() {
           onClick={() => setActiveStage("operations")}
           className={`p-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 ${
             activeStage === "operations"
-              ? "bg-[#b87945] text-[#102a2b] shadow"
+              ? "bg-brand text-ink-deep shadow"
               : "text-slate-700 hover:bg-slate-200"
           }`}
         >
-          <ShoppingCart className="w-4 h-4 text-[#102a2b]" />
+          <ShoppingCart className="w-4 h-4 text-ink" />
           <span>2. العمليات التشغيلية</span>
         </button>
 
@@ -87,8 +87,8 @@ export function BusinessLifecycleWizard() {
       {activeStage === "setup" && (
         <div className="space-y-4 animate-in fade-in duration-300">
           <div className="bg-amber-50 border border-amber-200 p-4 rounded-2xl text-xs text-amber-900 space-y-1">
-            <h3 className="font-bold text-sm text-[#102a2b] flex items-center gap-1.5">
-              <Settings className="w-4 h-4 text-[#b87945]" /> المرحلة الأولى:
+            <h3 className="font-bold text-sm text-ink flex items-center gap-1.5">
+              <Settings className="w-4 h-4 text-brand" /> المرحلة الأولى:
               الإعداد والبيانات الأساسية للمؤسسة
             </h3>
             <p className="text-slate-600">
@@ -99,7 +99,7 @@ export function BusinessLifecycleWizard() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
             <Card className="p-4 bg-slate-50 border border-slate-200 space-y-2">
-              <div className="p-2 bg-[#102a2b] text-white rounded-lg w-fit">
+              <div className="p-2 bg-ink text-white rounded-lg w-fit">
                 <Building2 className="w-4 h-4" />
               </div>
               <h4 className="font-bold text-slate-900">
@@ -111,14 +111,14 @@ export function BusinessLifecycleWizard() {
               <Button
                 size="sm"
                 onClick={() => (window.location.href = "/settings")}
-                className="w-full bg-[#102a2b] text-white text-[11px] h-7"
+                className="w-full bg-ink text-white text-[11px] h-7"
               >
                 تعديل الإعدادات
               </Button>
             </Card>
 
             <Card className="p-4 bg-slate-50 border border-slate-200 space-y-2">
-              <div className="p-2 bg-[#b87945] text-white rounded-lg w-fit">
+              <div className="p-2 bg-brand text-white rounded-lg w-fit">
                 <Layers className="w-4 h-4" />
               </div>
               <h4 className="font-bold text-slate-900">دليل الحسابات الشجري</h4>
@@ -128,7 +128,7 @@ export function BusinessLifecycleWizard() {
               <Button
                 size="sm"
                 onClick={() => (window.location.href = "/accounting")}
-                className="w-full bg-[#b87945] text-[#102a2b] font-bold text-[11px] h-7"
+                className="w-full bg-brand text-ink-deep font-bold text-[11px] h-7"
               >
                 إدارة الحسابات
               </Button>
@@ -201,7 +201,7 @@ export function BusinessLifecycleWizard() {
               <Button
                 size="sm"
                 onClick={() => (window.location.href = "/accounting")}
-                className="w-full bg-[#102a2b] text-white text-sm h-10 rounded-lg flex items-center justify-center gap-2 shadow"
+                className="w-full bg-ink text-white text-sm h-10 rounded-lg flex items-center justify-center gap-2 shadow"
               >
                 إضافة معاملة مالية
               </Button>
@@ -218,7 +218,7 @@ export function BusinessLifecycleWizard() {
               <Button
                 size="sm"
                 onClick={() => (window.location.href = "/commercial")}
-                className="w-full bg-[#b87945] text-[#102a2b] font-bold text-sm h-10 rounded-lg flex items-center justify-center gap-2 shadow"
+                className="w-full bg-brand text-ink-deep font-bold text-sm h-10 rounded-lg flex items-center justify-center gap-2 shadow"
               >
                 إدارة المشتريات
               </Button>
@@ -260,7 +260,7 @@ export function BusinessLifecycleWizard() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
             <Card className="p-4 bg-white border border-slate-200 space-y-3">
-              <Printer className="w-5 h-5 text-[#b87945]" />
+              <Printer className="w-5 h-5 text-brand" />
               <h4 className="font-bold text-slate-900">
                 السندات والفواتير بـ QR Code
               </h4>
@@ -289,7 +289,7 @@ export function BusinessLifecycleWizard() {
                     notes: "مخرج رسمي معتمد من المرحلة الثالثة",
                   });
                 }}
-                className="w-full bg-[#b87945] text-[#102a2b] font-bold text-xs h-8"
+                className="w-full bg-brand text-ink-deep font-bold text-xs h-8"
               >
                 معاينة وطباعة السند
               </Button>
@@ -306,7 +306,7 @@ export function BusinessLifecycleWizard() {
               <Button
                 size="sm"
                 onClick={() => (window.location.href = "/reports")}
-                className="w-full bg-[#102a2b] text-white text-xs h-8"
+                className="w-full bg-ink text-white text-xs h-8"
               >
                 استعراض التقارير
               </Button>

@@ -10,6 +10,7 @@
 
 import { eq, and, or, sql, desc, gte, lt, gt } from "drizzle-orm";
 import { randomBytes, timingSafeEqual, createHash } from "crypto";
+import nodemailer from "nodemailer";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 
@@ -22,6 +23,9 @@ import {
   settings,
   accounts,
   activityLogs,
+  tenantSubscriptions,
+  subscriptionPlans,
+  subscriptionPolicies,
 } from "../../drizzle/schema";
 import { hashPassword, verifyPassword } from "../_core/password";
 import { generateSecret, verifyToken, otpauthUrl } from "../_core/totp";
@@ -29,7 +33,7 @@ import { getClientIp, geolocate, parseDevice } from "../_core/geo";
 import { sdk } from "../_core/sdk";
 import { COOKIE_NAME, ONE_MONTH_MS } from "../../shared/const";
 import { getSessionCookieOptions } from "../_core/cookies";
-import { provisionGenericTenant } from "../_core/systemRouter";
+import { provisionGenericTenant, applyAuthSchema } from "../_core/systemRouter";
 import { checkCustomerDuplicate } from "./deduplication";
 import { validateEmail, validatePhone, validateName } from "./validation";
 import { ENV } from "../_core/env";
@@ -103,6 +107,50 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_WINDOW_MINUTES = 15;
 const LOCKOUT_DURATION_MINUTES = 30;
 const SESSION_REFRESH_THRESHOLD_HOURS = 1;
+
+export type EmailDeliveryConfig = {
+  enabled: boolean;
+  mode: "smtp" | "console";
+  from: string;
+  host?: string;
+  port?: number;
+  user?: string;
+  pass?: string;
+  secure?: boolean;
+};
+
+export function getEmailDeliveryConfig(
+  overrides: Partial<{
+    smtpHost: string;
+    smtpPort: number;
+    smtpUser: string;
+    smtpPass: string;
+    emailFrom: string;
+    isProduction: boolean;
+  }> = {}
+): EmailDeliveryConfig {
+  const isProduction = overrides.isProduction ?? ENV.isProduction;
+  const host = overrides.smtpHost ?? ENV.smtpHost ?? "";
+  const port = overrides.smtpPort ?? ENV.smtpPort ?? 587;
+  const user = overrides.smtpUser ?? ENV.smtpUser ?? "";
+  const password = overrides.smtpPass ?? ENV.smtpPass ?? "";
+  const from =
+    overrides.emailFrom ?? ENV.emailFrom ?? "no-reply@alhusainia.local";
+
+  const hasCredentials = !!host && !!user && !!password && !!from;
+  const enabled = hasCredentials && (isProduction || hasCredentials);
+
+  return {
+    enabled,
+    mode: enabled ? "smtp" : "console",
+    from,
+    host: host || undefined,
+    port: enabled ? port : undefined,
+    user: user || undefined,
+    pass: password || undefined,
+    secure: port === 465,
+  };
+}
 
 // ============================================================================
 // Token Generation & Validation
@@ -232,6 +280,9 @@ export async function registerUser(
 ) {
   const db = await getDbOrThrow();
 
+  // تأكد من وجود جداول الاشتراك/البوابات (idempotent) قبل الاستعلام فيها.
+  await applyAuthSchema(db);
+
   // Validate input
   const nameValidation = validateName(input.name);
   if (!nameValidation.ok) {
@@ -337,7 +388,53 @@ export async function registerUser(
       .set({ ownerUserId: userRow.id })
       .where(eq(tenants.id, tid));
 
-    return { user: userRow, tenantId: tid, verificationToken };
+    // ── Trial subscription provisioning ─────────────────────────────
+    // يمنح المستأجر الجديد تجربة مجانية كاملة (trialDays من السياسة
+    // الافتراضية). لا يتوقف العمل بعد انتهائها أبداً — تنتقل تلقائياً
+    // إلى مهلة مرنة (grace) عبر billingAccess.
+    const policyRows = await tx
+      .select({
+        trialDays: subscriptionPolicies.trialDays,
+      })
+      .from(subscriptionPolicies)
+      .where(eq(subscriptionPolicies.code, "default"))
+      .limit(1);
+    const trialDays = policyRows[0]?.trialDays ?? 14;
+    const trialPlan = await tx
+      .select({ id: subscriptionPlans.id })
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.code, "starter"))
+      .limit(1);
+    const trialStart = new Date();
+    const trialEnd = new Date(Date.now() + trialDays * 86_400_000);
+
+    const existingSub = await tx
+      .select({ id: tenantSubscriptions.id })
+      .from(tenantSubscriptions)
+      .where(eq(tenantSubscriptions.tenantId, tid))
+      .limit(1);
+    if (existingSub.length === 0) {
+      await tx.insert(tenantSubscriptions).values({
+        tenantId: tid,
+        planId: trialPlan[0]?.id ?? 1,
+        status: "trial",
+        billingCycle: "monthly",
+        currentPeriodStart: trialStart,
+        currentPeriodEnd: trialEnd,
+        paymentProvider: "trial",
+      });
+    }
+
+    await tx
+      .update(settings)
+      .set({
+        subscriptionStatus: "trial",
+        trialEndsAt: trialEnd,
+        updatedAt: trialStart,
+      })
+      .where(eq(settings.tenantId, tid));
+
+    return { user: userRow, tenantId: tid, verificationToken, trialStart, trialEnd };
   });
 
   // Create session
@@ -358,11 +455,21 @@ export async function registerUser(
     result.user.name
   ).catch(console.error);
 
+  // Send a warm welcome + trial details (async, non-blocking).
+  sendWelcomeEmail(
+    result.user.email!,
+    input.username.trim(),
+    input.name.trim(),
+    result.trialEnd
+  ).catch(console.error);
+
   return {
     ok: true as const,
     tenantId: result.tenantId,
     userId: result.user.id,
     emailSent: !!result.user.email,
+    trialStart: result.trialStart,
+    trialEndsAt: result.trialEnd,
     message:
       "تم إنشاء الحساب بنجاح. يرجى التحقق من بريدك الإلكتروني لتفعيل الحساب.",
   };
@@ -603,7 +710,7 @@ export async function requestPasswordReset(input: ForgotPasswordInput) {
     })
     .where(eq(users.id, user.id));
 
-// Send reset email (async, non-blocking)
+  // Send reset email (async, non-blocking)
   const resetEmail: string = user.email as string;
   if (resetEmail) {
     sendPasswordResetEmail(
@@ -742,7 +849,7 @@ export async function resendVerificationEmail(input: ResendVerificationInput) {
     })
     .where(eq(users.id, user.id));
 
-// Send verification email (async, non-blocking)
+  // Send verification email (async, non-blocking)
   const verifyEmail: string = user.email as string;
   if (verifyEmail) {
     sendVerificationEmail(
@@ -999,24 +1106,112 @@ export async function revokeAllSessions(ctx: { user: any }) {
 }
 
 // ============================================================================
-// Email Service (Placeholder - integrate with your email provider)
+// Email Service
 // ============================================================================
+
+export async function sendTransactionalEmail(options: {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string;
+}): Promise<{ delivered: boolean; mode: "smtp" | "console" }> {
+  const config = getEmailDeliveryConfig();
+
+  if (!config.enabled || !config.host || !config.user || !config.pass) {
+    console.log(
+      `[Email][console] ${options.subject} => ${options.to}\n${options.text}`
+    );
+    return { delivered: false, mode: "console" };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      host: config.host,
+      port: config.port ?? 587,
+      secure: config.secure ?? false,
+      auth: {
+        user: config.user,
+        pass: config.pass,
+      },
+    });
+
+    await transporter.sendMail({
+      from: config.from,
+      to: options.to,
+      subject: options.subject,
+      text: options.text,
+      html: options.html ?? `<p>${options.text.replace(/\n/g, "<br />")}</p>`,
+    });
+
+    return { delivered: true, mode: "smtp" };
+  } catch (error) {
+    console.error("[Email][smtp] delivery failed", error);
+    console.log(
+      `[Email][console-fallback] ${options.subject} => ${options.to}\n${options.text}`
+    );
+    return { delivered: false, mode: "console" };
+  }
+}
 
 async function sendVerificationEmail(
   email: string,
   token: string,
   name: string
 ): Promise<void> {
-  // TODO: Integrate with your email provider (SendGrid, AWS SES, Nodemailer, etc.)
   if (!email) return;
-  const verifyUrl = `${ENV.oAuthServerUrl || "https://alhusainiaye.vercel.app"}/verify-email?token=${token}`;
-  console.log(`[Email] Verification email to ${email}: ${verifyUrl}`);
-  // await emailService.send({
-  //   to: email,
-  //   subject: "تفعيل حسابك - منصة الحسينية",
-  //   template: "verification",
-  //   data: { name, verifyUrl }
-  // });
+  const verifyUrl = `${ENV.appUrl || "https://alhusainiaye.vercel.app"}/verify-email?token=${token}`;
+  await sendTransactionalEmail({
+    to: email,
+    subject: "تفعيل حسابك - منصة الحسينية",
+    text: `مرحباً ${name}،\n\nيرجى التحقق من بريدك الإلكتروني عبر الرابط التالي:\n${verifyUrl}\n\nإذا لم تكن قد طلبت هذا، يمكنك تجاهل الرسالة.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.7; color: #0f172a;">
+        <h3 style="margin-bottom: 12px;">مرحباً ${name}</h3>
+        <p>يرجى التحقق من بريدك الإلكتروني عبر الرابط التالي:</p>
+        <p><a href="${verifyUrl}" target="_blank" rel="noopener noreferrer">تفعيل الحساب الآن</a></p>
+        <p>إذا لم تكن قد طلبت هذا، يمكنك تجاهل الرسالة.</p>
+      </div>
+    `,
+  });
+}
+
+async function sendWelcomeEmail(
+  email: string,
+  username: string,
+  name: string,
+  trialEndsAt?: Date
+): Promise<void> {
+  if (!email) return;
+  const days = trialEndsAt
+    ? Math.max(
+        1,
+        Math.ceil(
+          (trialEndsAt.getTime() - Date.now()) / 86_400_000
+        )
+      )
+    : 14;
+  await sendTransactionalEmail({
+    to: email,
+    subject: "أهلاً بك في منصة الحسينية 🎉",
+    text: `مرحباً ${name}،\n\nتم إنشاء حسابك بنجاح.\nاسم المستخدم: ${username}\n\nلديك ${days} يوماً من فترة التجربة المجانية الكاملة.\nابدأ من هنا: ${ENV.appUrl || "https://alhusainiaye.vercel.app"}\n\nمهم: لن يتوقف عملك أبداً بعد انتهاء التجربة — يتحول النظام تلقائياً إلى مهلة مرنة تبقى خلالها بياناتك وعملياتك اليومية متاحة.`,
+    html: `
+      <div dir="rtl" style="font-family: Arial, sans-serif; line-height: 1.8; color: #0f172a;">
+        <h3 style="margin-bottom: 12px;">مرحباً ${name} 👋</h3>
+        <p>تم إنشاء حسابك في منصة الحسينية بنجاح.</p>
+        <p><strong>اسم المستخدم:</strong> ${username}</p>
+        <p><strong>فترة التجربة:</strong> ${days} يوماً كاملة بجميع الوحدات.</p>
+        <p style="margin-top:16px;">
+          <a href="${ENV.appUrl || "https://alhusainiaye.vercel.app"}" target="_blank" rel="noopener noreferrer"
+             style="background:#1e3a5f;color:#ffffff;padding:12px 28px;border-radius:8px;text-decoration:none;">
+            ابدأ العمل الآن
+          </a>
+        </p>
+        <p style="margin-top:20px;font-size:13px;color:#475569;">
+          لن يتوقف عملك أبداً بعد انتهاء التجربة — يتحول النظام تلقائياً إلى مهلة مرنة تبقى خلالها بياناتك وعملياتك اليومية متاحة.
+        </p>
+      </div>
+    `,
+  });
 }
 
 async function sendPasswordResetEmail(
@@ -1024,14 +1219,19 @@ async function sendPasswordResetEmail(
   token: string,
   name: string
 ): Promise<void> {
-  // TODO: Integrate with your email provider
   if (!email) return;
-  const resetUrl = `${ENV.oAuthServerUrl || "https://alhusainiaye.vercel.app"}/reset-password?token=${token}`;
-  console.log(`[Email] Password reset email to ${email}: ${resetUrl}`);
-  // await emailService.send({
-  //   to: email,
-  //   subject: "إعادة تعيين كلمة المرور - منصة الحسينية",
-  //   template: "password-reset",
-  //   data: { name, resetUrl }
-  // });
+  const resetUrl = `${ENV.appUrl || "https://alhusainiaye.vercel.app"}/reset-password?token=${token}`;
+  await sendTransactionalEmail({
+    to: email,
+    subject: "إعادة تعيين كلمة المرور - منصة الحسينية",
+    text: `مرحباً ${name}،\n\nلإعادة تعيين كلمة المرور، استخدم الرابط التالي:\n${resetUrl}\n\nإذا لم تطلب هذا، يمكنك تجاهل الرسالة.`,
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.7; color: #0f172a;">
+        <h3 style="margin-bottom: 12px;">مرحباً ${name}</h3>
+        <p>لإعادة تعيين كلمة المرور، استخدم الرابط التالي:</p>
+        <p><a href="${resetUrl}" target="_blank" rel="noopener noreferrer">إعادة تعيين كلمة المرور</a></p>
+        <p>إذا لم تطلب هذا، يمكنك تجاهل الرسالة.</p>
+      </div>
+    `,
+  });
 }

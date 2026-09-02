@@ -91,8 +91,7 @@ export default function Store() {
     0
   );
 
-  const fmt = (v: any) =>
-    fmtYER(v);
+  const fmt = (v: any) => fmtYER(v);
 
   const addToCart = (p: any) => {
     const stock = p.currentStock ?? 0;
@@ -198,7 +197,7 @@ export default function Store() {
           className="flex items-center justify-between p-2 bg-white rounded-lg border"
         >
           <div className="min-w-0">
-            <p className="font-bold text-xs text-[#102a2b] truncate">
+            <p className="font-bold text-xs text-ink truncate">
               {it.productName}
             </p>
             <p className="text-[10px] text-gray-500">
@@ -238,8 +237,8 @@ export default function Store() {
       ))}
       {cart.length > 0 && (
         <div className="flex items-center justify-between pt-2 border-t">
-          <span className="text-sm font-bold text-[#102a2b]">الإجمالي</span>
-          <span className="text-sm font-bold text-[#b87945]">
+          <span className="text-sm font-bold text-ink">الإجمالي</span>
+          <span className="text-sm font-bold text-brand">
             {fmt(cartTotal)}{" "}
           </span>
         </div>
@@ -248,13 +247,13 @@ export default function Store() {
   );
 
   return (
-    <div className="min-h-screen bg-[#fbf8f2] flex" dir="rtl">
+    <div className="min-h-screen bg-sand flex" dir="rtl">
       <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">
-        <div className="bg-[#162e30] text-white border-b border-[#1e3a3c] shadow-sm py-2 px-4 sticky top-0 z-30">
+        <div className="bg-ink-800 text-white border-b border-ink-600 shadow-sm py-2 px-4 sticky top-0 z-30">
           <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-xs">
-              <StoreIcon className="w-4 h-4 text-[#d4a574]" />
+              <StoreIcon className="w-4 h-4 text-brand-300" />
               <span className="font-bold">
                 كتالوج المنتجات والخدمات الاستشارية والمكتبية
               </span>
@@ -263,7 +262,7 @@ export default function Store() {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-white border-white/30 h-7 text-xs bg-[#102a2b] hover:bg-[#1e3a3c] relative"
+                className="text-white border-white/30 h-7 text-xs bg-ink hover:bg-ink-600 relative"
                 onClick={() => setWishlistOpen(true)}
               >
                 <Heart
@@ -279,15 +278,15 @@ export default function Store() {
               <Button
                 size="sm"
                 variant="outline"
-                className="text-white border-white/30 h-7 text-xs bg-[#102a2b] hover:bg-[#1e3a3c]"
+                className="text-white border-white/30 h-7 text-xs bg-ink hover:bg-ink-600"
                 onClick={() => setLocation("/about")}
               >
-                <Info className="w-3 h-3 ml-1 text-[#d4a574]" />
+                <Info className="w-3 h-3 ml-1 text-brand-300" />
                 عن المؤسسة
               </Button>
               <Button
                 size="sm"
-                className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] relative h-7 font-bold text-xs"
+                className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep relative h-7 font-bold text-xs"
                 onClick={() => setCartOpen(true)}
               >
                 <ShoppingCart className="w-3.5 h-3.5 ml-1" />
@@ -316,7 +315,7 @@ export default function Store() {
           <div className="flex gap-2 overflow-x-auto pb-2 mb-3 no-scrollbar">
             <button
               onClick={() => setCategory("all")}
-              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${category === "all" ? "bg-[#102a2b] text-white border-[#102a2b]" : "bg-white text-gray-600 border-gray-200"}`}
+              className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${category === "all" ? "bg-ink text-white border-ink" : "bg-white text-gray-600 border-gray-200"}`}
             >
               الكل
             </button>
@@ -324,7 +323,7 @@ export default function Store() {
               <button
                 key={c}
                 onClick={() => setCategory(c)}
-                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${category === c ? "bg-[#102a2b] text-white border-[#102a2b]" : "bg-white text-gray-600 border-gray-200"}`}
+                className={`shrink-0 px-3 py-1.5 rounded-full text-xs font-bold border transition-colors ${category === c ? "bg-ink text-white border-ink" : "bg-white text-gray-600 border-gray-200"}`}
               >
                 {c}
               </button>
@@ -377,8 +376,8 @@ export default function Store() {
                   key={p.id}
                   className={`bg-white rounded-xl border shadow-sm p-3 flex flex-col ${out ? "opacity-70" : ""}`}
                 >
-                  <div className="w-full h-16 bg-[#102a2b]/5 rounded-lg flex items-center justify-center mb-2">
-                    <ChefHat className="w-7 h-7 text-[#b87945]" />
+                  <div className="w-full h-16 bg-ink/5 rounded-lg flex items-center justify-center mb-2">
+                    <ChefHat className="w-7 h-7 text-brand" />
                   </div>
                   <div className="flex items-center gap-1 mb-1">
                     <Badge
@@ -401,7 +400,7 @@ export default function Store() {
                       </Badge>
                     )}
                   </div>
-                  <p className="font-bold text-sm text-[#102a2b] leading-snug">
+                  <p className="font-bold text-sm text-ink leading-snug">
                     {p.name}
                   </p>
                   <p className="text-[10px] text-gray-500 mb-2">
@@ -409,7 +408,7 @@ export default function Store() {
                   </p>
                   <div className="mt-auto flex items-center justify-between pt-2">
                     <div>
-                      <span className="font-extrabold text-[#b87945] text-sm">
+                      <span className="font-extrabold text-brand text-sm">
                         {fmt(p.salePrice)}
                       </span>
                       <span className="text-[9px] text-gray-400 mr-1">
@@ -442,7 +441,7 @@ export default function Store() {
                       </Button>
                       <Button
                         size="sm"
-                        className="bg-[#102a2b] hover:bg-[#1d3f40] h-7 px-2 text-[11px]"
+                        className="bg-ink hover:bg-ink-600 h-7 px-2 text-[11px]"
                         disabled={out}
                         onClick={() => addToCart(p)}
                       >
@@ -464,12 +463,12 @@ export default function Store() {
             onClick={() => setCartOpen(false)}
           >
             <div
-              className="absolute left-0 top-0 h-full w-full max-w-sm bg-[#fbf8f2] shadow-2xl p-4 flex flex-col"
+              className="absolute left-0 top-0 h-full w-full max-w-sm bg-sand shadow-2xl p-4 flex flex-col"
               onClick={e => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-bold text-sm text-[#102a2b] flex items-center gap-2">
-                  <ShoppingCart className="w-4 h-4 text-[#b87945]" />
+                <h2 className="font-bold text-sm text-ink flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-brand" />
                   سلة التسوق
                 </h2>
                 <Button
@@ -483,7 +482,7 @@ export default function Store() {
               </div>
               <div className="flex-1 overflow-y-auto">{cartList}</div>
               <Button
-                className="w-full bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold mt-3"
+                className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold mt-3"
                 disabled={cart.length === 0}
                 onClick={() => {
                   setCartOpen(false);
@@ -500,7 +499,7 @@ export default function Store() {
         <Dialog open={wishlistOpen} onOpenChange={setWishlistOpen}>
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-[#102a2b] flex items-center gap-2">
+              <DialogTitle className="text-ink flex items-center gap-2">
                 <Heart className="w-4 h-4 text-red-500" />
                 المفضلة ({wishlistItems.length})
               </DialogTitle>
@@ -554,7 +553,7 @@ export default function Store() {
         <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-[#102a2b]">
+              <DialogTitle className="text-ink">
                 بيانات التوصيل
               </DialogTitle>
               <DialogDescription className="text-xs">
@@ -605,12 +604,12 @@ export default function Store() {
                 />
               </div>
               <div className="bg-white rounded-lg border p-3">
-                <p className="text-xs font-bold text-[#102a2b] mb-2">
+                <p className="text-xs font-bold text-ink mb-2">
                   ملخص الطلب ({cartCount} صنف)
                 </p>
                 <div className="flex justify-between text-xs">
                   <span className="text-gray-500">الإجمالي</span>
-                  <span className="font-bold text-[#b87945]">
+                  <span className="font-bold text-brand">
                     {fmt(cartTotal)}{" "}
                   </span>
                 </div>
@@ -618,7 +617,7 @@ export default function Store() {
             </div>
             <DialogFooter>
               <Button
-                className="w-full bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold"
+                className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold"
                 disabled={placeOrder.isPending}
                 onClick={submitOrder}
               >
@@ -637,13 +636,13 @@ export default function Store() {
         >
           <DialogContent className="max-w-md">
             <DialogHeader>
-              <DialogTitle className="text-[#102a2b] flex items-center gap-2">
+              <DialogTitle className="text-ink flex items-center gap-2">
                 <PackageCheck className="w-5 h-5 text-green-600" />
                 تم استلام طلبك بنجاح!
               </DialogTitle>
               <DialogDescription className="text-xs">
                 رقم الطلب:{" "}
-                <b dir="ltr" className="text-[#102a2b]">
+                <b dir="ltr" className="text-ink">
                   {placed?.orderNumber}
                 </b>
               </DialogDescription>
@@ -662,7 +661,7 @@ export default function Store() {
               </Button>
               <Button
                 variant="outline"
-                className="w-full text-xs border-[#b87945] text-[#7a5228] bg-amber-50 font-bold"
+                className="w-full text-xs border-brand text-brand-700 bg-amber-50 font-bold"
                 onClick={() => {
                   if (placed) {
                     openPrintableInvoiceWindow({

@@ -31,3 +31,7 @@
 - [x] سداد ديون تقنية في الخادم: إصلاحات TypeScript الصارمة في `auditLogger.ts` (نوع `NeonQueryFunction<false,false>` الصحيح، تمرير `fullEntry` الكامل للتنبيهات، typing دقيق للأجgregateات) + إعادة هيكلة مُقسّم جُمَل SQL في `migrate.ts` مع اختبارات `migrate.test.ts` المحدثة — 124 اختبار Vitest ناجح، `tsc --noEmit` نظيف، ESLint صفر أخطاء
 - [x] نشر الإصدار للإنتاج: بناء ناجح (Vite + serverless bundle `api/agent.mjs`) ونشر Vercel للإنتاج مع الربط بالدومين `https://alhusainiaye.vercel.app` — فحوص ما بعد النشر: `/api/health`=200، الصفحة الرئيسية=200، النقاط المحمية تعيد 401 لغير المصادقين
 
+- [x] **إكمال دورة استعادة الحساب من طرف إلى طرف (Auth Cycle)**: صفحتا `/reset-password` و `/verify-email` بروح تصميم الحسينية (RTL + ink/brand) مع تحقق تلقائي وإعادة إرسال ذكية، وتعريض `auth.verifyEmail` و `auth.resendVerificationEmail` على روتر التطبيق الرئيسي (كانا محبوسين في `authRouter.ts` غير المُستخدم) — الرمز use-once يلغى فور استخدامه (server-side)
+- [x] **إصلاح نطاق رسائل البريد**: روابط التحقق/الاستعادة كانت تُبنى من `OAUTH_SERVER_URL` (بوابة OAuth) → أصبحت من `APP_URL` (نطاق المنصة) مع fallback إلى `https://alhusainiaye.vercel.app`
+- [x] **تحصين محمّل i18n** (إزالة import attribute من `ar.json/en.json`) + رفع الإصدار إلى **2.14.0** (brand + package + CHANGELOG موحّد)
+- [x] **ملاحظات الأداء**: نقطة `/api/performance` + `performanceMiddleware` (X-Request-ID) + `healthCache` لفحص قاعدة البيانات بذاكرة 5 ثوانٍ في `server/_core/app.ts`

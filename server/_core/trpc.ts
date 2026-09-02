@@ -3,6 +3,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { TrpcContext } from "./context";
 import { enforceSubscription } from "./subscription";
+import { requireOwner } from "./tenant";
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
@@ -65,5 +66,22 @@ export const adminProcedure = t.procedure.use(
         user: ctx.user,
       },
     });
+  })
+);
+
+// ─── Platform owner (super-admin) procedure ────────────────────────
+/**
+ * `ownerProcedure` — للإجراءات الحصرية بمالك المنصة (إدارة بوابات الدفع،
+ * سياسات الاشتراك، إدارة المستأجرين). يعتمد `requireOwner` من tenant.ts
+ * والذي يقارن `openId` مع `OWNER_OPEN_ID`.
+ */
+export const ownerProcedure = t.procedure.use(
+  t.middleware(async opts => {
+    const { ctx, next } = opts;
+    if (!ctx.user) {
+      throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
+    }
+    requireOwner(ctx);
+    return next({ ctx: { ...ctx, user: ctx.user, tenantId: ctx.tenantId } });
   })
 );

@@ -5,7 +5,7 @@
  * Heritage Ledger color scale: deep teal (#0e2a2b) + golden bronze (#b87945).
  *
  * Every token here is mirrored as a CSS custom property in index.css
- * via `@theme inline { ... }` so Tailwind utilities (bg-brand, text-ink, etc.)
+ * via `@theme inline { ... }` so Tailwind utilities (bg-brand, text-ink-deep, etc.)
  * remain functional. This file is the TypeScript source of truth.
  */
 

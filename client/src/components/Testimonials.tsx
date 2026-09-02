@@ -32,7 +32,8 @@ export function Testimonials() {
     return () => clearInterval(t);
   }, [paused, testimonials.length]);
 
-  const goTo = (i: number) => setActive((i + testimonials.length) % testimonials.length);
+  const goTo = (i: number) =>
+    setActive((i + testimonials.length) % testimonials.length);
 
   return (
     <section
@@ -44,8 +45,14 @@ export function Testimonials() {
       onBlur={() => setPaused(false)}
     >
       {/* Tech grid background */}
-      <div className="absolute inset-0 tech-grid opacity-20 pointer-events-none" aria-hidden />
-      <div className="absolute inset-0 bg-gradient-to-b from-ink via-transparent to-ink pointer-events-none" aria-hidden />
+      <div
+        className="absolute inset-0 tech-grid opacity-20 pointer-events-none"
+        aria-hidden
+      />
+      <div
+        className="absolute inset-0 bg-gradient-to-b from-ink via-transparent to-ink pointer-events-none"
+        aria-hidden
+      />
 
       <div className="max-w-5xl mx-auto relative z-10">
         {/* Header */}
@@ -81,7 +88,10 @@ export function Testimonials() {
             />
 
             {/* Stars */}
-            <div className="flex items-center gap-1 mb-4" aria-label="تقييم 5 من 5">
+            <div
+              className="flex items-center gap-1 mb-4"
+              aria-label="تقييم 5 من 5"
+            >
               {[...Array(5)].map((_, i) => (
                 <Star
                   key={i}

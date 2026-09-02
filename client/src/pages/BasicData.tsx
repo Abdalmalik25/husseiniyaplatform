@@ -145,7 +145,7 @@ export default function BasicData() {
       <AppSidebar />
       <main className="flex-1 p-4 md:p-6 space-y-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0e2a2b] text-[#b87945]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-ink text-brand">
             <Boxes className="h-6 w-6" />
           </div>
           <div>
@@ -268,7 +268,7 @@ export default function BasicData() {
                 />
               </div>
               <Button
-                className="w-full bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                className="w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                 disabled={!unit.code || !unit.name || createUnit.isPending}
                 onClick={() =>
                   createUnit.mutate({
@@ -342,7 +342,7 @@ export default function BasicData() {
                 </select>
               </div>
               <Button
-                className="w-full bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                className="w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                 disabled={!cat.code || !cat.name || createCat.isPending}
                 onClick={() =>
                   createCat.mutate({
@@ -381,7 +381,7 @@ export default function BasicData() {
                         <Button
                           size="sm"
                           variant="ghost"
-                          className="text-[10px] h-7 text-[#b87945]"
+                          className="text-[10px] h-7 text-brand"
                           onClick={() => setDefaultCur.mutate({ id: c.id })}
                         >
                           افتراضي
@@ -462,7 +462,7 @@ export default function BasicData() {
                 عملة افتراضية
               </label>
               <Button
-                className="w-full bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                className="w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                 disabled={!cur.code || !cur.name || createCur.isPending}
                 onClick={() =>
                   createCur.mutate({
@@ -487,7 +487,7 @@ export default function BasicData() {
                 </h2>
                 <Button
                   size="sm"
-                  className="bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                  className="bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                   onClick={() => setShowRepReport(true)}
                 >
                   تقرير العمولات
@@ -617,7 +617,7 @@ export default function BasicData() {
                 />
               </div>
               <Button
-                className="w-full bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                className="w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                 disabled={!rep.name || createRep.isPending}
                 onClick={() =>
                   createRep.mutate({
@@ -681,7 +681,7 @@ export default function BasicData() {
                   عملة افتراضية
                 </label>
                 <Button
-                  className="w-full bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                  className="w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                   disabled={updateCur.isPending}
                   onClick={() =>
                     updateCur.mutate({
@@ -768,7 +768,7 @@ export default function BasicData() {
                   />
                 </div>
                 <Button
-                  className="w-full bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                  className="w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                   disabled={updateRep.isPending}
                   onClick={() =>
                     updateRep.mutate({
@@ -811,7 +811,7 @@ export default function BasicData() {
                   <div className="text-left text-[11px]">
                     <div>عمولة: {row.commission}</div>
                     <div>بونص: {row.bonus}</div>
-                    <div className="font-bold text-[#b87945]">
+                    <div className="font-bold text-brand">
                       الإجمالي: {row.commission + row.bonus}
                     </div>
                   </div>

@@ -153,15 +153,15 @@ export function AliasAIAssistant() {
       <button
         onClick={toggle}
         aria-label="فتح المساعد الذكي ألياس"
-        className="group relative flex items-center gap-2 h-12 pr-1.5 pl-4 rounded-full shadow-2xl border border-[#d4a574]/40 bg-gradient-to-l from-[#0d2423] to-[#16302f] transition-all duration-300 hover:scale-105 hover:border-[#d4a574]/80"
+        className="group relative flex items-center gap-2 h-12 pr-1.5 pl-4 rounded-full shadow-2xl border border-brand-300/40 bg-gradient-to-l from-ink-deep to-ink transition-all duration-300 hover:scale-105 hover:border-brand-300/80"
       >
-        <span className="absolute -inset-0.5 rounded-full ring-2 ring-[#d4a574]/20 group-hover:ring-[#d4a574]/45 animate-pulse pointer-events-none" />
+        <span className="absolute -inset-0.5 rounded-full ring-2 ring-brand-300/20 group-hover:ring-brand-300/45 animate-pulse pointer-events-none" />
         <img
           src={avatarSmall}
           alt=""
-          className="relative w-9 h-9 rounded-full object-cover ring-2 ring-[#d4a574]/60 transition-transform duration-300 group-hover:scale-110"
+          className="relative w-9 h-9 rounded-full object-cover ring-2 ring-brand-300/60 transition-transform duration-300 group-hover:scale-110"
         />
-        <span className="absolute top-8 right-10 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0d2423]" />
+        <span className="absolute top-8 right-10 w-3 h-3 rounded-full bg-emerald-400 border-2 border-ink-deep" />
         <span className="text-xs font-bold text-white hidden sm:inline">
           اسأل ألياس
         </span>
@@ -174,20 +174,20 @@ export function AliasAIAssistant() {
 
       {/* Chat panel — glassmorphism */}
       {isOpen && (
-        <div className="absolute bottom-16 right-0 w-[min(380px,calc(100vw-2.5rem))] h-[500px] max-h-[calc(100vh-7rem)] bg-[#0d2423]/95 backdrop-blur-xl text-white border border-white/10 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 fade-in duration-300">
+        <div className="absolute bottom-16 right-0 w-[min(380px,calc(100vw-2.5rem))] h-[500px] max-h-[calc(100vh-7rem)] bg-ink-deep/95 backdrop-blur-xl text-white border border-white/10 rounded-3xl shadow-[0_20px_60px_-15px_rgba(0,0,0,0.6)] flex flex-col overflow-hidden animate-in slide-in-from-bottom-6 fade-in duration-300">
           {/* Header — gradient identity */}
-          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-l from-[#b87945]/25 via-transparent to-transparent border-b border-white/10">
+          <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-l from-brand/25 via-transparent to-transparent border-b border-white/10">
             <div className="flex items-center gap-2.5">
               <div className="relative">
                 <img
                   src={avatar}
                   alt="ألياس"
-                  className="w-10 h-10 rounded-full object-cover ring-2 ring-[#d4a574]/60"
+                  className="w-10 h-10 rounded-full object-cover ring-2 ring-brand-300/60"
                 />
-                <span className="absolute bottom-0 left-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-[#0d2423] animate-pulse" />
+                <span className="absolute bottom-0 left-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-ink-deep animate-pulse" />
               </div>
               <div>
-                <div className="text-sm font-black text-[#e8c9a0] leading-tight">
+                <div className="text-sm font-black text-brand-200 leading-tight">
                   ألياس{" "}
                   <span className="text-[10px] font-mono text-white/40">
                     ALIAS AI
@@ -225,7 +225,7 @@ export function AliasAIAssistant() {
                 <div
                   className={`max-w-[85%] rounded-2xl px-3.5 py-2.5 text-xs leading-relaxed whitespace-pre-wrap ${
                     m.role === "user"
-                      ? "bg-gradient-to-l from-[#d4a574] to-[#c4956a] text-[#1a1008] font-bold shadow-md rounded-br-sm"
+                      ? "bg-gradient-to-l from-brand-300 to-brand-300 text-ink-deep font-bold shadow-md rounded-br-sm"
                       : "bg-white/[0.07] border border-white/10 text-white/90 rounded-bl-sm backdrop-blur-sm"
                   }`}
                 >
@@ -237,9 +237,9 @@ export function AliasAIAssistant() {
             {pending && (
               <div className="flex justify-start animate-in fade-in duration-200">
                 <div className="bg-white/[0.07] border border-white/10 rounded-2xl rounded-bl-sm px-4 py-3 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#d4a574] animate-bounce [animation-delay:0ms]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#d4a574] animate-bounce [animation-delay:150ms]" />
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#d4a574] animate-bounce [animation-delay:300ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-300 animate-bounce [animation-delay:0ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-300 animate-bounce [animation-delay:150ms]" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-brand-300 animate-bounce [animation-delay:300ms]" />
                 </div>
               </div>
             )}
@@ -262,7 +262,7 @@ export function AliasAIAssistant() {
                   disabled={pending}
                   className={`text-[10px] border rounded-full px-2.5 py-1 transition-colors disabled:opacity-40 ${
                     s.href
-                      ? "bg-[#d4a574]/10 hover:bg-[#d4a574]/20 border-[#d4a574]/30 text-[#e8c9a0]"
+                      ? "bg-brand-300/10 hover:bg-brand-300/20 border-brand-300/30 text-brand-200"
                       : "bg-white/5 hover:bg-white/10 border-white/10 text-white/70"
                   }`}
                 >
@@ -285,7 +285,7 @@ export function AliasAIAssistant() {
               value={input}
               onChange={e => setInput(e.target.value)}
               placeholder="اكتب سؤالك لألياس…"
-              className="flex-1 bg-white/[0.06] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-[#d4a574]/60 focus:bg-white/[0.09] transition-colors"
+              className="flex-1 bg-white/[0.06] border border-white/10 rounded-xl px-3.5 py-2.5 text-xs text-white placeholder:text-white/30 focus:outline-none focus:border-brand-300/60 focus:bg-white/[0.09] transition-colors"
               maxLength={4000}
               aria-label="رسالتك إلى ألياس"
             />
@@ -293,7 +293,7 @@ export function AliasAIAssistant() {
               type="submit"
               size="sm"
               disabled={!input.trim() || pending}
-              className="bg-gradient-to-l from-[#d4a574] to-[#c4956a] hover:from-[#e0b585] hover:to-[#d4a574] text-[#1a1008] h-9 w-9 p-0 rounded-xl shadow-md disabled:opacity-30 transition-all"
+              className="bg-gradient-to-l from-brand-300 to-brand-300 hover:from-brand-300 hover:to-brand-300 text-ink-deep h-9 w-9 p-0 rounded-xl shadow-md disabled:opacity-30 transition-all"
               aria-label="إرسال"
             >
               <Send className="w-4 h-4 -scale-x-100" />

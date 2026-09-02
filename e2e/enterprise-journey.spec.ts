@@ -92,7 +92,10 @@ test.describe("Authenticated enterprise journey (requires credentials)", () => {
     await userInput.fill(username!);
     const passInput = page.getByLabel("كلمة المرور");
     await passInput.fill(password!);
-    await page.getByRole("button", { name: /دخول النظام|دخول|تسجيل/ }).first().click();
+    await page
+      .getByRole("button", { name: /دخول النظام|دخول|تسجيل/ })
+      .first()
+      .click();
 
     // ── 2. Main dashboard (workspace home) ─────────────────────────────
     await page.waitForURL(/\/(app|accounting)/, { timeout: 30_000 });
@@ -106,9 +109,9 @@ test.describe("Authenticated enterprise journey (requires credentials)", () => {
           page.locator("h1, h2").filter({ hasText: ws.heading }).first()
         ).toBeVisible({ timeout: 15_000 });
       } else if (ws.shell) {
-        await expect(
-          page.getByText(ws.shell).first()
-        ).toBeVisible({ timeout: 15_000 });
+        await expect(page.getByText(ws.shell).first()).toBeVisible({
+          timeout: 15_000,
+        });
       }
       // No crash boundary / error screen
       await expect(page.getByText(/حدث خطأ|Something went wrong/)).toHaveCount(
@@ -125,7 +128,10 @@ test.describe("Authenticated enterprise journey (requires credentials)", () => {
     await page.goto("/login");
     await page.getByLabel("اسم المستخدم").fill(username!);
     await page.getByLabel("كلمة المرور").fill(password!);
-    await page.getByRole("button", { name: /دخول النظام|دخول|تسجيل/ }).first().click();
+    await page
+      .getByRole("button", { name: /دخول النظام|دخول|تسجيل/ })
+      .first()
+      .click();
     await page.waitForURL(/\/(app|accounting)/, { timeout: 30_000 });
 
     // The global search surface is the Command Palette, opened via Ctrl+K.

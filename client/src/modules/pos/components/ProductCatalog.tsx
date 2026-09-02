@@ -55,7 +55,7 @@ export function ProductCard({
       <button
         onClick={() => onAddToCart(product)}
         disabled={isOutOfStock}
-        className={`w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card transition-all hover:border-[#b87945] hover:bg-[#b87945]/5 disabled:opacity-50 disabled:cursor-not-allowed ${isOutOfStock ? "bg-muted/50" : ""}`}
+        className={`w-full flex items-center gap-3 p-3 rounded-xl border border-border bg-card transition-all hover:border-brand hover:bg-brand/5 disabled:opacity-50 disabled:cursor-not-allowed ${isOutOfStock ? "bg-muted/50" : ""}`}
       >
         <div className="flex-shrink-0 w-12 h-12 rounded-lg bg-muted/50 flex items-center justify-center overflow-hidden">
           {product.imageUrl ? (
@@ -115,7 +115,7 @@ export function ProductCard({
           </div>
         </div>
         <div className="text-left">
-          <div className="font-bold text-[#0e2a2b]">
+          <div className="font-bold text-ink">
             {formatCurrency(product.salePrice, currency, decimals)}
           </div>
           {product.wholesalePrice && product.wholesalePrice > 0 && (
@@ -132,7 +132,7 @@ export function ProductCard({
     <button
       onClick={() => onAddToCart(product)}
       disabled={isOutOfStock}
-      className={`flex flex-col items-start gap-2 p-3 rounded-2xl border border-border bg-card transition-all hover:border-[#b87945] hover:bg-[#b87945]/5 disabled:opacity-50 disabled:cursor-not-allowed ${isOutOfStock ? "bg-muted/50" : ""}`}
+      className={`flex flex-col items-start gap-2 p-3 rounded-2xl border border-border bg-card transition-all hover:border-brand hover:bg-brand/5 disabled:opacity-50 disabled:cursor-not-allowed ${isOutOfStock ? "bg-muted/50" : ""}`}
     >
       <div className="relative w-full aspect-square rounded-xl bg-muted/50 overflow-hidden flex items-center justify-center">
         {product.imageUrl ? (
@@ -190,7 +190,7 @@ export function ProductCard({
           </Badge>
         )}
         <div className="flex items-center justify-between w-full">
-          <span className="font-bold text-[#0e2a2b]">
+          <span className="font-bold text-ink">
             {formatCurrency(product.salePrice, currency, decimals)}
           </span>
           {showStock && product.type === "goods" && (
@@ -400,7 +400,7 @@ export function ProductCatalog({
       {isLoading && products.length === 0 && (
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center text-sm text-muted-foreground">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-[#b87945] border-t-transparent mx-auto mb-2" />
+            <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent mx-auto mb-2" />
             جاري تحميل المنتجات...
           </div>
         </div>

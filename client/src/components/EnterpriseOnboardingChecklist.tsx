@@ -215,7 +215,7 @@ export function EnterpriseOnboardingChecklist() {
                   "h-8 text-xs font-bold rounded-xl gap-1 shrink-0 " +
                   (item.done
                     ? "border-border text-muted-foreground hover:text-foreground"
-                    : "bg-brand hover:bg-brand-deep text-ink shadow-sm")
+                    : "bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep shadow-sm")
                 }
               >
                 <span>{item.actionLabel}</span>

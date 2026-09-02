@@ -74,7 +74,7 @@ export default function Beneficiaries() {
               والطلبات، لا تكرار
             </p>
           </div>
-          <Badge className="bg-brand text-ink font-bold">
+          <Badge className="bg-brand text-ink-deep font-bold">
             {unified.length} نتيجة
           </Badge>
         </div>
@@ -284,7 +284,7 @@ export default function Beneficiaries() {
                 <Button
                   onClick={() => upsert.mutate({ kind, ...form })}
                   disabled={upsert.isPending || !form.name.trim()}
-                  className="flex-1 bg-brand hover:bg-brand-deep text-ink font-bold h-9 text-xs"
+                  className="flex-1 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold h-9 text-xs"
                 >
                   {upsert.isPending ? "جاري الحفظ…" : "حفظ سجل موحد"}
                 </Button>

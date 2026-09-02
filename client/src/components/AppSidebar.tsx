@@ -255,7 +255,7 @@ function MessagesButton({ compact }: { compact?: boolean }) {
                           key={m.id}
                           className={`max-w-[90%] rounded-lg p-2 text-[11px] ${
                             mine
-                              ? "ml-auto bg-[#b87945] text-[#102a2b]"
+                              ? "ml-auto bg-brand text-ink-deep"
                               : "mr-auto bg-muted"
                           }`}
                         >
@@ -307,7 +307,7 @@ function MessagesButton({ compact }: { compact?: boolean }) {
           />
           <Button
             size="sm"
-            className="w-full bg-[#b87945] text-[#102a2b]"
+            className="w-full bg-brand text-ink-deep"
             disabled={!toUser || !body.trim() || send.isPending}
             onClick={() => send.mutate({ toUserId: toUser, message: body })}
           >
@@ -344,7 +344,7 @@ export function AppSidebar() {
 
     const navClass = (active: boolean) =>
       active
-        ? "bg-brand text-ink font-bold shadow relative"
+        ? "bg-brand text-ink-deep font-bold shadow relative"
         : "text-white/70 hover:bg-white/5 hover:text-white relative";
 
     return (
@@ -540,7 +540,7 @@ export function AppSidebar() {
       {/* Mobile drawer trigger + drawer */}
       <button
         onClick={() => setOpen(true)}
-        className="lg:hidden fixed bottom-4 right-4 z-40 bg-brand text-ink p-3 rounded-2xl shadow-2xl hover:scale-105 transition-transform"
+        className="lg:hidden fixed bottom-4 right-4 z-40 bg-brand text-ink-deep p-3 rounded-2xl shadow-2xl hover:scale-105 transition-transform"
         aria-label="فتح قائمة النظام"
       >
         <Menu className="w-5 h-5" />

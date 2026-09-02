@@ -77,21 +77,21 @@ export default function Portal() {
 
   return (
     <div
-      className="min-h-screen bg-[#fbf8f2] text-[#102a2b] pb-20 font-sans"
+      className="min-h-screen bg-sand text-ink pb-20 font-sans"
       dir="rtl"
     >
       <HeaderNavbar />
 
       <main className="max-w-5xl mx-auto px-4 py-10 space-y-8">
         {/* Banner Section */}
-        <div className="bg-gradient-to-br from-[#102a2b] to-[#1a3d3f] text-white rounded-3xl p-6 sm:p-8 shadow-xl space-y-4">
+        <div className="bg-gradient-to-br from-ink to-ink-600 text-white rounded-3xl p-6 sm:p-8 shadow-xl space-y-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
             <div>
-              <Badge className="bg-[#b87945] text-[#102a2b] font-bold text-xs px-3 py-1 mb-2">
+              <Badge className="bg-brand text-ink-deep font-bold text-xs px-3 py-1 mb-2">
                 بوابة العميل والمقاول
               </Badge>
               <h1 className="text-2xl sm:text-3xl font-extrabold font-display text-white flex items-center gap-2">
-                <HardHat className="w-7 h-7 text-[#d4a574]" />
+                <HardHat className="w-7 h-7 text-brand-300" />
                 بوابة تتبع المشاريع والخدمات المباشرة
               </h1>
               <p className="text-xs sm:text-sm text-slate-300 mt-1">
@@ -117,7 +117,7 @@ export default function Portal() {
             </div>
             <Button
               type="submit"
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs sm:text-sm h-11 px-6 rounded-xl shadow"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs sm:text-sm h-11 px-6 rounded-xl shadow"
             >
               بحث وتتبع
             </Button>
@@ -128,12 +128,12 @@ export default function Portal() {
         <div className="space-y-4">
           <div className="flex items-center justify-between border-b border-slate-200 pb-3">
             <h2 className="text-lg font-bold text-slate-900 font-display flex items-center gap-2">
-              <FileText className="w-5 h-5 text-[#b87945]" />
+              <FileText className="w-5 h-5 text-brand" />
               المشاريع والطلبات المسجلة
             </h2>
             <Badge
               variant="outline"
-              className="text-xs border-[#b87945] text-[#7a5228] bg-amber-50"
+              className="text-xs border-brand text-brand-700 bg-amber-50"
             >
               تتبع مباشر 24/7
             </Badge>
@@ -166,7 +166,7 @@ export default function Portal() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-[#b87945] bg-amber-100/70 px-2 py-0.5 rounded border border-amber-200">
+                          <span className="font-mono text-xs font-bold text-brand bg-amber-100/70 px-2 py-0.5 rounded border border-amber-200">
                             {order.orderNumber}
                           </span>
                           <Badge
@@ -229,7 +229,7 @@ export default function Portal() {
                           onClick={() => handlePrintPdf(order)}
                           className="text-xs h-8 px-3 border-slate-300 hover:bg-slate-50 text-slate-700 flex items-center gap-1"
                         >
-                          <Printer className="w-3.5 h-3.5 text-[#b87945]" />
+                          <Printer className="w-3.5 h-3.5 text-brand" />
                           طباعة الفاتورة بـ QR
                         </Button>
 

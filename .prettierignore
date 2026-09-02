@@ -25,6 +25,13 @@ pnpm-lock.yaml
 
 # Environment files
 .env*
+!.env.example
+
+# Agent stubs in scripts/agents use TypeScript class syntax inside .mjs
+# files and are intentionally not part of the build (same baseline as
+# eslint.config.js). Prettier cannot parse them; they are executed via
+# `node` by scripts/agents/orchestrator.mjs, so they must keep .mjs names.
+scripts/agents/
 
 # IDE files
 .vscode/

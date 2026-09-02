@@ -362,7 +362,7 @@ export default function KnowledgeHub() {
               className={
                 "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all " +
                 (selectedCategory === id
-                  ? "bg-brand text-ink shadow-md scale-105"
+                  ? "bg-brand text-ink-deep shadow-md scale-105"
                   : "bg-card text-muted-foreground hover:text-foreground border border-border hover:bg-card/80")
               }
             >
@@ -444,7 +444,7 @@ export default function KnowledgeHub() {
                 </div>
                 <Button
                   onClick={guide.ctaAction}
-                  className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-10 px-5 rounded-xl gap-2 transition-all hover:scale-105"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-10 px-5 rounded-xl gap-2 transition-all hover:scale-105"
                 >
                   <MessageSquare className="w-3.5 h-3.5" />
                   {guide.ctaText}

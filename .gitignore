@@ -80,3 +80,10 @@ current-token.txt
 b.txt
 c.txt
 t.txt
+
+.vercel
+# Playwright artifacts
+test-results/
+playwright-report/
+blob-report/
+!.env.example

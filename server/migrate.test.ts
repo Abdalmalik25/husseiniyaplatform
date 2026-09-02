@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   checksumOf,
   classifyStatementError,
+  isDestructiveMigrationStatement,
   splitMigrationStatements,
 } from "./_core/migrate";
 
@@ -54,7 +55,7 @@ describe("splitMigrationStatements", () => {
       "REFRESH MATERIALIZED VIEW mv_b;",
       "END;",
       "$$ LANGUAGE plpgsql;",
-      'COMMENT ON MATERIALIZED VIEW "mv_a" IS \'x; y; z\';',
+      "COMMENT ON MATERIALIZED VIEW \"mv_a\" IS 'x; y; z';",
     ].join("\n");
     const parts = splitMigrationStatements(text);
     expect(parts).toHaveLength(2);
@@ -105,11 +106,11 @@ describe("classifyStatementError", () => {
     });
   });
 
-  it("classifies unique violation (23505) as exists", () => {
+  it("does not hide unique data conflicts", () => {
     const err = new Error(
       'duplicate key value violates unique constraint "x" (code 23505)'
     );
-    expect(classifyStatementError(err)).toMatchObject({ kind: "exists" });
+    expect(classifyStatementError(err)).toMatchObject({ kind: "failed" });
   });
 
   it("classifies a genuine failure as failed", () => {
@@ -128,6 +129,20 @@ describe("classifyStatementError", () => {
   it("handles non-Error inputs", () => {
     expect(classifyStatementError(undefined)).toMatchObject({ kind: "failed" });
     expect(classifyStatementError("boom")).toMatchObject({ kind: "failed" });
+  });
+});
+
+describe("migration safety", () => {
+  it("rejects destructive statements", () => {
+    expect(isDestructiveMigrationStatement("DROP TABLE accounts;")).toBe(true);
+    expect(isDestructiveMigrationStatement("TRUNCATE transactions;")).toBe(
+      true
+    );
+    expect(
+      isDestructiveMigrationStatement(
+        "ALTER TABLE accounts ADD COLUMN note text;"
+      )
+    ).toBe(false);
   });
 });
 

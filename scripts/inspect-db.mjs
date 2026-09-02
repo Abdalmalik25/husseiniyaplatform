@@ -15,5 +15,10 @@ const refresh = await sql`SELECT refresh_enterprise_views()`;
 console.log("REFRESH OK");
 const pl = await sql`SELECT COUNT(*)::int AS rows FROM mv_monthly_pl`;
 const aging = await sql`SELECT COUNT(*)::int AS rows FROM mv_customer_aging`;
-console.log("mv_monthly_pl rows:", pl[0].rows, "| mv_customer_aging rows:", aging[0].rows);
+console.log(
+  "mv_monthly_pl rows:",
+  pl[0].rows,
+  "| mv_customer_aging rows:",
+  aging[0].rows
+);
 process.exit(0);

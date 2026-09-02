@@ -68,7 +68,9 @@ export function MilestonesTimeline() {
                 <div
                   key={item.year}
                   className={`relative reveal ${
-                    isRight ? "md:pr-[calc(50%+2rem)]" : "md:pl-[calc(50%+2rem)]"
+                    isRight
+                      ? "md:pr-[calc(50%+2rem)]"
+                      : "md:pl-[calc(50%+2rem)]"
                   }`}
                   data-reveal-delay={i * 80}
                 >
@@ -82,9 +84,7 @@ export function MilestonesTimeline() {
                   >
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center font-black text-[10px] text-ink shadow-lg border-2 border-white ${
-                        isLast
-                          ? "bg-brand scale-110"
-                          : "bg-brand/80"
+                        isLast ? "bg-brand scale-110" : "bg-brand/80"
                       }`}
                     >
                       {item.year.charAt(0)}
@@ -99,9 +99,7 @@ export function MilestonesTimeline() {
                   >
                     <div
                       className={`surface rounded-2xl p-6 hover:-translate-y-1 hover:shadow-xl transition-all duration-300 ${
-                        isLast
-                          ? "border-brand/40 ring-2 ring-brand/20"
-                          : ""
+                        isLast ? "border-brand/40 ring-2 ring-brand/20" : ""
                       }`}
                     >
                       <div className="flex items-start gap-3 mb-2">

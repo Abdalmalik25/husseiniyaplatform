@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { neon } from "@neondatabase/serverless";
 import { drizzle } from "drizzle-orm/neon-http";
 import { InsertUser, users } from "../drizzle/schema";
@@ -6,6 +6,7 @@ import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let _sql: ReturnType<typeof neon> | null = null;
+let _warmed = false;
 
 export function getSql() {
   if (!_sql && process.env.DATABASE_URL) {
@@ -25,6 +26,25 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+/**
+ * Warm-up the serverless DB layer so the FIRST real query after a cold start
+ * does not pay the full round-trip latency (Neon cold start can take ~10s).
+ * Idempotent and fail-safe: it never throws — the pool remains usable.
+ */
+export async function warmDatabase(): Promise<void> {
+  if (_warmed) return;
+  try {
+    const db = await getDb();
+    if (db) {
+      await db.execute(sql`select 1`);
+    }
+  } catch (error) {
+    console.warn("[Database] Warm-up failed (will retry lazily):", error);
+  } finally {
+    _warmed = true;
+  }
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {

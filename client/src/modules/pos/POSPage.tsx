@@ -980,7 +980,7 @@ export default function POSModule() {
       <main className="flex-1 p-4 md:p-6 space-y-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0e2a2b] text-[#b87945]">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-ink text-brand">
               <ShoppingCart className="h-6 w-6" />
             </div>
             <div>
@@ -1060,7 +1060,7 @@ export default function POSModule() {
             </div>
 
             {lastInvoice && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-[#0d9488]/10 px-3 py-1 text-[11px] font-bold text-[#0d9488]">
+              <span className="inline-flex items-center gap-1 rounded-full bg-teal-600/10 px-3 py-1 text-[11px] font-bold text-teal-600">
                 <CheckCircle2 className="h-3.5 w-3.5" />
                 {lastInvoice}
               </span>
@@ -1170,7 +1170,7 @@ export default function POSModule() {
             ) : (
               <Button
                 size="sm"
-                className="bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                className="bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                 onClick={() => session.openSession()}
                 disabled={session.isLoading}
               >

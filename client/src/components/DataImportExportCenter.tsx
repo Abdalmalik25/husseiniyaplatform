@@ -430,7 +430,7 @@ export function DataImportExportCenter() {
                 <Button
                   size="sm"
                   onClick={handleDownloadTemplate}
-                  className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-8 rounded-lg gap-1.5"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-8 rounded-lg gap-1.5"
                 >
                   <Download className="w-3.5 h-3.5" />
                   تحميل القالب الفارغ
@@ -459,7 +459,7 @@ export function DataImportExportCenter() {
                 type="file"
                 accept=".csv,.txt"
                 onChange={handleFileChange}
-                className="text-xs text-muted-foreground file:mr-0 file:ml-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-brand file:text-ink cursor-pointer"
+                className="text-xs text-muted-foreground file:mr-0 file:ml-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-brand file:text-ink-deep cursor-pointer"
               />
             </div>
           </div>
@@ -538,7 +538,7 @@ export function DataImportExportCenter() {
             <Button
               disabled={previewRows.length === 0 || isProcessing}
               onClick={handleExecuteImport}
-              className="bg-brand hover:bg-brand-deep text-ink font-black text-xs h-10 px-6 rounded-xl gap-2 shadow-lg"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black text-xs h-10 px-6 rounded-xl gap-2 shadow-lg"
             >
               <Upload className="w-4 h-4" />
               <span>

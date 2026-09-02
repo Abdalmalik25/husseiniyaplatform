@@ -117,14 +117,14 @@ export function IntegrationsEcosystem() {
                 API و Webhooks مفتوحة
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed mt-1">
-                أنشئ تكاملاتك الخاصة مع REST API موثّقة و Webhooks لحظية —
-                مرجع OpenAPI 3.0 جاهز للمطورين.
+                أنشئ تكاملاتك الخاصة مع REST API موثّقة و Webhooks لحظية — مرجع
+                OpenAPI 3.0 جاهز للمطورين.
               </p>
             </div>
           </div>
           <a
             href="#methodology"
-            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-5 py-2.5 rounded-xl text-xs transition-all hover:scale-105 whitespace-nowrap"
+            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black px-5 py-2.5 rounded-xl text-xs transition-all hover:scale-105 whitespace-nowrap"
           >
             اطّلع على المرجع التقني
           </a>

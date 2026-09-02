@@ -16,7 +16,7 @@ const SECTIONS = [
   { id: "engineering", label: "هندسة" },
   { id: "library", label: "معرفة" },
   { id: "methodology", label: "المنهجية" },
-  { id: "case-studies", label: "النتائج" },
+  { id: "trust-center", label: "الثقة" },
 ] as const;
 
 function scrollToSection(id: string) {
@@ -67,7 +67,9 @@ export function StickySectionNav() {
         });
         // Pick the topmost visible section
         if (visibleSections.size > 0) {
-          const ordered = SECTIONS.map(s => s.id).filter(id => visibleSections.has(id));
+          const ordered = SECTIONS.map(s => s.id).filter(id =>
+            visibleSections.has(id)
+          );
           if (ordered.length > 0) setActiveId(ordered[0]);
         }
       },
@@ -105,6 +107,7 @@ export function StickySectionNav() {
           return (
             <button
               key={id}
+              type="button"
               onClick={() => scrollToSection(id)}
               aria-current={isActive ? "true" : undefined}
               className={`
@@ -112,7 +115,7 @@ export function StickySectionNav() {
                 transition-all duration-200 whitespace-nowrap
                 ${
                   isActive
-                    ? "bg-brand text-ink shadow-lg shadow-brand/30"
+                    ? "bg-brand text-ink-deep shadow-lg shadow-brand/30"
                     : "text-white/60 hover:text-white hover:bg-white/8"
                 }
               `}

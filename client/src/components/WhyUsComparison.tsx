@@ -18,10 +18,7 @@ export function WhyUsComparison() {
   const { title, subtitle, rows } = brand.whyUsComparison;
 
   return (
-    <section
-      className="py-20 px-4 scroll-mt-20"
-      aria-labelledby="why-us-title"
-    >
+    <section className="py-20 px-4 scroll-mt-20" aria-labelledby="why-us-title">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center space-y-3 mb-12 reveal">
@@ -51,7 +48,9 @@ export function WhyUsComparison() {
               </div>
             </div>
             <div className="p-4 text-center">
-              <span className="font-black text-sm text-white/40">البديل التقليدي</span>
+              <span className="font-black text-sm text-white/40">
+                البديل التقليدي
+              </span>
             </div>
           </div>
 
@@ -109,7 +108,7 @@ export function WhyUsComparison() {
             <div className="p-4 border-r border-border">
               <a
                 href="/pricing"
-                className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-ink font-black text-xs px-4 py-2 rounded-xl transition-all hover:scale-105"
+                className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black text-xs px-4 py-2 rounded-xl transition-all hover:scale-105"
               >
                 ابدأ مجاناً
                 <ArrowRight className="w-3 h-3 rotate-180" />

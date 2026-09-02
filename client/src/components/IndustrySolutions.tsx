@@ -84,11 +84,7 @@ export function IndustrySolutions() {
                     ? "text-white border-transparent shadow-lg scale-105"
                     : "bg-card text-muted-foreground border-border hover:border-brand/30 hover:text-foreground"
                 }`}
-                style={
-                  isActive
-                    ? { background: sector.accent }
-                    : {}
-                }
+                style={isActive ? { background: sector.accent } : {}}
               >
                 <SectorIcon className="w-4 h-4" />
                 <span className="hidden sm:inline">{sector.name}</span>
@@ -187,12 +183,10 @@ export function IndustrySolutions() {
             />
             <div className="relative">
               <Icon className="w-10 h-10 mb-4 opacity-90" />
-              <h3 className="font-black text-xl mb-2">
-                ابدأ قطاعك اليوم
-              </h3>
+              <h3 className="font-black text-xl mb-2">ابدأ قطاعك اليوم</h3>
               <p className="text-sm opacity-85 leading-relaxed">
-                احجز استشارة مجانية مع خبير يفهم تحديات قطاعك فعلاً — بدون
-                عرض تسويقي عام.
+                احجز استشارة مجانية مع خبير يفهم تحديات قطاعك فعلاً — بدون عرض
+                تسويقي عام.
               </p>
             </div>
             <div className="relative mt-6 space-y-2.5">

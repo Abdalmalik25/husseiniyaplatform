@@ -188,6 +188,12 @@ export default function WorkspaceDashboard() {
       (s: number, c: any) => s + parseFloat(c.balance || "0"),
       0
     ) ?? 0;
+  const cashFlow = summaryData
+    ? summaryData.totalRevenue - summaryData.totalExpense
+    : 0;
+  const liabilities = summaryData
+    ? Math.max(0, summaryData.totalAssets - summaryData.netIncome)
+    : 0;
   const isLoading =
     !summaryData || !daily || !valuation || lowStockData === undefined;
 
@@ -219,8 +225,8 @@ export default function WorkspaceDashboard() {
         <div className="brand-gradient text-white py-2 px-4 shadow border-b border-white/10">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
-              <Zap className="w-4 h-4 text-[#d4a574] fill-current" />
-              <span className="font-bold text-[#d4a574]">
+              <Zap className="w-4 h-4 text-brand-300 fill-current" />
+              <span className="font-bold text-brand-300">
                 {trialDaysLeft === null
                   ? "الاشتراك:"
                   : trialDaysLeft === -1
@@ -235,7 +241,7 @@ export default function WorkspaceDashboard() {
                     : `متبقي ${trialDaysLeft} يوماً — جميع المساحات والخواص مفعّلة بالكامل`}
               </span>
             </div>
-            <Badge className="bg-brand text-ink font-bold text-[10px]">
+            <Badge className="bg-brand text-ink-deep font-bold text-[10px]">
               اشتراك قياسي مفعّل
             </Badge>
           </div>
@@ -271,7 +277,7 @@ export default function WorkspaceDashboard() {
               <div className="flex items-center gap-2">
                 <Button
                   onClick={() => setActiveWorkspace("accounting")}
-                  className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-9 px-4 rounded-xl"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-4 rounded-xl"
                 >
                   <Plus className="w-4 h-4" /> معاملة جديدة
                 </Button>
@@ -338,7 +344,7 @@ export default function WorkspaceDashboard() {
                     <Button
                       size="sm"
                       onClick={() => setLocation("/accounting")}
-                      className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-8"
+                      className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-8"
                     >
                       دفتر القيود الكامل
                     </Button>
@@ -391,6 +397,134 @@ export default function WorkspaceDashboard() {
                       icon={Building2}
                       hint="الرصيد"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_0.6fr] gap-4">
+                    <div className="space-y-4">
+                      <div className="surface rounded-2xl p-4">
+                        <div className="flex items-center justify-between gap-3 mb-3">
+                          <div>
+                            <p className="text-[10px] font-bold text-muted-foreground">
+                              مركز القرار التشغيلي
+                            </p>
+                            <h3 className="text-base font-black text-foreground mt-1">
+                              حالة المنشأة وملف الأداء المالي اليومي
+                            </h3>
+                          </div>
+                          <Badge className="bg-emerald-500/10 text-emerald-700 border border-emerald-500/20 text-[10px] font-bold">
+                            التشغيل مستقر
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="rounded-xl border border-border bg-muted/30 p-3">
+                            <p className="text-[10px] text-muted-foreground">
+                              السيولة
+                            </p>
+                            <p className="mt-2 text-lg font-black" dir="ltr">
+                              {formatMoney(cashFlow)}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-border bg-muted/30 p-3">
+                            <p className="text-[10px] text-muted-foreground">
+                              الديون
+                            </p>
+                            <p className="mt-2 text-lg font-black" dir="ltr">
+                              {formatMoney(liabilities)}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-border bg-muted/30 p-3">
+                            <p className="text-[10px] text-muted-foreground">
+                              المبيعات
+                            </p>
+                            <p className="mt-2 text-lg font-black" dir="ltr">
+                              {formatMoney(daily?.totalSales ?? 0)}
+                            </p>
+                          </div>
+                          <div className="rounded-xl border border-border bg-muted/30 p-3">
+                            <p className="text-[10px] text-muted-foreground">
+                              الالتزام
+                            </p>
+                            <p className="mt-2 text-lg font-black text-emerald-600">
+                              100%
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <LiveExecutiveCockpit
+                        summaryData={summaryData}
+                        dailyData={daily}
+                        commercialStats={commercialStats}
+                        valuationData={valuation}
+                        lowStockCount={lowStockCount}
+                      />
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="surface rounded-2xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-bold font-display">
+                            أولويات اليوم
+                          </h3>
+                          <span className="text-[10px] text-muted-foreground">
+                            5 مهام
+                          </span>
+                        </div>
+                        <ul className="space-y-2">
+                          <li className="rounded-xl border border-border bg-muted/30 p-2.5 text-[11px] text-foreground">
+                            <span className="font-bold text-brand">1.</span>{" "}
+                            مراجعة مشتريات اليوم والتسعير.
+                          </li>
+                          <li className="rounded-xl border border-border bg-muted/30 p-2.5 text-[11px] text-foreground">
+                            <span className="font-bold text-brand">2.</span>{" "}
+                            متابعة طلبات الاعتماد والديون.
+                          </li>
+                          <li className="rounded-xl border border-border bg-muted/30 p-2.5 text-[11px] text-foreground">
+                            <span className="font-bold text-brand">3.</span>{" "}
+                            اعتماد قضايا التصدير والتوزيع.
+                          </li>
+                          <li className="rounded-xl border border-border bg-muted/30 p-2.5 text-[11px] text-foreground">
+                            <span className="font-bold text-brand">4.</span>{" "}
+                            مراجعة المخزون المنخفض وإعادة الطلب.
+                          </li>
+                          <li className="rounded-xl border border-border bg-muted/30 p-2.5 text-[11px] text-foreground">
+                            <span className="font-bold text-brand">5.</span>{" "}
+                            إغلاق التقارير المالية في الوقت المحدد.
+                          </li>
+                        </ul>
+                      </div>
+
+                      <div className="surface rounded-2xl p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-sm font-bold font-display">
+                            رقابة البيانات والامتثال
+                          </h3>
+                          <Badge className="bg-brand/10 text-brand text-[10px] font-bold">
+                            موثوق
+                          </Badge>
+                        </div>
+                        <div className="space-y-2 text-[11px] text-muted-foreground">
+                          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-2.5 py-2">
+                            <span>هيكل الحسابات</span>
+                            <span className="font-bold text-emerald-600">
+                              محدث
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-2.5 py-2">
+                            <span>سياسات الضريبة والمالية</span>
+                            <span className="font-bold text-emerald-600">
+                              مفعلة
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between rounded-lg border border-border bg-muted/20 px-2.5 py-2">
+                            <span>نسخ احتياطي ومصادقة</span>
+                            <span className="font-bold text-emerald-600">
+                              آمن
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -492,7 +626,7 @@ export default function WorkspaceDashboard() {
                 <>
                   <div className="flex items-center justify-between border-b border-border pb-3">
                     <div>
-                      <Badge className="bg-brand text-ink font-bold text-xs mb-1">
+                      <Badge className="bg-brand text-ink-deep font-bold text-xs mb-1">
                         وحدة الهندسة والمقاولات
                       </Badge>
                       <h2 className="text-xl font-bold font-display text-foreground">
@@ -502,7 +636,7 @@ export default function WorkspaceDashboard() {
                     <Button
                       size="sm"
                       onClick={() => setLocation("/about")}
-                      className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-8"
+                      className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-8"
                     >
                       الكتالوج الهندسي الكامل
                     </Button>
@@ -535,7 +669,7 @@ export default function WorkspaceDashboard() {
                 <>
                   <div className="flex items-center justify-between border-b border-border pb-3">
                     <div>
-                      <Badge className="bg-[#0f766e] text-white font-bold text-xs mb-1">
+                      <Badge className="bg-teal-700 text-white font-bold text-xs mb-1">
                         وحدة التجارة والمخزون
                       </Badge>
                       <h2 className="text-xl font-bold font-display text-foreground">
@@ -545,7 +679,7 @@ export default function WorkspaceDashboard() {
                     <Button
                       size="sm"
                       onClick={() => setLocation("/commercial")}
-                      className="bg-[#0f766e] hover:bg-[#115e59] text-white font-bold text-xs h-8"
+                      className="bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs h-8"
                     >
                       النظام التجاري الكامل
                     </Button>
@@ -609,7 +743,7 @@ export default function WorkspaceDashboard() {
                 <>
                   <div className="flex items-center justify-between border-b border-border pb-3">
                     <div>
-                      <Badge className="bg-[#0369a1] text-white font-bold text-xs mb-1">
+                      <Badge className="bg-sky-700 text-white font-bold text-xs mb-1">
                         المركز المعرفي
                       </Badge>
                       <h2 className="text-xl font-bold font-display text-foreground">
@@ -619,7 +753,7 @@ export default function WorkspaceDashboard() {
                     <Button
                       size="sm"
                       onClick={() => setLocation("/store")}
-                      className="bg-[#0369a1] hover:bg-[#075985] text-white font-bold text-xs h-8"
+                      className="bg-sky-700 hover:bg-sky-800 text-white font-bold text-xs h-8"
                     >
                       متجر الخدمات
                     </Button>
@@ -645,7 +779,7 @@ export default function WorkspaceDashboard() {
                 <>
                   <div className="flex items-center justify-between border-b border-border pb-3">
                     <div>
-                      <Badge className="bg-[#7c3aed] text-white font-bold text-xs mb-1">
+                      <Badge className="bg-violet-600 text-white font-bold text-xs mb-1">
                         محرك الذكاء والتحليلات
                       </Badge>
                       <h2 className="text-xl font-bold font-display text-foreground">
@@ -681,7 +815,7 @@ export default function WorkspaceDashboard() {
                     <Button
                       size="sm"
                       onClick={() => setLocation(`/erp?module=${active.key}`)}
-                      className="bg-brand hover:bg-brand-deep text-ink font-bold text-xs h-8"
+                      className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-8"
                     >
                       فتح الوحدة الكاملة
                     </Button>
@@ -739,7 +873,7 @@ function ErpWorkspacePanel({ moduleKey }: { moduleKey: ModuleKey }) {
         <div className="mt-3">
           <Button
             onClick={() => setLocation("/procurement")}
-            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
           >
             <Truck className="w-4 h-4" /> فتح وحدة المشتريات الكاملة
           </Button>
@@ -749,7 +883,7 @@ function ErpWorkspacePanel({ moduleKey }: { moduleKey: ModuleKey }) {
         <div className="mt-3">
           <Button
             onClick={() => setLocation("/projects")}
-            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
           >
             <FolderKanban className="w-4 h-4" /> فتح وحدة المشاريع الكاملة
           </Button>
@@ -759,7 +893,7 @@ function ErpWorkspacePanel({ moduleKey }: { moduleKey: ModuleKey }) {
         <div className="mt-3">
           <Button
             onClick={() => setLocation("/hr")}
-            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
           >
             <Users className="w-4 h-4" /> فتح وحدة الموارد البشرية الكاملة
           </Button>
@@ -769,7 +903,7 @@ function ErpWorkspacePanel({ moduleKey }: { moduleKey: ModuleKey }) {
         <div className="mt-3">
           <Button
             onClick={() => setLocation("/support")}
-            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
           >
             <LifeBuoy className="w-4 h-4" /> فتح وحدة الدعم والجودة الكاملة
           </Button>

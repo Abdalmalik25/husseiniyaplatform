@@ -161,7 +161,7 @@ export default function Projects() {
             العودة للوحة التحكم
           </button>
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-brand text-ink flex items-center justify-center font-bold shadow-lg">
+            <div className="w-12 h-12 rounded-2xl bg-brand text-ink-deep flex items-center justify-center font-bold shadow-lg">
               <FolderKanban className="w-6 h-6" />
             </div>
             <div>
@@ -579,7 +579,7 @@ function ProjectsPanel({
               reset();
               setDialogOpen(true);
             }}
-            className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
           >
             <Plus className="w-4 h-4" /> مشروع جديد
           </Button>
@@ -827,7 +827,7 @@ function ProjectsPanel({
             </Button>
             <Button
               disabled={!form.name || createM.isPending || updateM.isPending}
-              className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
               onClick={() => {
                 if (editId !== null) {
                   updateM.mutate({
@@ -987,7 +987,7 @@ function TasksPanel({
         </Select>
         <Button
           onClick={openCreateTask}
-          className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+          className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
         >
           <Plus className="w-4 h-4" /> مهمة جديدة
         </Button>
@@ -1270,7 +1270,7 @@ function TasksPanel({
                 createM.isPending ||
                 updateM.isPending
               }
-              className="bg-brand hover:bg-brand-deep text-ink text-xs h-9 font-bold"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-9 font-bold"
               onClick={() => {
                 if (editingId !== null) {
                   updateM.mutate({

@@ -68,7 +68,7 @@ class ErrorBoundary extends Component<Props, State> {
     return (
       <div
         dir="rtl"
-        className="min-h-screen flex items-center justify-center bg-[#0d1b1c] px-4 py-10 font-display"
+        className="min-h-screen flex items-center justify-center bg-ink-deep px-4 py-10 font-display"
         role="alert"
         aria-live="assertive"
       >
@@ -88,7 +88,7 @@ class ErrorBoundary extends Component<Props, State> {
           {errorId && (
             <p className="text-[11px] font-mono text-white/40" dir="ltr">
               مرجع الخطأ:{" "}
-              <span className="text-[#d4a574] font-bold">#{errorId}</span>
+              <span className="text-brand-300 font-bold">#{errorId}</span>
               <span className="block mt-0.5 text-[10px] text-white/30">
                 أرسله لفريق الدعم لتشخيص فوري
               </span>
@@ -98,7 +98,7 @@ class ErrorBoundary extends Component<Props, State> {
           <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
             <button
               onClick={() => window.location.reload()}
-              className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black text-xs h-11 px-6 rounded-xl transition-all hover:scale-[1.03] shadow-lg"
+              className="inline-flex items-center justify-center gap-2 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black text-xs h-11 px-6 rounded-xl transition-all hover:scale-[1.03] shadow-lg"
             >
               <RotateCcw className="w-4 h-4" />
               إعادة تحميل الصفحة

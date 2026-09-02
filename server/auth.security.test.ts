@@ -298,6 +298,7 @@ describe("auth.register (self-serve subscriber signup)", () => {
       country: "اليمن",
       currency: "YER",
       email: "contact@newbiz.example",
+      acceptTerms: true,
     });
     expect(result.ok).toBe(true);
     expect(result.tenantId).toBe(999);
@@ -346,13 +347,13 @@ describe("auth.register (self-serve subscriber signup)", () => {
     ).rejects.toThrow();
   });
 
-  it("validates password minimum length (6 chars)", async () => {
+  it("validates password minimum length (8 chars)", async () => {
     const caller = appRouter.createCaller(createCtx());
     await expect(
       caller.auth.register({
         name: "Test",
         username: "valid_user",
-        password: "12345",
+        password: "1234567",
       })
     ).rejects.toThrow();
   });
@@ -385,6 +386,7 @@ describe("auth.register (self-serve subscriber signup)", () => {
       name: "Test User",
       username: "newuser123",
       password: "password123",
+      acceptTerms: true,
     });
     expect(provisionGenericTenant).toHaveBeenCalled();
   });

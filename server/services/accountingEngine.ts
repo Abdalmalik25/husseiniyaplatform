@@ -92,10 +92,7 @@ export function fiscalPeriodCoversDate(
   dayStart.setHours(0, 0, 0, 0);
   const dayEnd = new Date(period.endDate);
   dayEnd.setHours(23, 59, 59, 999);
-  return (
-    t >= dayStart.getTime() &&
-    t <= dayEnd.getTime()
-  );
+  return t >= dayStart.getTime() && t <= dayEnd.getTime();
 }
 
 /** Pure check: is a fiscal period status locked against posting? */

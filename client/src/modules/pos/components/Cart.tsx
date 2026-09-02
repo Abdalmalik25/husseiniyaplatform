@@ -183,7 +183,7 @@ export function CartLineRow({
           </Button>
         </div>
 
-        <span className="flex-1 text-right text-sm font-medium text-[#0e2a2b]">
+        <span className="flex-1 text-right text-sm font-medium text-ink">
           {formatCurrency(finalTotal, currency, decimals)}
         </span>
       </div>
@@ -641,7 +641,7 @@ export function Cart({
 
           <div className="flex justify-between border-t border-border pt-2 text-base font-bold">
             <span className="text-foreground">الإجمالي</span>
-            <span className="text-[#0e2a2b] text-lg">
+            <span className="text-ink text-lg">
               {formatCurrency(summary.total, currency, decimals)}
             </span>
           </div>
@@ -720,7 +720,7 @@ export function Cart({
                   variant={paymentMethod === m ? "default" : "outline"}
                   size="sm"
                   className={
-                    paymentMethod === m ? "bg-[#b87945] text-[#102a2b]" : ""
+                    paymentMethod === m ? "bg-brand text-ink-deep" : ""
                   }
                   onClick={() => onPaymentMethodChange(m)}
                 >
@@ -842,7 +842,7 @@ export function Cart({
               مسح
             </Button>
             <Button
-              className="flex-1 bg-[#b87945] text-[#102a2b] hover:bg-[#a06838] text-lg"
+              className="flex-1 bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand text-lg"
               onClick={onCompleteSale}
               disabled={!canCompleteSale || isProcessing || lines.length === 0}
             >

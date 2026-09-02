@@ -72,7 +72,7 @@ export function HowItWorks() {
                 >
                   {/* Step number badge */}
                   <div className="relative z-10 mb-4">
-                    <span className="w-14 h-14 rounded-2xl bg-brand text-ink font-black text-lg flex items-center justify-center shadow-xl shadow-brand/30 ring-2 ring-brand/20">
+                    <span className="w-14 h-14 rounded-2xl bg-brand text-ink-deep font-black text-lg flex items-center justify-center shadow-xl shadow-brand/30 ring-2 ring-brand/20">
                       {step.num}
                     </span>
                     {/* Pulse ring */}
@@ -121,10 +121,14 @@ export function HowItWorks() {
         {/* CTA */}
         <div className="mt-14 text-center reveal">
           <a
-            href={brand.contact.whatsapp.startsWith("967") ? `https://wa.me/${brand.contact.whatsapp}?text=${encodeURIComponent("السلام عليكم، أود معرفة المزيد عن طريقة العمل")}` : `https://wa.me/${brand.contact.whatsapp}?text=${encodeURIComponent("السلام عليكم، أود معرفة المزيد عن طريقة العمل")}`}
+            href={
+              brand.contact.whatsapp.startsWith("967")
+                ? `https://wa.me/${brand.contact.whatsapp}?text=${encodeURIComponent("السلام عليكم، أود معرفة المزيد عن طريقة العمل")}`
+                : `https://wa.me/${brand.contact.whatsapp}?text=${encodeURIComponent("السلام عليكم، أود معرفة المزيد عن طريقة العمل")}`
+            }
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-8 py-4 rounded-2xl text-sm shadow-xl shadow-brand/30 transition-all hover:scale-105"
+            className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black px-8 py-4 rounded-2xl text-sm shadow-xl shadow-brand/30 transition-all hover:scale-105"
           >
             <Zap className="w-5 h-5 fill-current" />
             ابدأ رحلتك — تواصل مجاني

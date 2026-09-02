@@ -54,7 +54,7 @@ export default function Permissions() {
       <AppSidebar />
       <main className="flex-1 p-4 md:p-6 space-y-5">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#0e2a2b] text-[#b87945]">
+          <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-ink text-brand">
             <ShieldCheck className="h-6 w-6" />
           </div>
           <div>
@@ -129,7 +129,7 @@ export default function Permissions() {
                         {u.email ?? "—"}
                       </td>
                       <td className="p-2">
-                        <span className="rounded bg-[#b87945]/10 px-2 py-0.5 text-[10px] font-bold text-[#b87945]">
+                        <span className="rounded bg-brand/10 px-2 py-0.5 text-[10px] font-bold text-brand">
                           {u.role}
                         </span>
                       </td>
@@ -216,7 +216,7 @@ export default function Permissions() {
                 />
               </div>
               <Button
-                className="w-full bg-[#b87945] text-[#102a2b] hover:bg-[#a06838]"
+                className="w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
                 disabled={!roleName || !roleCode || createRole.isPending}
                 onClick={() =>
                   createRole.mutate({

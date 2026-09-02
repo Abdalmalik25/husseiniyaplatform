@@ -14,4 +14,3 @@ await page.waitForTimeout(1500);
 await page.screenshot({ path: out, fullPage: false });
 await browser.close();
 console.log("saved:", out);
-

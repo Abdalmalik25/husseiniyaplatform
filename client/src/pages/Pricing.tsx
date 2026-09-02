@@ -205,7 +205,7 @@ export default function Pricing() {
                 <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-brand/50 via-brand to-brand/50" />
               )}
               {p.highlight && (
-                <span className="absolute -top-3 right-6 bg-brand text-ink text-[10px] font-black px-3 py-1 rounded-full shadow">
+                <span className="absolute -top-3 right-6 bg-brand text-ink-deep text-[10px] font-black px-3 py-1 rounded-full shadow">
                   الأكثر طلباً
                 </span>
               )}
@@ -215,7 +215,7 @@ export default function Pricing() {
                   <div
                     className={`w-10 h-10 rounded-xl flex items-center justify-center ${
                       p.highlight
-                        ? "bg-brand text-ink"
+                        ? "bg-brand text-ink-deep"
                         : "bg-ink/5 dark:bg-white/10 text-foreground"
                     }`}
                   >
@@ -270,7 +270,7 @@ export default function Pricing() {
                     href={uamexDemoLink()}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex items-center justify-center gap-2 w-full h-11 font-bold rounded-xl bg-brand hover:bg-brand-deep text-ink transition-all"
+                    className="flex items-center justify-center gap-2 w-full h-11 font-bold rounded-xl bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep transition-all"
                   >
                     <MessageSquare className="w-4 h-4" />
                     {p.cta}
@@ -381,7 +381,7 @@ export default function Pricing() {
               )}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
+              className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-black px-6 py-3 rounded-xl text-sm transition-all hover:scale-105"
             >
               <MessageSquare className="w-4 h-4" />
               استفسر عن الخدمات الهندسية

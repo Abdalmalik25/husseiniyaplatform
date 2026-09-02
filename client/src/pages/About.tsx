@@ -138,7 +138,7 @@ export default function About() {
       id: "blueprints",
       title: "التصاميم والمخططات التنفيذية (BIM & Shop Drawings)",
       icon: Ruler,
-      color: "from-blue-700 to-[#102a2b]",
+      color: "from-blue-700 to-ink",
       badge: "للمقاولين وأصحاب الأراضي",
       description:
         "إعداد التصاميم المعمارية والإنشائية والكهروميكانيكية 2D/3D ونمذجة (BIM) شديدة الواقعية.",
@@ -154,7 +154,7 @@ export default function About() {
       id: "surveying",
       title: "المساحة الرقمية وتثبيت الحدود والأراضي",
       icon: Map,
-      color: "from-[#b87945] to-amber-900",
+      color: "from-brand to-amber-900",
       badge: "لأصحاب الأراضي والمقاولين",
       description:
         "الرفع المساحي الرقمي ألترا دقيق بـ GPS و Total Station وإسقاط الأنساب وتثبيت الحدود.",
@@ -169,7 +169,7 @@ export default function About() {
       id: "boq",
       title: "حساب الكميات وجداول BOQ والمواصفات",
       icon: Calculator,
-      color: "from-emerald-700 to-[#102a2b]",
+      color: "from-emerald-700 to-ink",
       badge: "للمقاولين والمستثمرين",
       description:
         "حصر كلي دقيق للحديد، الخرسانات، التشطيبات، وإعداد جداول الكميات وتكلفة المشروع.",
@@ -248,7 +248,7 @@ export default function About() {
       id: "administrative",
       title: "الاستشارات المؤسسية والإدارية",
       icon: Layers,
-      color: "from-[#b87945] to-amber-700",
+      color: "from-brand to-amber-700",
       badge: "مؤسسة الحسينية",
       description:
         "صياغة الهياكل التنظيمية ودلائل الإجراءات والحوكمة وتطوير كفاءة المؤسسات.",
@@ -297,7 +297,7 @@ export default function About() {
       id: "design",
       title: "التصاميم والطباعة الإبداعية",
       icon: Sparkles,
-      color: "from-purple-600 to-[#b87945]",
+      color: "from-purple-600 to-brand",
       badge: "مكتبة الحسينية الحديثة",
       description:
         "ابتكار الهويات البصرية، الشعارات، البروشورات، العروض التقديمية والمواد التسويقية.",
@@ -312,7 +312,7 @@ export default function About() {
       id: "research",
       title: "البحوث والدراسات الأكاديمية",
       icon: BookOpen,
-      color: "from-amber-600 to-[#7a5228]",
+      color: "from-amber-600 to-brand-700",
       badge: "مكتبة الحسينية الحديثة",
       description:
         "إعداد وتدقيق الأوراق العلمية والبحوث التخصصية والتحليل الإحصائي الأكاديمي.",
@@ -378,25 +378,25 @@ export default function About() {
 
   return (
     <div
-      className="min-h-screen bg-[#fbf8f2] text-[#102a2b] pb-20 font-sans"
+      className="min-h-screen bg-sand text-ink pb-20 font-sans"
       dir="rtl"
     >
       {/* Header Navbar */}
       <HeaderNavbar />
 
       {/* Hero Banner — Modern animated background */}
-      <section className="relative text-white py-16 px-4 overflow-hidden border-b border-[#1e3a3c]">
+      <section className="relative text-white py-16 px-4 overflow-hidden border-b border-ink-600">
         <HeroBackground />
 
         <div className="max-w-6xl mx-auto text-center relative z-10 space-y-5">
-          <div className="inline-flex items-center gap-2 bg-[#1e3a3c] border border-[#b87945]/40 text-[#d4a574] px-3.5 py-1.5 rounded-full text-xs font-semibold shadow">
-            <HardHat className="w-3.5 h-3.5 text-[#b87945]" />
+          <div className="inline-flex items-center gap-2 bg-ink-600 border border-brand/40 text-brand-300 px-3.5 py-1.5 rounded-full text-xs font-semibold shadow">
+            <HardHat className="w-3.5 h-3.5 text-brand" />
             الخبراء المعتمدون للخدمات الهندسية، المقاولات، الأراضي، والمكتبية
           </div>
 
           <h1 className="text-2xl sm:text-4xl md:text-5xl font-black font-display tracking-tight leading-tight">
             مؤسسة الحسينية لخدمات الأعمال <br className="hidden sm:inline" />
-            <span className="text-[#d4a574]">ومكتبة الحسينية الحديثة</span>
+            <span className="text-brand-300">ومكتبة الحسينية الحديثة</span>
           </h1>
 
           <p className="max-w-3xl mx-auto text-xs sm:text-base text-slate-300 leading-relaxed font-light">
@@ -410,7 +410,7 @@ export default function About() {
                   "استشارة هندسية / مشروع للمقاولين والأراضي"
                 )
               }
-              className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs sm:text-sm h-11 px-6 shadow-lg rounded-xl flex items-center gap-2"
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs sm:text-sm h-11 px-6 shadow-lg rounded-xl flex items-center gap-2"
             >
               <HardHat className="w-4 h-4" />
               طلب خدمة هندسية للمقاولين والأراضي
@@ -419,9 +419,9 @@ export default function About() {
             <Button
               onClick={() => setLocation("/app")}
               variant="outline"
-              className="border-[#2a4e50] bg-[#1e3a3c] text-white hover:bg-[#25484a] text-xs sm:text-sm h-11 px-5 rounded-xl flex items-center gap-2"
+              className="border-ink-500 bg-ink-600 text-white hover:bg-ink-500 text-xs sm:text-sm h-11 px-5 rounded-xl flex items-center gap-2"
             >
-              <ShoppingCart className="w-4 h-4 text-[#d4a574]" />
+              <ShoppingCart className="w-4 h-4 text-brand-300" />
               كتالوج الخدمات والمنتجات
             </Button>
           </div>
@@ -431,9 +431,9 @@ export default function About() {
             {brand.stats.map((stat, i) => (
               <div
                 key={i}
-                className="bg-[#162e30]/80 border border-[#1e3a3c] p-3.5 rounded-xl text-center"
+                className="bg-ink-800/80 border border-ink-600 p-3.5 rounded-xl text-center"
               >
-                <div className="text-xl font-bold text-[#d4a574] font-mono">
+                <div className="text-xl font-bold text-brand-300 font-mono">
                   {stat.value}
                 </div>
                 <div className="text-[11px] text-slate-300 mt-0.5">
@@ -451,11 +451,11 @@ export default function About() {
         <section className="space-y-8">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between border-b border-slate-200 pb-4 gap-4">
             <div>
-              <Badge className="bg-[#b87945] text-[#102a2b] font-bold text-xs px-3 py-1 mb-2">
+              <Badge className="bg-brand text-ink-deep font-bold text-xs px-3 py-1 mb-2">
                 القطاع الهندسي والتطوير العقاري
               </Badge>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#102a2b] font-display flex items-center gap-2">
-                <HardHat className="w-7 h-7 text-[#b87945]" />
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-ink font-display flex items-center gap-2">
+                <HardHat className="w-7 h-7 text-brand" />
                 الخدمات الهندسية التخصصية للمقاولين وأصحاب الأراضي والعقارات
               </h2>
               <p className="text-xs sm:text-sm text-slate-600 mt-1">
@@ -466,9 +466,9 @@ export default function About() {
 
             <Button
               onClick={() => handleOpenRequestModal("استشارة هندسية تخصصية")}
-              className="bg-[#102a2b] hover:bg-[#193d3f] text-white text-xs h-9 font-medium px-4 rounded-lg flex items-center gap-1.5 shadow"
+              className="bg-ink hover:bg-ink-600 text-white text-xs h-9 font-medium px-4 rounded-lg flex items-center gap-1.5 shadow"
             >
-              <MessageSquare className="w-3.5 h-3.5 text-[#d4a574]" />
+              <MessageSquare className="w-3.5 h-3.5 text-brand-300" />
               طلب استشارة هندسية مخصصة
             </Button>
           </div>
@@ -491,7 +491,7 @@ export default function About() {
                       </div>
                       <Badge
                         variant="outline"
-                        className="border-[#b87945]/40 text-[#7a5228] text-[10px] bg-amber-50 font-bold"
+                        className="border-brand/40 text-brand-700 text-[10px] bg-amber-50 font-bold"
                       >
                         {service.badge}
                       </Badge>
@@ -524,7 +524,7 @@ export default function About() {
                       <Button
                         size="sm"
                         onClick={() => handleOpenRequestModal(service.title)}
-                        className="bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-8 px-3 rounded-lg flex items-center gap-1"
+                        className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-8 px-3 rounded-lg flex items-center gap-1"
                       >
                         طلب الخدمة
                         <ArrowRight className="w-3.5 h-3.5 rotate-180" />
@@ -537,14 +537,14 @@ export default function About() {
           </div>
 
           {/* ─── INTERACTIVE CONFIGURATOR: حاسبة ومستكشف الخدمات الهندسية للمقاولين والأراضي ─── */}
-          <Card className="border-2 border-[#b87945]/30 bg-gradient-to-br from-[#102a2b] to-[#18393c] text-white rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
-            <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-[#1e3a3c] pb-4 gap-4">
+          <Card className="border-2 border-brand/30 bg-gradient-to-br from-ink to-ink-700 text-white rounded-3xl p-6 md:p-8 shadow-xl space-y-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between border-b border-ink-600 pb-4 gap-4">
               <div>
-                <Badge className="bg-[#b87945] text-[#102a2b] font-bold text-xs px-3 py-1 mb-2">
+                <Badge className="bg-brand text-ink-deep font-bold text-xs px-3 py-1 mb-2">
                   أداة خبير الهندسة للمقاولين والملاك
                 </Badge>
                 <h3 className="text-xl sm:text-2xl font-bold font-display text-white flex items-center gap-2">
-                  <Calculator className="w-6 h-6 text-[#d4a574]" />
+                  <Calculator className="w-6 h-6 text-brand-300" />
                   مستكشف وحاسبة طلبات الخدمات الهندسية للمشاريع والمخططات
                 </h3>
                 <p className="text-xs text-slate-300 mt-1">
@@ -556,8 +556,8 @@ export default function About() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {/* Col 1: Project Params */}
-              <div className="space-y-4 bg-[#162e30] p-4 rounded-2xl border border-[#1e3a3c]">
-                <h4 className="text-xs font-bold text-[#d4a574] flex items-center gap-1.5">
+              <div className="space-y-4 bg-ink-800 p-4 rounded-2xl border border-ink-600">
+                <h4 className="text-xs font-bold text-brand-300 flex items-center gap-1.5">
                   <Building2 className="w-4 h-4" /> 1. طبيعة المشروع والعرصة
                 </h4>
 
@@ -568,7 +568,7 @@ export default function About() {
                   <select
                     value={engProjectType}
                     onChange={e => setEngProjectType(e.target.value)}
-                    className="w-full h-9 bg-[#102a2b] border border-[#2a4e50] text-white text-xs rounded-lg px-2"
+                    className="w-full h-9 bg-ink border border-ink-500 text-white text-xs rounded-lg px-2"
                   >
                     <option value="أرض خاوية / مخطط سكني">
                       أرض خاوية / مخطط سكني أو تجاري
@@ -596,15 +596,15 @@ export default function About() {
                     type="number"
                     value={engArea}
                     onChange={e => setEngArea(e.target.value)}
-                    className="h-9 bg-[#102a2b] border border-[#2a4e50] text-white text-xs font-mono"
+                    className="h-9 bg-ink border border-ink-500 text-white text-xs font-mono"
                     placeholder="مثال: 500"
                   />
                 </div>
               </div>
 
               {/* Col 2: Required Engineering Services Checkbox Grid */}
-              <div className="space-y-4 bg-[#162e30] p-4 rounded-2xl border border-[#1e3a3c] md:col-span-2">
-                <h4 className="text-xs font-bold text-[#d4a574] flex items-center gap-1.5">
+              <div className="space-y-4 bg-ink-800 p-4 rounded-2xl border border-ink-600 md:col-span-2">
+                <h4 className="text-xs font-bold text-brand-300 flex items-center gap-1.5">
                   <CheckSquare className="w-4 h-4" /> 2. حدد حزمة الخدمات
                   الهندسية المطلوبة للمشروع
                 </h4>
@@ -627,15 +627,15 @@ export default function About() {
                         onClick={() => toggleEngService(srv)}
                         className={`p-2.5 rounded-xl border cursor-pointer transition-all flex items-center justify-between ${
                           isSelected
-                            ? "bg-[#b87945]/20 border-[#b87945] text-white font-bold"
-                            : "bg-[#102a2b] border-[#2a4e50] text-slate-300 hover:border-[#b87945]/50"
+                            ? "bg-brand/20 border-brand text-white font-bold"
+                            : "bg-ink border-ink-500 text-slate-300 hover:border-brand/50"
                         }`}
                       >
                         <span>{srv}</span>
                         <div
                           className={`w-4 h-4 rounded flex items-center justify-center text-[10px] ${
                             isSelected
-                              ? "bg-[#b87945] text-[#102a2b]"
+                              ? "bg-brand text-ink-deep"
                               : "border border-slate-500"
                           }`}
                         >
@@ -646,21 +646,21 @@ export default function About() {
                   })}
                 </div>
 
-                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-[#1e3a3c]">
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-ink-600">
                   <div className="text-xs text-slate-300">
                     تم تحديد{" "}
-                    <span className="text-[#d4a574] font-bold font-mono">
+                    <span className="text-brand-300 font-bold font-mono">
                       {engSelectedServices.length}
                     </span>{" "}
                     خدمات لمساحة{" "}
-                    <span className="text-[#d4a574] font-bold font-mono">
+                    <span className="text-brand-300 font-bold font-mono">
                       {engArea || "0"} م²
                     </span>
                   </div>
 
                   <Button
                     onClick={handleSendEngConfiguratorQuote}
-                    className="w-full sm:w-auto bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-9 px-5 rounded-xl shadow flex items-center justify-center gap-2"
+                    className="w-full sm:w-auto bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-5 rounded-xl shadow flex items-center justify-center gap-2"
                   >
                     <Send className="w-3.5 h-3.5" />
                     طلب عرض سعر رسمي للمشروع الهندسي
@@ -674,11 +674,11 @@ export default function About() {
         {/* ─── SECTION 2: الاستشارات التقنية والمؤسسية والإدارية ─── */}
         <section className="space-y-8">
           <div className="border-b border-slate-200 pb-4">
-            <Badge className="bg-[#102a2b] text-[#d4a574] font-bold text-xs px-3 py-1 mb-2">
+            <Badge className="bg-ink text-brand-300 font-bold text-xs px-3 py-1 mb-2">
               استشارات الشركات والمؤسسات
             </Badge>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-[#102a2b] font-display flex items-center gap-2">
-              <Building2 className="w-7 h-7 text-[#102a2b]" />
+            <h2 className="text-2xl sm:text-3xl font-extrabold text-ink font-display flex items-center gap-2">
+              <Building2 className="w-7 h-7 text-ink" />
               الاستشارات التقنية والمؤسسية والإدارية والمالية
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 mt-1">
@@ -737,7 +737,7 @@ export default function About() {
                       <Button
                         size="sm"
                         onClick={() => handleOpenRequestModal(service.title)}
-                        className="bg-[#102a2b] hover:bg-[#193d3f] text-white font-bold text-xs h-8 px-3 rounded-lg flex items-center gap-1"
+                        className="bg-ink hover:bg-ink-600 text-white font-bold text-xs h-8 px-3 rounded-lg flex items-center gap-1"
                       >
                         طلب الخدمة
                         <ArrowRight className="w-3.5 h-3.5 rotate-180" />
@@ -757,7 +757,7 @@ export default function About() {
               <Badge className="bg-sky-700 text-white font-bold text-xs px-3 py-1 mb-2">
                 قطاع الطلاب والبحوث والتقنية
               </Badge>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#102a2b] font-display flex items-center gap-2">
+              <h2 className="text-2xl sm:text-3xl font-extrabold text-ink font-display flex items-center gap-2">
                 <BookOpen className="w-7 h-7 text-sky-700" />
                 مكتبة الحسينية الحديثة
               </h2>
@@ -843,8 +843,8 @@ export default function About() {
         {/* ─── SECTION 4: أسئلة شائعة للمقاولين والملاك (FAQ) ─── */}
         <section className="space-y-6">
           <div className="text-center space-y-2">
-            <h2 className="text-xl sm:text-2xl font-bold font-display text-[#102a2b] flex items-center justify-center gap-2">
-              <HelpCircle className="w-6 h-6 text-[#b87945]" />
+            <h2 className="text-xl sm:text-2xl font-bold font-display text-ink flex items-center justify-center gap-2">
+              <HelpCircle className="w-6 h-6 text-brand" />
               الأسئلة الشائعة للمقاولين وأصحاب الأراضي والخدمات
             </h2>
             <p className="text-xs text-slate-600">
@@ -909,7 +909,7 @@ export default function About() {
         {/* ─── SECTION 5: معلومات الاتصال والمقر ─── */}
         <section className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
           <div className="space-y-4 text-right">
-            <Badge className="bg-[#b87945] text-[#102a2b] font-bold text-xs px-3 py-1">
+            <Badge className="bg-brand text-ink-deep font-bold text-xs px-3 py-1">
               تواصل معنا المباشر
             </Badge>
             <h2 className="text-xl sm:text-2xl font-bold font-display text-slate-900">
@@ -922,7 +922,7 @@ export default function About() {
 
             <div className="space-y-3 pt-2 text-xs">
               <div className="flex items-center gap-3 text-slate-700">
-                <div className="p-2 bg-amber-50 rounded-lg text-[#b87945]">
+                <div className="p-2 bg-amber-50 rounded-lg text-brand">
                   <MapPin className="w-4 h-4" />
                 </div>
                 <div>
@@ -937,7 +937,7 @@ export default function About() {
               </div>
 
               <div className="flex items-center gap-3 text-slate-700">
-                <div className="p-2 bg-amber-50 rounded-lg text-[#b87945]">
+                <div className="p-2 bg-amber-50 rounded-lg text-brand">
                   <Phone className="w-4 h-4" />
                 </div>
                 <div>
@@ -951,7 +951,7 @@ export default function About() {
               </div>
 
               <div className="flex items-center gap-3 text-slate-700">
-                <div className="p-2 bg-amber-50 rounded-lg text-[#b87945]">
+                <div className="p-2 bg-amber-50 rounded-lg text-brand">
                   <Mail className="w-4 h-4" />
                 </div>
                 <div>
@@ -966,8 +966,8 @@ export default function About() {
             </div>
           </div>
 
-          <div className="bg-[#102a2b] text-white p-6 rounded-2xl space-y-4 text-center border border-[#1e3a3c]">
-            <HardHat className="w-10 h-10 mx-auto text-[#d4a574]" />
+          <div className="bg-ink text-white p-6 rounded-2xl space-y-4 text-center border border-ink-600">
+            <HardHat className="w-10 h-10 mx-auto text-brand-300" />
             <h3 className="text-base font-bold font-display">
               هل لديك مشروع مقاولات أو مخطط أرض؟
             </h3>
@@ -979,7 +979,7 @@ export default function About() {
               onClick={() =>
                 handleOpenRequestModal("طلب دراسة ومخطط هندسي للمقاولين")
               }
-              className="w-full bg-[#b87945] hover:bg-[#a06838] text-[#102a2b] font-bold text-xs h-10 rounded-xl"
+              className="w-full bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-10 rounded-xl"
             >
               طلب تسعيرة ودراسة هندسية الآن
             </Button>
@@ -992,7 +992,7 @@ export default function About() {
         <DialogContent className="max-w-lg font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2 text-slate-900">
-              <Send className="w-4 h-4 text-[#b87945]" />
+              <Send className="w-4 h-4 text-brand" />
               طلب خدمة / استشارة — {selectedService}
             </DialogTitle>
             <DialogDescription className="text-xs text-slate-600 pt-1">
@@ -1012,7 +1012,7 @@ export default function About() {
                 <p className="text-xs text-slate-600 mt-1">
                   رقم مرجع الطلب الخاص بك:
                 </p>
-                <div className="inline-block bg-slate-100 text-[#b87945] font-mono font-bold text-sm px-3 py-1 rounded border border-slate-200 mt-2">
+                <div className="inline-block bg-slate-100 text-brand font-mono font-bold text-sm px-3 py-1 rounded border border-slate-200 mt-2">
                   {submittedRef}
                 </div>
               </div>
@@ -1121,7 +1121,7 @@ export default function About() {
                   type="submit"
                   disabled={isSubmitting}
                   size="sm"
-                  className="text-xs h-8 bg-[#b87945] hover:bg-[#a06838] text-white font-bold"
+                  className="text-xs h-8 bg-brand hover:bg-brand-deep text-white font-bold"
                 >
                   {isSubmitting ? "جاري الإرسال..." : "إرسال الطلب"}
                 </Button>

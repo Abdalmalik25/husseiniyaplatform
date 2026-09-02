@@ -4,7 +4,7 @@ import { test, expect, Page } from "@playwright/test";
  * Role-Based Comprehensive E2E Tests — ALHUSAINIA / Uamex_erp
  * ===========================================================
  * Tests all major user roles: المحاسب, أمين المخزن, مندوب المبيعات, خدمة العملاء, المدير العام
- * 
+ *
  * Prerequisites: E2E_USERNAME + E2E_PASSWORD environment variables
  * Run with: pnpm exec playwright test e2e/role-based-journey.spec.ts
  */
@@ -24,7 +24,9 @@ async function loginAs(page: Page, username: string, password: string) {
 /** Navigate to a workspace and verify it loaded */
 async function goToWorkspace(page: Page, path: string, waitForText: RegExp) {
   await page.goto(path);
-  await expect(page.getByText(waitForText).first()).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText(waitForText).first()).toBeVisible({
+    timeout: 15_000,
+  });
 }
 
 // =====================
@@ -49,9 +51,13 @@ test.describe("🏦 المحاسب — Accountant Role", () => {
   test("AC-02: Create a journal entry (القيد المزدوج)", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/accounting", /نظام الحسابات|محاسبة/i);
-    const newEntryButton = page.getByRole("button", { name: /قيد جديد|إضافة قيد|journal/i }).first();
+    const newEntryButton = page
+      .getByRole("button", { name: /قيد جديد|إضافة قيد|journal/i })
+      .first();
     await newEntryButton.click();
-    await expect(page.getByText(/قيد يومية|journal entry/i).first()).toBeVisible({ timeout: 5_000 });
+    await expect(
+      page.getByText(/قيد يومية|journal entry/i).first()
+    ).toBeVisible({ timeout: 5_000 });
     const debitAccount = page.getByLabel(/طرف مدين|debit account/i).first();
     if (await debitAccount.isVisible()) await debitAccount.fill("صندوق");
     const creditAccount = page.getByLabel(/طرف دائن|credit account/i).first();
@@ -66,15 +72,23 @@ test.describe("🏦 المحاسب — Accountant Role", () => {
   test("AC-03: View Trial Balance (ميزان المراجعة)", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/accounting", /نظام الحسابات/i);
-    const reportsButton = page.getByRole("button", { name: /تقارير|reports/i }).first();
+    const reportsButton = page
+      .getByRole("button", { name: /تقارير|reports/i })
+      .first();
     if (await reportsButton.isVisible()) await reportsButton.click();
-    const trialBalanceLink = page.getByText(/ميزان المراجعة|trial balance/i).first();
+    const trialBalanceLink = page
+      .getByText(/ميزان المراجعة|trial balance/i)
+      .first();
     if (await trialBalanceLink.isVisible()) {
       await trialBalanceLink.click();
-      await expect(page.getByText(/إجمالي مدين|إجمالي دائن|total/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(
+        page.getByText(/إجمالي مدين|إجمالي دائن|total/i).first()
+      ).toBeVisible({ timeout: 5_000 });
       console.log("✅ AC-03: Trial balance report loaded");
     } else {
-      console.log("⚠️  AC-03: Trial balance link not found (may require specific permissions)");
+      console.log(
+        "⚠️  AC-03: Trial balance link not found (may require specific permissions)"
+      );
     }
   });
 
@@ -84,17 +98,23 @@ test.describe("🏦 المحاسب — Accountant Role", () => {
     const ledgerLink = page.getByText(/دفتر الأستاذ|general ledger/i).first();
     if (await ledgerLink.isVisible()) {
       await ledgerLink.click();
-      await expect(page.getByText(/حركة الحساب|account activity/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(
+        page.getByText(/حركة الحساب|account activity/i).first()
+      ).toBeVisible({ timeout: 5_000 });
       console.log("✅ AC-04: General ledger accessed");
     } else {
       console.log("⚠️  AC-04: Ledger link not found");
     }
   });
 
-  test("AC-05: View financial statements (القوائم المالية)", async ({ page }) => {
+  test("AC-05: View financial statements (القوائم المالية)", async ({
+    page,
+  }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/accounting", /نظام الحسابات/i);
-    const statementsLink = page.getByText(/قائمة الدخل|الميزانية|balance sheet/i).first();
+    const statementsLink = page
+      .getByText(/قائمة الدخل|الميزانية|balance sheet/i)
+      .first();
     if (await statementsLink.isVisible()) {
       await statementsLink.click();
       console.log("✅ AC-05: Financial statements accessed");
@@ -118,7 +138,9 @@ test.describe("📦 أمين المخزن — Inventory Manager Role", () => {
   test("INV-01: Access Inventory module", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/inventory", /مخزون|inventory/i);
-    await expect(page.getByText(/المخزون|المنتجات|warehouse/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/المخزون|المنتجات|warehouse/i).first()
+    ).toBeVisible();
     console.log("✅ INV-01: Inventory manager accessed module");
   });
 
@@ -138,10 +160,14 @@ test.describe("📦 أمين المخزن — Inventory Manager Role", () => {
   test("INV-03: Add new product to inventory", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/inventory", /مخزون/i);
-    const addButton = page.getByRole("button", { name: /إضافة منتج|منتج جديد|إضافة/i }).first();
+    const addButton = page
+      .getByRole("button", { name: /إضافة منتج|منتج جديد|إضافة/i })
+      .first();
     if (await addButton.isVisible()) {
       await addButton.click();
-      await expect(page.getByText(/منتج جديد|إضافة منتج/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/منتج جديد|إضافة منتج/i).first()).toBeVisible(
+        { timeout: 5_000 }
+      );
       const nameField = page.getByLabel(/اسم المنتج|product name/i).first();
       if (await nameField.isVisible()) await nameField.fill("اختبار منتج E2E");
       const qtyField = page.getByLabel(/كمية|quantity/i).first();
@@ -158,7 +184,9 @@ test.describe("📦 أمين المخزن — Inventory Manager Role", () => {
     const movementsLink = page.getByText(/حركة|movements|سحب|إضافة/i).first();
     if (await movementsLink.isVisible()) {
       await movementsLink.click();
-      await expect(page.getByText(/حركة المخزون|inventory movements/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(
+        page.getByText(/حركة المخزون|inventory movements/i).first()
+      ).toBeVisible({ timeout: 5_000 });
       console.log("✅ INV-04: Inventory movements viewed");
     } else {
       console.log("⚠️  INV-04: Movements link not found");
@@ -171,7 +199,9 @@ test.describe("📦 أمين المخزن — Inventory Manager Role", () => {
     const transferLink = page.getByText(/نقل|transfer/i).first();
     if (await transferLink.isVisible()) {
       await transferLink.click();
-      await expect(page.getByText(/نقل مخزون|transfer stock/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(
+        page.getByText(/نقل مخزون|transfer stock/i).first()
+      ).toBeVisible({ timeout: 5_000 });
       console.log("✅ INV-05: Stock transfer form opened");
     } else {
       console.log("⚠️  INV-05: Transfer option not found");
@@ -193,24 +223,34 @@ test.describe("💰 مندوب المبيعات — Sales Representative Role", 
   test("SAL-01: Access Commercial module", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/commercial", /مبيعات|تجاري|commercial/i);
-    await expect(page.getByText(/المبيعات|الفواتير|invoices/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/المبيعات|الفواتير|invoices/i).first()
+    ).toBeVisible();
     console.log("✅ SAL-01: Sales rep accessed commercial module");
   });
 
-  test("SAL-02: Create new sales invoice (إنشاء فاتورة مبيعات)", async ({ page }) => {
+  test("SAL-02: Create new sales invoice (إنشاء فاتورة مبيعات)", async ({
+    page,
+  }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/commercial", /مبيعات/i);
-    const newInvoiceButton = page.getByRole("button", { name: /فاتورة جديدة|إضافة فاتورة|new invoice/i }).first();
+    const newInvoiceButton = page
+      .getByRole("button", { name: /فاتورة جديدة|إضافة فاتورة|new invoice/i })
+      .first();
     if (await newInvoiceButton.isVisible()) {
       await newInvoiceButton.click();
-      await expect(page.getByText(/فاتورة مبيعات|sales invoice/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(
+        page.getByText(/فاتورة مبيعات|sales invoice/i).first()
+      ).toBeVisible({ timeout: 5_000 });
       const customerField = page.getByLabel(/العميل|customer/i).first();
       if (await customerField.isVisible()) {
         await customerField.click();
         const firstCustomer = page.getByRole("option").first();
         if (await firstCustomer.isVisible()) await firstCustomer.click();
       }
-      const addProductButton = page.getByRole("button", { name: /إضافة منتج|add item/i }).first();
+      const addProductButton = page
+        .getByRole("button", { name: /إضافة منتج|add item/i })
+        .first();
       if (await addProductButton.isVisible()) await addProductButton.click();
       console.log("✅ SAL-02: Sales invoice form completed");
     } else {
@@ -221,25 +261,35 @@ test.describe("💰 مندوب المبيعات — Sales Representative Role", 
   test("SAL-03: View receivables report (الذمم المدينة)", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/commercial", /مبيعات/i);
-    const reportsButton = page.getByRole("button", { name: /تقارير|reports/i }).first();
+    const reportsButton = page
+      .getByRole("button", { name: /تقارير|reports/i })
+      .first();
     if (await reportsButton.isVisible()) await reportsButton.click();
-    const receivablesLink = page.getByText(/ذمم مدينة|receivables|أقساط/i).first();
+    const receivablesLink = page
+      .getByText(/ذمم مدينة|receivables|أقساط/i)
+      .first();
     if (await receivablesLink.isVisible()) {
       await receivablesLink.click();
-      await expect(page.getByText(/العميل|amount|remaining/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(
+        page.getByText(/العميل|amount|remaining/i).first()
+      ).toBeVisible({ timeout: 5_000 });
       console.log("✅ SAL-03: Receivables report viewed");
     } else {
       console.log("⚠️  SAL-03: Receivables report not found");
     }
   });
 
-  test("SAL-04: Track customer orders (تتبع طلبات العملاء)", async ({ page }) => {
+  test("SAL-04: Track customer orders (تتبع طلبات العملاء)", async ({
+    page,
+  }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/commercial", /مبيعات/i);
     const ordersLink = page.getByText(/طلبات|orders|أوامر/i).first();
     if (await ordersLink.isVisible()) {
       await ordersLink.click();
-      await expect(page.getByText(/طلب|sales order/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/طلب|sales order/i).first()).toBeVisible({
+        timeout: 5_000,
+      });
       console.log("✅ SAL-04: Customer orders tracked");
     } else {
       console.log("⚠️  SAL-04: Orders link not found");
@@ -249,10 +299,14 @@ test.describe("💰 مندوب المبيعات — Sales Representative Role", 
   test("SAL-05: View sales performance", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/commercial", /مبيعات/i);
-    const performanceLink = page.getByText(/أداء|performance|إحصائيات/i).first();
+    const performanceLink = page
+      .getByText(/أداء|performance|إحصائيات/i)
+      .first();
     if (await performanceLink.isVisible()) {
       await performanceLink.click();
-      await expect(page.getByText(/مبيعات|sales|revenue/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/مبيعات|sales|revenue/i).first()).toBeVisible(
+        { timeout: 5_000 }
+      );
       console.log("✅ SAL-05: Sales performance viewed");
     } else {
       console.log("⚠️  SAL-05: Performance link not found");
@@ -278,7 +332,9 @@ test.describe("🎧 خدمة العملاء — Customer Service Role", () => {
     console.log("✅ CS-01: Customer service accessed support module");
   });
 
-  test("CS-02: View customer inquiries (استفسارات العملاء)", async ({ page }) => {
+  test("CS-02: View customer inquiries (استفسارات العملاء)", async ({
+    page,
+  }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/support", /دعم/i);
     const inquiriesLink = page.getByText(/استفسارات|inquiries|رسائل/i).first();
@@ -293,12 +349,17 @@ test.describe("🎧 خدمة العملاء — Customer Service Role", () => {
   test("CS-03: Create support ticket (إنشاء تذكرة)", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/support", /دعم/i);
-    const newTicketButton = page.getByRole("button", { name: /تذكرة جديدة|إضافة تذكرة|new ticket/i }).first();
+    const newTicketButton = page
+      .getByRole("button", { name: /تذكرة جديدة|إضافة تذكرة|new ticket/i })
+      .first();
     if (await newTicketButton.isVisible()) {
       await newTicketButton.click();
-      await expect(page.getByText(/تذكرة|ticket/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/تذكرة|ticket/i).first()).toBeVisible({
+        timeout: 5_000,
+      });
       const subjectField = page.getByLabel(/موضوع|subject/i).first();
-      if (await subjectField.isVisible()) await subjectField.fill("اختبار E2E - تذكرة خدمة عملاء");
+      if (await subjectField.isVisible())
+        await subjectField.fill("اختبار E2E - تذكرة خدمة عملاء");
       console.log("✅ CS-03: Support ticket form opened");
     } else {
       console.log("⚠️  CS-03: New ticket button not found");
@@ -344,19 +405,26 @@ test.describe("👔 المدير العام — General Manager Role", () => {
   test("GM-01: Access main dashboard (لوحة القيادة)", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/app", /لوحة القيادة|dashboard/i);
-    await expect(page.getByText(/لوحة القيادة الموحّدة|Uamex/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/لوحة القيادة الموحّدة|Uamex/i).first()
+    ).toBeVisible();
     console.log("✅ GM-01: GM accessed main dashboard");
   });
 
   test("GM-02: View executive KPIs (مؤشرات الأداء)", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/app", /لوحة القيادة/i);
-    const kpiCards = page.locator("[class*='card'], [class*='stat'], [class*='metric']");
+    const kpiCards = page.locator(
+      "[class*='card'], [class*='stat'], [class*='metric']"
+    );
     const count = await kpiCards.count();
     if (count > 0) {
       console.log(`✅ GM-02: Dashboard has ${count} KPI cards`);
     } else {
-      const hasMetrics = await page.getByText(/إجمالي|total|revenue|sales/i).first().isVisible();
+      const hasMetrics = await page
+        .getByText(/إجمالي|total|revenue|sales/i)
+        .first()
+        .isVisible();
       expect(hasMetrics).toBeTruthy();
       console.log("✅ GM-02: Executive KPIs visible");
     }
@@ -365,10 +433,14 @@ test.describe("👔 المدير العام — General Manager Role", () => {
   test("GM-03: View financial reports (التقارير المالية)", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/app", /لوحة القيادة/i);
-    const reportsLink = page.getByRole("link", { name: /تقارير|reports|financial/i }).first();
+    const reportsLink = page
+      .getByRole("link", { name: /تقارير|reports|financial/i })
+      .first();
     if (await reportsLink.isVisible()) {
       await reportsLink.click();
-      await expect(page.getByText(/تقارير|report|قائمة/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/تقارير|report|قائمة/i).first()).toBeVisible({
+        timeout: 5_000,
+      });
       console.log("✅ GM-03: Financial reports accessed");
     } else {
       const reportsTab = page.getByText(/تقارير/).first();
@@ -387,7 +459,9 @@ test.describe("👔 المدير العام — General Manager Role", () => {
     const branchesLink = page.getByText(/فروع|branches|الأداء/i).first();
     if (await branchesLink.isVisible()) {
       await branchesLink.click();
-      await expect(page.getByText(/فرع|branch/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/فرع|branch/i).first()).toBeVisible({
+        timeout: 5_000,
+      });
       console.log("✅ GM-04: Branch performance viewed");
     } else {
       console.log("⚠️  GM-04: Branch link not found");
@@ -397,7 +471,9 @@ test.describe("👔 المدير العام — General Manager Role", () => {
   test("GM-05: Access HR module (الموارد البشرية)", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/hr", /الموارد البشرية|hr|employees/i);
-    await expect(page.getByText(/الموارد البشرية|employees|موظف/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/الموارد البشرية|employees|موظف/i).first()
+    ).toBeVisible();
     console.log("✅ GM-05: HR module accessed");
   });
 
@@ -414,10 +490,14 @@ test.describe("👔 المدير العام — General Manager Role", () => {
     }
   });
 
-  test("GM-07: System settings and permissions (الإعدادات)", async ({ page }) => {
+  test("GM-07: System settings and permissions (الإعدادات)", async ({
+    page,
+  }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/permissions", /صلاحيات|permissions/i);
-    await expect(page.getByText(/صلاحيات|permissions|roles/i).first()).toBeVisible();
+    await expect(
+      page.getByText(/صلاحيات|permissions|roles/i).first()
+    ).toBeVisible();
     console.log("✅ GM-07: Permissions module accessed");
   });
 
@@ -427,7 +507,9 @@ test.describe("👔 المدير العام — General Manager Role", () => {
     const auditLink = page.getByText(/تدقيق|audit|سجل/i).first();
     if (await auditLink.isVisible()) {
       await auditLink.click();
-      await expect(page.getByText(/تدقيق|audit|activity/i).first()).toBeVisible({ timeout: 5_000 });
+      await expect(page.getByText(/تدقيق|audit|activity/i).first()).toBeVisible(
+        { timeout: 5_000 }
+      );
       console.log("✅ GM-08: Audit trail viewed");
     } else {
       console.log("⚠️  GM-08: Audit link not found (may require admin)");
@@ -470,7 +552,9 @@ test.describe("🔗 Cross-Module Integration Tests", () => {
     const userMenu = page.getByText(/المستخدم|user|الحساب|profile/i).first();
     if (await userMenu.isVisible()) {
       await userMenu.click();
-      const logoutButton = page.getByRole("button", { name: /خروج|logout|تسجيل خروج/i }).first();
+      const logoutButton = page
+        .getByRole("button", { name: /خروج|logout|تسجيل خروج/i })
+        .first();
       if (await logoutButton.isVisible()) {
         console.log("✅ INT-02: User menu and logout visible");
       }
@@ -490,7 +574,10 @@ test.describe("🔗 Cross-Module Integration Tests", () => {
   test("INT-04: Arabic language validation", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/app", /لوحة القيادة/i);
-    const arabicText = await page.getByText(/الحسينية|Uamex|لوحة/i).first().textContent();
+    const arabicText = await page
+      .getByText(/الحسينية|Uamex|لوحة/i)
+      .first()
+      .textContent();
     expect(arabicText).toBeTruthy();
     expect(arabicText?.length).toBeGreaterThan(0);
     console.log(`✅ INT-04: Arabic text verified: "${arabicText}"`);
@@ -499,7 +586,9 @@ test.describe("🔗 Cross-Module Integration Tests", () => {
   test("INT-05: Theme switching (تبديل المظهر)", async ({ page }) => {
     await loginAs(page, username!, password!);
     await goToWorkspace(page, "/app", /لوحة القيادة/i);
-    const themeToggle = page.getByRole("button", { name: /مظهر|theme|night|dark|light/i }).first();
+    const themeToggle = page
+      .getByRole("button", { name: /مظهر|theme|night|dark|light/i })
+      .first();
     if (await themeToggle.isVisible()) {
       await themeToggle.click();
       await page.waitForTimeout(500);
@@ -520,8 +609,13 @@ test.describe("⚡ Performance & Security Tests", () => {
     for (const route of protectedRoutes) {
       await page.goto(route);
       const currentUrl = page.url();
-      const isProtected = currentUrl.includes("/login") ||
-                          await page.getByText(/تسجيل|login|auth/i).first().isVisible({ timeout: 3_000 }).catch(() => false);
+      const isProtected =
+        currentUrl.includes("/login") ||
+        (await page
+          .getByText(/تسجيل|login|auth/i)
+          .first()
+          .isVisible({ timeout: 3_000 })
+          .catch(() => false));
       expect(isProtected).toBeTruthy();
       console.log(`✅ SEC-01: ${route} is protected`);
     }
@@ -530,7 +624,9 @@ test.describe("⚡ Performance & Security Tests", () => {
   test("SEC-02: Branded login page", async ({ page }) => {
     await page.goto("/login");
     await expect(page.getByText(/الحسينية|Uamex/i).first()).toBeVisible();
-    await expect(page.getByRole("button", { name: /دخول|sign in/i })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /دخول|sign in/i })
+    ).toBeVisible();
     console.log("✅ SEC-02: Branded login page verified");
   });
 

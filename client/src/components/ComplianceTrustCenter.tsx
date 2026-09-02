@@ -26,7 +26,10 @@ import { brand } from "@/lib/brand";
  * Marketing-only component.
  */
 
-const PILLAR_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+const PILLAR_ICONS: Record<
+  string,
+  React.ComponentType<{ className?: string }>
+> = {
   ShieldCheck,
   Database,
   Lock,
@@ -103,7 +106,7 @@ export function ComplianceTrustCenter() {
             الامتثال والمعاير المعتمدة
           </h3>
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            {certifications.map((cert) => (
+            {certifications.map(cert => (
               <div
                 key={cert.code}
                 className="group bg-white/[0.04] hover:bg-white/[0.08] border border-white/[0.08] hover:border-brand/40 rounded-xl p-4 text-center transition-all cursor-default"
