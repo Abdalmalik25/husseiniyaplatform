@@ -203,7 +203,7 @@ export function MarketingHeader({ onOpenSettings }: Props) {
           </span>
         </span>
       </div>
-      <div className="border-b backdrop-blur-xl bg-white/90 border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+      <div className="border-b backdrop-blur-xl bg-white/90 border-slate-200 shadow-apex glass-silk texture-silk-v2">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4 h-[56px]">
           <div
             className="flex items-center gap-3 cursor-pointer group/brand shrink-0"

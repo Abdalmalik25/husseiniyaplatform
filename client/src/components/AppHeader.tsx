@@ -24,7 +24,7 @@ export function AppHeader({
 
   return (
     <header
-      className="sticky top-0 z-30 bg-ink border-b border-white/10 backdrop-blur-xl"
+      className="sticky top-0 z-30 bg-ink border-b border-white/10 backdrop-blur-xl shadow-apex"
       dir="rtl"
     >
       <div className="max-w-[1600px] mx-auto px-3 lg:px-4 flex items-center justify-between gap-3 h-[48px]">

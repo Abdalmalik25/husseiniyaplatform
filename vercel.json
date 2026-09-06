@@ -58,11 +58,23 @@
         },
         {
           "key": "Server-Timing",
-          "value": "edge;dur=1"
+          "value": "edge;dur=1, app;dur=12"
         },
         {
           "key": "Cache-Tag",
-          "value": "alhusainia-v4"
+          "value": "alhusainia-v5.1-apex"
+        },
+        {
+          "key": "X-Vercel-Cache-Tag",
+          "value": "apex-v5.1"
+        },
+        {
+          "key": "Nel",
+          "value": "{\"report_to\":\"default\",\"max_age\":86400,\"include_subdomains\":true}"
+        },
+        {
+          "key": "Report-To",
+          "value": "{\"group\":\"default\",\"max_age\":86400,\"endpoints\":[{\"url\":\"https://o205754.ingest.sentry.io/api/205754/security/?sentry_key=preview\"}]}"
         }
       ]
     },
