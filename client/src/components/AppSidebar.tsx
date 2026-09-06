@@ -543,9 +543,9 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
+      {/* Desktop sidebar — Apex Luxury with silk texture */}
       <aside
-        className={`hidden lg:flex flex-col shrink-0 bg-ink border-l border-white/10 sticky top-0 h-screen z-40 transition-[width] duration-300 ${
+        className={`hidden lg:flex flex-col shrink-0 bg-ink border-l border-white/10 sticky top-0 h-screen z-40 transition-[width] duration-300 texture-silk shadow-luxury ${
           collapsed ? "w-[76px]" : "w-60"
         }`}
         dir="rtl"

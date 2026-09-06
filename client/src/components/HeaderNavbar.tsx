@@ -240,7 +240,7 @@ export function HeaderNavbar({
         </span>
       </div>
       <div
-        className={`bg-ink/75 backdrop-blur-2xl border-b transition-all duration-500 ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}
+        className={`${isMarketingShell ? "glass-silk texture-silk gradient-aurora-luxury" : "bg-ink/75 backdrop-blur-2xl"} border-b transition-all duration-500 shadow-luxury ${scrolled ? "border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.35)]" : "border-white/5"}`}
       >
         <div
           className={`max-w-7xl mx-auto px-4 flex items-center justify-between gap-3 transition-all duration-300 ${

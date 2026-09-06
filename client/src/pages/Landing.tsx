@@ -300,27 +300,30 @@ export default function Landing() {
           </div>
 
           <div className="mx-auto max-w-5xl pt-6">
-            <div className="bento-grid">
+            <div className="bento-asymmetric stagger">
               {[
                 {
                   title: "إدارة حقيقية",
                   text: "من المحاسبة إلى المشاريع إلى المشتريات — منصة موحدة لا شاشات متفرقة.",
                   icon: Layers,
+                  cls: "bento-hero glass-silk texture-silk shadow-luxury motion-spring",
                 },
                 {
                   title: "أمان وثقة",
                   text: "تشفير، سجل تدقيق، صلاحيات ثلاثية، وتوثيق كامل لكل قرار ومرجع.",
                   icon: ShieldCheck,
+                  cls: "bento-tall glass-ultra shadow-modern-soft",
                 },
                 {
                   title: "أثر قابل للقياس",
                   text: "تجربة عمليّة تُقاس بزمن الإغلاق، دقة التقدير، وسرعة اتخاذ القرار.",
                   icon: BarChart3,
+                  cls: "bento-wide glass-silk shadow-luxury",
                 },
               ].map(item => (
                 <div
                   key={item.title}
-                  className="bento-card glass-ultra text-right shadow-modern-soft stagger"
+                  className={`bento-card text-right ${item.cls}`}
                 >
                   <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/15 flex items-center justify-center mb-3">
                     <item.icon className="w-5 h-5 text-brand" />

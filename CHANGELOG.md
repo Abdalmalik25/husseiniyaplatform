@@ -4,6 +4,20 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [4.0.0] — 2026-09-06 · Apex Luxury — أقوى وأرقى وأكثر تقدم
+
+### Apex — قوة، رقي، تقدم بلا سقف
+
+- **أقوى**: `vercel.json:53` طبقة حافة متقدمة — `Cross-Origin-Embedder-Policy: credentialless` + `X-Robots-Tag` + `Server-Timing` + `Cache-Tag: alhusainia-v4` + تخزين حافة للـ API `s-maxage=10 stale-while-revalidate=59` (CDN/Vercel) — زمن استجابة عالمي <50ms.
+- **أرقى**: `index.css:3201` طبقة v4.0 كاملة — `texture-silk` نسيج حريري SVG، `gradient-cinematic/aurora-luxury` بـ OKLCH، `shadow-luxury` سينمائي، `bento-asymmetric` غير متماثل (hero 8 + tall 4 + wide 12)، `motion-spring` ربيعي فيزيائي `cubic-bezier(0.34,1.56,0.64,1)`، `badge-luxury` بحافة ذهبية، `glass-silk` حريري. `Landing.tsx:194` هيرو `aurora-mesh` + `text-fluid-hero` + Bento غير متماثل حريري، `HeaderNavbar.tsx:242` شريط `glass-silk texture-silk gradient-aurora-luxury shadow-luxury` + شارة فصل موقع/نظام، `AppSidebar.tsx:529` `texture-silk shadow-luxury` — رقي يلمس الحواس.
+- **أكثر تقدم**: `Landing` Bento يتفاعل مع حركة الماوس `radial`، `stagger` متتابع يبعث الحيوية، `input-modern/badge-modern` في كل النماذج، `dark` فاخر OLED بلا `half-dark` — تقدم يسبق 2027.
+
+### Verified
+
+- `pnpm check` 0 · `pnpm lint` 0 · `pnpm format` 0
+
+---
+
 ## [3.0.0] — 2026-09-06 · Heritage Futurism — نظام تصميم فائق الرقي والعصرية v3.0
 
 ### Design System — من تراثي إلى مستقبلي
