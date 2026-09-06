@@ -437,6 +437,3 @@ export const UTILITY_LINKS: NavItem[] = [
   { path: "/download", label: "تحميل التطبيق", icon: Download },
   { path: "/onboarding", label: "تهيئة المشترك", icon: Settings },
 ];
-
-/** @deprecated Legacy combined list — kept for backward compatibility. */
-export const NAV_ITEMS: NavItem[] = [...MARKETING_NAV];

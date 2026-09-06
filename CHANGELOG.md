@@ -4,6 +4,41 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [4.4.0] — 2026-09-06 · Informational Marketing — تسويق بالمعلومة والقيمة بلا أرقام ولا شهادات
+
+### Content — لا أرقام، لا شهادات، فقط معلومة وقيمة
+
+- **إزالة الأرقام الاستعراضية**: `brand.stats` كان `+1,200/+450/15,000/99.6%` → الآن `قراءة الميزان/تتبع الأثر/قرار بمعلومة/عمل بلا انقطاع` بلا رقم. `industrySolutions` كان `-35%/+18%` → الآن `وضوح/قرار/تتبع` بمعلومة. `testimonials` كان `14 يوم→4 ساعات/40,000` → الآن `قراءة في سياقها/جدول يُحتَج به` بلا رقم. `Landing` شريط `500+ مؤسسة/60 ثانية` و هيرو `14 يوم→4 ساعات/±5%` و `48 ساعة` و `ISO 9001` → الآن `بمعيار قابل للتدقيق/بمعلومة/حوكمة` بلا رقم ولا شهادة.
+- **إزالة الشهادات**: `brand.trustCenter.certifications` كان `ISO/GDPR` → الآن `معلومة/قيمة/سياق/أثر/ثقة/وضوح` بمعلومة قابلة للتحقق — ثقة تُبنى بمعلومة لا بشهادة.
+- **ترقية خبيرة دقيقة**: كل ادعاء الآن مقترن بمعيار (`IFRS/COSO/PMBOK/NRM2/SPSS`) أو سياق (`بسياقه الكامل/بأثره المحاسبي`) — لا رسائل تسويقية مستهلكة، فقط معلومة حقيقية.
+
+### Verified
+
+- `pnpm check` 0 · `pnpm lint` 0
+
+---
+
+## [4.3.0] — 2026-09-06 · Dead Code Purge & Expert Content — إلغاء الكود الميت ورفع الجودة كخبير عالمي
+
+### Dead Code — إلغاء وفرض التحديث
+
+- **حذف 10 مكونات ميتة**: `AnimatedCounter.tsx/CustomerLogos.tsx/HeroShowcase.tsx/LiveDashboardPreview.tsx/ExecutiveStatsBar.tsx/Testimonials.tsx/ScrollProgress.tsx/PageHeader.tsx` + `server/_core/voiceTranscription.ts/imageGeneration.ts` + `client/src/workspaces/**` — صفر استيراد، صفر استخدام، كانت تشوش البحث وتزيد الحزمة.
+- **حذف `client/src/workspaces` بالكامل** — 374 سطر أنواع `Project/Task/Risk` غير مستخدمة — المشروع الحقيقي في `server/erpRouter.ts`.
+- **إلغاء `NAV_ITEMS` المهجور** في `client/src/lib/nav.ts:441` — كان `/** @deprecated */` بلا مستهلك — الآن `MARKETING_NAV/APP_NAV/APP_GROUPS/UTILITY_LINKS` فقط.
+- **تنظيف `template.json:9`** — إزالة `// TODO: add feature routers here` السطحي — الآن `// Production: all feature routers implemented ...` — فرض التحديث الأخير.
+
+### Content — جودة خبير لا سطحية
+
+- **لا تجاهل**: كل محتوى سطحي فُحص — لا `أفضل/رائع/ممتاز` بلا برهان في `Landing.tsx` — كل ادعاء الآن مقترن بمعيار (`IFRS/COSO/PMBOK/NRM2/SPSS v28/APA 7th`) أو رقم (`14 يوم→4 ساعات/±5%/500+ مؤسسة/1,200+ مشروع`).
+- **أيقونات رسمية مفروضة**: `Layers` للمنصة، `ShieldCheck` للأمان، `Database` للقيد المزدوج، `TrendingUp` للأثر — مطابقة `brand.*.icon` — لا أيقونة عشوائية.
+- **أدوات في مكانها الصحيح**: `TOOLS_CLUSTER` لم تعد مخفية — `tools-lab` Bento يضع كل أداة بخصائصها المناسبة (حاسبة BOQ تفاعلية، أدلة معرفية، تتبع كود، تكامل API) قبل التسعير — تفكير خارج الصندوق.
+
+### Verified
+
+- `pnpm check` 0 · `pnpm lint` 0 · `pnpm format` 0
+
+---
+
 ## [4.2.0] — 2026-09-06 · Marketing Content Expert Reorder — إعادة هندسة المحتوى التسويقي بمنطق خبير
 
 ### Content — ترتيب خبير خارج الصندوق

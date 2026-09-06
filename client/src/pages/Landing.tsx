@@ -221,25 +221,24 @@ export default function Landing() {
         <HeroAurora />
         <div className="absolute inset-0 bg-gradient-to-b from-ink/85 via-ink/75 to-ink/95 backdrop-blur-[0.5px]" />
 
-        {/* شريط التنبيه — هوية رسمية + مصداقية معيارية */}
+        {/* شريط التنبيه — هوية رسمية + معلومة حقيقية بلا أرقام */}
         <div className="relative z-10 bg-gradient-to-l from-brand/20 to-transparent border-b border-brand/20 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/80">
           <span className="inline-flex items-center gap-1.5 bg-brand/15 border border-brand/30 px-3 py-0.5 rounded-full font-bold text-brand-300">
             <ShieldCheck className="w-3 h-3" /> {brand.names.erp} v
-            {brand.names.version} — مطابق لـ IFRS/COSO/PMBOK ومُعتمد من 500+
-            مؤسسة
+            {brand.names.version} — مطابق لـ IFRS/COSO/PMBOK بمعيار قابل للتدقيق
           </span>
           <span className="hidden sm:inline text-white/60">
-            مصدر حقيقة واحد — من القيد إلى القرار في 60 ثانية
+            مصدر حقيقة واحد — من القيد إلى القرار بمعلومة
           </span>
         </div>
 
         <div className="max-w-6xl mx-auto text-center relative z-10 px-4 pt-16 pb-24 space-y-8">
-          {/* الوسم الرئيسي — هوية مؤسسية عالمية — بلا سطحية، بأدلة */}
+          {/* الوسم الرئيسي — هوية مؤسسية بمعلومة حقيقية */}
           <div className="inline-flex items-center gap-2 bg-white/[0.06] backdrop-blur-xl border border-white/10 text-white/80 px-4 py-1.5 rounded-full text-xs font-bold shadow-xl">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow shadow-emerald-400/40" />
-            تشخيص 48 ساعة • تصميم أسبوع • قياس شهري
+            تشخيص بمعلومة • تصميم بسياق • قياس بأثر
             <span className="hidden sm:inline-flex items-center gap-1.5 mr-2 pr-2 border-r border-white/10 text-[10px] font-mono tracking-widest text-white/50">
-              IFRS • COSO • PMBOK • ISO 9001
+              IFRS • COSO • PMBOK • حوكمة
             </span>
           </div>
 
@@ -330,19 +329,19 @@ export default function Landing() {
               {[
                 {
                   title: "مصدر حقيقة واحد",
-                  text: "قيد مزدوج IFRS يقلل زمن الإغلاق من 14 يومًا إلى 4 ساعات — بلا إكسل متفرق، بلا تأخير المراجع.",
+                  text: "قيد مزدوج IFRS — كل حركة تُقرأ في سياقها الكامل، بلا إكسل متفرق ولا انتظار للمراجع.",
                   icon: Database,
                   cls: "bento-hero glass-silk texture-silk shadow-luxury motion-spring",
                 },
                 {
                   title: "أمان بمستوى المراجع",
-                  text: "تشفير AES-256-GCM + سجل تدقيق غير قابل للتعديل + مصفوفة صلاحيات COSO ثلاثية — ثقة المراجع الخارجي.",
+                  text: "تشفير بمعيار قابل للتدقيق + سجل تدقيق غير قابل للتعديل + مصفوفة صلاحيات بمعيار — ثقة تُبنى بمعلومة.",
                   icon: ShieldCheck,
                   cls: "bento-tall glass-ultra shadow-modern-soft",
                 },
                 {
-                  title: "أثر يُقاس بالأرقام",
-                  text: "دقة تقدير ±5% بـ NRM/POMI وقراءة الميزان والتدفق في 60 ثانية — كل قرار بأثره المحاسبي.",
+                  title: "أثر يُقاس بمعلومة",
+                  text: "تقدير بمعيار NRM/POMI — كل بند بسياقه الفني والسعري، وقراءة الميزان والتدفق في سياقها — كل قرار بأثره.",
                   icon: TrendingUp,
                   cls: "bento-wide glass-silk shadow-luxury",
                 },
