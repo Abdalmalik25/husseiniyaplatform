@@ -1,4 +1,22 @@
-# Design System — "Heritage Ledger" (دفتر التراث) v2.15
+# Design System — "Heritage Futurism" (تراث المستقبل) v3.0
+
+> **v3.0 — الرقي والعصرية القصوى (2026):** طباعة سائلة `clamp()`، ظلال ناعمة ملونة، `glass-ultra` بتشبع 1.4، شبكات `bento-grid`، أزرار `btn-pill`، `aurora-mesh`، وحركة `stagger`. كل ذلك فوق أساس `v2.15` — لا كسر، فقط رقي.
+
+## 0. ما الجديد في v3.0 — Heritage Futurism
+
+| المجال | قبل (v2.15)                      | بعد (v3.0)                                                | الأثر                                      |
+| ------ | -------------------------------- | --------------------------------------------------------- | ------------------------------------------ |
+| طباعة  | `text-2xl/4xl` ثابتة             | `text-fluid-hero` `clamp(2.25rem,5vw+1rem,4.75rem)` سائلة | عنوان يتأقلم بسلاسة على كل شاشة بلا قفزات  |
+| ظلال   | `shadow-elevated/floating` ثقيلة | `shadow-modern-soft/medium/large` ناعمة ملونة             | عمق فاخر بلا ثقل، tinted soft shadows 2026 |
+| زجاج   | `glass/glass-premium` 12/20px    | `glass-ultra` 24px + saturate 1.4 + inner highlight       | زجاج visionOS فائق الشفافية                |
+| تخطيط  | `grid-cols-3` عادي               | `bento-grid` 12 عمود مع `bento-card` + hover radial       | شبكات Bento عصرية (Apple/Linear)           |
+| أزرار  | `h-9` مربعة                      | `btn-pill` حبوبية بتدرج ومطاطية                           | CTAs عصرية بحبوبية وتوهج                   |
+| حركة   | `reveal` فقط                     | `stagger` متتابع + `spring-pop`                           | ظهور متدرج يبعث الحيوية                    |
+| خلفية  | `tech-grid` ثابت                 | `aurora-mesh` متدرج متحرك                                 | أورورا نابضة للحيوية                       |
+
+## v2.15 أرشيف — الأساس الصلب
+
+# Design System — "Heritage Ledger" (دفتر التراث) v2.15 (مؤرشف)
 
 > نظام التصميم المعياري العالمي لمنصة الحسينية. الهدف: **مصدر واحد للحقيقة** لكل لون
 > وخط وتباعد، قابل للتبديل بين السمات، بمطابقة WCAG AA كحد أدنى.

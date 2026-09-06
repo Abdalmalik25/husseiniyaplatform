@@ -44,16 +44,12 @@ export function PricingTeaser() {
           </p>
         </div>
 
-        {/* Plan cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+        {/* Plan cards — v3.0 Bento عصرية بحبوبية */}
+        <div className="bento-grid mb-10 stagger">
           {plans.map(plan => (
             <div
               key={plan.key}
-              className={`reveal relative rounded-2xl border p-6 flex flex-col transition-all hover:-translate-y-1 ${
-                plan.highlight
-                  ? "border-brand shadow-xl shadow-brand/20 bg-ink text-white scale-[1.02]"
-                  : "border-border bg-card"
-              }`}
+              className={`bento-card flex flex-col ${plan.highlight ? "glass-ultra border-brand/20 shadow-modern-large bg-ink text-white scale-[1.02] !bg-gradient-to-br from-ink via-ink to-ink-600" : "shadow-modern-soft"}`}
             >
               {/* Popular badge */}
               {plan.highlight && (
@@ -116,7 +112,7 @@ export function PricingTeaser() {
                 ))}
               </ul>
 
-              {/* CTA */}
+              {/* CTA — حبوبية عصرية */}
               <Button
                 onClick={() => {
                   if (plan.key === "starter") {
@@ -137,13 +133,9 @@ export function PricingTeaser() {
                     );
                   }
                 }}
-                className={`w-full h-11 text-sm font-bold rounded-xl transition-all ${
-                  plan.highlight
-                    ? "bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep shadow-lg shadow-brand/30"
-                    : "bg-foreground text-background hover:bg-ink hover:text-white"
-                }`}
+                className={`w-full btn-pill justify-center ${plan.highlight ? "btn-pill-primary" : "btn-pill-ghost"}`}
               >
-                <Zap className="w-4 h-4 ml-2 fill-current" />
+                <Zap className="w-4 h-4 fill-current" />
                 {plan.cta}
               </Button>
             </div>

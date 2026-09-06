@@ -4,6 +4,22 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [3.0.0] — 2026-09-06 · Heritage Futurism — نظام تصميم فائق الرقي والعصرية v3.0
+
+### Design System — من تراثي إلى مستقبلي
+
+- **`index.css:2907` — طبقة v3.0 كاملة**: `text-fluid-hero/display/title` `clamp()` سائلة بلا قفزات، `shadow-modern-soft/medium/large` ناعمة ملونة (tinted 2026)، `glass-ultra` 24px + saturate 1.4 + inner highlight (visionOS)، `bento-grid/bento-card` 12 عمود مع hover radial، `btn-pill/primary/ghost` حبوبية بتدرج، `input-modern` بتركيز متوهج، `badge-modern` زجاجية، `empty-state-modern` بأيقونة 72px، `aurora-mesh` أورورا متحركة، `stagger` متتابع — كلها theme-aware + `prefers-reduced-motion`.
+- **`docs/DESIGN_SYSTEM.md:1` — Heritage Futurism v3.0**: قسم 0 جديد بجدول مقارنة قبل/بعد، مع الحفاظ على v2.15 كأرشيف — مصدر واحد للحقيقة لا كسر.
+- **`Landing.tsx:194` — هيرو مستقبلي**: `aurora-mesh` بدل تدرج ثابت، `text-fluid-hero/display` سائلة، 3 بطاقات Bento `bento-grid > bento-card glass-ultra shadow-modern-soft stagger` مع أيقونات داخل `bg-brand/10` — رقي فوري.
+- **`PricingTeaser.tsx:48` — تسعير Bento حبوبي**: `bento-grid stagger` + `bento-card glass-ultra shadow-modern-large` + CTA `btn-pill-primary/ghost` بدل `rounded-xl h-11` — الأكثر طلباً يتوهج بتدرج ink.
+- **`BudgetsPanel.tsx:123` — سد فجوة slate**: `panel-premium shadow-modern-soft` + `ribbon-premium` + `btn-pill` + `empty-state-modern` + `progress-premium` + `input-modern` — إزالة `bg-slate-*` بالكامل.
+
+### Verified
+
+- `pnpm check` 0 · `pnpm lint` 0 · `pnpm format` 0
+
+---
+
 ## [2.25.0] — 2026-09-06 · Site vs System Deep Separation — فصل الموقع التعريفي عن النظام بذكاء عالمي
 
 ### Architecture — فصل جذري لا ترقيع

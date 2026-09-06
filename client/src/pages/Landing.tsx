@@ -191,10 +191,10 @@ export default function Landing() {
       {/* ═══════════════════════════════════════════════════════════
           HERO — رسالة قيمة، ليست مجرد عنوان
       ═══════════════════════════════════════════════════════════ */}
-      <section className="relative text-white overflow-hidden">
+      <section className="relative text-white overflow-hidden aurora-mesh">
         <HeroBackground />
         <HeroAurora />
-        <div className="absolute inset-0 bg-gradient-to-b from-ink/90 via-ink/80 to-ink" />
+        <div className="absolute inset-0 bg-gradient-to-b from-ink/85 via-ink/75 to-ink/95 backdrop-blur-[0.5px]" />
 
         {/* شريط التنبيه */}
         <div className="relative z-10 bg-gradient-to-l from-brand/20 to-transparent border-b border-brand/20 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/80">
@@ -217,16 +217,16 @@ export default function Landing() {
             </span>
           </div>
 
-          {/* العنوان الرئيسي — مستوى استشاري عالمي فاخر */}
+          {/* العنوان الرئيسي — v3.0 طباعة سائلة فاخرة */}
           <div className="space-y-5">
-            <h1 className="text-hero text-4xl sm:text-5xl md:text-6xl text-balance">
+            <h1 className="text-fluid-hero text-balance">
               إذا كنت{" "}
               <span className="text-transparent bg-clip-text bg-gradient-to-l from-brand via-brand-300 to-brand-200 border-b-2 border-brand/30 pb-1">
                 {heroPhrase}
                 <span className="animate-pulse text-brand">|</span>
               </span>
             </h1>
-            <h2 className="text-hero text-3xl sm:text-4xl md:text-5xl text-white">
+            <h2 className="text-fluid-display text-white">
               فقرارك يستحق وضوحاً يُدقّق
             </h2>
             <div className="flex items-center justify-center gap-2 text-[11px] font-mono tracking-[0.2em] text-white/40">
@@ -299,28 +299,34 @@ export default function Landing() {
             </span>
           </div>
 
-          <div className="mx-auto max-w-5xl pt-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="mx-auto max-w-5xl pt-6">
+            <div className="bento-grid">
               {[
                 {
                   title: "إدارة حقيقية",
                   text: "من المحاسبة إلى المشاريع إلى المشتريات — منصة موحدة لا شاشات متفرقة.",
+                  icon: Layers,
                 },
                 {
                   title: "أمان وثقة",
                   text: "تشفير، سجل تدقيق، صلاحيات ثلاثية، وتوثيق كامل لكل قرار ومرجع.",
+                  icon: ShieldCheck,
                 },
                 {
                   title: "أثر قابل للقياس",
                   text: "تجربة عمليّة تُقاس بزمن الإغلاق، دقة التقدير، وسرعة اتخاذ القرار.",
+                  icon: BarChart3,
                 },
               ].map(item => (
                 <div
                   key={item.title}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-4 text-right backdrop-blur-sm"
+                  className="bento-card glass-ultra text-right shadow-modern-soft stagger"
                 >
+                  <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/15 flex items-center justify-center mb-3">
+                    <item.icon className="w-5 h-5 text-brand" />
+                  </div>
                   <p className="text-sm font-black text-white">{item.title}</p>
-                  <p className="mt-1 text-[11px] leading-relaxed text-white/65">
+                  <p className="mt-1.5 text-xs leading-relaxed text-white/65">
                     {item.text}
                   </p>
                 </div>

@@ -2888,6 +2888,299 @@ html[data-theme="ocean"] {
   backface-visibility: hidden;
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   v3.0 — Heritage Futurism — طبقة الرقي والعصرية القصوى
+   توكنات سائلة + Bento + زجاج فائق + حبوبية + حركة ربيعية 2026
+   ═══════════════════════════════════════════════════════════════ */
+
+@layer components {
+  /* ── Fluid Typography — مقياس سائل يتأقلم مع كل شاشة بلا نقاط كسر ── */
+  .text-fluid-hero {
+    font-size: clamp(2.25rem, 5vw + 1rem, 4.75rem);
+    line-height: 0.95;
+    letter-spacing: -0.04em;
+    font-weight: 900;
+  }
+  .text-fluid-display {
+    font-size: clamp(1.5rem, 3vw + 0.5rem, 2.75rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+    font-weight: 800;
+  }
+  .text-fluid-title {
+    font-size: clamp(1.125rem, 2vw + 0.5rem, 1.75rem);
+    line-height: 1.2;
+    font-weight: 800;
+  }
+
+  /* ── Modern Shadows — ظلال ناعمة ملونة (2026 trend: tinted soft shadows) ── */
+  .shadow-modern-soft {
+    box-shadow:
+      0 1px 2px rgba(14, 42, 43, 0.04),
+      0 4px 12px -4px rgba(14, 42, 43, 0.08),
+      0 16px 40px -16px rgba(14, 42, 43, 0.1);
+  }
+  .shadow-modern-medium {
+    box-shadow:
+      0 2px 8px -2px rgba(14, 42, 43, 0.08),
+      0 12px 32px -8px rgba(14, 42, 43, 0.14),
+      0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent);
+  }
+  .shadow-modern-large {
+    box-shadow:
+      0 8px 24px -8px rgba(14, 42, 43, 0.16),
+      0 32px 80px -16px rgba(14, 42, 43, 0.2),
+      0 0 0 1px color-mix(in srgb, var(--border) 40%, transparent);
+  }
+
+  /* ── Glass Ultra — زجاج فائق بتشبع وساتوريشن عالي (iOS 26 / visionOS) ── */
+  .glass-ultra {
+    background: color-mix(in srgb, var(--card) 72%, transparent);
+    backdrop-filter: blur(24px) saturate(1.4) brightness(1.02);
+    -webkit-backdrop-filter: blur(24px) saturate(1.4) brightness(1.02);
+    border: 1px solid color-mix(in srgb, var(--border) 50%, transparent);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 8px 32px rgba(14, 42, 43, 0.08);
+  }
+  .dark .glass-ultra {
+    background: color-mix(in srgb, var(--card) 68%, transparent);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.08) inset,
+      0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  /* ── Bento Grid — شبكة بينتو عصرية (Apple / Linear 2026) ── */
+  .bento-grid {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 16px;
+  }
+  .bento-card {
+    grid-column: span 6;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .bento-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px -12px rgba(14, 42, 43, 0.16);
+    border-color: color-mix(in srgb, var(--brand) 20%, var(--border));
+  }
+  .bento-card::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%),
+      color-mix(in srgb, var(--brand) 6%, transparent),
+      transparent 40%
+    );
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    pointer-events: none;
+  }
+  .bento-card:hover::after {
+    opacity: 1;
+  }
+  .bento-card-featured {
+    grid-column: span 12;
+  }
+  @media (min-width: 1024px) {
+    .bento-card-featured {
+      grid-column: span 8;
+    }
+    .bento-card-side {
+      grid-column: span 4;
+    }
+  }
+  @media (max-width: 640px) {
+    .bento-card {
+      grid-column: span 12;
+    }
+  }
+
+  /* ── Pill Buttons — أزرار حبوبية فائقة العصرية (2026) ── */
+  .btn-pill {
+    border-radius: 9999px;
+    padding: 10px 22px;
+    font-weight: 800;
+    font-size: 13px;
+    letter-spacing: -0.01em;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    position: relative;
+    overflow: hidden;
+  }
+  .btn-pill-primary {
+    background: linear-gradient(
+      135deg,
+      var(--brand) 0%,
+      var(--brand-deep) 100%
+    );
+    color: var(--brand-foreground);
+    box-shadow: 0 4px 16px color-mix(in srgb, var(--brand) 30%, transparent);
+  }
+  .btn-pill-primary:hover {
+    transform: translateY(-1px) scale(1.01);
+    box-shadow: 0 8px 24px color-mix(in srgb, var(--brand) 35%, transparent);
+  }
+  .btn-pill-ghost {
+    background: var(--muted);
+    color: var(--foreground);
+    border: 1px solid var(--border);
+  }
+  .btn-pill-ghost:hover {
+    background: var(--card);
+    border-color: color-mix(in srgb, var(--brand) 20%, var(--border));
+  }
+
+  /* ── Input Modern — حقل إدخال عصري بحد متدرج وتركيز متوهج ── */
+  .input-modern {
+    background: var(--card);
+    border: 1.5px solid var(--border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    font-size: 14px;
+    transition: all 0.2s ease;
+    width: 100%;
+  }
+  .input-modern:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--brand) 12%, transparent);
+  }
+  .input-modern::placeholder {
+    color: var(--muted-foreground);
+  }
+
+  /* ── Badge Modern — شارات حبوبية زجاجية ── */
+  .badge-modern {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.02em;
+    background: color-mix(in srgb, var(--brand) 10%, transparent);
+    color: var(--brand);
+    border: 1px solid color-mix(in srgb, var(--brand) 18%, transparent);
+    backdrop-filter: blur(8px);
+  }
+
+  /* ── Empty State Modern — حالة فارغة برسومية لطيفة ── */
+  .empty-state-modern {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px 24px;
+    text-align: center;
+    background: radial-gradient(
+      400px circle at 50% 0%,
+      color-mix(in srgb, var(--muted) 60%, transparent),
+      transparent 70%
+    );
+    border-radius: 20px;
+  }
+  .empty-state-modern-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 20px;
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--brand) 12%, transparent),
+      color-mix(in srgb, var(--brand-300) 12%, transparent)
+    );
+    border: 1px solid color-mix(in srgb, var(--brand) 12%, transparent);
+    display: grid;
+    place-items: center;
+    color: var(--brand);
+    margin-bottom: 16px;
+  }
+
+  /* ── Aurora Mesh — تدرج أورورا متحرك للخلفيات البطولية ── */
+  .aurora-mesh {
+    background:
+      radial-gradient(
+        at 20% 30%,
+        color-mix(in srgb, var(--brand) 18%, transparent) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        at 80% 20%,
+        color-mix(in srgb, var(--info) 14%, transparent) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        at 50% 80%,
+        color-mix(in srgb, var(--brand-300) 12%, transparent) 0%,
+        transparent 50%
+      ),
+      var(--background);
+    animation: aurora-drift 18s ease-in-out infinite alternate;
+  }
+  @keyframes aurora-drift {
+    0% {
+      filter: hue-rotate(0deg) brightness(1);
+    }
+    100% {
+      filter: hue-rotate(12deg) brightness(1.05);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .aurora-mesh {
+      animation: none;
+    }
+  }
+
+  /* ── Stagger — ظهور متتابع للأطفال (2026 motion) ── */
+  .stagger > * {
+    opacity: 0;
+    transform: translateY(12px);
+    animation: stagger-in 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  .stagger > *:nth-child(1) {
+    animation-delay: 0.04s;
+  }
+  .stagger > *:nth-child(2) {
+    animation-delay: 0.08s;
+  }
+  .stagger > *:nth-child(3) {
+    animation-delay: 0.12s;
+  }
+  .stagger > *:nth-child(4) {
+    animation-delay: 0.16s;
+  }
+  .stagger > *:nth-child(5) {
+    animation-delay: 0.2s;
+  }
+  .stagger > *:nth-child(6) {
+    animation-delay: 0.24s;
+  }
+  @keyframes stagger-in {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .stagger > * {
+      opacity: 1;
+      transform: none;
+      animation: none;
+    }
+  }
+}
+
 /* ── Accessibility — WCAG 2.3.3 (Animation from Interactions) ──
    المستخدمون الذين يفعّلون "تقليل الحركة" في نظامهم يحصلون على تجربة
    بلا حركة: نوقف كل الرسوميات والانتقالات الزخرفية مع الحفاظ على الوظيفة. */

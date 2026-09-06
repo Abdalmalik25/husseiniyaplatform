@@ -121,32 +121,39 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
   };
 
   return (
-    <Card className="border-brand-200 bg-brand-50 shadow-sm">
-      <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-brand-100">
-        <CardTitle className="flex items-center gap-2 text-brand-800 text-xs font-bold">
-          <Target className="w-4 h-4 text-brand" /> الميزانيات: الخطة مقابل
-          الفعلي
+    <Card className="panel-premium shadow-modern-soft overflow-hidden">
+      <CardHeader className="ribbon-premium flex flex-row items-center justify-between !py-3">
+        <CardTitle className="flex items-center gap-2 text-sm font-black">
+          <span className="w-8 h-8 rounded-xl bg-brand/10 border border-brand/15 grid place-items-center">
+            <Target className="w-4 h-4 text-brand" />
+          </span>
+          الميزانيات: الخطة مقابل الفعلي
         </CardTitle>
         <Button
           size="sm"
-          variant="outline"
           onClick={() => setDialogOpen(true)}
-          className="h-7 text-[10px] bg-white border-brand text-brand-800 hover:bg-muted"
+          className="btn-pill btn-pill-primary h-8 text-xs"
         >
-          <Plus className="w-3.5 h-3.5 ml-1" /> إضافة خطة
+          <Plus className="w-3.5 h-3.5" /> إضافة خطة
         </Button>
       </CardHeader>
       <CardContent className="p-4 space-y-3">
         {isLoading ? (
-          <div className="py-6 flex items-center justify-center gap-2 text-slate-500 text-xs">
+          <div className="py-6 flex items-center justify-center gap-2 text-muted-foreground text-xs">
             <Loader2 className="w-5 h-5 animate-spin text-brand" /> جاري تحميل
             خطط الميزانية...
           </div>
         ) : !budgets || budgets.length === 0 ? (
-          <p className="py-6 text-center text-[11px] text-slate-500">
-            لا توجد خطط ميزانية بعد — أضف خطة لمراقبة الأداء المالي مقابل
-            الأهداف. الأرقام الفعلية تحسب من الحركات المعتمدة.
-          </p>
+          <div className="empty-state-modern py-8">
+            <div className="empty-state-modern-icon">
+              <Target className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-bold">لا توجد خطط ميزانية بعد</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              أضف خطة لمراقبة الأداء مقابل الأهداف — الأرقام من الحركات
+              المعتمدة.
+            </p>
+          </div>
         ) : (
           budgets.map((b: any) => {
             const revPct = pct(
@@ -188,9 +195,9 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
                         {currency} ({revPct}%)
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="progress-premium h-2">
                       <div
-                        className={`h-full rounded-full transition-all duration-700 ${barColor(revPct, false)}`}
+                        className={`progress-fill ${barColor(revPct, false)}`}
                         style={{ width: `${Math.min(100, revPct)}%` }}
                       />
                     </div>
@@ -206,9 +213,9 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
                         {currency} ({expPct}%)
                       </span>
                     </div>
-                    <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div className="progress-premium h-2">
                       <div
-                        className={`h-full rounded-full transition-all duration-700 ${barColor(expPct, true)}`}
+                        className={`progress-fill ${barColor(expPct, true)}`}
                         style={{ width: `${Math.min(100, expPct)}%` }}
                       />
                     </div>
@@ -236,7 +243,7 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
                 value={form.periodName}
                 onChange={e => setForm({ ...form, periodName: e.target.value })}
                 placeholder="مثال: ميزانية 2026"
-                className="h-8 bg-slate-50"
+                className="input-modern h-9"
               />
             </div>
             <div className="grid grid-cols-2 gap-2">
@@ -249,7 +256,7 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
                     setForm({ ...form, targetRevenue: e.target.value })
                   }
                   placeholder="0"
-                  className="h-8 font-mono bg-slate-50"
+                  className="input-modern h-9 font-mono"
                 />
               </div>
               <div className="space-y-1">
@@ -261,7 +268,7 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
                     setForm({ ...form, targetExpense: e.target.value })
                   }
                   placeholder="0"
-                  className="h-8 font-mono bg-slate-50"
+                  className="input-modern h-9 font-mono"
                 />
               </div>
             </div>
@@ -271,7 +278,7 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
                 value={form.notes}
                 onChange={e => setForm({ ...form, notes: e.target.value })}
                 placeholder="أهداف وملاحظات الفترة..."
-                className="h-8 bg-slate-50"
+                className="input-modern h-9"
               />
             </div>
           </div>
