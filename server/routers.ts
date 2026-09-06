@@ -7292,6 +7292,53 @@ ${analysisText}
         return { success: true, varianceQty, variancePct, varianceValue };
       }),
 
+    cycleCountLines: tenantProcedure
+      .input(
+        z.object({
+          cycleCountId: z.number(),
+        })
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) throw new Error("يجب إنشاء مؤسسة أولاً");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+        const tid = ctx.tenantId;
+
+        return await db
+          .select({
+            id: cycleCountLines.id,
+            productId: cycleCountLines.productId,
+            warehouseId: cycleCountLines.warehouseId,
+            batchId: cycleCountLines.batchId,
+            systemQty: cycleCountLines.systemQty,
+            countedQty: cycleCountLines.countedQty,
+            varianceQty: cycleCountLines.varianceQty,
+            variancePct: cycleCountLines.variancePct,
+            varianceValue: cycleCountLines.varianceValue,
+            unitCost: cycleCountLines.unitCost,
+            status: cycleCountLines.status,
+            productCode: products.code,
+            productName: products.name,
+            warehouseCode: warehouses.code,
+            warehouseName: warehouses.name,
+            batchNumber: inventoryBatches.batchNumber,
+          })
+          .from(cycleCountLines)
+          .leftJoin(products, eq(cycleCountLines.productId, products.id))
+          .leftJoin(warehouses, eq(cycleCountLines.warehouseId, warehouses.id))
+          .leftJoin(
+            inventoryBatches,
+            eq(cycleCountLines.batchId, inventoryBatches.id)
+          )
+          .where(
+            and(
+              eq(cycleCountLines.cycleCountId, input.cycleCountId),
+              eq(cycleCountLines.tenantId, tid)
+            )
+          )
+          .orderBy(asc(cycleCountLines.id));
+      }),
+
     cycleCountComplete: tenantProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {

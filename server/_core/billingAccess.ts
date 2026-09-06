@@ -93,10 +93,7 @@ type ResolveInput = {
   policy?: Partial<
     Pick<
       SubscriptionPolicy,
-      | "graceDays"
-      | "graceFullAccess"
-      | "maxOverdueDays"
-      | "restrictedFeatures"
+      "graceDays" | "graceFullAccess" | "maxOverdueDays" | "restrictedFeatures"
     >
   >;
 };
@@ -331,5 +328,3 @@ export async function enforceFeature(
 
   return decision;
 }
-
-

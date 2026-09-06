@@ -151,45 +151,41 @@ export default function Projects() {
   return (
     <div className="min-h-screen bg-background text-foreground font-display flex">
       <AppSidebar />
-      <div className="brand-gradient text-white">
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <button
-            onClick={() => setLocation("/app")}
-            className="flex items-center gap-1.5 text-xs text-brand-300 hover:text-white mb-4"
-          >
+      <div className="ribbon-premium mx-3 mt-3">
+        <div className="flex items-center gap-3 mb-4">
+          <button onClick={() => setLocation("/app")} className="chip text-xs">
             <ArrowLeft className="w-4 h-4 rotate-180" />
             العودة للوحة التحكم
           </button>
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-brand text-ink-deep flex items-center justify-center font-bold shadow-lg">
-              <FolderKanban className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-black font-display">
-                مساحة المشاريع
-              </h1>
-              <p className="text-xs text-white/70 mt-0.5">
-                تخطيط وإدارة المشاريع ومهامها — مع تتبع الحالة والأولوية
-                والإنجاز.
-              </p>
-            </div>
+        </div>
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-brand text-brand-foreground flex items-center justify-center font-bold shadow-md">
+            <FolderKanban className="w-7 h-7" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black font-display text-brand-gradient">
+              مساحة المشاريع
+            </h1>
+            <p className="text-sm text-muted-foreground mt-1">
+              تخطيط وإدارة المشاريع ومهامها — مع تتبع الحالة والأولوية والإنجاز.
+            </p>
           </div>
         </div>
       </div>
 
       <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         <Tabs defaultValue="overview">
-          <TabsList className="bg-muted p-1 rounded-xl flex gap-1 w-full sm:w-auto">
-            <TabsTrigger value="overview" className="text-xs">
+          <TabsList className="tabs-primary w-full sm:w-auto">
+            <TabsTrigger value="overview" className="tab-trigger">
               نظرة عامة
             </TabsTrigger>
-            <TabsTrigger value="projects" className="text-xs">
+            <TabsTrigger value="projects" className="tab-trigger">
               المشاريع
             </TabsTrigger>
-            <TabsTrigger value="tasks" className="text-xs">
+            <TabsTrigger value="tasks" className="tab-trigger">
               المهام
             </TabsTrigger>
-            <TabsTrigger value="performance" className="text-xs">
+            <TabsTrigger value="performance" className="tab-trigger">
               تقرير الأداء
             </TabsTrigger>
           </TabsList>
@@ -312,17 +308,17 @@ export default function Projects() {
                         : 0;
                       return (
                         <div key={st}>
-                          <div className="flex justify-between text-[11px] mb-1">
-                            <span className="font-medium">
+                          <div className="flex justify-between text-xs mb-1.5">
+                            <span className="font-semibold">
                               {TASK_STATUS_LABEL[st]}
                             </span>
-                            <span className="text-muted-foreground dir-ltr">
+                            <span className="text-muted-foreground dir-ltr font-mono">
                               {count}
                             </span>
                           </div>
-                          <div className="h-2 rounded-full bg-muted overflow-hidden">
+                          <div className="progress-premium">
                             <div
-                              className="h-full bg-brand rounded-full"
+                              className="progress-fill"
                               style={{ width: `${pct}%` }}
                             />
                           </div>

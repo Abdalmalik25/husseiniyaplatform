@@ -46,10 +46,10 @@ const statusLabels: Record<string, string> = {
 };
 
 const statusColors: Record<string, string> = {
-  active: "bg-blue-100 text-blue-700",
-  fulfilled: "bg-green-100 text-green-700",
-  released: "bg-gray-100 text-gray-700",
-  expired: "bg-red-100 text-red-700",
+  active: "chip bg-info/15 text-info",
+  fulfilled: "chip bg-success/15 text-success",
+  released: "chip bg-muted text-muted-foreground",
+  expired: "chip bg-rose-500/15 text-rose-600",
 };
 
 const sourceLabels: Record<string, string> = {
@@ -251,14 +251,14 @@ export function StockReservationsPanel() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-ink">حجوزات المخزون</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-lg font-bold text-foreground">حجوزات المخزون</h2>
+          <p className="text-xs text-muted-foreground">
             إدارة الحجوزات والتخصيصات لأوامر المبيعات والإنتاج
           </p>
         </div>
         <Button
           size="sm"
-          className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
+          className="press-effect shine-on-hover text-xs h-8"
           onClick={() => setShowCreateDialog(true)}
           disabled={!selectedWarehouseId}
         >
@@ -267,36 +267,43 @@ export function StockReservationsPanel() {
       </div>
 
       {!selectedWarehouseId ? (
-        <Card className="border-0 shadow-sm bg-white">
-          <CardContent className="p-8 text-center text-gray-400">
-            <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>اختر مخزناً لعرض حجوزاته</p>
+        <Card className="panel-premium border-0">
+          <CardContent className="p-8 text-center">
+            <div className="empty-state rounded-2xl border border-border bg-surface p-8">
+              <Package className="w-12 h-12 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-sm font-medium text-foreground">
+                اختر مخزناً لعرض حجوزاته
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                قم باختيار مخزن من القائمة أعلاه
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">إجمالي الحجوزات</p>
-              <p className="font-bold text-lg text-ink">
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">
+                إجمالي الحجوزات
+              </p>
+              <p className="font-bold text-lg text-foreground">
                 {totalReservations}
               </p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">نشطة</p>
-              <p className="font-bold text-lg text-blue-600">{activeCount}</p>
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">نشطة</p>
+              <p className="font-bold text-lg text-info">{activeCount}</p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">إجمالي الكمية</p>
-              <p className="font-bold text-lg text-ink">
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">إجمالي الكمية</p>
+              <p className="font-bold text-lg text-foreground">
                 {formatNum(totalQty)}
               </p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">منفذة</p>
-              <p className="font-bold text-lg text-green-600">
-                {fulfilledCount}
-              </p>
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">منفذة</p>
+              <p className="font-bold text-lg text-success">{fulfilledCount}</p>
             </Card>
           </div>
 
@@ -344,143 +351,150 @@ export function StockReservationsPanel() {
             </div>
           </div>
 
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-3 overflow-x-auto">
+          <Card className="panel-premium border-0">
+            <CardContent className="p-4 overflow-x-auto">
               {isLoading ? (
                 <div className="space-y-2">
                   {[...Array(5)].map((_, i) => (
                     <div
                       key={i}
-                      className="h-10 bg-gray-100 rounded animate-pulse"
+                      className="h-10 bg-muted/50 rounded animate-pulse"
                     />
                   ))}
                 </div>
               ) : (
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b bg-gray-50 text-[10px]">
-                      <th className="text-right p-2">المصدر</th>
-                      <th className="text-right p-2">رقم المصدر</th>
-                      <th className="text-right p-2">الصنف</th>
-                      <th className="text-right p-2">الدفعة</th>
-                      <th className="text-center p-2">الكمية</th>
-                      <th className="text-center p-2">الحالة</th>
-                      <th className="text-center p-2">العميل</th>
-                      <th className="text-center p-2">تاريخ الانتهاء</th>
-                      <th className="text-left p-2">الإجراءات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredReservations.map(res => {
-                      const isExpired =
-                        res.expiresAt && new Date(res.expiresAt) < new Date();
-                      const isActive = res.status === "active";
-                      return (
-                        <tr
-                          key={res.id}
-                          className={`border-b hover:bg-gray-50 ${isExpired && isActive ? "bg-red-50" : ""}`}
-                        >
-                          <td className="p-2">
-                            <Badge variant="outline" className="text-[9px]">
-                              {sourceLabels[res.source] || res.source}
-                            </Badge>
-                          </td>
-                          <td className="p-2 font-mono text-[10px]">
-                            {res.sourceId || "-"}
-                          </td>
-                          <td className="p-2">
-                            <div className="font-medium text-[11px]">
-                              {res.productName}
-                            </div>
-                            <div className="text-[9px] text-gray-400">
-                              {res.productCode}
-                            </div>
-                          </td>
-                          <td className="p-2 text-[10px]">
-                            {res.batchNumber || "-"}
-                          </td>
-                          <td className="p-2 text-center font-mono">
-                            {formatNum(res.quantity || 0)}
-                          </td>
-                          <td className="p-2 text-center">
-                            <Badge
-                              className={
-                                statusColors[res.status] ||
-                                "bg-gray-100 text-gray-700"
-                              }
-                              variant="outline"
-                            >
-                              {statusLabels[res.status] || res.status}
-                            </Badge>
-                          </td>
-                          <td className="p-2 text-center text-[10px]">
-                            {res.customerId ? `عميل #${res.customerId}` : "-"}
-                          </td>
-                          <td className="p-2 text-center text-[10px]">
-                            {res.expiresAt ? (
-                              <span
+                <div className="datagrid rounded-xl border border-line overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-panel/60 text-muted-foreground font-bold text-[10px]">
+                        <th className="text-right p-2.5">المصدر</th>
+                        <th className="text-right p-2.5">رقم المصدر</th>
+                        <th className="text-right p-2.5">الصنف</th>
+                        <th className="text-right p-2.5">الدفعة</th>
+                        <th className="text-center p-2.5">الكمية</th>
+                        <th className="text-center p-2.5">الحالة</th>
+                        <th className="text-center p-2.5">العميل</th>
+                        <th className="text-center p-2.5">تاريخ الانتهاء</th>
+                        <th className="text-left p-2.5">الإجراءات</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredReservations.map(res => {
+                        const isExpired =
+                          res.expiresAt && new Date(res.expiresAt) < new Date();
+                        const isActive = res.status === "active";
+                        return (
+                          <tr
+                            key={res.id}
+                            className={`border-line hover:bg-muted/30 transition-colors ${isExpired && isActive ? "bg-rose-500/5" : "bg-surface"}`}
+                          >
+                            <td className="p-2.5">
+                              <Badge variant="outline" className="chip">
+                                {sourceLabels[res.source] || res.source}
+                              </Badge>
+                            </td>
+                            <td className="p-2.5 font-mono text-[10px] text-foreground">
+                              {res.sourceId || "-"}
+                            </td>
+                            <td className="p-2.5">
+                              <div className="font-medium text-[11px] text-foreground">
+                                {res.productName}
+                              </div>
+                              <div className="text-[9px] text-muted-foreground">
+                                {res.productCode}
+                              </div>
+                            </td>
+                            <td className="p-2.5 text-[10px] text-foreground">
+                              {res.batchNumber || "-"}
+                            </td>
+                            <td className="p-2.5 text-center font-mono text-foreground">
+                              {formatNum(res.quantity || 0)}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <Badge
                                 className={
-                                  isExpired
-                                    ? "text-red-600 font-bold"
-                                    : "text-gray-600"
+                                  statusColors[res.status] ||
+                                  "chip bg-muted text-muted-foreground"
                                 }
+                                variant="outline"
                               >
-                                {new Date(res.expiresAt).toLocaleDateString(
-                                  "ar-EG"
-                                )}
-                              </span>
-                            ) : (
-                              "-"
-                            )}
-                          </td>
-                          <td className="p-2 text-left flex items-center gap-1">
-                            {isActive && (
-                              <>
-                                <Button
-                                  size="icon"
-                                  variant="outline"
-                                  className="h-6 w-6 text-[10px] text-green-600 hover:bg-green-50"
-                                  onClick={() =>
-                                    fulfillReservation.mutate({ id: res.id })
+                                {statusLabels[res.status] || res.status}
+                              </Badge>
+                            </td>
+                            <td className="p-2.5 text-center text-[10px] text-foreground">
+                              {res.customerId ? `عميل #${res.customerId}` : "-"}
+                            </td>
+                            <td className="p-2.5 text-center text-[10px]">
+                              {res.expiresAt ? (
+                                <span
+                                  className={
+                                    isExpired
+                                      ? "text-rose-600 font-bold"
+                                      : "text-foreground"
                                   }
-                                  disabled={fulfillReservation.isPending}
-                                  title="تنفيذ الحجز"
                                 >
-                                  <CheckCircle className="w-3 h-3" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="outline"
-                                  className="h-6 w-6 text-[10px] text-amber-600 hover:bg-amber-50"
-                                  onClick={() =>
-                                    releaseReservation.mutate({
-                                      id: res.id,
-                                      reason: "تحرير يدوي",
-                                    })
-                                  }
-                                  disabled={releaseReservation.isPending}
-                                  title="تحرير الحجز"
-                                >
-                                  <Unlock className="w-3 h-3" />
-                                </Button>
-                              </>
-                            )}
+                                  {new Date(res.expiresAt).toLocaleDateString(
+                                    "ar-EG"
+                                  )}
+                                </span>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                            <td className="p-2.5 text-left flex items-center gap-1">
+                              {isActive && (
+                                <>
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-6 w-6 text-[10px] text-green-600 hover:bg-green-50"
+                                    onClick={() =>
+                                      fulfillReservation.mutate({ id: res.id })
+                                    }
+                                    disabled={fulfillReservation.isPending}
+                                    title="تنفيذ الحجز"
+                                  >
+                                    <CheckCircle className="w-3 h-3" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="outline"
+                                    className="h-6 w-6 text-[10px] text-amber-600 hover:bg-amber-50"
+                                    onClick={() =>
+                                      releaseReservation.mutate({
+                                        id: res.id,
+                                        reason: "تحرير يدوي",
+                                      })
+                                    }
+                                    disabled={releaseReservation.isPending}
+                                    title="تحرير الحجز"
+                                  >
+                                    <Unlock className="w-3 h-3" />
+                                  </Button>
+                                </>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {filteredReservations.length === 0 && (
+                        <tr>
+                          <td colSpan={9} className="text-center py-10">
+                            <div className="empty-state flex flex-col items-center gap-2">
+                              <Package className="w-8 h-8 text-muted-foreground/50" />
+                              <p className="text-sm font-medium text-foreground">
+                                لا توجد حجوزات
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                لم يتم العثور على حجوزات لهذا المخزن
+                              </p>
+                            </div>
                           </td>
                         </tr>
-                      );
-                    })}
-                    {filteredReservations.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={9}
-                          className="text-center text-gray-400 py-8"
-                        >
-                          لا توجد حجوزات
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardContent>
           </Card>

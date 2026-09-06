@@ -135,10 +135,7 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
 }`;
 
   return (
-    <div
-      className="min-h-screen bg-sand text-ink pb-20 font-sans"
-      dir="rtl"
-    >
+    <div className="min-h-screen bg-sand text-ink pb-20 font-sans" dir="rtl">
       <HeaderNavbar />
 
       {/* Hero */}
@@ -238,13 +235,13 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <TabsContent value="iframe" className="space-y-4 pt-4">
             <div>
               <h3 className="text-lg font-bold font-display text-slate-900 flex items-center gap-2">
-                <Globe className="w-5 h-5 text-brand" /> 1) تضمين المتجر في
-                صفحة (PHP / WordPress)
+                <Globe className="w-5 h-5 text-brand" /> 1) تضمين المتجر في صفحة
+                (PHP / WordPress)
               </h3>
               <p className="text-xs text-slate-600 mt-1">
                 حمّل الملف{" "}
-                <code className="font-mono text-brand">Store.php</code> إلى
-                جذر موقعك، أو الصق الكتلة أسفل في صفحة ووردبريس عبر "HTML مخصص".
+                <code className="font-mono text-brand">Store.php</code> إلى جذر
+                موقعك، أو الصق الكتلة أسفل في صفحة ووردبريس عبر "HTML مخصص".
               </p>
             </div>
             <CodeBlock code={storePhpSnippet} lang="php" />
@@ -276,8 +273,8 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <TabsContent value="api" className="space-y-4 pt-4">
             <div>
               <h3 className="text-lg font-bold font-display text-slate-900 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-brand" /> 3) واجهة REST
-                عامة (CORS-m enabled)
+                <BookOpen className="w-5 h-5 text-brand" /> 3) واجهة REST عامة
+                (CORS-m enabled)
               </h3>
               <p className="text-xs text-slate-600 mt-1">
                 نقاط نهاية عامة لجلب الكتالوج وإرسال الطلبات من أي نطاق — مثالية
@@ -291,14 +288,12 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           <TabsContent value="webhook" className="space-y-4 pt-4">
             <div>
               <h3 className="text-lg font-bold font-display text-slate-900 flex items-center gap-2">
-                <Webhook className="w-5 h-5 text-brand" /> 4) ويب هوك
-                للطلبات الجديدة
+                <Webhook className="w-5 h-5 text-brand" /> 4) ويب هوك للطلبات
+                الجديدة
               </h3>
               <p className="text-xs text-slate-600 mt-1">
                 اضبط متغير البيئة{" "}
-                <code className="font-mono text-brand">
-                  ORDER_WEBHOOK_URL
-                </code>{" "}
+                <code className="font-mono text-brand">ORDER_WEBHOOK_URL</code>{" "}
                 على Vercel لاستقبال إشعار JSON مع كل طلب جديد.
               </p>
             </div>

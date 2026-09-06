@@ -844,33 +844,33 @@ export default function Commercial() {
         </div>
 
         <Tabs value={activeTab} onValueChange={v => setActiveTab(v as Tab)}>
-          <TabsList className="grid w-full grid-cols-3 sm:grid-cols-7 h-10 mb-3 bg-white border">
-            <TabsTrigger value="products" className="text-[10px]">
+          <TabsList className="tabs-primary w-full sm:w-auto">
+            <TabsTrigger value="products" className="tab-trigger">
               <Package className="w-3 h-3 ml-1" />
               المنتجات
             </TabsTrigger>
-            <TabsTrigger value="customers" className="text-[10px]">
-              <Users className="w-3 h-3 ml-1" />
+            <TabsTrigger value="customers" className="tab-trigger">
+              <Users className="w-3.5 h-3.5 ml-1.5" />
               العملاء
             </TabsTrigger>
-            <TabsTrigger value="suppliers" className="text-[10px]">
-              <Truck className="w-3 h-3 ml-1" />
+            <TabsTrigger value="suppliers" className="tab-trigger">
+              <Truck className="w-3.5 h-3.5 ml-1.5" />
               الموردين
             </TabsTrigger>
-            <TabsTrigger value="sales" className="text-[10px]">
-              <ShoppingCart className="w-3 h-3 ml-1" />
+            <TabsTrigger value="sales" className="tab-trigger">
+              <ShoppingCart className="w-3.5 h-3.5 ml-1.5" />
               المبيعات
             </TabsTrigger>
-            <TabsTrigger value="purchases" className="text-[10px]">
-              <ShoppingBag className="w-3 h-3 ml-1" />
+            <TabsTrigger value="purchases" className="tab-trigger">
+              <ShoppingBag className="w-3.5 h-3.5 ml-1.5" />
               المشتريات
             </TabsTrigger>
-            <TabsTrigger value="orders" className="text-[10px]">
-              <ClipboardList className="w-3 h-3 ml-1" />
+            <TabsTrigger value="orders" className="tab-trigger">
+              <ClipboardList className="w-3.5 h-3.5 ml-1.5" />
               الطلبات
             </TabsTrigger>
-            <TabsTrigger value="offers" className="text-[10px]">
-              <Tag className="w-3 h-3 ml-1" />
+            <TabsTrigger value="offers" className="tab-trigger">
+              <Tag className="w-3.5 h-3.5 ml-1.5" />
               العروض
             </TabsTrigger>
           </TabsList>
@@ -1225,28 +1225,29 @@ export default function Commercial() {
 
           {/* ─── Sales Tab ─── */}
           <TabsContent value="sales">
-            <Card className="border-0 shadow-sm bg-white">
-              <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-ink">
+            <Card className="panel-premium border-0">
+              <CardHeader className="ribbon-premium flex flex-row items-center justify-between py-3 px-4">
+                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-brand" />
                   فواتير المبيعات / نقطة البيع
                 </CardTitle>
                 <Button
                   size="sm"
-                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8 press-effect shine-on-hover"
                   onClick={() => setShowSaleDialog(true)}
                 >
-                  <Plus className="w-3 h-3 ml-1" />
+                  <Plus className="w-3.5 h-3.5 ml-1" />
                   فاتورة جديدة
                 </Button>
               </CardHeader>
-              <CardContent className="p-3">
-                <div className="space-y-2">
+              <CardContent className="p-4">
+                <div className="space-y-3">
                   {loadingSales && (
                     <div className="space-y-2">
                       {[1, 2, 3].map(i => (
                         <div
                           key={i}
-                          className="h-16 bg-gray-100 rounded-lg animate-pulse"
+                          className="h-16 bg-muted/50 rounded-lg animate-pulse"
                         />
                       ))}
                     </div>
@@ -1255,38 +1256,40 @@ export default function Commercial() {
                     salesData?.map(inv => (
                       <div
                         key={inv.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                        className="datagrid flex items-center justify-between p-3.5 rounded-xl hover-lift transition-all"
                       >
-                        <div>
-                          <p className="font-bold text-xs text-ink">
+                        <div className="space-y-1">
+                          <p className="font-bold text-sm text-foreground font-mono">
                             {inv.invoiceNumber}
                           </p>
-                          <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <User className="w-3 h-3" />
                             {customerNameOf(inv.customerId)}
                           </p>
-                          <p className="text-[10px] text-gray-400">
+                          <p className="text-[11px] text-muted-foreground/70 font-mono">
                             {new Date(inv.invoiceDate).toLocaleDateString(
                               "ar-EG"
                             )}
                           </p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5 flex-wrap">
                           <Badge
-                            className={`text-[10px] ${statusColorsMap[inv.status] || ""}`}
+                            className={`text-[11px] font-bold ${statusColorsMap[inv.status] || ""}`}
                           >
                             {statusLabelsMap[inv.status] || inv.status}
                           </Badge>
-                          <p className="font-bold text-xs text-green-600">
+                          <p className="font-bold text-sm text-emerald-700 font-mono">
                             {inv.total} ر.ي
                           </p>
-                          <p className="text-[9px] text-gray-400">
-                            المدفوع:{" "}
+                          <p className="text-[10px] text-muted-foreground/70 font-mono">
+                            مدفوع:{" "}
                             {Number(inv.paidAmount || 0).toLocaleString(
                               "en-US"
                             )}{" "}
-                            · المتبقي:{" "}
-                            {Number(inv.total).toLocaleString("en-US")}
+                            · متبقي:{" "}
+                            {(
+                              Number(inv.total) - Number(inv.paidAmount || 0)
+                            ).toLocaleString("en-US")}
                           </p>
                           {inv.status !== "cancelled" &&
                             Number(inv.total) - Number(inv.paidAmount || 0) >
@@ -1294,20 +1297,20 @@ export default function Commercial() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-[9px] h-6 text-emerald-700 border-emerald-200"
+                                className="text-[10px] h-7 text-emerald-700 border-emerald-200 hover:bg-emerald-50/40 press-effect"
                                 onClick={() => openPayDialog(inv, "sales")}
                               >
-                                <Wallet className="w-3 h-3" /> دفعة
+                                <Wallet className="w-3 h-3 ml-1" /> دفعة
                               </Button>
                             )}
                           {inv.status !== "cancelled" && (
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-[9px] h-6 text-sky-700 border-sky-200"
+                              className="text-[10px] h-7 text-info border-info/30 hover:bg-info/10 press-effect"
                               onClick={() => handlePrintSaleInvoice(inv.id)}
                             >
-                              <Printer className="w-3 h-3" /> طباعة
+                              <Printer className="w-3 h-3 ml-1" /> طباعة
                             </Button>
                           )}
                           <EntityDocuments
@@ -1318,7 +1321,7 @@ export default function Commercial() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-[9px] h-6 text-red-600 border-red-200"
+                              className="text-[10px] h-7 text-rose-600 border-rose-200 hover:bg-rose-50/40 press-effect"
                               disabled={updateSaleStatus.isPending}
                               onClick={() => {
                                 if (
@@ -1339,9 +1342,25 @@ export default function Commercial() {
                       </div>
                     ))}
                   {(!salesData || salesData.length === 0) && (
-                    <p className="text-center text-gray-400 text-sm py-8">
-                      لا توجد فواتير مبيعات
-                    </p>
+                    <div className="empty-state rounded-2xl border border-border bg-surface p-8 text-center">
+                      <div className="empty-state-icon mx-auto mb-3">
+                        <ShoppingCart className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-foreground mb-1">
+                        لا توجد فواتير مبيعات
+                      </h4>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        ابدأ بإنشاء فاتورة جديدة لتسجيل عملية بيع
+                      </p>
+                      <Button
+                        size="sm"
+                        className="bg-brand hover:bg-brand-deep text-ink-deep text-xs h-8 press-effect"
+                        onClick={() => setShowSaleDialog(true)}
+                      >
+                        <Plus className="w-3.5 h-3.5 ml-1" />
+                        إنشاء فاتورة
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -1350,28 +1369,29 @@ export default function Commercial() {
 
           {/* ─── Purchases Tab ─── */}
           <TabsContent value="purchases">
-            <Card className="border-0 shadow-sm bg-white">
-              <CardHeader className="flex flex-row items-center justify-between p-3">
-                <CardTitle className="text-sm font-bold text-ink">
+            <Card className="panel-premium border-0">
+              <CardHeader className="ribbon-premium flex flex-row items-center justify-between py-3 px-4">
+                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <ShoppingBag className="w-4 h-4 text-brand" />
                   فواتير المشتريات
                 </CardTitle>
                 <Button
                   size="sm"
-                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
+                  className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8 press-effect shine-on-hover"
                   onClick={() => setShowPurchaseDialog(true)}
                 >
-                  <Plus className="w-3 h-3 ml-1" />
+                  <Plus className="w-3.5 h-3.5 ml-1" />
                   فاتورة جديدة
                 </Button>
               </CardHeader>
-              <CardContent className="p-3">
-                <div className="space-y-2">
+              <CardContent className="p-4">
+                <div className="space-y-3">
                   {loadingPurchases && (
                     <div className="space-y-2">
                       {[1, 2, 3].map(i => (
                         <div
                           key={i}
-                          className="h-16 bg-gray-100 rounded-lg animate-pulse"
+                          className="h-16 bg-muted/50 rounded-lg animate-pulse"
                         />
                       ))}
                     </div>
@@ -1380,38 +1400,40 @@ export default function Commercial() {
                     purchasesData?.map(inv => (
                       <div
                         key={inv.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                        className="datagrid flex items-center justify-between p-3.5 rounded-xl hover-lift transition-all"
                       >
-                        <div>
-                          <p className="font-bold text-xs text-ink">
+                        <div className="space-y-1">
+                          <p className="font-bold text-sm text-foreground font-mono">
                             {inv.invoiceNumber}
                           </p>
-                          <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                             <Truck className="w-3 h-3" />
                             {supplierNameOf(inv.supplierId)}
                           </p>
-                          <p className="text-[10px] text-gray-400">
+                          <p className="text-[11px] text-muted-foreground/70 font-mono">
                             {new Date(inv.invoiceDate).toLocaleDateString(
                               "ar-EG"
                             )}
                           </p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2.5 flex-wrap">
                           <Badge
-                            className={`text-[10px] ${statusColorsMap[inv.status] || ""}`}
+                            className={`text-[11px] font-bold ${statusColorsMap[inv.status] || ""}`}
                           >
                             {statusLabelsMap[inv.status] || inv.status}
                           </Badge>
-                          <p className="font-bold text-xs text-red-600">
+                          <p className="font-bold text-sm text-rose-600 font-mono">
                             {inv.total} ر.ي
                           </p>
-                          <p className="text-[9px] text-gray-400">
-                            المدفوع:{" "}
+                          <p className="text-[10px] text-muted-foreground/70 font-mono">
+                            مدفوع:{" "}
                             {Number(inv.paidAmount || 0).toLocaleString(
                               "en-US"
                             )}{" "}
-                            · المتبقي:{" "}
-                            {Number(inv.total).toLocaleString("en-US")}
+                            · متبقي:{" "}
+                            {(
+                              Number(inv.total) - Number(inv.paidAmount || 0)
+                            ).toLocaleString("en-US")}
                           </p>
                           {inv.status !== "cancelled" &&
                             Number(inv.total) - Number(inv.paidAmount || 0) >
@@ -1419,17 +1441,17 @@ export default function Commercial() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-[9px] h-6 text-emerald-700 border-emerald-200"
+                                className="text-[10px] h-7 text-emerald-700 border-emerald-200 hover:bg-emerald-50/40 press-effect"
                                 onClick={() => openPayDialog(inv, "purchases")}
                               >
-                                <Wallet className="w-3 h-3" /> دفعة
+                                <Wallet className="w-3 h-3 ml-1" /> دفعة
                               </Button>
                             )}
                           {inv.status !== "cancelled" && (
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-[9px] h-6 text-red-600 border-red-200"
+                              className="text-[10px] h-7 text-rose-600 border-rose-200 hover:bg-rose-50/40 press-effect"
                               disabled={updatePurchaseStatus.isPending}
                               onClick={() => {
                                 if (
@@ -1450,9 +1472,25 @@ export default function Commercial() {
                       </div>
                     ))}
                   {(!purchasesData || purchasesData.length === 0) && (
-                    <p className="text-center text-gray-400 text-sm py-8">
-                      لا توجد فواتير مشتريات
-                    </p>
+                    <div className="empty-state rounded-2xl border border-border bg-surface p-8 text-center">
+                      <div className="empty-state-icon mx-auto mb-3">
+                        <ShoppingBag className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-foreground mb-1">
+                        لا توجد فواتير مشتريات
+                      </h4>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        ابدأ بتسجيل فاتورة شراء جديدة من الموردين
+                      </p>
+                      <Button
+                        size="sm"
+                        className="bg-brand hover:bg-brand-deep text-ink-deep text-xs h-8 press-effect"
+                        onClick={() => setShowPurchaseDialog(true)}
+                      >
+                        <Plus className="w-3.5 h-3.5 ml-1" />
+                        إنشاء فاتورة شراء
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -1600,9 +1638,7 @@ export default function Commercial() {
                       className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                     >
                       <div>
-                        <p className="font-bold text-xs text-ink">
-                          {o.name}
-                        </p>
+                        <p className="font-bold text-xs text-ink">{o.name}</p>
                         <p className="text-[10px] text-gray-500">
                           {o.kind === "financial" ? "خصم مالي" : "عرض كمي"} •{" "}
                           {Number(o.discountPercent)}% خصم
@@ -2260,9 +2296,7 @@ export default function Commercial() {
       <Dialog open={showOfferDialog} onOpenChange={setShowOfferDialog}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-ink">
-              عرض جديد
-            </DialogTitle>
+            <DialogTitle className="text-sm text-ink">عرض جديد</DialogTitle>
           </DialogHeader>
           <div className="space-y-3">
             <div>
@@ -2430,9 +2464,7 @@ export default function Commercial() {
       <Dialog open={!!editOffer} onOpenChange={o => !o && setEditOffer(null)}>
         <DialogContent className="bg-white max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-sm text-ink">
-              تعديل العرض
-            </DialogTitle>
+            <DialogTitle className="text-sm text-ink">تعديل العرض</DialogTitle>
           </DialogHeader>
           {editOffer && (
             <div className="space-y-3">
@@ -2829,9 +2861,7 @@ export default function Commercial() {
                   </span>
                 </div>
                 <div className="flex justify-between border-t pt-1">
-                  <span className="font-bold text-ink">
-                    الإجمالي النهائي
-                  </span>
+                  <span className="font-bold text-ink">الإجمالي النهائي</span>
                   <span className="font-bold text-ink">
                     {fmtNum(saleGrandTotal)} ر.ي
                   </span>
@@ -3923,8 +3953,8 @@ export default function Commercial() {
         <DialogContent className="max-w-md font-sans" dir="rtl">
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Upload className="w-4 h-4 text-brand" /> استيراد الأصناف
-              والخدمات (CSV)
+              <Upload className="w-4 h-4 text-brand" /> استيراد الأصناف والخدمات
+              (CSV)
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 pt-2">

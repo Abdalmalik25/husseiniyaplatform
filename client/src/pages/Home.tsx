@@ -887,36 +887,36 @@ export default function Home() {
       )}
 
       {/* Download & Services Banner */}
-      <div className="brand-gradient text-white mx-3 mt-3 rounded-2xl p-4 md:p-5 flex flex-col md:flex-row items-center justify-between gap-3 shadow-lg">
-        <div className="flex items-center gap-3">
-          <div className="bg-brand text-ink-deep w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
-            <Building2 className="w-5 h-5" />
+      <div className="ribbon-premium mx-3 mt-3 text-foreground">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="bg-brand text-brand-foreground w-12 h-12 rounded-xl flex items-center justify-center font-bold shadow-md shrink-0">
+              <Building2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-base font-black font-display">
+                الحسينية لخدمات الأعمال
+              </h3>
+              <p className="text-sm text-muted-foreground mt-0.5">
+                الحلول المؤسسية Uamex_erp · الحلول الهندسية · الخدمات المعرفية
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-sm font-bold font-display">
-              الحسينية لخدمات الأعمال
-            </h3>
-            <p className="text-[11px] text-white/70">
-              الحلول المؤسسية Uamex_erp · الحلول الهندسية · الخدمات المعرفية
-            </p>
+          <div className="flex items-center gap-3">
+            <Button
+              className="bg-brand hover:bg-brand-deep hover:text-sand text-brand-foreground text-sm font-bold h-10 px-5 shine-on-hover"
+              onClick={() => (window.location.href = "/about")}
+            >
+              التعريف بالمؤسسة والمكتبة
+            </Button>
+            <Button
+              variant="outline"
+              className="border-border text-foreground text-sm h-10 px-5 hover:bg-muted"
+              onClick={() => (window.location.href = "/store")}
+            >
+              المتجر الإلكتروني
+            </Button>
           </div>
-        </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            size="sm"
-            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs font-bold h-8 px-4"
-            onClick={() => (window.location.href = "/about")}
-          >
-            التعريف بالمؤسسة والمكتبة
-          </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className="border-white/30 text-white text-xs h-8 px-4 hover:bg-white/10"
-            onClick={() => (window.location.href = "/store")}
-          >
-            المتجر الإلكتروني
-          </Button>
         </div>
       </div>
 
@@ -934,54 +934,54 @@ export default function Home() {
             ))}
           </div>
         ) : (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             <Card
               onClick={() => setActiveTab("reports")}
-              className="p-3 bg-emerald-50 border-emerald-200 shadow-sm transition-all hover:shadow cursor-pointer group"
+              className="stat-card hover-lift cursor-pointer"
               title="عرض تقارير الإيرادات"
             >
-              <p className="text-[10px] text-emerald-700 font-bold">
+              <div className="stat-label text-emerald-700">
                 إجمالي الإيرادات
-              </p>
-              <p className="text-sm font-bold text-emerald-900 mt-1 font-mono group-hover:underline">
-                {countUp("revenue", summaryData?.totalRevenue)} {currency}
-              </p>
+              </div>
+              <div className="stat-value text-emerald-900 text-xl">
+                {countUp("revenue", summaryData?.totalRevenue)}
+              </div>
+              <div className="text-xs text-emerald-600 mt-1">{currency}</div>
             </Card>
             <Card
               onClick={() => setActiveTab("reports")}
-              className="p-3 bg-rose-50 border-rose-200 shadow-sm transition-all hover:shadow cursor-pointer group"
+              className="stat-card hover-lift cursor-pointer"
               title="عرض تقارير المصروفات"
             >
-              <p className="text-[10px] text-rose-700 font-bold">
-                إجمالي المصروفات
-              </p>
-              <p className="text-sm font-bold text-rose-900 mt-1 font-mono group-hover:underline">
-                {countUp("expense", summaryData?.totalExpense)} {currency}
-              </p>
+              <div className="stat-label text-rose-700">إجمالي المصروفات</div>
+              <div className="stat-value text-rose-900 text-xl">
+                {countUp("expense", summaryData?.totalExpense)}
+              </div>
+              <div className="text-xs text-rose-600 mt-1">{currency}</div>
             </Card>
             <Card
               onClick={() => setActiveTab("analytics")}
-              className="p-3 bg-blue-50 border-blue-200 shadow-sm transition-all hover:shadow cursor-pointer group"
+              className="stat-card hover-lift cursor-pointer"
               title="عرض التحليلات"
             >
-              <p className="text-[10px] text-blue-700 font-bold">
+              <div className="stat-label text-blue-700">
                 صافي الدخل التشغيلي
-              </p>
-              <p className="text-sm font-bold text-blue-900 mt-1 font-mono group-hover:underline">
-                {countUp("net", summaryData?.netIncome)} {currency}
-              </p>
+              </div>
+              <div className="stat-value text-blue-900 text-xl">
+                {countUp("net", summaryData?.netIncome)}
+              </div>
+              <div className="text-xs text-blue-600 mt-1">{currency}</div>
             </Card>
             <Card
               onClick={() => setActiveTab("accounts")}
-              className="p-3 bg-slate-100 border-slate-200 shadow-sm transition-all hover:shadow cursor-pointer group"
+              className="stat-card hover-lift cursor-pointer"
               title="فتح دليل الحسابات"
             >
-              <p className="text-[10px] text-slate-700 font-bold">
-                إجمالي الأصول
-              </p>
-              <p className="text-sm font-bold text-slate-900 mt-1 font-mono group-hover:underline">
-                {countUp("assets", summaryData?.totalAssets)} {currency}
-              </p>
+              <div className="stat-label text-slate-700">إجمالي الأصول</div>
+              <div className="stat-value text-slate-900 text-xl">
+                {countUp("assets", summaryData?.totalAssets)}
+              </div>
+              <div className="text-xs text-slate-600 mt-1">{currency}</div>
             </Card>
           </div>
         )}
@@ -992,59 +992,48 @@ export default function Home() {
           summaryData.totalRevenue === 0 &&
           summaryData.totalExpense === 0 &&
           (transactionsData?.length ?? 0) === 0 && (
-            <div className="rounded-2xl border border-brand-200 bg-gradient-to-l from-brand-50 to-muted p-4 md:p-5 shadow-sm flex flex-col md:flex-row items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="bg-brand text-ink-deep w-10 h-10 rounded-xl flex items-center justify-center font-bold shadow">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold text-brand-800">
-                    مرحباً بك! منصة الحسينية جاهزة للانطلاق
-                  </h3>
-                  <p className="text-[11px] text-brand-700 mt-0.5">
-                    الأصول والدليل المحاسبي (12 حساباً) مُجهّزون. ابدأ بتسجيل
-                    أول حركة مالية — سيُترحّل فوراً ويرصد في السجل والتدقيق
-                    والتقارير.
-                  </p>
-                </div>
+            <div className="empty-state rounded-2xl border border-brand/20 bg-gradient-to-l from-brand/5 to-muted p-5 md:p-6">
+              <div className="empty-state-icon">
+                <Sparkles className="w-7 h-7" />
               </div>
+              <h3 className="empty-state-title text-brand">
+                مرحباً بك! منصة الحسينية جاهزة للانطلاق
+              </h3>
+              <p className="empty-state-description">
+                الأصول والدليل المحاسبي (12 حساباً) مُجهّزون. ابدأ بتسجيل أول
+                حركة مالية — سيُترحّل فوراً ويرصد في السجل والتدقيق والتقارير.
+              </p>
               <Button
-                size="sm"
                 onClick={() => setActiveTab("entry")}
-                className="bg-brand hover:bg-brand-deep text-white text-xs font-bold h-8 px-4 shrink-0"
+                className="bg-brand hover:bg-brand-deep text-brand-foreground text-sm font-bold h-10 px-6 shine-on-hover"
               >
-                <Plus className="w-3.5 h-3.5 ml-1" /> ابدأ الإدخال السريع
+                <Plus className="w-4 h-4 ml-1" /> ابدأ الإدخال السريع
               </Button>
             </div>
           )}
 
         {/* Quick actions row */}
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-3">
           <Button
-            size="sm"
             variant="outline"
             onClick={() => setActiveTab("entry")}
-            className="h-8 text-xs border-brand-200 bg-white text-brand-800 hover:bg-brand-50"
+            className="chip"
           >
-            <Plus className="w-3.5 h-3.5 ml-1 text-brand" /> إدخال سريع
+            <Plus className="w-4 h-4 text-brand" /> إدخال سريع
           </Button>
           <Button
-            size="sm"
             variant="outline"
             onClick={() => setActiveTab("reports")}
-            className="h-8 text-xs border-brand-200 bg-white text-brand-800 hover:bg-brand-50"
+            className="chip"
           >
-            <FileText className="w-3.5 h-3.5 ml-1 text-brand" /> السجل
-            والتقارير
+            <FileText className="w-4 h-4 text-brand" /> السجل والتقارير
           </Button>
           <Button
-            size="sm"
             variant="outline"
             onClick={() => (window.location.href = "/commercial")}
-            className="h-8 text-xs border-brand-200 bg-white text-brand-800 hover:bg-brand-50"
+            className="chip"
           >
-            <Layers className="w-3.5 h-3.5 ml-1 text-brand" /> المحاسبة
-            التجارية
+            <Layers className="w-4 h-4 text-brand" /> المحاسبة التجارية
           </Button>
           <Button
             size="sm"
@@ -1307,8 +1296,8 @@ export default function Home() {
               <CardContent className="p-0 overflow-x-auto">
                 {loadingAccounts ? (
                   <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                    <Loader2 className="w-5 h-5 animate-spin text-brand" />{" "}
-                    جاري تحميل الحسابات النشطة...
+                    <Loader2 className="w-5 h-5 animate-spin text-brand" /> جاري
+                    تحميل الحسابات النشطة...
                   </div>
                 ) : (
                   <table className="w-full text-right text-xs border-collapse">
@@ -1571,8 +1560,8 @@ export default function Home() {
 
               {loadingAccounts ? (
                 <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                  <Loader2 className="w-5 h-5 animate-spin text-brand" />{" "}
-                  جاري تحميل الدليل الشجري...
+                  <Loader2 className="w-5 h-5 animate-spin text-brand" /> جاري
+                  تحميل الدليل الشجري...
                 </div>
               ) : accountViewMode === "tree" ? (
                 <div className="space-y-3 pt-2">
@@ -1843,41 +1832,43 @@ export default function Home() {
             </Card>
 
             {/* Period Closing Card */}
-            <Card className="border-slate-200 shadow-sm overflow-hidden bg-white">
-              <CardHeader className="bg-slate-50 border-b py-2.5 px-4">
-                <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <Lock className="w-3.5 h-3.5 text-brand" /> إقفال الدورة
-                  المحاسبية
+            <Card className="panel-premium border-brand-200 overflow-hidden">
+              <CardHeader className="ribbon-premium py-3 px-4 flex flex-row items-center justify-between">
+                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-brand" /> إقفال الدورة المحاسبية
                 </CardTitle>
+                <span className="chip text-[10px] font-mono">
+                  Period Closing
+                </span>
               </CardHeader>
-              <CardContent className="p-3 space-y-3">
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-600">
+              <CardContent className="p-4 space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-foreground/80">
                       اسم الدورة / الفترة
                     </Label>
                     <Input
                       value={closingPeriod}
                       onChange={e => setClosingPeriod(e.target.value)}
-                      className="h-8 text-xs"
+                      className="h-9 text-sm"
                       placeholder="مثال: السنة المالية 2026"
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label className="text-[11px] font-bold text-slate-600">
+                  <div className="space-y-1.5">
+                    <Label className="text-xs font-bold text-foreground/80">
                       إقفال حتى تاريخ
                     </Label>
                     <Input
                       type="date"
                       value={closingDate}
                       onChange={e => setClosingDate(e.target.value)}
-                      className="h-8 text-xs"
+                      className="h-9 text-sm"
                     />
                   </div>
                 </div>
 
                 <Button
-                  className="w-full h-8 text-xs bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold"
+                  className="w-full h-10 text-sm bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold press-effect shine-on-hover"
                   onClick={() =>
                     setClosingPreviewParams({
                       periodName: closingPeriod.trim() || "السنة المالية 2026",
@@ -1885,48 +1876,62 @@ export default function Home() {
                     })
                   }
                 >
-                  <Scale className="w-3.5 h-3.5 ml-1" /> معاينة الأرصدة قبل
-                  الإقفال
+                  <Scale className="w-4 h-4 ml-2" /> معاينة الأرصدة قبل الإقفال
                 </Button>
 
                 {closingPreview.isLoading && (
-                  <div className="py-6 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                    <Loader2 className="w-4 h-4 animate-spin text-brand" />{" "}
-                    جاري حساب أرصدة الدورة...
+                  <div className="status-strip status-info py-4 flex items-center justify-center gap-2 text-sm">
+                    <Loader2 className="w-4 h-4 animate-spin text-brand" />
+                    <span>جاري حساب أرصدة الدورة...</span>
                   </div>
                 )}
 
                 {closingPreview.data &&
                   closingPreview.data.rows.length === 0 && (
-                    <p className="text-center text-slate-400 text-xs py-4">
-                      لا توجد أرصدة إيرادات/مصروفات مُقفلة في هذه الدورة
-                    </p>
+                    <div className="empty-state rounded-2xl border border-border bg-surface p-6 text-center">
+                      <div className="empty-state-icon mx-auto mb-3">
+                        <Lock className="w-6 h-6" />
+                      </div>
+                      <h4 className="text-sm font-bold text-foreground mb-1">
+                        لا توجد أرصدة مُقفلة
+                      </h4>
+                      <p className="text-xs text-muted-foreground">
+                        لم تُسجَّل أي أرصدة إيرادات/مصروفات في هذه الدورة بعد
+                      </p>
+                    </div>
                   )}
 
                 {closingPreview.data && closingPreview.data.rows.length > 0 && (
-                  <div className="max-h-56 overflow-auto rounded-lg border border-slate-200">
-                    <table className="w-full text-right text-[11px] border-collapse">
-                      <thead className="bg-slate-100 text-slate-600 font-bold sticky top-0">
+                  <div className="datagrid rounded-xl border border-line max-h-64 overflow-auto">
+                    <table className="w-full text-right text-xs border-collapse">
+                      <thead className="bg-panel/60 text-muted-foreground font-bold sticky top-0 z-10">
                         <tr>
-                          <th className="py-2 px-3">الكود</th>
-                          <th className="py-2 px-3">الحساب</th>
-                          <th className="py-2 px-3">النوع</th>
-                          <th className="py-2 px-3 text-left">الرصيد</th>
+                          <th className="py-2.5 px-3 text-right">الكود</th>
+                          <th className="py-2.5 px-3 text-right">الحساب</th>
+                          <th className="py-2.5 px-3 text-right">النوع</th>
+                          <th className="py-2.5 px-3 text-left">الرصيد</th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-slate-100">
+                      <tbody className="divide-y divide-line">
                         {closingPreview.data.rows.map((r: any) => (
-                          <tr key={r.accountId} className="bg-white">
-                            <td className="py-1.5 px-3 font-mono text-slate-500">
+                          <tr
+                            key={r.accountId}
+                            className="bg-surface hover:bg-muted/30 transition-colors"
+                          >
+                            <td className="py-2 px-3 font-mono text-muted-foreground">
                               {r.code}
                             </td>
-                            <td className="py-1.5 px-3 font-bold text-slate-800">
+                            <td className="py-2 px-3 font-bold text-foreground">
                               {r.name}
                             </td>
-                            <td className="py-1.5 px-3">
+                            <td className="py-2 px-3">
                               <Badge
                                 variant="outline"
-                                className={`text-[9px] ${r.side === "debit" ? "text-rose-600 border-rose-200" : "text-emerald-600 border-emerald-200"}`}
+                                className={`text-[10px] font-bold ${
+                                  r.side === "debit"
+                                    ? "text-rose-600 border-rose-200 bg-rose-50/40"
+                                    : "text-emerald-600 border-emerald-200 bg-emerald-50/40"
+                                }`}
                               >
                                 {r.type === "revenue"
                                   ? "إيراد"
@@ -1935,9 +1940,13 @@ export default function Home() {
                                     : r.type}
                               </Badge>
                             </td>
-                            <td className="py-1.5 px-3 text-left font-mono font-bold text-slate-800">
+                            <td className="py-2 px-3 text-left font-mono font-bold text-foreground">
                               {Number(r.balance).toLocaleString("en-US")}{" "}
-                              {r.side === "debit" ? "مدين" : "دائن"}
+                              <span
+                                className={`text-[10px] ${r.side === "debit" ? "text-rose-600" : "text-emerald-600"}`}
+                              >
+                                {r.side === "debit" ? "مدين" : "دائن"}
+                              </span>
                             </td>
                           </tr>
                         ))}
@@ -1947,27 +1956,31 @@ export default function Home() {
                 )}
 
                 {closingPreview.data && (
-                  <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs space-y-1">
-                    <p className="flex justify-between">
-                      <span className="text-slate-500">إجمالي الإيرادات</span>
-                      <b className="text-emerald-700">
+                  <div className="status-strip status-info rounded-xl p-3 text-xs space-y-1.5">
+                    <p className="flex justify-between items-center">
+                      <span className="text-muted-foreground">
+                        إجمالي الإيرادات
+                      </span>
+                      <b className="text-emerald-700 font-mono">
                         {Number(
                           closingPreview.data.revenueTotal
                         ).toLocaleString("en-US")}{" "}
                         YER
                       </b>
                     </p>
-                    <p className="flex justify-between">
-                      <span className="text-slate-500">إجمالي المصروفات</span>
-                      <b className="text-rose-700">
+                    <p className="flex justify-between items-center">
+                      <span className="text-muted-foreground">
+                        إجمالي المصروفات
+                      </span>
+                      <b className="text-rose-700 font-mono">
                         {Number(
                           closingPreview.data.expenseTotal
                         ).toLocaleString("en-US")}{" "}
                         YER
                       </b>
                     </p>
-                    <p className="flex justify-between border-t border-slate-200 pt-1.5">
-                      <span className="font-bold text-slate-700">
+                    <p className="flex justify-between items-center border-t border-line pt-2">
+                      <span className="font-bold text-foreground">
                         صافي النتيجة (أرباح/خسائر)
                       </span>
                       <b
@@ -1987,7 +2000,7 @@ export default function Home() {
                 )}
 
                 <Button
-                  className="w-full h-9 text-xs bg-ink hover:bg-ink-600 text-white font-bold"
+                  className="w-full h-10 text-sm bg-ink hover:bg-ink-600 text-white font-bold press-effect shine-on-hover"
                   disabled={
                     !closingPreview.data ||
                     closingPreview.data.rows.length === 0 ||
@@ -2007,13 +2020,13 @@ export default function Home() {
                   }}
                 >
                   {executeClosing.isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin ml-1" />
+                    <Loader2 className="w-4 h-4 animate-spin ml-2" />
                   ) : (
-                    <Lock className="w-3.5 h-3.5 ml-1" />
+                    <Lock className="w-4 h-4 ml-2" />
                   )}
                   تنفيذ الإقفال وإنشاء قيود الإقفال
                 </Button>
-                <p className="text-[10px] text-slate-400 text-center">
+                <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
                   تُنقل أرصدة الإيرادات والمصروفات إلى حساب النتائج (رأس المال
                   3010) كقيود مرجعية، ولا يمكن تكرارها
                 </p>
@@ -2023,59 +2036,59 @@ export default function Home() {
 
           {/* Tab 3: Records & Reports with advanced filtering and bottom totals */}
           <TabsContent value="reports" className="space-y-3">
-            <Card className="p-4 bg-white shadow-sm border-slate-200 space-y-3">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-3">
-                <h2 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-                  <Filter className="w-4 h-4 text-brand" /> تصفية وفرز
-                  السجلات المالية والتقارير الرسمية
+            <Card className="panel-premium p-4 space-y-4">
+              <div className="ribbon-premium flex flex-wrap items-center justify-between gap-3 pb-3">
+                <h2 className="font-bold text-sm text-foreground flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-brand" /> تصفية وفرز السجلات
+                  المالية والتقارير الرسمية
                 </h2>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-2">
                   <Button
                     size="sm"
                     onClick={() => setImportOpen(true)}
-                    className="h-7 px-2.5 text-xs bg-sky-700 hover:bg-sky-800 text-white font-semibold"
+                    className="h-8 px-3 text-xs bg-info hover:bg-info/90 text-white font-semibold press-effect"
                   >
-                    <Upload className="w-3.5 h-3.5 ml-1" /> استيراد
+                    <Upload className="w-3.5 h-3.5 ml-1.5" /> استيراد
                   </Button>
                   <Button
                     size="sm"
                     onClick={handleExportExcel}
-                    className="h-7 px-2.5 text-xs bg-emerald-600 hover:bg-emerald-700 text-white font-semibold"
+                    className="h-8 px-3 text-xs bg-success hover:bg-success/90 text-white font-semibold press-effect"
                   >
-                    <FileSpreadsheet className="w-3.5 h-3.5 ml-1" /> CSV
+                    <FileSpreadsheet className="w-3.5 h-3.5 ml-1.5" /> CSV
                   </Button>
                   <Button
                     size="sm"
                     onClick={handleExportPDF}
-                    className="h-7 px-2.5 text-xs bg-brand hover:bg-brand-deep text-white font-semibold"
+                    className="h-8 px-3 text-xs bg-brand hover:bg-brand-deep text-white font-semibold press-effect"
                   >
-                    <FileText className="w-3.5 h-3.5 ml-1" /> PDF / طباعة
+                    <FileText className="w-3.5 h-3.5 ml-1.5" /> PDF / طباعة
                   </Button>
                 </div>
               </div>
 
               {/* Filter Controls Bar */}
-              <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 pt-1 text-xs">
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500 text-[11px]">من تاريخ:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="chip text-[10px]">من تاريخ:</span>
                   <Input
                     type="date"
                     value={filterStartDate}
                     onChange={e => setFilterStartDate(e.target.value)}
-                    className="h-7 text-xs font-mono bg-slate-50"
+                    className="h-8 text-xs font-mono"
                   />
                 </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-slate-500 text-[11px]">إلى تاريخ:</span>
+                <div className="flex items-center gap-2">
+                  <span className="chip text-[10px]">إلى تاريخ:</span>
                   <Input
                     type="date"
                     value={filterEndDate}
                     onChange={e => setFilterEndDate(e.target.value)}
-                    className="h-7 text-xs font-mono bg-slate-50"
+                    className="h-8 text-xs font-mono"
                   />
                 </div>
                 <Select value={filterStatus} onValueChange={setFilterStatus}>
-                  <SelectTrigger className="h-7 text-xs bg-slate-50">
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue placeholder="حالة الحركة" />
                   </SelectTrigger>
                   <SelectContent>
@@ -2097,7 +2110,7 @@ export default function Home() {
                   value={statementAccountId}
                   onValueChange={setStatementAccountId}
                 >
-                  <SelectTrigger className="h-7 text-xs bg-slate-50">
+                  <SelectTrigger className="h-8 text-xs">
                     <SelectValue placeholder="تخصيص الحساب" />
                   </SelectTrigger>
                   <SelectContent>
@@ -2118,84 +2131,103 @@ export default function Home() {
               </div>
 
               {/* Records Table */}
-              <div className="overflow-x-auto pt-2">
+              <div className="overflow-x-auto">
                 {loadingTx ? (
-                  <div className="py-12 flex items-center justify-center gap-2 text-slate-500 text-xs">
-                    <Loader2 className="w-5 h-5 animate-spin text-brand" />{" "}
-                    جاري تحميل السجلات المالية...
+                  <div className="status-strip status-info py-12 flex items-center justify-center gap-2 text-sm">
+                    <Loader2 className="w-5 h-5 animate-spin text-brand" />
+                    <span>جاري تحميل السجلات المالية...</span>
                   </div>
                 ) : (
-                  <table className="w-full text-right border-collapse text-xs">
-                    <thead className="bg-slate-100 text-slate-700 border-b border-slate-200">
-                      <tr>
-                        <th className="py-2.5 px-3">التاريخ الرسمي</th>
-                        <th className="py-2.5 px-3">الحساب</th>
-                        <th className="py-2.5 px-3">القيمة</th>
-                        <th className="py-2.5 px-3">البيان</th>
-                        <th className="py-2.5 px-3">الحالة</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100">
-                      {filteredRecords && filteredRecords.length > 0 ? (
-                        filteredRecords.map(tx => (
-                          <tr
-                            key={tx.id}
-                            className="hover:bg-slate-50 transition-colors"
-                          >
-                            <td className="py-2 px-3 font-mono text-[11px] text-slate-600">
-                              {String(tx.transactionDate).split("T")[0]}
-                            </td>
-                            <td className="py-2 px-3 font-medium text-slate-900">
-                              <span className="font-mono text-[10px] bg-slate-100 px-1 rounded ml-1.5 text-slate-600">
-                                {tx.accountCode}
-                              </span>
-                              {tx.accountName}
-                            </td>
-                            <td className="py-2 px-3 font-bold font-mono text-slate-900">
-                              {parseFloat(tx.amount).toLocaleString()}
-                            </td>
-                            <td className="py-2 px-3 text-slate-600">
-                              {tx.narration || "-"}
-                            </td>
-                            <td className="py-2 px-3">
-                              <Badge
-                                variant="outline"
-                                className={`text-[10px] px-1.5 py-0.5 ${tx.lifecycleStatus === "approved" ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-brand/10 text-brand-700 border-brand-200"}`}
-                              >
-                                {tx.lifecycleStatus === "approved"
-                                  ? "معتمد ومرحل"
-                                  : tx.lifecycleStatus === "sent"
-                                    ? "مرسل"
-                                    : "مسودة"}
-                              </Badge>
+                  <div className="datagrid rounded-xl border border-line">
+                    <table className="w-full text-right border-collapse text-xs">
+                      <thead className="bg-panel/60 text-muted-foreground font-bold">
+                        <tr>
+                          <th className="py-2.5 px-3 text-right">
+                            التاريخ الرسمي
+                          </th>
+                          <th className="py-2.5 px-3 text-right">الحساب</th>
+                          <th className="py-2.5 px-3 text-right">القيمة</th>
+                          <th className="py-2.5 px-3 text-right">البيان</th>
+                          <th className="py-2.5 px-3 text-right">الحالة</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-line">
+                        {filteredRecords && filteredRecords.length > 0 ? (
+                          filteredRecords.map(tx => (
+                            <tr
+                              key={tx.id}
+                              className="bg-surface hover:bg-muted/30 transition-colors"
+                            >
+                              <td className="py-2.5 px-3 font-mono text-[11px] text-muted-foreground">
+                                {String(tx.transactionDate).split("T")[0]}
+                              </td>
+                              <td className="py-2.5 px-3 font-medium text-foreground">
+                                <span className="chip text-[10px] ml-1.5 font-mono">
+                                  {tx.accountCode}
+                                </span>
+                                {tx.accountName}
+                              </td>
+                              <td className="py-2.5 px-3 font-bold font-mono text-foreground">
+                                {parseFloat(tx.amount).toLocaleString()}
+                              </td>
+                              <td className="py-2.5 px-3 text-muted-foreground">
+                                {tx.narration || "-"}
+                              </td>
+                              <td className="py-2.5 px-3">
+                                <Badge
+                                  variant="outline"
+                                  className={`text-[10px] px-1.5 py-0.5 font-bold ${
+                                    tx.lifecycleStatus === "approved"
+                                      ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                      : "bg-brand/10 text-brand-700 border-brand-200"
+                                  }`}
+                                >
+                                  {tx.lifecycleStatus === "approved"
+                                    ? "معتمد ومرحل"
+                                    : tx.lifecycleStatus === "sent"
+                                      ? "مرسل"
+                                      : "مسودة"}
+                                </Badge>
+                              </td>
+                            </tr>
+                          ))
+                        ) : (
+                          <tr>
+                            <td colSpan={5} className="py-10 text-center">
+                              <div className="empty-state rounded-xl border border-border bg-surface p-6">
+                                <div className="empty-state-icon mx-auto mb-3">
+                                  <FileText className="w-6 h-6" />
+                                </div>
+                                <h4 className="text-sm font-bold text-foreground mb-1">
+                                  لا توجد سجلات
+                                </h4>
+                                <p className="text-xs text-muted-foreground">
+                                  لا توجد سجلات مطابقة لمعايير التصفية والفرز
+                                  المحددة.
+                                </p>
+                              </div>
                             </td>
                           </tr>
-                        ))
-                      ) : (
+                        )}
+                      </tbody>
+                      {/* Bottom Totals Summary Row */}
+                      <tfoot className="bg-panel/60 font-bold border-t border-line">
                         <tr>
                           <td
-                            colSpan={5}
-                            className="py-8 text-center text-slate-400 text-xs"
+                            colSpan={2}
+                            className="py-2.5 px-3 text-foreground text-sm"
                           >
-                            لا توجد سجلات مطابقة لمعايير التصفية والفرز المحددة.
+                            إجمالي السجلات المعروضة ({filteredRecords.length}{" "}
+                            حركة):
                           </td>
+                          <td className="py-2.5 px-3 text-foreground font-mono text-sm text-emerald-700">
+                            {filteredTotalAmount.toLocaleString()} {currency}
+                          </td>
+                          <td colSpan={2}></td>
                         </tr>
-                      )}
-                    </tbody>
-                    {/* Bottom Totals Summary Row */}
-                    <tfoot className="bg-slate-100 font-bold border-t border-slate-200">
-                      <tr>
-                        <td colSpan={2} className="py-2.5 px-3 text-slate-800">
-                          إجمالي السجلات المعروضة ({filteredRecords.length}{" "}
-                          حركة):
-                        </td>
-                        <td className="py-2.5 px-3 text-slate-900 font-mono text-sm text-emerald-700">
-                          {filteredTotalAmount.toLocaleString()} {currency}
-                        </td>
-                        <td colSpan={2}></td>
-                      </tr>
-                    </tfoot>
-                  </table>
+                      </tfoot>
+                    </table>
+                  </div>
                 )}
               </div>
             </Card>
@@ -2203,45 +2235,56 @@ export default function Home() {
 
           {/* Tab 4: Audit Trail (سجل التدقيق الشامل) */}
           <TabsContent value="audit" className="space-y-3">
-            <Card className="p-4 bg-white shadow-sm border-slate-200 space-y-3">
-              <h3 className="text-xs font-bold text-slate-800 flex items-center gap-1.5 border-b pb-3">
-                <ShieldAlert className="w-4 h-4 text-brand" /> سجل التدقيق
-                الشامل وتتبع الحركات (Audit Trail)
-              </h3>
-              <p className="text-[11px] text-slate-500">
+            <Card className="panel-premium p-4 space-y-4">
+              <div className="ribbon-premium flex items-center justify-between gap-3 pb-3">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4 text-brand" /> سجل التدقيق
+                  الشامل وتتبع الحركات (Audit Trail)
+                </h3>
+                <span className="chip text-[10px] font-mono">Security</span>
+              </div>
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 يتتبع هذا السجل بدقة متناهية كافة العمليات الحساسة، تعديلات
                 الدليل المحاسبي، السحب والإفلات، وحفظ واعتماد الحركات المالية.
               </p>
 
-              <div className="space-y-2 pt-2">
+              <div className="space-y-3">
                 {activityLogsData && activityLogsData.length > 0 ? (
                   activityLogsData.map((log: any) => (
                     <div
                       key={log.id}
-                      className="p-3 rounded-lg border border-slate-200 bg-slate-50 flex justify-between items-center text-xs shadow-sm"
+                      className="datagrid rounded-lg p-3 flex justify-between items-center text-xs shadow-sm hover-lift transition-all cursor-pointer"
                     >
-                      <div className="space-y-1">
+                      <div className="space-y-1.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-slate-900">
+                          <span className="font-bold text-foreground">
                             {log.action}
                           </span>
-                          <span className="text-[10px] bg-muted text-brand-800 px-1.5 py-0.5 rounded font-mono">
+                          <span className="chip text-[10px] font-mono">
                             {log.userName || "المشرف"}
                           </span>
                         </div>
-                        <p className="text-slate-600 text-[11px]">
+                        <p className="text-muted-foreground text-[11px]">
                           {log.details}
                         </p>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                      <span className="text-[10px] text-muted-foreground/60 font-mono whitespace-nowrap">
                         {new Date(log.createdAt).toLocaleString()}
                       </span>
                     </div>
                   ))
                 ) : (
-                  <p className="text-slate-400 text-center py-8 text-xs">
-                    لا توجد سجلات تدقيق مسجلة حتى الآن.
-                  </p>
+                  <div className="empty-state rounded-xl border border-border bg-surface p-6 text-center">
+                    <div className="empty-state-icon mx-auto mb-3">
+                      <ShieldAlert className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-foreground mb-1">
+                      لا توجد سجلات تدقيق
+                    </h4>
+                    <p className="text-xs text-muted-foreground">
+                      لا توجد سجلات تدقيق مسجلة حتى الآن.
+                    </p>
+                  </div>
                 )}
               </div>
             </Card>
@@ -2254,9 +2297,9 @@ export default function Home() {
               currency={currency}
             />
 
-            <Card className="border-brand-200 bg-brand-50 shadow-sm">
-              <CardHeader className="py-3 px-4 flex flex-row items-center justify-between border-b border-brand-100">
-                <CardTitle className="flex items-center gap-2 text-brand-800 text-xs font-bold">
+            <Card className="border-brand-200 bg-brand-50 shadow-sm panel-premium">
+              <CardHeader className="ribbon-premium py-3 px-4 flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-brand-800 text-sm font-bold">
                   <Sparkles className="w-4 h-4 text-brand" /> تحليل المساعد
                   المالي الذكي (Forge LLM)
                 </CardTitle>
@@ -2265,7 +2308,7 @@ export default function Home() {
                   variant="outline"
                   onClick={() => refetchAiAdvisor()}
                   disabled={aiLoading}
-                  className="h-7 text-[10px] bg-white border-brand"
+                  className="h-8 text-xs bg-white border-brand hover:bg-brand-50 press-effect"
                 >
                   {aiLoading ? (
                     <Loader2 className="w-3 h-3 animate-spin ml-1" />
@@ -2274,11 +2317,11 @@ export default function Home() {
                   )}
                 </Button>
               </CardHeader>
-              <CardContent className="p-4 text-xs leading-relaxed whitespace-pre-wrap text-slate-800">
+              <CardContent className="p-4 text-sm leading-relaxed whitespace-pre-wrap text-foreground">
                 {aiLoading ? (
-                  <div className="py-8 flex items-center justify-center gap-2 text-slate-500">
-                    <Loader2 className="w-5 h-5 animate-spin text-brand" />{" "}
-                    جاري استنتاج التوصيات المالية بدقة...
+                  <div className="status-strip status-info py-8 flex items-center justify-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin text-brand" />
+                    <span>جاري استنتاج التوصيات المالية بدقة...</span>
                   </div>
                 ) : (
                   aiAdvisorData?.analysis ||
@@ -2287,21 +2330,21 @@ export default function Home() {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200 shadow-sm">
-              <CardHeader className="py-3 px-4 border-b">
-                <CardTitle className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
-                  <PieChart className="w-4 h-4 text-blue-600" /> مقارنة أداء
-                  الفروع والمؤسسات المتعددة
+            <Card className="panel-premium">
+              <CardHeader className="ribbon-premium py-3 px-4">
+                <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <PieChart className="w-4 h-4 text-info" /> مقارنة أداء الفروع
+                  والمؤسسات المتعددة
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+              <CardContent className="p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {branchComparisonData?.comparison?.map((b: any) => (
                   <div
                     key={b.id}
-                    className="p-3.5 border rounded-xl bg-slate-50 shadow-sm space-y-2"
+                    className="stat-card p-4 border border-line rounded-xl bg-surface space-y-3 hover-lift"
                   >
                     <div className="flex justify-between items-center">
-                      <span className="font-bold text-slate-900 text-xs">
+                      <span className="font-bold text-foreground text-sm">
                         {b.name}
                       </span>
                       <Badge
@@ -2311,22 +2354,28 @@ export default function Home() {
                         {b.code}
                       </Badge>
                     </div>
-                    <div className="space-y-1 text-[11px] pt-1 border-t">
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">الإيرادات:</span>
-                        <span className="font-bold font-mono text-emerald-600">
+                    <div className="space-y-2 text-xs pt-2 border-t border-line">
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          الإيرادات:
+                        </span>
+                        <span className="font-bold font-mono text-emerald-700">
                           {b.revenue.toLocaleString()}
                         </span>
                       </div>
-                      <div className="flex justify-between">
-                        <span className="text-slate-500">المصروفات:</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          المصروفات:
+                        </span>
                         <span className="font-bold font-mono text-rose-600">
                           {b.expenses.toLocaleString()}
                         </span>
                       </div>
-                      <div className="flex justify-between border-t pt-1 font-bold text-slate-900">
-                        <span>صافي الدخل:</span>
-                        <span className="font-mono text-blue-700">
+                      <div className="flex justify-between items-center border-t border-line pt-2 font-bold">
+                        <span className="text-foreground">صافي الدخل:</span>
+                        <span
+                          className={`font-mono ${b.netProfit >= 0 ? "text-emerald-700" : "text-rose-600"}`}
+                        >
                           {b.netProfit.toLocaleString()}
                         </span>
                       </div>
@@ -2339,43 +2388,45 @@ export default function Home() {
 
           {/* Tab 6: User Profile */}
           <TabsContent value="profile" className="space-y-3">
-            <Card className="p-4 space-y-4 bg-white shadow-sm border-slate-200 text-xs">
-              <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
-                <div className="bg-muted text-brand-800 w-12 h-12 rounded-full flex items-center justify-center font-bold text-lg shadow-inner">
+            <Card className="panel-premium p-4 space-y-4 text-sm">
+              <div className="ribbon-premium flex items-center gap-3 pb-3">
+                <div className="bg-gradient-to-br from-brand to-brand-deep text-white w-14 h-14 rounded-full flex items-center justify-center font-bold text-2xl shadow-elevated hover-lift">
                   {(profileName || "U").charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <h2 className="font-bold text-sm text-slate-900">
+                <div className="flex-1">
+                  <h2 className="font-bold text-base text-foreground font-display">
                     {profileName || "المستخدم الحالي"}
                   </h2>
-                  <p className="text-slate-500 text-[11px]">
-                    {profileEmail || "user@al-husainia.com"} • الدور الوظيفي:{" "}
-                    <span className="font-semibold text-brand">
-                      {user?.role || "admin"}
+                  <p className="text-muted-foreground text-xs flex items-center gap-1.5 flex-wrap">
+                    <span className="font-mono">
+                      {profileEmail || "user@al-husainia.com"}
+                    </span>
+                    <span className="chip text-[10px]">
+                      الدور: {user?.role || "admin"}
                     </span>
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3.5">
                 <div>
-                  <Label className="text-[11px] text-slate-700 mb-1 block font-medium">
+                  <Label className="text-xs text-foreground/80 mb-1.5 block font-bold">
                     الاسم الشخصي / الوظيفي
                   </Label>
                   <Input
                     value={profileName}
                     onChange={e => setProfileName(e.target.value)}
-                    className="h-8 text-xs bg-slate-50"
+                    className="h-9 text-sm"
                   />
                 </div>
                 <div>
-                  <Label className="text-[11px] text-slate-700 mb-1 block font-medium">
+                  <Label className="text-xs text-foreground/80 mb-1.5 block font-bold">
                     البريد الإلكتروني للإشعارات
                   </Label>
                   <Input
                     value={profileEmail}
                     onChange={e => setProfileEmail(e.target.value)}
-                    className="h-8 text-xs bg-slate-50"
+                    className="h-9 text-sm"
                   />
                 </div>
                 <Button
@@ -2389,7 +2440,7 @@ export default function Home() {
                       compactMode: false,
                     });
                   }}
-                  className="w-full bg-ink hover:bg-ink-600 text-white text-xs h-9 font-bold mt-2 shadow"
+                  className="w-full bg-ink hover:bg-ink-600 text-white text-sm h-10 font-bold mt-2 shadow-elevated press-effect shine-on-hover"
                 >
                   حفظ وتحديث الملف الشخصي
                 </Button>
@@ -2417,22 +2468,22 @@ export default function Home() {
         >
           <DialogHeader>
             <DialogTitle className="text-sm font-bold flex items-center gap-2">
-              <Upload className="w-4 h-4 text-brand" /> استيراد جماعي
-              للحركات (Excel/CSV)
+              <Upload className="w-4 h-4 text-brand" /> استيراد جماعي للحركات
+              (Excel/CSV)
             </DialogTitle>
             <DialogDescription
               id="import-desc"
-              className="text-xs text-slate-600 pt-2 space-y-2"
+              className="text-xs text-muted-foreground pt-2 space-y-2"
             >
               <p>
                 الصق صفوفاً بصيغة CSV — الأعمدة بالترتيب:{" "}
                 <b>التاريخ، الحساب، الكود، المبلغ، البيان، النوع</b> (النوع
                 اختياري). يدعم أيضاً اللصق المباشر من ملف Excel المُصدَّر.
               </p>
-              <p className="text-[11px] bg-sand border border-brand-200 rounded-lg p-2.5 text-slate-700 leading-relaxed">
-                <span className="font-bold text-brand">دليل سريع:</span>{" "}
-                التاريخ <b>2026-08-01</b> أو <b>01/08/2026</b> · المبلغ أرقام
-                فقط · النوع <b>debit</b> (مدين) أو <b>credit</b> (دائن) ويُفترض{" "}
+              <p className="status-strip status-info text-[11px] rounded-lg p-2.5 leading-relaxed">
+                <span className="font-bold text-brand">دليل سريع:</span> التاريخ{" "}
+                <b>2026-08-01</b> أو <b>01/08/2026</b> · المبلغ أرقام فقط ·
+                النوع <b>debit</b> (مدين) أو <b>credit</b> (دائن) ويُفترض{" "}
                 <b>debit</b> إن تُرك فارغاً، والمبلغ السالب يُحول دائناً
                 تلقائياً · يجد النظام الحساب بكوده أو اسمه من الدليل.
               </p>

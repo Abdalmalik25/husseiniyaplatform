@@ -8,7 +8,12 @@
 import { z } from "zod";
 import { and, desc, eq } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { tenantProcedure, publicProcedure, ownerProcedure, router } from "./_core/trpc";
+import {
+  tenantProcedure,
+  publicProcedure,
+  ownerProcedure,
+  router,
+} from "./_core/trpc";
 import { isOwner, requireTenantId } from "./_core/tenant";
 import { getDb } from "./db";
 import { ENV } from "./_core/env";
@@ -33,7 +38,10 @@ import { sendTransactionalEmail } from "./services/authService";
 const DAY_MS = 86_400_000;
 
 /** حقول ديناميكية لكل نوع مزوّد — يعاد للعميل ليبنى نموذج الإدخال. */
-const PROVIDER_FIELD_SCHEMAS: Record<string, { key: string; labelAr: string; secret?: boolean }[]> = {
+const PROVIDER_FIELD_SCHEMAS: Record<
+  string,
+  { key: string; labelAr: string; secret?: boolean }[]
+> = {
   tap: [
     { key: "secretKey", labelAr: "المفتاح السري (Secret Key)", secret: true },
     { key: "publishableKey", labelAr: "المفتاح العام (Publishable)" },
@@ -56,8 +64,7 @@ const PROVIDER_FIELD_SCHEMAS: Record<string, { key: string; labelAr: string; sec
   manual: [],
 };
 
-const PAYMENT_WEBHOOK_SECRET =
-  process.env.PAYMENT_WEBHOOK_SECRET ?? "";
+const PAYMENT_WEBHOOK_SECRET = process.env.PAYMENT_WEBHOOK_SECRET ?? "";
 
 function parseJson<T>(raw: string | null | undefined): T | null {
   if (!raw) return null;
@@ -80,7 +87,13 @@ function priceForCountry(
   cycle: "monthly" | "yearly"
 ): { amount: string; currency: string; taxPercent: number } {
   const list = parseJson<
-    { countryCode: string; currency: string; priceMonthly: string; priceYearly: string; taxPercent?: number }[]
+    {
+      countryCode: string;
+      currency: string;
+      priceMonthly: string;
+      priceYearly: string;
+      taxPercent?: number;
+    }[]
   >(plan.countryPricing as string | null);
   const hit = list?.find(
     p => p.countryCode?.toUpperCase() === countryCode.toUpperCase()
@@ -102,7 +115,12 @@ function priceForCountry(
 /** يفعّل/يمدّد اشتراك المستأجر بعد تأكيد الدفع — دون قطع أي عملية جارية. */
 async function activateSubscription(
   db: NonNullable<Awaited<ReturnType<typeof getDb>>>,
-  opts: { tenantId: number; planId: number; cycle: "monthly" | "yearly"; provider: string }
+  opts: {
+    tenantId: number;
+    planId: number;
+    cycle: "monthly" | "yearly";
+    provider: string;
+  }
 ) {
   const now = new Date();
   const subRows = await db
@@ -125,7 +143,9 @@ async function activateSubscription(
         planId: opts.planId,
         status: "active",
         billingCycle: opts.cycle,
-        currentPeriodStart: existingEnd ? existing.currentPeriodStart ?? now : now,
+        currentPeriodStart: existingEnd
+          ? (existing.currentPeriodStart ?? now)
+          : now,
         currentPeriodEnd: periodEnd,
         paymentProvider: opts.provider,
         updatedAt: now,
@@ -593,7 +613,7 @@ export const billingRouter = router({
           .insert(subscriptionPolicies)
           .values({ code: "default", ...values });
       }
-                        return { success: true };
+      return { success: true };
     }),
 
   // ── Admin: تفعيل الأكوام draft → active ─────────────────────────────
@@ -637,12 +657,7 @@ export const billingRouter = router({
         periodMonths: z.number().int().positive().default(1),
         deliveryMode: z.enum(["email", "whatsapp", "manual"]).default("manual"),
         deliveryTarget: z.string().email().optional(),
-        quantity: z
-          .number()
-          .int()
-          .positive()
-          .max(200)
-          .default(1),
+        quantity: z.number().int().positive().max(200).default(1),
         createdBy: z.string().optional(),
       })
     )
@@ -656,7 +671,10 @@ export const billingRouter = router({
 
       const plan = (
         await db
-          .select({ name: subscriptionPlans.name, code: subscriptionPlans.code })
+          .select({
+            name: subscriptionPlans.name,
+            code: subscriptionPlans.code,
+          })
           .from(subscriptionPlans)
           .where(eq(subscriptionPlans.id, input.planId))
           .limit(1)
@@ -698,7 +716,7 @@ export const billingRouter = router({
           });
         created.push(row);
       }
-            return { created };
+      return { created };
     }),
 
   // ── Admin: قائمة الأكوام (filtered by status/country) ───────────────
@@ -717,8 +735,7 @@ export const billingRouter = router({
       const conditions = [];
       if (input.status)
         conditions.push(eq(subscriptionCodes.status, input.status));
-      if (input.code)
-        conditions.push(eq(subscriptionCodes.code, input.code));
+      if (input.code) conditions.push(eq(subscriptionCodes.code, input.code));
       if (input.countryCode)
         conditions.push(eq(subscriptionCodes.countryCode, input.countryCode));
       return db
@@ -739,7 +756,7 @@ export const billingRouter = router({
         .from(subscriptionCodes)
         .where(and(...conditions))
         .orderBy(subscriptionCodes.activatedAt)
-                .limit(input.limit);
+        .limit(input.limit);
     }),
 
   // ── Public: العميل يفتتح /claim ويدخل الكوب ─────────────────────────
@@ -1001,7 +1018,3 @@ export const billingRouter = router({
       };
     }),
 });
-
-
-
-

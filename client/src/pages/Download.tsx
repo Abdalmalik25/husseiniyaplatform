@@ -295,9 +295,7 @@ export default function DownloadPage() {
                 {getDeviceIcon(deviceInfo.type)}
               </div>
               <div>
-                <h2 className="font-bold text-ink text-lg">
-                  تم اكتشاف جهازك
-                </h2>
+                <h2 className="font-bold text-ink text-lg">تم اكتشاف جهازك</h2>
                 <p className="text-xs text-gray-500">
                   {getDeviceLabel(deviceInfo.type)} • {deviceInfo.browser}
                 </p>

@@ -358,8 +358,8 @@ export default function Settings() {
                 تلميح: تُربط الطلبات الواردة من موقعك الخارجي بالفرع والعملة
                 الصحيحين عبر حقول{" "}
                 <code className="font-mono text-brand">branchCode</code> و{" "}
-                <code className="font-mono text-brand">currency</code> في
-                مركز التكامل — راجع صفحة «مركز التكامل».
+                <code className="font-mono text-brand">currency</code> في مركز
+                التكامل — راجع صفحة «مركز التكامل».
               </p>
             </CardContent>
           </Card>

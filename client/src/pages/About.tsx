@@ -377,10 +377,7 @@ export default function About() {
   };
 
   return (
-    <div
-      className="min-h-screen bg-sand text-ink pb-20 font-sans"
-      dir="rtl"
-    >
+    <div className="min-h-screen bg-sand text-ink pb-20 font-sans" dir="rtl">
       {/* Header Navbar */}
       <HeaderNavbar />
 

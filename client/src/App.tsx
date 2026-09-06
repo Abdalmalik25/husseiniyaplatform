@@ -67,8 +67,6 @@ const SubscriberOnboarding = lazy(() => import("@/pages/SubscriberOnboarding"));
 const ClaimSubscription = lazy(() => import("@/pages/ClaimSubscription"));
 const CostCenters = lazy(() => import("@/pages/CostCenters"));
 
-
-
 const ZatcaIntegration = lazy(() => import("@/pages/ZatcaIntegration"));
 const Beneficiaries = lazy(() => import("@/pages/Beneficiaries"));
 const FinancialStatements = lazy(() => import("@/pages/FinancialStatements"));

@@ -54,6 +54,10 @@ export interface ModuleIdentity {
   icon: LucideIcon;
   /** One-line value proposition. */
   tagline: string;
+  /** World-class: longer 2-sentence pitch for hero/landing. */
+  pitch?: string;
+  /** World-class: KPI bullet for module header. */
+  kpi?: string;
   /** Optional roles allowed to see this module. Omit = visible to all. */
   roles?: string[];
 }
@@ -70,6 +74,9 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     icon: Building2,
     tagline:
       "نظام محاسبي مرن يخدم جميع أنواع الأنشطة التجارية والصناعية والخدمية.",
+    pitch:
+      "ميزان مراجعة يُفتح في ثوانٍ بدل أيام — قوائم مالية جاهزة للمراجع الخارجي في أول يوم عمل.",
+    kpi: "≤ 4 ساعات لإغلاق الشهر",
   },
   engineering: {
     key: "engineering",
@@ -82,6 +89,9 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     icon: HardHat,
     tagline:
       "إدارة المشاريع والتنفيذ للأنشطة الصناعية والخدمية والبنية التحتية.",
+    pitch:
+      "متابعة المشاريع والمهام عبر جميع أنواع الأنشطة التجارية — على أطر PMBOK وCOSO.",
+    kpi: "±5% دقة تقدير",
   },
   commercial: {
     key: "commercial",
@@ -94,6 +104,9 @@ export const MODULES: Record<ModuleKey, ModuleIdentity> = {
     icon: ShoppingCart,
     tagline:
       "إدارة الفواتير والمخزون لعملك سواء كان تجارياً أو خدمياً أو صناعياً.",
+    pitch:
+      "دورة تجارية كاملة: عروض أسعار ← أوامر بيع ← فواتير ← تحصيل ← ترحيل تلقائي للمحاسبة والمخزون.",
+    kpi: "70% خفض زمن الإغلاق",
   },
   library: {
     key: "library",

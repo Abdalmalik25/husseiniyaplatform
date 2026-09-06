@@ -29,7 +29,7 @@ export function normalizeSearchText(input: string): string {
   s = s.replace(/ؤ/g, "و");
   s = s.replace(/ئ/g, "ي");
   s = s.replace(/[\u0660-\u0669]/g, d => String(d.charCodeAt(0) - 0x0660)); // ٠-٩
-  s = s.replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06F0)); // ۰-۹
+  s = s.replace(/[\u06F0-\u06F9]/g, d => String(d.charCodeAt(0) - 0x06f0)); // ۰-۹
   s = s.toLowerCase();
   s = s.replace(/\s+/g, " ").trim();
   return s;
@@ -41,7 +41,9 @@ export function normalizeSearchText(input: string): string {
  * rows while still letting "احمد" find "أحمد".
  */
 export function buildSearchVariants(query: string): string[] {
-  const raw = String(query ?? "").trim().replace(/\s+/g, " ");
+  const raw = String(query ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
   if (!raw) return [];
   const normalized = normalizeSearchText(raw);
   return normalized && normalized !== raw ? [raw, normalized] : [raw];
@@ -55,7 +57,10 @@ export function escapeLike(input: string): string {
 }
 
 /** Build a bounded substring pattern, escaping user wildcards. */
-export function likePattern(query: string, opts?: { prefix?: boolean }): string {
+export function likePattern(
+  query: string,
+  opts?: { prefix?: boolean }
+): string {
   const q = escapeLike(query);
   return opts?.prefix ? `${q}%` : `%${q}%`;
 }

@@ -132,8 +132,7 @@ export function BrandLogo({
   onDark = true,
   className,
 }: BrandLogoProps) {
-  const wordColor =
-    wordmarkClassName ?? (onDark ? "text-white" : "text-ink");
+  const wordColor = wordmarkClassName ?? (onDark ? "text-white" : "text-ink");
   return (
     <span className={`inline-flex items-center gap-2.5 ${className ?? ""}`}>
       <BrandMark size={size} />

@@ -76,10 +76,7 @@ export default function Portal() {
   };
 
   return (
-    <div
-      className="min-h-screen bg-sand text-ink pb-20 font-sans"
-      dir="rtl"
-    >
+    <div className="min-h-screen bg-sand text-ink pb-20 font-sans" dir="rtl">
       <HeaderNavbar />
 
       <main className="max-w-5xl mx-auto px-4 py-10 space-y-8">

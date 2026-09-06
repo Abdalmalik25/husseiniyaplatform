@@ -553,9 +553,7 @@ export default function Store() {
         <Dialog open={checkoutOpen} onOpenChange={setCheckoutOpen}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-ink">
-                بيانات التوصيل
-              </DialogTitle>
+              <DialogTitle className="text-ink">بيانات التوصيل</DialogTitle>
               <DialogDescription className="text-xs">
                 سنتواصل معك لتأكيد الطلب قبل التوصيل
               </DialogDescription>

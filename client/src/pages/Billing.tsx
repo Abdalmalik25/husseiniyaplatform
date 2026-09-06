@@ -66,11 +66,7 @@ type CountryPrice = {
   taxPercent?: number;
 };
 
-function priceFor(
-  plan: any,
-  countryCode: string,
-  cycle: "monthly" | "yearly"
-) {
+function priceFor(plan: any, countryCode: string, cycle: "monthly" | "yearly") {
   const list = Array.isArray(plan?.countryPricing)
     ? (plan.countryPricing as CountryPrice[])
     : [];
@@ -155,8 +151,7 @@ export default function Billing() {
   const banner = access?.banner ?? null;
   const currentPlan = overview.data?.plan;
   const invoices = overview.data?.invoices ?? [];
-  const countryFlag =
-    COUNTRIES.find(c => c.code === countryCode)?.flag ?? "🌍";
+  const countryFlag = COUNTRIES.find(c => c.code === countryCode)?.flag ?? "🌍";
 
   const featuredPlan =
     plans.data?.find(p => p.code === selectedPlan) ??
@@ -186,12 +181,13 @@ export default function Billing() {
   return (
     <div className="min-h-screen bg-background text-foreground font-display flex">
       <AppSidebar />
-      <div className="flex-1 min-w-0">
+      <div className="flex-1 min-w-0 flex flex-col">
+        {/* ── Header Section ── */}
         <div className="brand-gradient text-white">
           <div className="max-w-7xl mx-auto px-4 py-8">
             <button
               onClick={() => setLocation("/app")}
-              className="flex items-center gap-1.5 text-xs text-brand-300 hover:text-white mb-4"
+              className="flex items-center gap-1.5 text-xs text-brand-300 hover:text-white mb-4 transition-colors"
             >
               <ArrowLeft className="w-4 h-4 rotate-180" />
               العودة للوحة التحكم
@@ -212,11 +208,12 @@ export default function Billing() {
           </div>
         </div>
 
-        <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-          {/* ── لافتة الوصول الحالية (من resolveAccess على الخادم) ── */}
+        {/* ── Main Content ── */}
+        <main className="flex-1 max-w-7xl mx-auto px-4 py-8 space-y-8 w-full">
+          {/* ── Access Banner ── */}
           {banner && (
             <div
-              className={`rounded-2xl border px-4 py-3 flex items-start gap-3 ${
+              className={`rounded-2xl border px-5 py-4 flex items-start gap-4 ${
                 banner.kind === "info"
                   ? "border-brand/20 bg-brand-50 dark:bg-brand-500/10"
                   : banner.kind === "warning"
@@ -225,7 +222,7 @@ export default function Billing() {
               }`}
             >
               <AlertTriangle
-                className={`w-4 h-4 shrink-0 mt-0.5 ${
+                className={`w-5 h-5 shrink-0 mt-0.5 ${
                   banner.kind === "info"
                     ? "text-brand"
                     : banner.kind === "warning"
@@ -234,15 +231,16 @@ export default function Billing() {
                 }`}
               />
               <div className="min-w-0">
-                <p className="text-xs font-black">{banner.titleAr}</p>
-                <p className="text-[11px] mt-0.5 text-muted-foreground leading-relaxed">
+                <p className="text-sm font-black">{banner.titleAr}</p>
+                <p className="text-xs mt-1 text-muted-foreground leading-relaxed">
                   {banner.messageAr}
                 </p>
               </div>
             </div>
           )}
-{/* ── الحالة الحالية والباقة ── */}
-          <div className="surface rounded-2xl p-5">
+
+          {/* ── Current Status Card ── */}
+          <div className="surface rounded-2xl p-6">
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
               <div className="flex items-start gap-3">
                 <div className="w-11 h-11 shrink-0 rounded-2xl bg-brand/10 text-brand flex items-center justify-center">
@@ -258,9 +256,7 @@ export default function Billing() {
                         : access?.level === "readonly"
                           ? "وضع القراءة الآمن — البيانات كاملة ومرئية"
                           : "بيانات محفوظة بالكامل"}
-                    {currentPlan
-                      ? ` · باقة الحالية: ${currentPlan.name}`
-                      : ""}
+                    {currentPlan ? ` · باقة الحالية: ${currentPlan.name}` : ""}
                   </p>
                 </div>
               </div>
@@ -334,26 +330,28 @@ export default function Billing() {
               </div>
             </div>
             <div className="flex-1 sm:max-w-xs flex items-end">
-              <div className="w-full rounded-xl border border-dashed border-border px-3 py-2.5 text-[11px] text-muted-foreground bg-muted/20">
-                الباقة المعروضة تُسعّر بعملة {countryFlag}{" "}
-                {countryCode.toUpperCase()} — تُفعّل عند إنشاء الفاتورة.
+              <div className="w-full rounded-xl border border-dashed border-border px-4 py-3 text-xs text-muted-foreground bg-muted/20">
+                <span className="font-bold">{countryFlag}</span> تُسعّر بعملة{" "}
+                <span className="font-mono">{countryCode.toUpperCase()}</span> —
+                تُفعّل عند إنشاء الفاتورة.
               </div>
             </div>
           </section>
-{/* ── الباقات (ديناميكية من قاعدة البيانات + تسعير الدولة) ── */}
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-black flex items-center gap-2">
-                <Crown className="w-4 h-4 text-brand" />
-                <span>الباقات المتاحة</span>
+
+          {/* ── Pricing Section ── */}
+          <section className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-black flex items-center gap-2">
+                <Crown className="w-5 h-5 text-brand" />
+                الباقات المتاحة
               </h3>
               {cycle === "yearly" && (
-                <Badge className="bg-emerald-100 text-emerald-700 text-[10px]">
-                  وفّر شهرين
+                <Badge className="bg-emerald-100 text-emerald-700 text-xs font-bold">
+                  🎁 وفّر شهرين
                 </Badge>
               )}
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {plans.data?.map(plan => {
                 const p = priceFor(plan, countryCode, cycle);
                 const isSelected = selectedPlan === plan.code;
@@ -420,14 +418,14 @@ export default function Billing() {
               })}
             </div>
           </section>
-{/* ── وسائل الدفع (بوابات ديناميكية قابلة للتخصيص لكل دولة) ── */}
-          <section>
-            <h3 className="text-sm font-black flex items-center gap-2 mb-3">
-              <CreditCard className="w-4 h-4 text-brand" />
+          {/* ── Payment Gateways Section ── */}
+          <section className="space-y-6">
+            <h3 className="text-base font-black flex items-center gap-2">
+              <CreditCard className="w-5 h-5 text-brand" />
               وسائل الدفع
             </h3>
             {gateways.data?.length ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {gateways.data.map((gw: PublicGateway) => {
                   const Icon = GATEWAY_ICONS[gw.providerType] ?? Wallet;
                   const isSelected = selectedGateway === gw.code;
@@ -440,19 +438,21 @@ export default function Billing() {
                         setPendingInvoice(null);
                         setPendingGateway(null);
                       }}
-                      className={`text-right rounded-2xl p-4 border transition-all ${
+                      className={`text-right rounded-2xl p-5 border transition-all ${
                         isSelected
-                          ? "border-brand ring-2 ring-brand/60 bg-brand-50 dark:bg-brand-500/10"
+                          ? "border-brand ring-2 ring-brand/60 bg-brand-50 dark:bg-brand-500/10 shadow-md"
                           : "border-border bg-surface hover:border-brand/40"
                       }`}
                     >
-                      <div className="flex items-center gap-2">
-                        <div className="w-9 h-9 rounded-xl bg-brand/10 text-brand flex items-center justify-center">
-                          <Icon className="w-4 h-4" />
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-brand/10 text-brand flex items-center justify-center">
+                          <Icon className="w-5 h-5" />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-black truncate">{gw.name}</p>
-                          <p className="text-[10px] text-muted-foreground">
+                          <p className="text-sm font-black truncate">
+                            {gw.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
                             {isManual
                               ? "تأكيد يدوي خلال دقائق"
                               : gw.mode === "live"
@@ -462,7 +462,7 @@ export default function Billing() {
                         </div>
                       </div>
                       {gw.feePercent && Number(gw.feePercent) > 0 && (
-                        <p className="mt-2 text-[10px] text-muted-foreground">
+                        <p className="mt-3 text-xs text-muted-foreground">
                           رسوم {gw.feePercent}%
                           {gw.feeFixed && Number(gw.feeFixed) > 0
                             ? ` + ${gw.feeFixed}`
@@ -470,7 +470,7 @@ export default function Billing() {
                         </p>
                       )}
                       {gw.instructions && (
-                        <p className="mt-2 text-[10px] text-muted-foreground leading-relaxed">
+                        <p className="mt-3 text-xs text-muted-foreground leading-relaxed">
                           {gw.instructions}
                         </p>
                       )}
@@ -479,72 +479,86 @@ export default function Billing() {
                 })}
               </div>
             ) : (
-              <div className="rounded-2xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">
+              <div className="rounded-2xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
                 لا توجد وسائل دفع مفعّلة حالياً — تابع معنا عبر واتساب.
               </div>
             )}
           </section>
 
-          {/* ── ملخص الدفع ── */}
+          {/* ── Checkout Summary ── */}
           {(selectedPlan || pendingInvoice) && (
-            <section className="rounded-2xl border border-brand/30 bg-surface p-5">
-              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <section className="rounded-2xl border border-brand/30 bg-surface p-6 shadow-md">
+              <div className="flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
                 <div className="min-w-0">
-                  <h4 className="text-sm font-black flex items-center gap-2">
+                  <h4 className="text-base font-black flex items-center gap-2">
                     {pendingInvoice ? (
                       <>
-                        <Receipt className="w-4 h-4 text-brand" />
+                        <Receipt className="w-5 h-5 text-brand" />
                         الفاتورة جاهزة
                       </>
                     ) : (
                       <>
-                        <ShieldCheck className="w-4 h-4 text-emerald-500" />
+                        <ShieldCheck className="w-5 h-5 text-emerald-500" />
                         تأكيد الدفع
                       </>
                     )}
                   </h4>
-                  <div className="text-[11px] text-muted-foreground mt-1 space-y-0.5">
+                  <div className="text-sm text-muted-foreground mt-2 space-y-1">
                     {!pendingInvoice ? (
                       <>
-                        <p>الباقة المختارة: {featuredPlan?.name ?? selectedPlan}</p>
                         <p>
-                          الدولة: {countryFlag} {countryCode.toUpperCase()} · الدورة:{" "}
-                          {cycle === "monthly" ? "شهرية" : "سنوية"}
+                          الباقة المختارة:{" "}
+                          <span className="font-bold">
+                            {featuredPlan?.name ?? selectedPlan}
+                          </span>
+                        </p>
+                        <p>
+                          الدولة:{" "}
+                          <span className="font-bold">
+                            {countryFlag} {countryCode.toUpperCase()}
+                          </span>{" "}
+                          · الدورة:{" "}
+                          <span className="font-bold">
+                            {cycle === "monthly" ? "شهرية" : "سنوية"}
+                          </span>
                         </p>
                       </>
                     ) : (
                       <>
                         <p>
-                          رقم الفاتورة: <b>{pendingInvoice.invoiceNumber}</b>
+                          رقم الفاتورة:{" "}
+                          <b className="font-mono text-foreground">
+                            {pendingInvoice.invoiceNumber}
+                          </b>
                         </p>
                         <p>
                           الإجمالي:{" "}
-                          <b>
+                          <b className="text-lg">
                             {pendingInvoice.total} {pendingInvoice.currency}
                           </b>
                         </p>
-                        <p className="text-emerald-600">
+                        <p className="text-emerald-600 font-bold">
                           {pendingGateway?.name} — لم يُخصم مبلغ منك بعد.
                         </p>
                       </>
                     )}
                   </div>
                 </div>
-                <div className="flex gap-2 shrink-0">
+                <div className="flex gap-3 shrink-0">
                   {pendingInvoice ? (
                     <>
                       {pendingGateway?.instructions && (
-                        <p className="hidden lg:block text-[10px] text-muted-foreground max-w-56">
+                        <p className="hidden lg:block text-xs text-muted-foreground max-w-64">
                           {pendingGateway.instructions}
                         </p>
                       )}
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 text-xs"
+                        className="h-10 text-sm"
                         onClick={resetInvoice}
                       >
-                        <RotateCcw className="w-3.5 h-3.5 ml-1" />
+                        <RotateCcw className="w-4 h-4 ml-1" />
                         فاتورة أخرى
                       </Button>
                       <a
@@ -553,7 +567,7 @@ export default function Billing() {
                         )}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 bg-brand hover:bg-brand-deep text-ink-deep text-xs font-bold h-9 px-4 rounded-xl transition-all"
+                        className="inline-flex items-center gap-2 bg-brand hover:bg-brand-deep text-ink-deep text-sm font-bold h-10 px-5 rounded-xl transition-all shadow-md"
                       >
                         <MessageSquare className="w-4 h-4" />
                         إرسال تأكيد الدفع
@@ -561,15 +575,15 @@ export default function Billing() {
                     </>
                   ) : (
                     <Button
-                      size="sm"
-                      className="h-9 text-xs"
+                      size="lg"
+                      className="h-11 text-sm"
                       onClick={handleCheckout}
                       disabled={checkout.isPending}
                     >
                       {checkout.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin ml-1" />
+                        <Loader2 className="w-4 h-4 animate-spin ml-2" />
                       ) : (
-                        <ExternalLink className="w-4 h-4 ml-1" />
+                        <ExternalLink className="w-4 h-4 ml-2" />
                       )}
                       إنشاء الفاتورة ومتابعة الدفع
                     </Button>
@@ -578,42 +592,48 @@ export default function Billing() {
               </div>
             </section>
           )}
-{/* ── سجل الفواتير ── */}
+
+          {/* ── Invoice History ── */}
           {invoices.length > 0 && (
-            <section>
-              <h3 className="text-sm font-black flex items-center gap-2 mb-3">
-                <Receipt className="w-4 h-4 text-brand" />
+            <section className="space-y-4">
+              <h3 className="text-base font-black flex items-center gap-2">
+                <Receipt className="w-5 h-5 text-brand" />
                 سجل الفواتير
               </h3>
-              <div className="overflow-x-auto rounded-2xl border border-border">
-                <table className="w-full text-right text-xs">
-                  <thead className="bg-muted/40 text-muted-foreground">
+              <div className="overflow-x-auto rounded-2xl border border-border bg-surface">
+                <table className="w-full text-right text-sm">
+                  <thead className="bg-muted/50 text-muted-foreground">
                     <tr>
-                      <th className="px-3 py-2 font-bold">الرقم</th>
-                      <th className="px-3 py-2 font-bold">الحالة</th>
-                      <th className="px-3 py-2 font-bold">الإجمالي</th>
-                      <th className="px-3 py-2 font-bold">التاريخ</th>
+                      <th className="px-4 py-3 font-bold">الرقم</th>
+                      <th className="px-4 py-3 font-bold">الحالة</th>
+                      <th className="px-4 py-3 font-bold">الإجمالي</th>
+                      <th className="px-4 py-3 font-bold">التاريخ</th>
                     </tr>
                   </thead>
                   <tbody>
                     {invoices.map(inv => (
-                      <tr key={inv.id} className="border-t border-border">
-                        <td className="px-3 py-2">{inv.invoiceNumber}</td>
-                        <td className="px-3 py-2">
+                      <tr
+                        key={inv.id}
+                        className="border-t border-border hover:bg-muted/20 transition-colors"
+                      >
+                        <td className="px-4 py-3 font-mono text-sm">
+                          {inv.invoiceNumber}
+                        </td>
+                        <td className="px-4 py-3">
                           <Badge
                             className={
                               inv.status === "paid"
-                                ? "bg-emerald-100 text-emerald-700"
-                                : "bg-amber-100 text-amber-700"
+                                ? "bg-emerald-100 text-emerald-700 font-bold"
+                                : "bg-amber-100 text-amber-700 font-bold"
                             }
                           >
                             {inv.status === "paid" ? "مدفوعة" : "قيد الانتظار"}
                           </Badge>
                         </td>
-                        <td className="px-3 py-2">
+                        <td className="px-4 py-3 font-bold">
                           {inv.total} {inv.currency}
                         </td>
-                        <td className="px-3 py-2 text-muted-foreground">
+                        <td className="px-4 py-3 text-muted-foreground">
                           {new Date(
                             inv.createdAt ?? inv.dueDate
                           ).toLocaleDateString("ar")}
@@ -625,29 +645,39 @@ export default function Billing() {
               </div>
             </section>
           )}
-{/* ── لوحة إدارة بوابات الدفع (للمالك فقط — تُخفى عند عدم الصلاحية) ── */}
+
+          {/* ── Admin Panel (Owner Only) ── */}
           {showAdmin && <OwnerAdminPanel />}
 
-          {/* ── الثقة والمرونة ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-            <div className="surface rounded-2xl p-5">
-              <h4 className="flex items-center gap-2 text-xs font-black mb-2">
-                <Sparkles className="w-4 h-4 text-brand" /> التزام بالمرونة
+          {/* ── Trust & Flexibility Cards ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-4">
+            <div className="surface rounded-2xl p-6 space-y-4">
+              <h4 className="flex items-center gap-2 text-sm font-black">
+                <Sparkles className="w-5 h-5 text-brand" />
+                التزام بالمرونة
               </h4>
-              <ul className="space-y-2 text-[11px] text-muted-foreground leading-relaxed">
-                <li>
-                  • المرونة المعتمدة: تجربة ← نشط ← مهلة مرنة، وموقوف فقط بطلبك
+              <ul className="space-y-3 text-sm text-muted-foreground leading-relaxed">
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  المرونة المعتمدة: تجربة ← نشط ← مهلة مرنة، وموقوف فقط بطلبك
                   الصريح.
                 </li>
-                <li>• لا يُوقف نظامك تلقائياً أبداً — أعمالك مستمرة.</li>
-                <li>• البيانات معزولة ومشفّرة مع نسخ احتياطية يومية.</li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  لا يُوقف نظامك تلقائياً أبداً — أعمالك مستمرة.
+                </li>
+                <li className="flex items-start gap-2">
+                  <Check className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                  البيانات معزولة ومشفّرة مع نسخ احتياطية يومية.
+                </li>
               </ul>
             </div>
-            <div className="surface rounded-2xl p-5">
-              <h4 className="flex items-center gap-2 text-xs font-black mb-2">
-                <MessageSquare className="w-4 h-4 text-brand" /> وسائل دفع محلية
+            <div className="surface rounded-2xl p-6 space-y-4">
+              <h4 className="flex items-center gap-2 text-sm font-black">
+                <MessageSquare className="w-5 h-5 text-brand" />
+                وسائل دفع محلية
               </h4>
-              <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 بوابات دفع قابلة للتخصيص لكل دولة وعملة — التحويل البنكي،
                 المحافظ، البطاقات، والدفع عبر واتساب.
               </p>
@@ -657,17 +687,18 @@ export default function Billing() {
                 )}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-[11px] font-bold text-brand hover:text-brand-deep"
+                className="inline-flex items-center gap-2 text-sm font-bold text-brand hover:text-brand-deep transition-colors"
               >
-                <MessageSquare className="w-3.5 h-3.5" />
+                <MessageSquare className="w-4 h-4" />
                 استفسر عن وسائل الدفع
               </a>
             </div>
-            <div className="surface rounded-2xl p-5">
-              <h4 className="flex items-center gap-2 text-xs font-black mb-2">
-                <Download className="w-4 h-4 text-brand" /> المنصة على جهازك
+            <div className="surface rounded-2xl p-6 space-y-4">
+              <h4 className="flex items-center gap-2 text-sm font-black">
+                <Download className="w-5 h-5 text-brand" />
+                المنصة على جهازك
               </h4>
-              <p className="text-[11px] text-muted-foreground leading-relaxed mb-3">
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 ثبّت النظام كتطبيق سطح مكتب أو موبايل، واعمل أوفلاين مع مزامنة
                 تلقائية عند عودة الاتصال.
               </p>
@@ -675,9 +706,9 @@ export default function Billing() {
                 variant="outline"
                 size="sm"
                 onClick={() => setLocation("/download")}
-                className="h-8 text-xs"
+                className="h-10 text-sm"
               >
-                <Download className="w-3.5 h-3.5 ml-1" />
+                <Download className="w-4 h-4 ml-2" />
                 تحميل التطبيق
               </Button>
             </div>
@@ -793,7 +824,8 @@ function OwnerAdminPanel() {
     graceDays: 30,
     graceFullAccess: true,
     maxOverdueDays: 120,
-    restrictedFeatures: "exports, zatca, api_keys, ai_assistant, add_user, add_branch, backups",
+    restrictedFeatures:
+      "exports, zatca, api_keys, ai_assistant, add_user, add_branch, backups",
   });
   const [gwId, setGwId] = useState<number | null>(null);
   const [gwForm, setGwForm] = useState<Record<string, string | boolean>>({
@@ -894,25 +926,27 @@ function OwnerAdminPanel() {
       sortOrder: 0,
     });
   };
-return (
-    <section className="rounded-2xl border border-border bg-surface p-5 space-y-5">
-      <h3 className="text-sm font-black flex items-center gap-2">
-        <Settings2 className="w-4 h-4 text-brand" />
+  return (
+    <section className="rounded-2xl border border-border bg-surface p-6 space-y-6">
+      <h3 className="text-base font-black flex items-center gap-2">
+        <Settings2 className="w-5 h-5 text-brand" />
         إعدادات الدفع والبوابات (للمالك)
       </h3>
 
       {/* سياسة الاشتراك المرنة */}
-      <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-        <h4 className="text-xs font-black flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+      <div className="rounded-2xl border border-border bg-muted/20 p-5 space-y-4">
+        <h4 className="text-sm font-black flex items-center gap-2">
+          <ShieldCheck className="w-5 h-5 text-emerald-500" />
           سياسة الاشتراك — لا يتوقف العمل أبداً
         </h4>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
-            <Label className="text-[10px] font-bold">أيام التجربة</Label>
+            <Label className="text-xs font-bold mb-1.5 block">
+              أيام التجربة
+            </Label>
             <Input
               type="number"
-              className="h-8 text-xs mt-1"
+              className="h-9 text-sm"
               value={policy?.trialDays ?? policyForm.trialDays}
               onChange={e =>
                 setPolicyForm(f => ({
@@ -923,10 +957,12 @@ return (
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">أيام المهلة (كاملة)</Label>
+            <Label className="text-xs font-bold mb-1.5 block">
+              أيام المهلة (كاملة)
+            </Label>
             <Input
               type="number"
-              className="h-8 text-xs mt-1"
+              className="h-9 text-sm"
               value={policyForm.graceDays}
               onChange={e =>
                 setPolicyForm(f => ({
@@ -937,10 +973,12 @@ return (
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">حد القراءة فقط</Label>
+            <Label className="text-xs font-bold mb-1.5 block">
+              حد القراءة فقط
+            </Label>
             <Input
               type="number"
-              className="h-8 text-xs mt-1"
+              className="h-9 text-sm"
               value={policyForm.maxOverdueDays}
               onChange={e =>
                 setPolicyForm(f => ({
@@ -951,7 +989,9 @@ return (
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">المهلة بكامل الصلاحيات</Label>
+            <Label className="text-xs font-bold mb-1.5 block">
+              المهلة بكامل الصلاحيات
+            </Label>
             <button
               onClick={() =>
                 setPolicyForm(f => ({
@@ -959,7 +999,7 @@ return (
                   graceFullAccess: !f.graceFullAccess,
                 }))
               }
-              className={`mt-2 w-full rounded-lg h-9 text-xs font-bold border transition-all ${
+              className={`w-full rounded-lg h-9 text-sm font-bold border transition-all ${
                 policyForm.graceFullAccess
                   ? "bg-emerald-100 text-emerald-700 border-emerald-300"
                   : "bg-muted/40 text-muted-foreground border-border"
@@ -970,11 +1010,11 @@ return (
           </div>
         </div>
         <div>
-          <Label className="text-[10px] font-bold">
+          <Label className="text-xs font-bold mb-1.5 block">
             الميزات المقيّدة بعد المهلة (بفواصل)
           </Label>
           <Textarea
-            className="mt-1 text-xs h-14"
+            className="text-sm h-20"
             value={policyForm.restrictedFeatures}
             onChange={e =>
               setPolicyForm(f => ({
@@ -986,7 +1026,7 @@ return (
         </div>
         <Button
           size="sm"
-          className="h-8 text-xs"
+          className="h-10 text-sm"
           onClick={savePolicy}
           disabled={updatePolicy.isPending}
         >
@@ -998,25 +1038,26 @@ return (
           حفظ السياسة
         </Button>
       </div>
-{/* البوابات */}
-      <div className="rounded-xl border border-border bg-muted/20 p-4 space-y-3">
-        <h4 className="text-xs font-black flex items-center gap-2">
-          <CreditCard className="w-4 h-4 text-brand" />
+
+      {/* Payment Gateways */}
+      <div className="rounded-2xl border border-border bg-muted/20 p-5 space-y-4">
+        <h4 className="text-sm font-black flex items-center gap-2">
+          <CreditCard className="w-5 h-5 text-brand" />
           بوابات الدفع الديناميكية
         </h4>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {adminGateways.data?.map(g => (
             <button
               key={g.id}
               onClick={() => selectGateway(g.id)}
-              className={`text-right rounded-xl border px-3 py-2 text-[11px] transition-all ${
+              className={`text-right rounded-xl border p-3 text-sm transition-all ${
                 gwId === g.id
                   ? "border-brand ring-1 ring-brand/50 bg-brand-50 dark:bg-brand-500/10"
                   : "border-border hover:border-brand/40"
               }`}
             >
               <span className="font-black">{g.name}</span>
-              <span className="block text-muted-foreground">
+              <span className="block text-xs text-muted-foreground mt-0.5">
                 {g.providerType} · {g.countryCode} · {g.currency}
                 {g.isActive ? " · نشطة" : " · معطّلة"}
               </span>
@@ -1038,53 +1079,61 @@ return (
                 isActive: true,
               });
             }}
-            className="rounded-xl border border-dashed border-brand/40 text-brand text-[11px] font-bold px-3 py-2 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all"
+            className="rounded-xl border border-dashed border-brand/40 text-brand text-sm font-bold p-3 hover:bg-brand-50 dark:hover:bg-brand-500/10 transition-all"
           >
             + بوابة جديدة
           </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
           <div>
-            <Label className="text-[10px] font-bold">الرمز</Label>
+            <Label className="text-xs font-bold mb-1.5 block">الرمز</Label>
             <Input
-              className="h-8 text-xs mt-1"
+              className="h-9 text-sm"
               value={String(gwForm.code)}
               onChange={e => setGwForm(f => ({ ...f, code: e.target.value }))}
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">النوع</Label>
+            <Label className="text-xs font-bold mb-1.5 block">النوع</Label>
             <Select
               value={String(gwForm.providerType)}
               onValueChange={v => setGwForm(f => ({ ...f, providerType: v }))}
             >
-              <SelectTrigger className="h-8 text-xs mt-1">
+              <SelectTrigger className="h-9 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {["whatsapp", "bank_transfer", "cash", "tap", "moyasar", "stripe", "manual"].map(
-                  t => (
-                    <SelectItem key={t} value={t}>
-                      {t}
-                    </SelectItem>
-                  )
-                )}
+                {[
+                  "whatsapp",
+                  "bank_transfer",
+                  "cash",
+                  "tap",
+                  "moyasar",
+                  "stripe",
+                  "manual",
+                ].map(t => (
+                  <SelectItem key={t} value={t}>
+                    {t}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
-            <Label className="text-[10px] font-bold">الاسم</Label>
+            <Label className="text-xs font-bold mb-1.5 block">الاسم</Label>
             <Input
-              className="h-8 text-xs mt-1"
+              className="h-9 text-sm"
               value={String(gwForm.name)}
               onChange={e => setGwForm(f => ({ ...f, name: e.target.value }))}
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">الدولة (رمز)</Label>
+            <Label className="text-xs font-bold mb-1.5 block">
+              الدولة (رمز)
+            </Label>
             <Input
-              className="h-8 text-xs mt-1 uppercase"
+              className="h-9 text-sm uppercase"
               maxLength={2}
               value={String(gwForm.countryCode)}
               onChange={e =>
@@ -1093,11 +1142,12 @@ return (
             />
           </div>
         </div>
-<div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
-            <Label className="text-[10px] font-bold">العملة</Label>
+            <Label className="text-xs font-bold mb-1.5 block">العملة</Label>
             <Input
-              className="h-8 text-xs mt-1 uppercase"
+              className="h-9 text-sm uppercase"
               maxLength={3}
               value={String(gwForm.currency)}
               onChange={e =>
@@ -1106,12 +1156,12 @@ return (
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">الوضع</Label>
+            <Label className="text-xs font-bold mb-1.5 block">الوضع</Label>
             <Select
               value={String(gwForm.mode)}
               onValueChange={v => setGwForm(f => ({ ...f, mode: v }))}
             >
-              <SelectTrigger className="h-8 text-xs mt-1">
+              <SelectTrigger className="h-9 text-sm">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -1134,9 +1184,7 @@ return (
           <div>
             <Label className="text-[10px] font-bold">نشطة؟</Label>
             <button
-              onClick={() =>
-                setGwForm(f => ({ ...f, isActive: !f.isActive }))
-              }
+              onClick={() => setGwForm(f => ({ ...f, isActive: !f.isActive }))}
               className={`mt-2 w-full rounded-lg h-8 text-xs font-bold border transition-all ${
                 gwForm.isActive
                   ? "bg-emerald-100 text-emerald-700 border-emerald-300"
@@ -1191,30 +1239,34 @@ return (
       </div>
 
       {/* ── أكواد التفعيل: الرمز نفسه هو مفتاح تنشيط الاشتراك ─────────── */}
-      <div className="mt-8 border-t pt-6">
-        <h3 className="text-sm font-black mb-1 flex items-center gap-2">
-          <ShieldCheck className="w-4 h-4 text-brand" />
-          أكواد التفعيل (الدفع المحلي واليدوي)
-        </h3>
-        <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-          أنشئ كوبونات بأي عملة ودولة، ثم أرسل الرمز للعميل عبر{" "}
-          <strong>البريد</strong> أو <strong>واتساب</strong> أو{" "}
-          <strong>SMS</strong> — يفعّل العميل اشتراكه ذاتياً من صفحة{" "}
-          <code className="text-[10px] bg-muted px-1 rounded">/claim</code>{" "}
-          بدون بوابة دفع خارجية. مثالي للتحويل البنكي والاستلام المحلي.
-        </p>
+      <div className="mt-8 border-t pt-8 space-y-6">
+        <div>
+          <h3 className="text-base font-black mb-2 flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-brand" />
+            أكواد التفعيل (الدفع المحلي واليدوي)
+          </h3>
+          <p className="text-sm text-muted-foreground leading-relaxed">
+            أنشئ كوبونات بأي عملة ودولة، ثم أرسل الرمز للعميل عبر{" "}
+            <strong>البريد</strong> أو <strong>واتساب</strong> أو{" "}
+            <strong>SMS</strong> — يفعّل العميل اشتراكه ذاتياً من صفحة{" "}
+            <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+              /claim
+            </code>{" "}
+            بدون بوابة دفع خارجية. مثالي للتحويل البنكي والاستلام المحلي.
+          </p>
+        </div>
 
         {/* إنشاء أكواد */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-4">
           <div>
-            <Label className="text-[10px] font-bold">الباقة</Label>
+            <Label className="text-xs font-bold mb-1.5 block">الباقة</Label>
             <Select
               value={String(codeForm.planId || plans.data?.[0]?.id || "")}
               onValueChange={v =>
                 setCodeForm(f => ({ ...f, planId: Number(v) }))
               }
             >
-              <SelectTrigger className="h-8 text-xs mt-1">
+              <SelectTrigger className="h-9 text-sm">
                 <SelectValue placeholder="اختر" />
               </SelectTrigger>
               <SelectContent>
@@ -1227,9 +1279,9 @@ return (
             </Select>
           </div>
           <div>
-            <Label className="text-[10px] font-bold">السعر</Label>
+            <Label className="text-xs font-bold mb-1.5 block">السعر</Label>
             <Input
-              className="h-8 text-xs mt-1"
+              className="h-9 text-sm"
               inputMode="decimal"
               value={codeForm.price}
               onChange={e =>
@@ -1238,9 +1290,9 @@ return (
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">العملة</Label>
+            <Label className="text-xs font-bold mb-1.5 block">العملة</Label>
             <Input
-              className="h-8 text-xs mt-1 uppercase"
+              className="h-9 text-sm uppercase"
               maxLength={3}
               value={codeForm.currency}
               onChange={e =>
@@ -1249,9 +1301,11 @@ return (
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">الدولة (رمز)</Label>
+            <Label className="text-xs font-bold mb-1.5 block">
+              الدولة (رمز)
+            </Label>
             <Input
-              className="h-8 text-xs mt-1 uppercase"
+              className="h-9 text-sm uppercase"
               maxLength={2}
               value={codeForm.countryCode}
               onChange={e =>
@@ -1260,9 +1314,11 @@ return (
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">المدة (أشهر)</Label>
+            <Label className="text-xs font-bold mb-1.5 block">
+              المدة (أشهر)
+            </Label>
             <Input
-              className="h-8 text-xs mt-1"
+              className="h-9 text-sm"
               inputMode="numeric"
               value={codeForm.periodMonths}
               onChange={e =>
@@ -1274,9 +1330,9 @@ return (
             />
           </div>
           <div>
-            <Label className="text-[10px] font-bold">العدد</Label>
+            <Label className="text-xs font-bold mb-1.5 block">العدد</Label>
             <Input
-              className="h-8 text-xs mt-1"
+              className="h-9 text-sm"
               inputMode="numeric"
               value={codeForm.quantity}
               onChange={e =>
@@ -1289,15 +1345,14 @@ return (
           </div>
           <div className="flex items-end">
             <Button
-              size="sm"
-              className="h-8 text-xs w-full"
+              className="h-9 text-sm w-full"
               onClick={submitCreateCode}
               disabled={createCode.isPending}
             >
               {createCode.isPending ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" />
+                <Loader2 className="w-4 h-4 animate-spin ml-1" />
               ) : (
-                <Save className="w-3.5 h-3.5 ml-1" />
+                <Save className="w-4 h-4 ml-1" />
               )}
               إنشاء
             </Button>
@@ -1306,29 +1361,32 @@ return (
 
         {/* قائمة الأكواد */}
         <div className="rounded-xl border border-border overflow-hidden overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead className="bg-muted/60 text-muted-foreground">
               <tr>
-                <th className="text-right p-2 font-bold">الرمز</th>
-                <th className="text-right p-2 font-bold">الباقة</th>
-                <th className="text-right p-2 font-bold">القيمة</th>
-                <th className="text-right p-2 font-bold">الحالة</th>
-                <th className="text-left p-2 font-bold">إرسال</th>
+                <th className="text-right p-3 font-bold">الرمز</th>
+                <th className="text-right p-3 font-bold">الباقة</th>
+                <th className="text-right p-3 font-bold">القيمة</th>
+                <th className="text-right p-3 font-bold">الحالة</th>
+                <th className="text-left p-3 font-bold">إرسال</th>
               </tr>
             </thead>
             <tbody>
               {adminCodes.data?.map(c => (
-                <tr key={c.id} className="border-t border-border">
-                  <td className="p-2 font-mono font-bold tracking-wider">
+                <tr
+                  key={c.id}
+                  className="border-t border-border hover:bg-muted/20 transition-colors"
+                >
+                  <td className="p-3 font-mono font-bold tracking-wider">
                     {c.code}
                   </td>
-                  <td className="p-2">{c.name}</td>
-                  <td className="p-2 whitespace-nowrap">
+                  <td className="p-3">{c.name}</td>
+                  <td className="p-3 whitespace-nowrap">
                     {c.price} {c.currency} / {c.periodMonths} شهر
                   </td>
-                  <td className="p-2">
+                  <td className="p-3">
                     <span
-                      className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      className={`px-2.5 py-1 rounded-full text-xs font-bold ${
                         c.status === "used"
                           ? "bg-muted text-muted-foreground"
                           : c.status === "active"
@@ -1343,12 +1401,12 @@ return (
                           : "مسودة"}
                     </span>
                   </td>
-                  <td className="p-2 text-left">
+                  <td className="p-3 text-left">
                     {c.status !== "used" && (
                       <Button
                         size="sm"
                         variant="outline"
-                        className="h-7 text-[11px]"
+                        className="h-8 text-xs"
                         onClick={() =>
                           setSendForm({
                             id: c.id,
@@ -1358,7 +1416,7 @@ return (
                           })
                         }
                       >
-                        <MessageSquare className="w-3 h-3 ml-1" />
+                        <MessageSquare className="w-3.5 h-3.5 ml-1" />
                         إرسال
                       </Button>
                     )}
@@ -1369,7 +1427,7 @@ return (
                 <tr>
                   <td
                     colSpan={5}
-                    className="p-4 text-center text-muted-foreground"
+                    className="p-6 text-center text-muted-foreground"
                   >
                     لا توجد أكواد بعد — أنشئ أول كود تفعيل بالأعلى.
                   </td>
@@ -1381,80 +1439,82 @@ return (
 
         {/* لوحة الإرسال: الرمز هو مفتاح التنشيط — بريد / واتساب / SMS */}
         {sendForm && (
-          <div className="mt-4 rounded-xl border border-brand/40 bg-brand/5 p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-xs font-black flex items-center gap-1.5">
-                <MessageSquare className="w-3.5 h-3.5 text-brand" />
+          <div className="rounded-xl border border-brand/40 bg-brand/5 p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-sm font-black flex items-center gap-2">
+                <MessageSquare className="w-4 h-4 text-brand" />
                 إرسال رمز التفعيل{" "}
-                <code className="font-mono bg-muted px-1.5 py-0.5 rounded">
+                <code className="font-mono bg-muted px-2 py-1 rounded text-sm">
                   {sendForm.code}
                 </code>
               </h4>
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 w-7 p-0"
+                className="h-8 w-8 p-0"
                 onClick={() => {
                   setSendForm(null);
                   setSendResult(null);
                 }}
                 aria-label="إغلاق"
               >
-                <X className="w-3.5 h-3.5" />
+                <X className="w-4 h-4" />
               </Button>
             </div>
 
             {/* اختيار القناة */}
-            <div className="flex gap-2 mb-3">
+            <div className="flex gap-3">
               {(
                 [
-                  { mode: "whatsapp" as const, label: "واتساب", Icon: MessageSquare },
+                  {
+                    mode: "whatsapp" as const,
+                    label: "واتساب",
+                    Icon: MessageSquare,
+                  },
                   { mode: "email" as const, label: "بريد", Icon: Mail },
                   { mode: "sms" as const, label: "SMS", Icon: Smartphone },
                 ] as const
               ).map(({ mode, label, Icon }) => (
                 <Button
                   key={mode}
-                  size="sm"
                   variant={sendForm.mode === mode ? "default" : "outline"}
-                  className="h-8 text-xs flex-1"
+                  className="h-9 text-sm flex-1"
                   onClick={() => {
                     setSendForm(f => (f ? { ...f, mode } : f));
                     setSendResult(null);
                   }}
                 >
-                  <Icon className="w-3.5 h-3.5 ml-1" />
+                  <Icon className="w-4 h-4 ml-1.5" />
                   {label}
                 </Button>
               ))}
             </div>
 
-            <div className="flex gap-2">
+            <div className="flex gap-3">
               <Input
-                className="h-8 text-xs flex-1"
+                className="h-9 text-sm flex-1"
                 placeholder={
                   sendForm.mode === "email"
                     ? "email@company.com"
                     : "+967 7XX XXX XXX"
                 }
-                dir={sendForm.mode === "email" ? "ltr" : "ltr"}
+                dir="ltr"
                 value={sendForm.target}
                 onChange={e =>
-                  setSendForm(f =>
-                    f ? { ...f, target: e.target.value } : f
-                  )
+                  setSendForm(f => (f ? { ...f, target: e.target.value } : f))
                 }
               />
               <Button
-                size="sm"
-                className="h-8 text-xs"
-                disabled={sendCode.isPending || sendForm.target.trim().length < 5}
+                className="h-9 text-sm"
+                disabled={
+                  sendCode.isPending || sendForm.target.trim().length < 5
+                }
                 onClick={submitSendCode}
               >
                 {sendCode.isPending ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin ml-1" />
+                  <Loader2 className="w-4 h-4 animate-spin ml-1" />
                 ) : (
-                  <ExternalLink className="w-3.5 h-3.5 ml-1" />
+                  <ExternalLink className="w-4 h-4 ml-1" />
                 )}
                 إرسال الرمز
               </Button>
@@ -1462,47 +1522,48 @@ return (
 
             {/* نتيجة الإرسال: روابط جاهزة للقنوات اليدوية */}
             {sendResult && (
-              <div className="mt-3 space-y-2 text-xs">
-                <p className="rounded-lg bg-muted/60 p-2 leading-relaxed">
-                  نصّ الرسالة جاهز أسفل. إن لم يُرسل تلقائياً افتح الرابط المناسب
-                  وأرسله بنقرة واحدة — الرمز نفسه هو مفتاح التنشيط لدى العميل.
+              <div className="space-y-3 text-sm">
+                <p className="rounded-lg bg-muted/60 p-3 leading-relaxed">
+                  نصّ الرسالة جاهز أسفل. إن لم يُرسل تلقائياً افتح الرابط
+                  المناسب وأرسله بنقرة واحدة — الرمز نفسه هو مفتاح التنشيط لدى
+                  العميل.
                 </p>
                 {sendResult.waLink && (
                   <a
                     href={sendResult.waLink}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-emerald-600 font-bold hover:underline"
+                    className="inline-flex items-center gap-2 text-emerald-600 font-bold hover:underline"
                   >
-                    <MessageSquare className="w-3.5 h-3.5" />
+                    <MessageSquare className="w-4 h-4" />
                     فتح واتساب والرسالة جاهزة
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 )}
                 {sendResult.smsLink && (
                   <a
                     href={sendResult.smsLink}
-                    className="inline-flex items-center gap-1 text-sky-600 font-bold hover:underline"
+                    className="inline-flex items-center gap-2 text-sky-600 font-bold hover:underline"
                   >
-                    <Smartphone className="w-3.5 h-3.5" />
+                    <Smartphone className="w-4 h-4" />
                     فتح تطبيق الرسائل (SMS)
-                    <ExternalLink className="w-3 h-3" />
+                    <ExternalLink className="w-3.5 h-3.5" />
                   </a>
                 )}
                 {sendResult.channel === "email" && (
-                  <span className="inline-flex items-center gap-1 text-brand font-bold">
-                    <Mail className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center gap-2 text-brand font-bold">
+                    <Mail className="w-4 h-4" />
                     أُرسل عبر البريد الإلكتروني
                   </span>
                 )}
                 {sendResult.messageText && (
                   <details className="text-muted-foreground">
-                    <summary className="cursor-pointer text-[11px] font-bold">
+                    <summary className="cursor-pointer text-xs font-bold">
                       عرض/نسخ نصّ الرسالة
                     </summary>
                     <pre
                       dir="rtl"
-                      className="mt-1 whitespace-pre-wrap rounded-lg bg-muted/60 p-2 text-[11px] leading-relaxed select-all"
+                      className="mt-2 whitespace-pre-wrap rounded-lg bg-muted/60 p-3 text-sm leading-relaxed select-all"
                     >
                       {sendResult.messageText}
                     </pre>

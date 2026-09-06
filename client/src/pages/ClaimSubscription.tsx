@@ -42,10 +42,7 @@ export default function ClaimSubscription() {
       return;
     }
     setSubmitting(true);
-    claim.mutate(
-      { code: clean },
-      { onSettled: () => setSubmitting(false) }
-    );
+    claim.mutate({ code: clean }, { onSettled: () => setSubmitting(false) });
   };
 
   return (

@@ -78,7 +78,7 @@ export function InventoryValuationPanel() {
   const { data: valuationLayers, refetch: refetchLayers } =
     trpc.products.valuationLayers.useQuery(
       {
-        productId: selectedProductId!,
+        productId: selectedProductId || 0,
         warehouseId: selectedWarehouseId || undefined,
         asOfDate,
       },
@@ -87,7 +87,7 @@ export function InventoryValuationPanel() {
 
   const { data: fifoResult } = trpc.products.fifoValuation.useQuery(
     {
-      productId: selectedProductId!,
+      productId: selectedProductId || 0,
       warehouseId: selectedWarehouseId || undefined,
       quantity: fifoQty,
     },
@@ -96,7 +96,7 @@ export function InventoryValuationPanel() {
 
   const { data: lifoResult } = trpc.products.lifoValuation.useQuery(
     {
-      productId: selectedProductId!,
+      productId: selectedProductId || 0,
       warehouseId: selectedWarehouseId || undefined,
       quantity: lifoQty,
     },
@@ -203,29 +203,17 @@ export function InventoryValuationPanel() {
               onValueChange={v => setActiveTab(v as any)}
               className="w-full"
             >
-              <TabsList className="grid w-full grid-cols-4 h-9 bg-white border">
-                <TabsTrigger
-                  value="layers"
-                  className="text-[10px] flex items-center gap-1"
-                >
+              <TabsList className="tabs-primary w-full grid-cols-2 sm:grid-cols-4">
+                <TabsTrigger value="layers" className="tab-trigger">
                   <Package className="w-3 h-3" /> طبقات التقييم
                 </TabsTrigger>
-                <TabsTrigger
-                  value="wavg"
-                  className="text-[10px] flex items-center gap-1"
-                >
+                <TabsTrigger value="wavg" className="tab-trigger">
                   <TrendingUp className="w-3 h-3" /> المتوسط المرجح
                 </TabsTrigger>
-                <TabsTrigger
-                  value="fifo"
-                  className="text-[10px] flex items-center gap-1"
-                >
+                <TabsTrigger value="fifo" className="tab-trigger">
                   <ArrowUp className="w-3 h-3" /> FIFO (الأقدم أولاً)
                 </TabsTrigger>
-                <TabsTrigger
-                  value="lifo"
-                  className="text-[10px] flex items-center gap-1"
-                >
+                <TabsTrigger value="lifo" className="tab-trigger">
                   <ArrowDown className="w-3 h-3" /> LIFO (الأحدث أولاً)
                 </TabsTrigger>
               </TabsList>
@@ -233,132 +221,145 @@ export function InventoryValuationPanel() {
               {/* Valuation Layers Tab */}
               <TabsContent value="layers" className="space-y-4">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <Card className="border-0 shadow-sm bg-white p-3">
-                    <p className="text-[10px] text-gray-500">إجمالي الطبقات</p>
-                    <p className="font-bold text-lg text-ink">
+                  <Card className="panel-premium border-0 p-3">
+                    <p className="text-[10px] text-muted-foreground">
+                      إجمالي الطبقات
+                    </p>
+                    <p className="font-bold text-lg text-foreground">
                       {totalLayers}
                     </p>
                   </Card>
-                  <Card className="border-0 shadow-sm bg-white p-3">
-                    <p className="text-[10px] text-gray-500">إجمالي الكمية</p>
-                    <p className="font-bold text-lg text-ink">
+                  <Card className="panel-premium border-0 p-3">
+                    <p className="text-[10px] text-muted-foreground">
+                      إجمالي الكمية
+                    </p>
+                    <p className="font-bold text-lg text-foreground">
                       {formatNum(totalQty)}
                     </p>
                   </Card>
-                  <Card className="border-0 shadow-sm bg-white p-3">
-                    <p className="text-[10px] text-gray-500">إجمالي القيمة</p>
+                  <Card className="panel-premium border-0 p-3">
+                    <p className="text-[10px] text-muted-foreground">
+                      إجمالي القيمة
+                    </p>
                     <p className="font-bold text-lg text-brand">
                       {formatNum(totalValue)} ر.ي
                     </p>
                   </Card>
-                  <Card className="border-0 shadow-sm bg-white p-3">
-                    <p className="text-[10px] text-gray-500">المتوسط المرجح</p>
-                    <p className="font-bold text-lg text-green-600">
+                  <Card className="panel-premium border-0 p-3">
+                    <p className="text-[10px] text-muted-foreground">
+                      المتوسط المرجح
+                    </p>
+                    <p className="font-bold text-lg text-success">
                       {formatCost(wavgCost)} ر.ي
                     </p>
                   </Card>
                 </div>
 
-                <Card className="border-0 shadow-sm bg-white">
-                  <CardContent className="p-3 overflow-x-auto">
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b bg-gray-50 text-[10px]">
-                          <th className="text-right p-2">#</th>
-                          <th className="text-right p-2">التاريخ</th>
-                          <th className="text-right p-2">المخزن</th>
-                          <th className="text-center p-2">الكمية</th>
-                          <th className="text-center p-2">المتبقي</th>
-                          <th className="text-left p-2">تكلفة الوحدة</th>
-                          <th className="text-left p-2">إجمالي التكلفة</th>
-                          <th className="text-left p-2">المصدر</th>
-                          <th className="text-left p-2">المرجع</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {valuationLayers?.layers?.map((layer, i) => (
-                          <tr
-                            key={layer.id}
-                            className={`border-b hover:bg-gray-50 ${layer.remainingQty === 0 ? "bg-gray-50 opacity-60" : ""}`}
-                          >
-                            <td className="p-2 text-right text-[10px]">
-                              {i + 1}
-                            </td>
-                            <td className="p-2 text-right text-[10px]">
-                              {new Date(layer.layerDate).toLocaleDateString(
-                                "ar-EG"
-                              )}
-                            </td>
-                            <td className="p-2 text-right text-[10px]">
-                              {(layer as any).warehouseCode ||
-                                (layer as any).warehouseId ||
-                                "-"}
-                            </td>
-                            <td className="p-2 text-center font-mono">
-                              {formatNum(layer.quantity)}
-                            </td>
-                            <td className="p-2 text-center font-mono">
-                              {layer.remainingQty > 0 ? (
-                                formatNum(layer.remainingQty)
-                              ) : (
-                                <span className="text-green-600">
-                                  مستهلك بالكامل
-                                </span>
-                              )}
-                            </td>
-                            <td className="p-2 text-left font-mono text-brand">
-                              {formatCost(layer.unitCost)}
-                            </td>
-                            <td className="p-2 text-left font-mono">
-                              {formatNum(layer.totalCost)}
-                            </td>
-                            <td className="p-2 text-left text-[10px]">
-                              {layer.sourceType}
-                            </td>
-                            <td className="p-2 text-left text-[10px]">
-                              {layer.referenceType || "-"}:{" "}
-                              {layer.referenceId || "-"}
-                            </td>
+                <Card className="panel-premium border-0">
+                  <CardContent className="p-4 overflow-x-auto">
+                    <div className="datagrid rounded-xl border border-line overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="bg-panel/60 text-muted-foreground font-bold text-[10px]">
+                            <th className="text-right p-2.5">#</th>
+                            <th className="text-right p-2.5">التاريخ</th>
+                            <th className="text-right p-2.5">المخزن</th>
+                            <th className="text-center p-2.5">الكمية</th>
+                            <th className="text-center p-2.5">المتبقي</th>
+                            <th className="text-left p-2.5">تكلفة الوحدة</th>
+                            <th className="text-left p-2.5">إجمالي التكلفة</th>
+                            <th className="text-left p-2.5">المصدر</th>
+                            <th className="text-left p-2.5">المرجع</th>
                           </tr>
-                        ))}
-                        {(!valuationLayers?.layers ||
-                          valuationLayers.layers.length === 0) && (
-                          <tr>
-                            <td
-                              colSpan={9}
-                              className="text-center text-gray-400 py-8"
+                        </thead>
+                        <tbody>
+                          {valuationLayers?.layers?.map((layer, i) => (
+                            <tr
+                              key={layer.id}
+                              className={`border-line hover:bg-muted/30 transition-colors ${layer.remainingQty === 0 ? "bg-muted/40 opacity-60" : "bg-surface"}`}
                             >
-                              لا توجد طبقات تقييم لهذا الصنف
+                              <td className="p-2.5 text-right text-[10px] text-foreground">
+                                {i + 1}
+                              </td>
+                              <td className="p-2.5 text-right text-[10px] text-foreground">
+                                {new Date(layer.layerDate).toLocaleDateString(
+                                  "ar-EG"
+                                )}
+                              </td>
+                              <td className="p-2.5 text-right text-[10px] text-foreground">
+                                {(layer as any).warehouseCode ||
+                                  (layer as any).warehouseId ||
+                                  "-"}
+                              </td>
+                              <td className="p-2.5 text-center font-mono text-foreground">
+                                {formatNum(layer.quantity)}
+                              </td>
+                              <td className="p-2.5 text-center font-mono text-foreground">
+                                {layer.remainingQty > 0 ? (
+                                  formatNum(layer.remainingQty)
+                                ) : (
+                                  <span className="chip bg-success/15 text-success text-[10px]">
+                                    مستهلك بالكامل
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-2.5 text-left font-mono text-brand font-bold">
+                                {formatCost(layer.unitCost)}
+                              </td>
+                              <td className="p-2.5 text-left font-mono text-foreground">
+                                {formatNum(layer.totalCost)}
+                              </td>
+                              <td className="p-2.5 text-left text-[10px] text-foreground">
+                                {layer.sourceType}
+                              </td>
+                              <td className="p-2.5 text-left text-[10px] text-foreground">
+                                {layer.referenceType || "-"}:{" "}
+                                {layer.referenceId || "-"}
+                              </td>
+                            </tr>
+                          ))}
+                          {(!valuationLayers?.layers ||
+                            valuationLayers.layers.length === 0) && (
+                            <tr>
+                              <td
+                                colSpan={9}
+                                className="text-center text-gray-400 py-8"
+                              >
+                                لا توجد طبقات تقييم لهذا الصنف
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t-2 bg-panel/60 font-bold">
+                            <td
+                              colSpan={3}
+                              className="p-2.5 text-right text-foreground"
+                            >
+                              الإجماليات
                             </td>
+                            <td className="p-2.5 text-center font-mono text-foreground">
+                              {formatNum(totalQty)}
+                            </td>
+                            <td className="p-2.5 text-center font-mono text-foreground">
+                              {formatNum(
+                                valuationLayers?.layers?.reduce(
+                                  (s, l) => s + (l.remainingQty || 0),
+                                  0
+                                ) || 0
+                              )}
+                            </td>
+                            <td className="p-2.5 text-left font-mono text-brand">
+                              {formatCost(wavgCost)}
+                            </td>
+                            <td className="p-2.5 text-left font-mono text-success font-bold">
+                              {formatNum(totalValue)}
+                            </td>
+                            <td colSpan={2} className="p-2.5"></td>
                           </tr>
-                        )}
-                      </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 bg-gray-50 font-bold">
-                          <td colSpan={3} className="p-2 text-right">
-                            الإجماليات
-                          </td>
-                          <td className="p-2 text-center font-mono">
-                            {formatNum(totalQty)}
-                          </td>
-                          <td className="p-2 text-center font-mono">
-                            {formatNum(
-                              valuationLayers?.layers?.reduce(
-                                (s, l) => s + (l.remainingQty || 0),
-                                0
-                              ) || 0
-                            )}
-                          </td>
-                          <td className="p-2 text-left font-mono text-brand">
-                            {formatCost(wavgCost)}
-                          </td>
-                          <td className="p-2 text-left font-mono">
-                            {formatNum(totalValue)}
-                          </td>
-                          <td colSpan={2} className="p-2"></td>
-                        </tr>
-                      </tfoot>
-                    </table>
+                        </tfoot>
+                      </table>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>

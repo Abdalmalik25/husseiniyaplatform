@@ -35,6 +35,10 @@ export interface ThemeMeta {
   /** Swatch color dots shown in the picker */
   swatch: string[];
   description: string;
+  /** Semantic status palette */
+  success?: string;
+  warning?: string;
+  info?: string;
 }
 
 export const THEMES: ThemeMeta[] = [
@@ -44,6 +48,9 @@ export const THEMES: ThemeMeta[] = [
     mode: "light",
     swatch: ["#fbf8f2", "#b87945", "#0e2a2b"],
     description: "الإرث الكلاسيكي — فاتح دافئ وهوّية الحسينية الأصلية",
+    success: "#15803d",
+    warning: "#b45309",
+    info: "#1d6f8f",
   },
   {
     id: "dark",
@@ -51,6 +58,9 @@ export const THEMES: ThemeMeta[] = [
     mode: "dark",
     swatch: ["#0d1b1c", "#b87945", "#162e30"],
     description: "داكن هادئ قليل التوهّج مع البرونز الذهبي",
+    success: "#4ade80",
+    warning: "#fbbf24",
+    info: "#38bdf8",
   },
   {
     id: "midnight",
@@ -58,6 +68,9 @@ export const THEMES: ThemeMeta[] = [
     mode: "dark",
     swatch: ["#0b1424", "#6c9dff", "#141f38"],
     description: "أزرق منتصف الليل — تركيز عميق وراحة بصرية",
+    success: "#4ade80",
+    warning: "#fbbf24",
+    info: "#93c5fd",
   },
   {
     id: "emerald",
@@ -65,6 +78,9 @@ export const THEMES: ThemeMeta[] = [
     mode: "dark",
     swatch: ["#071a15", "#34d399", "#0f2b23"],
     description: "أخضر زمردي راقٍ للقيادات والأعمال",
+    success: "#6ee7b7",
+    warning: "#fcd34d",
+    info: "#67e8f9",
   },
   {
     id: "rose",
@@ -72,6 +88,9 @@ export const THEMES: ThemeMeta[] = [
     mode: "light",
     swatch: ["#fdf6f3", "#c06b5a", "#3a2220"],
     description: "دافئ أنيق بنفحة نحاسية راقية",
+    success: "#c2410c",
+    warning: "#b45309",
+    info: "#0369a1",
   },
   {
     id: "ocean",
@@ -79,6 +98,9 @@ export const THEMES: ThemeMeta[] = [
     mode: "light",
     swatch: ["#f2f7fa", "#1d6f8f", "#0b2c3a"],
     description: "أزرق نقي منعش يبعث الهدوء والوضوح",
+    success: "#0d9488",
+    warning: "#ca8a04",
+    info: "#0284c7",
   },
 ];
 

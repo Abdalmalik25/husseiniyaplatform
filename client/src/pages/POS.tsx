@@ -5,6 +5,7 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import {
   ShoppingCart,
   Search,
@@ -18,6 +19,7 @@ import {
   Smartphone,
   CheckCircle2,
   X,
+  TrendingUp,
 } from "lucide-react";
 
 interface CartLine {
@@ -273,8 +275,8 @@ export default function POS() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {lastInvoice && (
-              <span className="inline-flex items-center gap-1 rounded-full bg-teal-600/10 px-3 py-1 text-[11px] font-bold text-teal-600">
-                <CheckCircle2 className="h-3.5 w-3.5" />
+              <span className="chip text-[11px] font-bold text-success">
+                <CheckCircle2 className="h-3.5 w-3.5 ml-1" />
                 {lastInvoice}
               </span>
             )}
@@ -282,6 +284,7 @@ export default function POS() {
               variant="outline"
               size="sm"
               onClick={() => setShowDaily(s => !s)}
+              className="chip text-[11px] press-effect"
             >
               تقرير اليوم
             </Button>
@@ -382,213 +385,229 @@ export default function POS() {
         </div>
 
         {showDaily && daily && (
-          <div className="rounded-2xl border border-border bg-card p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-foreground">
+          <Card className="panel-premium">
+            <CardHeader className="ribbon-premium py-3 px-4 flex flex-row items-center justify-between">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Receipt className="w-4 h-4 text-brand" />
                 ملخص المبيعات — {(daily as any).date}
               </h2>
-              <button onClick={() => setShowDaily(false)}>
+              <button
+                onClick={() => setShowDaily(false)}
+                className="hover-lift transition-transform active:scale-90"
+              >
                 <X className="h-4 w-4 text-muted-foreground" />
               </button>
-            </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {Object.entries((daily as any).byMethod ?? {}).map(([k, v]) => (
-                <div key={k} className="rounded-xl bg-muted/40 p-3 text-center">
-                  <div className="text-[10px] text-muted-foreground">
-                    {PAYMENT_METHODS.find(m => m.value === k)?.label ?? k}
+            </CardHeader>
+            <CardContent className="p-4 space-y-4">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {Object.entries((daily as any).byMethod ?? {}).map(([k, v]) => (
+                  <div key={k} className="stat-card p-3 text-center hover-lift">
+                    <div className="text-[10px] text-muted-foreground mb-1">
+                      {PAYMENT_METHODS.find(m => m.value === k)?.label ?? k}
+                    </div>
+                    <div className="text-sm font-bold font-mono text-foreground">
+                      {fmt(Number(v) || 0)}
+                    </div>
                   </div>
-                  <div className="text-sm font-bold text-foreground">
-                    {fmt(Number(v) || 0)}
-                  </div>
-                </div>
-              ))}
-            </div>
-            {((daily as any).topProducts?.length ?? 0) > 0 && (
-              <div className="mt-4">
-                <h3 className="mb-2 text-xs font-bold text-muted-foreground">
-                  الأكثر مبيعاً
-                </h3>
-                <ul className="space-y-1">
-                  {(daily as any).topProducts.slice(0, 5).map((p: any) => (
-                    <li
-                      key={p.productId}
-                      className="flex items-center justify-between text-[12px]"
-                    >
-                      <span className="text-foreground">{p.productName}</span>
-                      <span className="text-muted-foreground">
-                        {p.qty} × {fmt(p.revenue)}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+                ))}
               </div>
-            )}
-          </div>
+              {((daily as any).topProducts?.length ?? 0) > 0 && (
+                <div>
+                  <h3 className="mb-3 text-xs font-bold text-muted-foreground flex items-center gap-2">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    الأكثر مبيعاً
+                  </h3>
+                  <ul className="space-y-2">
+                    {(daily as any).topProducts.slice(0, 5).map((p: any) => (
+                      <li
+                        key={p.productId}
+                        className="datagrid flex items-center justify-between p-2 rounded-lg text-[12px]"
+                      >
+                        <span className="text-foreground font-medium">
+                          {p.productName}
+                        </span>
+                        <span className="text-muted-foreground font-mono text-[11px]">
+                          {p.qty} × {fmt(p.revenue)}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         {/* Main: catalog + cart */}
         <div className="flex flex-col-reverse gap-4 lg:flex-row-reverse">
           {/* Cart */}
           <div className="lg:w-[380px] shrink-0">
-            <div className="sticky top-4 rounded-2xl border border-border bg-card p-4 space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-foreground">السلة</h2>
-                <span className="text-[11px] text-muted-foreground">
+            <Card className="sticky top-4 panel-premium">
+              <CardHeader className="ribbon-premium py-3 px-4 flex flex-row items-center justify-between">
+                <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-brand" />
+                  السلة
+                </h2>
+                <span className="chip text-[10px] font-mono">
                   {cart.length} صنف
                 </span>
-              </div>
-              <select
-                className="h-8 w-full rounded-lg border border-border bg-background px-2 text-[12px] text-foreground"
-                value={curId}
-                onChange={e =>
-                  setCurId(e.target.value ? Number(e.target.value) : "")
-                }
-              >
-                <option value="">العملة الافتراضية</option>
-                {(currenciesData ?? []).map((c: any) => (
-                  <option key={c.id} value={c.id}>
-                    {c.code} - {c.name}
-                  </option>
-                ))}
-              </select>
-
-              <div>
-                <label className="mb-1 block text-[11px] font-bold text-muted-foreground">
-                  العميل (اختياري)
-                </label>
+              </CardHeader>
+              <CardContent className="p-4 space-y-3">
                 <select
-                  className="h-9 w-full rounded-lg border border-border bg-background px-2 text-[12px] text-foreground"
-                  value={customerId ?? ""}
+                  className="h-8 w-full rounded-lg border border-border bg-background px-2 text-[12px] text-foreground"
+                  value={curId}
                   onChange={e =>
-                    setCustomerId(
-                      e.target.value ? Number(e.target.value) : null
-                    )
+                    setCurId(e.target.value ? Number(e.target.value) : "")
                   }
                 >
-                  <option value="">عميل نقدي</option>
-                  {customers.map(c => (
+                  <option value="">العملة الافتراضية</option>
+                  {(currenciesData ?? []).map((c: any) => (
                     <option key={c.id} value={c.id}>
-                      {c.name} ({c.code})
+                      {c.code} - {c.name}
                     </option>
                   ))}
                 </select>
-                <Input
-                  className="mt-2 h-8 text-[12px]"
-                  placeholder="بحث عن عميل..."
-                  value={customerSearch}
-                  onChange={e => setCustomerSearch(e.target.value)}
-                />
-              </div>
 
-              <div className="max-h-[260px] space-y-2 overflow-y-auto">
-                {cart.length === 0 && (
-                  <p className="py-8 text-center text-[12px] text-muted-foreground">
-                    أضف الأصناف من الكتالوج
-                  </p>
-                )}
-                {cart.map(l => (
-                  <CartLineRow
-                    key={l.productId}
-                    line={l}
-                    stock={l.stock}
-                    changeQty={changeQty}
-                    removeLine={removeLine}
-                    setLineDiscount={setLineDiscount}
-                    onOfferDiscount={setOfferDiscount}
-                  />
-                ))}
-              </div>
-
-              <div className="space-y-1 border-t border-border pt-2 text-[12px]">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">المجموع الفرعي</span>
-                  <span className="font-bold">{fmt(subtotal)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">خصم الأصناف</span>
-                  <span className="font-bold">{fmt(lineDiscounts)}</span>
-                </div>
-                {offerTotal > 0 && (
-                  <div className="flex justify-between text-emerald-600">
-                    <span>خصم العروض</span>
-                    <span className="font-bold">-{fmt(offerTotal)}</span>
-                  </div>
-                )}
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-muted-foreground">خصم إضافي</span>
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-muted-foreground">
+                    العميل (اختياري)
+                  </label>
+                  <select
+                    className="h-9 w-full rounded-lg border border-border bg-background px-2 text-[12px] text-foreground"
+                    value={customerId ?? ""}
+                    onChange={e =>
+                      setCustomerId(
+                        e.target.value ? Number(e.target.value) : null
+                      )
+                    }
+                  >
+                    <option value="">عميل نقدي</option>
+                    {customers.map(c => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} ({c.code})
+                      </option>
+                    ))}
+                  </select>
                   <Input
-                    className="h-7 w-24 text-[11px]"
-                    type="number"
-                    value={globalDiscount}
-                    onChange={e => setGlobalDiscount(e.target.value)}
+                    className="mt-2 h-8 text-[12px]"
+                    placeholder="بحث عن عميل..."
+                    value={customerSearch}
+                    onChange={e => setCustomerSearch(e.target.value)}
                   />
                 </div>
-                <div className="flex justify-between border-t border-border pt-1">
-                  <span className="font-bold text-foreground">الإجمالي</span>
-                  <span className="font-bold text-ink">
-                    {fmt(totalAfterOffers)}
-                  </span>
+
+                <div className="max-h-[260px] space-y-2 overflow-y-auto">
+                  {cart.length === 0 && (
+                    <p className="py-8 text-center text-[12px] text-muted-foreground">
+                      أضف الأصناف من الكتالوج
+                    </p>
+                  )}
+                  {cart.map(l => (
+                    <CartLineRow
+                      key={l.productId}
+                      line={l}
+                      stock={l.stock}
+                      changeQty={changeQty}
+                      removeLine={removeLine}
+                      setLineDiscount={setLineDiscount}
+                      onOfferDiscount={setOfferDiscount}
+                    />
+                  ))}
                 </div>
-                {selectedCurrency && (
-                  <div className="flex justify-between text-[11px] text-muted-foreground">
-                    <span>المكافئ بـ {selectedCurrency.code}</span>
-                    <span className="font-bold">
-                      {fmt(
-                        totalAfterOffers * Number(selectedCurrency.rate || 1)
-                      )}{" "}
-                      {selectedCurrency.symbol}
+
+                <div className="space-y-1 border-t border-border pt-2 text-[12px]">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">
+                      المجموع الفرعي
+                    </span>
+                    <span className="font-bold">{fmt(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">خصم الأصناف</span>
+                    <span className="font-bold">{fmt(lineDiscounts)}</span>
+                  </div>
+                  {offerTotal > 0 && (
+                    <div className="flex justify-between text-emerald-600">
+                      <span>خصم العروض</span>
+                      <span className="font-bold">-{fmt(offerTotal)}</span>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted-foreground">خصم إضافي</span>
+                    <Input
+                      className="h-7 w-24 text-[11px]"
+                      type="number"
+                      value={globalDiscount}
+                      onChange={e => setGlobalDiscount(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex justify-between border-t border-border pt-1">
+                    <span className="font-bold text-foreground">الإجمالي</span>
+                    <span className="font-bold text-ink">
+                      {fmt(totalAfterOffers)}
                     </span>
                   </div>
-                )}
-              </div>
-
-              <div>
-                <label className="mb-1 block text-[11px] font-bold text-muted-foreground">
-                  طريقة الدفع
-                </label>
-                <div className="grid grid-cols-5 gap-1">
-                  {PAYMENT_METHODS.map(m => {
-                    const Icon = m.icon;
-                    return (
-                      <button
-                        key={m.value}
-                        onClick={() => setPaymentMethod(m.value)}
-                        className={`flex flex-col items-center gap-0.5 rounded-lg border py-1.5 text-[10px] font-bold transition-colors ${
-                          paymentMethod === m.value
-                            ? "border-brand bg-brand/10 text-brand"
-                            : "border-border text-muted-foreground hover:bg-muted"
-                        }`}
-                      >
-                        <Icon className="h-4 w-4" />
-                        {m.label}
-                      </button>
-                    );
-                  })}
+                  {selectedCurrency && (
+                    <div className="flex justify-between text-[11px] text-muted-foreground">
+                      <span>المكافئ بـ {selectedCurrency.code}</span>
+                      <span className="font-bold">
+                        {fmt(
+                          totalAfterOffers * Number(selectedCurrency.rate || 1)
+                        )}{" "}
+                        {selectedCurrency.symbol}
+                      </span>
+                    </div>
+                  )}
                 </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <Input
-                  className="h-9 text-[12px]"
-                  type="number"
-                  placeholder="المبلغ المدفوع"
-                  value={paidAmount}
-                  onChange={e => setPaidAmount(e.target.value)}
-                />
-                <span className="shrink-0 text-[11px] text-muted-foreground">
-                  المتبقي {fmt(due)}
-                </span>
-              </div>
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-muted-foreground">
+                    طريقة الدفع
+                  </label>
+                  <div className="grid grid-cols-5 gap-1">
+                    {PAYMENT_METHODS.map(m => {
+                      const Icon = m.icon;
+                      return (
+                        <button
+                          key={m.value}
+                          onClick={() => setPaymentMethod(m.value)}
+                          className={`flex flex-col items-center gap-0.5 rounded-lg border py-1.5 text-[10px] font-bold transition-colors ${
+                            paymentMethod === m.value
+                              ? "border-brand bg-brand/10 text-brand"
+                              : "border-border text-muted-foreground hover:bg-muted"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          {m.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
 
-              <Button
-                className="h-11 w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand"
-                onClick={submit}
-                disabled={createSale.isPending || cart.length === 0}
-              >
-                <MethodIcon className="h-4 w-4" />
-                {createSale.isPending ? "جاري البيع..." : "تأكيد البيع"}
-              </Button>
-            </div>
+                <div className="flex items-center gap-2">
+                  <Input
+                    className="h-9 text-[12px]"
+                    type="number"
+                    placeholder="المبلغ المدفوع"
+                    value={paidAmount}
+                    onChange={e => setPaidAmount(e.target.value)}
+                  />
+                  <span className="shrink-0 text-[11px] text-muted-foreground">
+                    المتبقي {fmt(due)}
+                  </span>
+                </div>
+
+                <Button
+                  className="h-11 w-full bg-brand text-ink-deep hover:bg-brand-deep hover:text-sand press-effect shine-on-hover"
+                  onClick={submit}
+                  disabled={createSale.isPending || cart.length === 0}
+                >
+                  <MethodIcon className="h-4 w-4 ml-2" />
+                  {createSale.isPending ? "جاري البيع..." : "تأكيد البيع"}
+                </Button>
+              </CardContent>
+            </Card>
           </div>
           {/* Catalog */}
           <div className="flex-1">
@@ -607,8 +626,16 @@ export default function POS() {
                 جاري تحميل الكتالوج...
               </div>
             ) : products.length === 0 ? (
-              <div className="py-16 text-center text-sm text-muted-foreground">
-                لا توجد منتجات مطابقة
+              <div className="empty-state rounded-2xl border border-border bg-surface p-8 text-center">
+                <div className="empty-state-icon mx-auto mb-3">
+                  <Search className="w-6 h-6" />
+                </div>
+                <h4 className="text-sm font-bold text-foreground mb-1">
+                  لا توجد منتجات مطابقة
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  جرب البحث بكلمة مختلفة أو امسح الفلتر
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
@@ -620,21 +647,19 @@ export default function POS() {
                       key={p.id}
                       onClick={() => addToCart(p)}
                       disabled={out}
-                      className={`flex flex-col items-start gap-1 rounded-2xl border border-border bg-card p-3 text-right transition-colors ${
+                      className={`flex flex-col items-start gap-1.5 rounded-2xl border border-border bg-card p-3 text-right transition-all ${
                         out
                           ? "cursor-not-allowed opacity-50"
-                          : "hover:border-brand hover:bg-brand/5"
+                          : "hover:border-brand hover:bg-brand/5 hover-lift press-effect"
                       }`}
                     >
                       <div className="flex w-full items-center justify-between">
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="font-mono text-[10px] text-muted-foreground">
                           {p.code}
                         </span>
                         <span
-                          className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
-                            p.type === "service"
-                              ? "bg-teal-600/10 text-teal-600"
-                              : "bg-brand/10 text-brand"
+                          className={`chip text-[9px] font-bold ${
+                            p.type === "service" ? "text-info" : "text-brand"
                           }`}
                         >
                           {p.type === "service" ? "خدمة" : "سلعة"}
@@ -643,12 +668,18 @@ export default function POS() {
                       <span className="line-clamp-2 text-[12px] font-bold text-foreground">
                         {p.name}
                       </span>
-                      <div className="flex w-full items-center justify-between">
-                        <span className="text-[12px] font-bold text-ink">
+                      <div className="flex w-full items-center justify-between mt-1">
+                        <span className="text-[12px] font-bold text-emerald-700 font-mono">
                           {fmt(Number(p.salePrice || 0))}
                         </span>
                         {p.type === "goods" && (
-                          <span className="text-[10px] text-muted-foreground">
+                          <span
+                            className={`text-[10px] font-mono ${
+                              out
+                                ? "text-rose-600 font-bold"
+                                : "text-muted-foreground"
+                            }`}
+                          >
                             {out ? "نفد" : `متوفر ${stock}`}
                           </span>
                         )}

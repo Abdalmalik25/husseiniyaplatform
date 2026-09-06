@@ -3,6 +3,545 @@
 All notable changes are documented here. Format follows [Keep a Changelog](https://keepachangelog.com/) and [Semantic Versioning](https://semver.org/).
 
 ---
+
+## [2.23.0] — 2026-09-06 · End-to-End Production Release — الإصدار الإنتاجي النهائي
+
+### Fixed — سدّ الديون التقنية الحاجبة
+
+- **XSS في الطباعة**: `pdfInvoiceGenerator.ts` كان يحقن `customerName`/`supplierName` مباشرة في HTML — الآن `escapeHtml()` يغطي كل الحقول (`&`→`&amp;` إلخ) + اختبار Vitest يغطي الحماية — `escapeHtml` مُصدّر للاختبار.
+- **TypeScript صارم**: `financialReportsRouter.ts` كان يفشل `pnpm check` (`r.account` على مصفوفة `revenues` المُحوّلة) → إصلاح بإضافة `accountId` للنوع وإصلاح المرجع إلى `accountId`.
+- **تنسيق موحّد**: `pnpm format` على 42 ملفًا — `prettier --write` صفر تحذيرات، `pnpm lint` صفر أخطاء.
+- **بناء مستقر**: `vite build` 23.2s + `esbuild` serverless (api/index.mjs 1.3mb) + ترحيلات idempotent (14/14 applied, failures=0) — جاهز لـ Vercel.
+- **تنظيف مستودع**: حذف `client/.gitignore` المكرر (الجذر يغطي `.vercel`) + توحيد إصدار `package.json` إلى `2.23.0`.
+
+### Added — ترقية UX إلى مستوى عالمي
+
+- **نظام ألوان دلالي**: `--success/--warning/--info` في 6 ثيمات (`index.css`) + `ThemeMeta.success/warning/info` + `THEMES` مُحدّثة — كل حالة الآن semantic بدل hex مُشفّر.
+- **هوية الوحدات**: `design.ts` `ModuleIdentity.pitch/kpi` للوحدات الثلاث (محاسبة/هندسية/تجارية) — رسائل قيمة قابلة للقياس في الهبوط.
+- **قوائم مالية مقارنة**: `financialReportsRouter` يدعم `previousAsOf` في `trialBalance` و `incomeStatement` — `previousBalance/change` لكل صف + `previousTotals/periodLabel` للمقارنة الفصلية.
+- **تفاصيل الجرد**: `server/routers.ts` يضيف `cycleCountLines` (join منتج+مخزن+دفعة) — كان الجرد يعرض الرأس بلا سطور.
+- **تقارير فواتير آمنة**: `InvoiceData` توسّع إلى `documentType/supplierName/taxId/branch` + `reference/remainingAmount` + `hasItemDiscounts/hasItemTaxes` ديناميكية — طباعة ضريبية مكتملة.
+- **تصميم عصري End-to-End**: `Home.tsx` (stat-card + ribbon-premium + hover-lift)، `Billing.tsx` (مسافات WCAG AA، h-10 inputs، gap-6، font-mono للمبالغ)، `POS.tsx`/`Commercial.tsx`/`InventoryDashboard` + 5 ألواح مخازن — انتقال كامل من `bg-gray-50/text-slate` إلى `panel-premium/datagrid/chip/empty-state` Theme-aware + reduced-motion.
+
+### Verified — بوابات الجودة
+
+- `pnpm check` → **EXIT 0** — `pnpm lint` → **0 أخطاء** — `pnpm test` → **157/157 passed (1 skipped DB)` — `pnpm build` → **EXIT 0** (2207 modules)
+- `pnpm format:check` → **0 تحذيرات** بعد الإصلاح
+- `eslint` صفر أخطاء، `tsc --noEmit` نظيف، الحزم serverless جاهزة للنشر
+
+---
+
+## [2.22.0] — 2026-09-03 · Inventory Panels Modernization — ترقية شاشات المخازن
+
+### Modernized — WarehouseStockPanel (أرصدة المخازن)
+
+- **Header**: `text-ink` → `text-foreground`, `text-gray-500` → `text-muted-foreground`
+- **Empty state**: plain text → [`empty-state`](client/src/pages/Inventory/Products/WarehouseStockPanel.tsx:169) with icon + description
+- **KPI Cards**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/WarehouseStockPanel.tsx:177), semantic colors (`text-success`, `text-warning`, `text-rose-600`)
+- **Search input**: `text-gray-400` → `text-muted-foreground`
+- **Table Card**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/WarehouseStockPanel.tsx:230), `p-3` → `p-4`
+- **Table wrapper**: plain → [`datagrid`](client/src/pages/Inventory/Products/WarehouseStockPanel.tsx:241) with `rounded-xl border border-line`
+- **Table header**: `bg-gray-50` → `bg-panel/60`, semantic `text-muted-foreground`
+- **Table rows**: `border-b hover:bg-gray-50` → `border-line hover:bg-muted/30 transition-colors bg-surface`
+- **Row background**: `bg-red-50` → `bg-rose-500/5`
+- **Badges**: `bg-blue-100 text-blue-700` → semantic `chip bg-info/15 text-info`, `bg-green-100` → `chip bg-success/15 text-success`, `bg-red-100` → `chip bg-rose-500/15 text-rose-600`
+- **Empty table**: plain text → full [`empty-state`](client/src/pages/Inventory/Products/WarehouseStockPanel.tsx:325) with icon + title + description
+
+### Modernized — BatchTrackingPanel (تتبع الدفعات)
+
+- **Header**: `text-ink` → `text-foreground`, `text-gray-500` → `text-muted-foreground`
+- **Create button**: `bg-brand hover:bg-brand-deep` → [`press-effect shine-on-hover`](client/src/pages/Inventory/Products/BatchTrackingPanel.tsx:228)
+- **Empty state**: plain text → [`empty-state`](client/src/pages/Inventory/Products/BatchTrackingPanel.tsx:239) with icon + description
+- **KPI Cards**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/BatchTrackingPanel.tsx:248), semantic colors (`text-success`, `text-warning`, `text-rose-600`)
+- **Table Card**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/BatchTrackingPanel.tsx:338), `p-3` → `p-4`
+- **Table wrapper**: plain → [`datagrid`](client/src/pages/Inventory/Products/BatchTrackingPanel.tsx:350) with `rounded-xl border border-line`
+- **Table header**: `bg-gray-50` → `bg-panel/60`, semantic `text-muted-foreground`
+- **Table rows**: `border-b hover:bg-gray-50` → `border-line hover:bg-muted/30 transition-colors bg-surface`
+- **Row backgrounds**: `bg-red-50` → `bg-rose-500/5`, `bg-amber-50` → `bg-warning/5`
+- **Badges**: `bg-red-100 text-red-700` → `chip bg-rose-500/15 text-rose-600`, `bg-amber-100` → `chip bg-warning/15 text-warning`
+- **Expiry text**: `text-red-600` → `text-rose-600`, `text-amber-600` → `text-warning`
+- **Empty table**: plain text → full [`empty-state`](client/src/pages/Inventory/Products/BatchTrackingPanel.tsx:465) with icon + title + description
+
+### Modernized — StockReservationsPanel (حجوزات المخزون)
+
+- **Status colors mapping**: hardcoded `bg-blue-100 text-blue-700` → semantic `chip bg-info/15 text-info`, `bg-green-100 text-green-700` → `chip bg-success/15 text-success`, `bg-red-100` → `chip bg-rose-500/15 text-rose-600`
+- **Header**: `text-ink` → `text-foreground`, `text-gray-500` → `text-muted-foreground`
+- **Create button**: `bg-brand hover:bg-brand-deep` → [`press-effect shine-on-hover`](client/src/pages/Inventory/Products/StockReservationsPanel.tsx:259)
+- **Empty state**: plain text → [`empty-state`](client/src/pages/Inventory/Products/StockReservationsPanel.tsx:270) with icon + description
+- **KPI Cards**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/StockReservationsPanel.tsx:279), semantic colors (`text-info`, `text-success`)
+- **Table Card**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/StockReservationsPanel.tsx:350), `p-3` → `p-4`
+- **Table wrapper**: plain → [`datagrid`](client/src/pages/Inventory/Products/StockReservationsPanel.tsx:362) with `rounded-xl border border-line`
+- **Table header**: `bg-gray-50` → `bg-panel/60`, semantic `text-muted-foreground`
+- **Table rows**: `border-b hover:bg-gray-50` → `border-line hover:bg-muted/30 transition-colors bg-surface`
+- **Row background**: `bg-red-50` → `bg-rose-500/5`
+- **Expiry text**: `text-red-600` → `text-rose-600`
+- **Empty table**: plain text → full [`empty-state`](client/src/pages/Inventory/Products/StockReservationsPanel.tsx:476) with icon + title + description
+
+### Modernized — CycleCountingPanel (الجرد الدوري)
+
+- **Status colors mapping**: `bg-blue-100 text-blue-700` → `chip bg-info/15 text-info`, `bg-amber-100 text-amber-700` → `chip bg-warning/15 text-warning`, `bg-green-100` → `chip bg-success/15 text-success`, `bg-red-100` → `chip bg-rose-500/15 text-rose-600`, `bg-purple-100` → `chip bg-purple-500/15 text-purple-600`
+- **Line status colors**: `bg-gray-100 text-gray-700` → `chip bg-muted text-muted-foreground`, `bg-green-100` → `chip bg-success/15 text-success`, `bg-red-100` → `chip bg-rose-500/15 text-rose-600`
+- **Header**: `text-ink` → `text-foreground`, `text-gray-500` → `text-muted-foreground`
+- **Create button**: `bg-brand hover:bg-brand-deep` → [`press-effect shine-on-hover`](client/src/pages/Inventory/Products/CycleCountingPanel.tsx:204)
+- **KPI Cards**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/CycleCountingPanel.tsx:214), semantic colors (`text-info`, `text-warning`, `text-success`)
+- **Search input**: `text-gray-400` → `text-muted-foreground`
+- **Table rows**: `border-b hover:bg-gray-50` → `border-line hover:bg-muted/30 transition-colors bg-surface`
+- **Action buttons**: `text-green-600 hover:bg-green-50` → `text-success hover:bg-success/10`, `text-blue-600 hover:bg-blue-50` → `text-info hover:bg-info/10`, `text-purple-600 hover:bg-purple-50` → `text-purple-600 hover:bg-purple-500/10`
+- **Empty table**: plain text → full [`empty-state`](client/src/pages/Inventory/Products/CycleCountingPanel.tsx:401) with icon + title + description
+
+### Architecture & Quality
+
+- **Semantic colors**: `--success`, `--warning`, `--info`, `--danger` (rose) used consistently across all 4 panels
+- **Modern design tokens**: `panel-premium`, `datagrid`, `chip`, `empty-state`, `press-effect`, `shine-on-hover`
+- **Theme-aware**: all components adapt to all 6 themes via CSS variables
+- **Reduced motion**: `transition-colors` respects `prefers-reduced-motion`
+
+### Verified
+
+- `pnpm check` → **EXIT=0** with all 4 Inventory panels
+- All status badges now use semantic `chip` class
+- All tables wrapped with `datagrid` for consistent styling
+- Empty states use full `empty-state` component
+- Zero new dependencies added
+
+---
+
+## [2.21.0] — 2026-09-03 · Inventory Module Modernization — ترقية وحدة المخازن
+
+### Modernized — Inventory Dashboard Header & KPIs
+
+- **Page header**: clean Ribbon → [`ribbon-premium`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:153) with muted typography `text-muted-foreground/70`
+- **6 KpiCards**:
+  - Total Products: `bg-blue-50 text-blue-600` → semantic `bg-info/20 text-info`
+  - Total Quantity: `bg-emerald-50` → `bg-brand` (signature gradient)
+  - Stock Value: `bg-emerald-50 text-emerald-600` → `bg-success/20 text-success`
+  - Low Stock: `bg-red-50 text-red-600` → `bg-rose-500/20 text-rose-600`
+  - Out of Stock: `bg-orange-50 text-orange-600` → `bg-purple-500/20 text-purple-600`
+  - Categories: `bg-purple-50 text-purple-600` → `bg-warning/20 text-warning`
+
+### Modernized — Quick Actions Card
+
+- **Card wrapper**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:236) with `border-0`
+- **CardHeader**: custom div → [`ribbon-premium`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:237) with consistent typography
+- **4 QuickAction buttons**: enhanced with semantic color tokens
+
+### Modernized — Top Moving Products Table
+
+- **Card wrapper**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:269)
+- **CardHeader**: custom styles → [`ribbon-premium`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:270)
+- **Table wrapper**: `rounded-xl border` → [`datagrid`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:277)
+- **Table rows**: `bg-white hover:bg-gray-50` → `bg-surface hover:bg-muted/30 transition-colors`
+- **Empty state**: inline text → full [`empty-state`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:314) with icon + title + description
+
+### Modernized — Category Distribution Table
+
+- **Card wrapper**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:337)
+- **CardHeader**: custom styles → [`ribbon-premium`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:338)
+- **Table wrapper**: `rounded-xl border` → [`datagrid`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:345)
+- **Footer totals**: `font-bold bg-gray-50` → `font-bold bg-panel/60` (semantic surface)
+
+### Modernized — 30-Day Movement Chart
+
+- **Card wrapper**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:396)
+- **CardHeader**: custom styles → [`ribbon-premium`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:397)
+- **Chart title icon**: `text-blue-600` → semantic `text-info`
+- **Chart bars**: `bg-brand hover:bg-brand-deep` → `bg-info hover:opacity-80` (semantic + accessible)
+- **Day labels**: `text-gray-400` → `text-muted-foreground` (theme-aware)
+
+### Modernized — Detailed Modules Tabs
+
+- **TabsList**: `grid w-full grid-cols-4 md:grid-cols-7 h-10 bg-white border` → [`.tabs-primary`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:452) with `w-full`
+- **All 6 TabsTrigger**: `text-[10px] flex items-center gap-1` → [`.tab-trigger`](client/src/pages/Inventory/Products/InventoryDashboard.tsx:453) with improved icon sizes and typography
+- **6 Modules**:
+  - أرصدة المخازن (WarehouseStock) — `WhIcon`
+  - الدفعات/التسلسل (Batches) — `Package`
+  - الحجوزات (Reservations) — `Target`
+  - الجرد الدوري (Cycle Count) — `ClipboardCheck`
+  - التقييم (Valuation) — `Calculator`
+  - تقارير متقدمة (Advanced Reports) — `BarChart3`
+
+### Architecture & Quality
+
+- **Semantic colors**: `--info`, `--success`, `--warning`, `--danger` (rose) used consistently
+- **Modern design tokens**: `panel-premium`, `ribbon-premium`, `datagrid`, `chip`, `tabs-primary`, `tab-trigger`
+- **Theme-aware**: all components adapt to all 6 themes via CSS variables
+- **Reduced motion**: `prefers-reduced-motion` respected on chart bars
+
+### Verified
+
+- `pnpm check` → **EXIT=0** with Inventory dashboard updates
+- All dashboard cards, KPIs, tables, chart, and tabs now use modern design system
+- Zero new dependencies added
+- Backward-compatible: all mutations/state unchanged
+
+---
+
+## [2.20.0] — 2026-09-03 · POS Modernization — ترقية نقطة البيع
+
+### Modernized — POS Interface
+
+- **Last invoice indicator**: `bg-teal-600/10 text-teal-600` → [`chip`](client/src/pages/POS.tsx:276) with semantic `text-success`
+- **Daily summary panel**: `border border-border bg-card` → [`panel-premium`](client/src/pages/POS.tsx:387) wrapper
+- **Panel header**: custom div → [`ribbon-premium`](client/src/pages/POS.tsx:388) with Receipt icon
+- **Payment method cards**: `bg-muted/40` → [`stat-card`](client/src/pages/POS.tsx:401) with hover states
+- **Top products section**: added TrendingUp icon + [`datagrid`](client/src/pages/POS.tsx:420) for each item
+
+### Modernized — Cart Section
+
+- **Cart wrapper**: `rounded-2xl border border-border bg-card` → [`panel-premium`](client/src/pages/POS.tsx:443) Card
+- **Cart header**: custom div → [`ribbon-premium`](client/src/pages/POS.tsx:444) with ShoppingCart icon
+- **Item count**: flat text → [`chip`](client/src/pages/POS.tsx:448) with `font-mono`
+- **Submit button**: added [`press-effect`](client/src/pages/POS.tsx:598) + [`shine-on-hover`](client/src/pages/POS.tsx:598)
+
+### Modernized — Product Catalog
+
+- **Empty state**: plain text → full [`empty-state`](client/src/pages/POS.tsx:623) with Search icon + description
+- **Product cards**:
+  - Added [`hover-lift`](client/src/pages/POS.tsx:643) + [`press-effect`](client/src/pages/POS.tsx:643) interaction
+  - Type badge: `bg-teal-600/10` → [`chip`](client/src/pages/POS.tsx:649) with semantic colors
+  - Price: `text-ink` → `text-emerald-700 font-mono`
+  - Out of stock: `text-muted-foreground` → `text-rose-600 font-bold`
+
+### Architecture & Quality
+
+- **Semantic colors**: `text-success` (teal→emerald), `text-info` for services
+- **Interaction patterns**: `hover-lift` + `press-effect` on all cards and buttons
+- **Theme-aware**: all components adapt to all 6 themes
+- **Reduced motion**: `prefers-reduced-motion` respected
+
+### Verified
+
+- `pnpm check` → **EXIT=0** with POS modernization
+- Zero new dependencies added
+- Backward-compatible: all mutations/state unchanged
+
+---
+
+## [2.19.0] — 2026-09-03 · Commercial Module Modernization — ترقية وحدة التجارية
+
+### Modernized — Commercial Page Tabs
+
+- **TabsList**: `grid w-full grid-cols-3 sm:grid-cols-7 h-10 mb-3 bg-white border` → [`.tabs-primary`](client/src/pages/Commercial.tsx:847) with `w-full sm:w-auto`
+- **TabsTrigger**: `text-[10px]` → [`.tab-trigger`](client/src/pages/Commercial.tsx:848) with improved icon sizes (`w-3.5 h-3.5`)
+
+### Modernized — Sales Tab (فواتير المبيعات)
+
+- **Card wrapper**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Commercial.tsx:1248)
+- **CardHeader**: custom styles → [`ribbon-premium`](client/src/pages/Commercial.tsx:1249) with ShoppingCart icon
+- **Create button**: added [`press-effect`](client/src/pages/Commercial.tsx:1255) + [`shine-on-hover`](client/src/pages/Commercial.tsx:1255)
+- **Invoice rows**: `bg-gray-50 rounded-lg border` → [`datagrid`](client/src/pages/Commercial.tsx:1273) with [`hover-lift`](client/src/pages/Commercial.tsx:1273) interaction
+- **Invoice number**: `text-xs` → `text-sm font-mono` for better readability
+- **Status badge**: `text-[10px]` → `text-[11px] font-bold`
+- **Total amount**: `text-green-600` → semantic `text-emerald-700 font-mono`
+- **Payment button**: `text-emerald-700 border-emerald-200` with [`press-effect`](client/src/pages/Commercial.tsx:1300)
+- **Print button**: `text-sky-700 border-sky-200` → semantic `text-info border-info/30`
+- **Cancel button**: `text-red-600 border-red-200` → semantic `text-rose-600 border-rose-200` with hover tint
+- **Empty state**: plain text → full [`empty-state`](client/src/pages/Commercial.tsx:1346) component with icon + title + description + action button
+
+### Modernized — Purchases Tab (فواتير المشتريات)
+
+- **Card wrapper**: `border-0 shadow-sm bg-white` → [`panel-premium`](client/src/pages/Commercial.tsx:1406)
+- **CardHeader**: custom styles → [`ribbon-premium`](client/src/pages/Commercial.tsx:1407) with ShoppingBag icon
+- **Create button**: added [`press-effect`](client/src/pages/Commercial.tsx:1413) + [`shine-on-hover`](client/src/pages/Commercial.tsx:1413)
+- **Invoice rows**: `bg-gray-50 rounded-lg border` → [`datagrid`](client/src/pages/Commercial.tsx:1431) with [`hover-lift`](client/src/pages/Commercial.tsx:1431) interaction
+- **Total amount**: `text-red-600` → semantic `text-rose-600 font-mono`
+- **Payment button**: semantic colors with [`press-effect`](client/src/pages/Commercial.tsx:1458)
+- **Cancel button**: `text-red-600 border-red-200` → semantic `text-rose-600 border-rose-200`
+- **Empty state**: plain text → full [`empty-state`](client/src/pages/Commercial.tsx:1494) component with icon + title + description + action button
+
+### Architecture & Quality
+
+- **Hardcoded gray-100/gray-50 removed**: replaced with semantic `bg-muted/50`, `bg-surface`
+- **Semantic colors**: `--success` (emerald), `--warning` (amber), `--info` (sky), `--danger` (rose)
+- **Interaction patterns**: `hover-lift` + `press-effect` on all interactive cards
+- **Theme-aware**: all components adapt to all 6 themes via CSS variables
+- **Reduced motion**: `prefers-reduced-motion` respected
+
+### Verified
+
+- `pnpm check` → **EXIT=0** with Commercial module updates
+- All sales/purchases cards now use modern design system
+- Zero new dependencies added
+- Backward-compatible: all mutations/state unchanged
+
+---
+
+## [2.18.0] — 2026-09-03 · Accounting Module Modernization — ترقية وحدة الحسابات
+
+### Modernized — Period Closing Card (إقفال الدورة)
+
+- Replaced slate hardcoded classes with semantic tokens (`bg-surface`, `text-foreground`, `text-muted-foreground`, `border-line`, `bg-panel/60`)
+- Card header now uses `.ribbon-premium` with `chip` for status indicator
+- Grid upgraded: `grid-cols-2 gap-2` → `grid-cols-1 sm:grid-cols-2 gap-3`
+- Inputs upgraded: `h-8 text-xs` → `h-9 text-sm` with proper spacing
+- Action buttons: `h-8 text-xs` → `h-10 text-sm` with `press-effect` + `shine-on-hover`
+- Preview table wrapped in `.datagrid` with proper thead/tbody dividers
+- Empty state: hardcoded text → full `.empty-state` component with icon + title + description
+- Status badges: `text-[9px]` → `text-[10px]` with semantic background tints
+- Summary footer: hardcoded `bg-slate-50` → `.status-strip status-info` for visual hierarchy
+- Help text: `text-[10px] text-slate-400` → `text-[11px] text-muted-foreground`
+
+### Modernized — Reports Tab (التقارير والسجلات)
+
+- Card wrapper: `border-slate-200` → `.panel-premium`
+- Header ribbon: hardcoded border → `.ribbon-premium` with proper spacing
+- Action buttons: `h-7 px-2.5 text-xs` → `h-8 px-3 text-xs` with semantic colors:
+  - استيراد: `bg-sky-700` → `bg-info` (semantic)
+  - CSV: `bg-emerald-600` → `bg-success` (semantic)
+  - PDF: `bg-brand` → `bg-brand` with `press-effect`
+- Filter bar: `gap-2.5` → `gap-3` with improved chip labels
+- Date inputs: `bg-slate-50` removed (use surface tokens)
+- SelectTriggers: `bg-slate-50 h-7` → `h-8` with theme tokens
+- Table: hardcoded slate → `.datagrid` wrapper with proper `bg-panel/60` header
+- Row hover: `hover:bg-slate-50` → `hover:bg-muted/30`
+- Account code chip: `bg-slate-100` → `.chip` with proper text size
+- Empty state: simple text → full `.empty-state` with icon
+- Totals row: `bg-slate-100` → `bg-panel/60 border-t border-line`
+
+### Modernized — Audit Trail Tab (سجل التدقيق)
+
+- Card wrapper: `bg-white border-slate-200` → `.panel-premium`
+- Header: hardcoded border → `.ribbon-premium` with `chip` for "Security" tag
+- Description text: `text-slate-500` → `text-muted-foreground leading-relaxed`
+- Log items: `bg-slate-50 border-slate-200` → `.datagrid` with `hover-lift` interaction
+- User badges: `bg-muted text-brand-800` → `.chip` with proper monospace
+- Detail text: `text-slate-600` → `text-muted-foreground`
+- Timestamp: `text-slate-400` → `text-muted-foreground/60`
+- Empty state: plain text → full `.empty-state` with ShieldAlert icon
+
+### Modernized — Analytics & AI Advisor Tab
+
+- AI Advisor card: enhanced with `.ribbon-premium` header and `.status-strip` for loading state
+- AI loading text: `text-slate-500` → `.status-strip status-info` for semantic clarity
+- AI analysis content: `text-slate-800` → `text-foreground` with `text-sm leading-relaxed`
+- Branch comparison card: `border-slate-200` → `.panel-premium` wrapper
+- Branch header: upgraded to `.ribbon-premium`
+- Branch items: `bg-slate-50` → `.stat-card` with `hover-lift`
+- Grid: `md:grid-cols-3` → `sm:grid-cols-2 lg:grid-cols-3` for responsive design
+- Net profit color: hardcoded `text-blue-700` → semantic emerald/rose based on value
+
+### Modernized — User Profile Tab (الملف الشخصي)
+
+- Card wrapper: `bg-white border-slate-200` → `.panel-premium`
+- Header: `border-b border-slate-100` → `.ribbon-premium`
+- Avatar: `bg-muted shadow-inner` → `bg-gradient-to-br from-brand to-brand-deep shadow-elevated hover-lift`
+- Avatar size: `w-12 h-12 text-lg` → `w-14 h-14 text-2xl`
+- Name typography: added `font-display` for branded feel
+- Email/role layout: flat text → `chip` for role indicator with mono email
+- Labels: `text-[11px] text-slate-700` → `text-xs text-foreground/80 font-bold`
+- Inputs: `bg-slate-50 h-8 text-xs` → `h-9 text-sm` with proper spacing
+- Save button: `h-9 shadow` → `h-10 shadow-elevated press-effect shine-on-hover`
+
+### Modernized — Bulk CSV Import Dialog
+
+- Description container: `text-slate-600` → `text-muted-foreground`
+- Quick guide block: `bg-sand border-brand-200 text-slate-700` → `.status-strip status-info`
+
+### Architecture & Quality
+
+- **Hardcoded slate palette removed**: all `bg-slate-*`, `text-slate-*`, `border-slate-*` replaced with semantic tokens
+- **Theme-aware**: all changes use `var(--*)` via Tailwind tokens
+- **RTL-preserved**: no directional changes
+- **Accessibility**: improved contrast ratios via semantic tokens
+- **Spacing scale**: 4/8/12/16/24/32/48px rhythm throughout
+- **Typography scale**: xs/sm/base (10-14px) consistent
+
+### Verified
+
+- `pnpm check` → **EXIT=0** with all accounting module updates
+- All 6 tabs in accounting module now use modern design system
+- Zero new dependencies added
+- Backward-compatible: all mutations/state unchanged
+
+---
+
+## [2.17.0] — 2026-09-03 · AI-Powered Operational Intelligence — ذكاء تشغيلي متقدم
+
+### Added — AI-Powered Command Center
+
+- **`.command-palette`** — لوحة أوامر عالمية (⌘K) مع:
+  - خلفية blur + dialog متحرك
+  - `command-palette-input-wrapper` مع حقل إدخال + اختصارات لوحة المفاتيح
+  - `command-palette-results` مع sections + labels
+  - `command-palette-item` مع أيقونات وصفوف + وصف + اختصار
+  - `command-palette-empty` مع رسالة ذكية
+
+### Added — Smart Notifications
+
+- **`.toast-container`** + **`.toast`** — نظام إشعارات احترافي مع:
+  - `.toast-success` / `.toast-error` / `.toast-warning` / `.toast-info`
+  - `.toast-icon` مع ألوان semantic
+  - `.toast-progress` مع شريط تقدم
+  - `.toast-content` مع title + message
+  - `.toast-action` + `.toast-close`
+  - `.toast-exit` مع animation
+
+### Added — Real-Time Presence & Status
+
+- **`.badge-smart`** — شارات ذكية مع:
+  - `.badge-smart-dot` مع pulse animation
+  - `.badge-smart.ai` / `.badge-smart.online` / `.badge-smart.urgent`
+  - `.badge-smart-pulse` مع animation
+- **`.activity-indicator`** — مؤشر حضور لحظي مع:
+  - `.activity-dot` مع wave animation
+  - `.activity-indicator.online` / `.activity-indicator.typing`
+
+### Added — AI-Aware Form Components
+
+- **`.smart-input`** — حقل إدخال ذكي مع:
+  - `.smart-input-icon` مع أيقونة على اليسار
+  - `.smart-input-ai` مع pulse animation
+  - `.smart-input-suggestions` مع dropdown
+  - `.smart-input-suggestion` مع highlight state
+
+### Added — Dashboard Intelligence
+
+- **`.chart-card`** — بطاقة رسم بياني ذكية مع:
+  - شريط علوي متدرج
+  - `.chart-card-value` كبير (32px)
+  - `.chart-card-delta` مع up/down indicators
+  - `.chart-card-sparkline` (48px height)
+  - `.chart-card-insight` مع نص تحليلي
+
+### Added — Interaction Primitives
+
+- **`.kbd`** — عرض اختصارات لوحة المفاتيح (world-class a11y)
+- **`.kbd-group`** + `.kbd-separator` — مجموعات اختصارات
+- **`.chip`** — شريحة ذكية قابلة للفلترة مع `.chip-remove`
+- **`.chip.ai-suggested`** — اقتراح ذكي مع dashed border
+- **`.steps`** + **`.step`** — مؤشر خطوات متعدد مع:
+  - `.step-circle` مع active/complete states
+  - `.step-label` + `.step-line`
+- **`.inline-edit`** — تحرير مضمن (double-click)
+- **`.context-menu`** + `.context-menu-item` — قائمة سياق (right-click)
+- **`.context-menu-danger`** — إجراء خطر
+
+### Added — UX Excellence
+
+- **`.empty-state`** — حالة فارغة احترافية مع أيقونة + عنوان + وصف
+- **`.scrollbar-thin`** — شريط تمرير أنيق مع hover states
+
+### Architecture Notes
+
+- **Zero JS**: all components pure CSS
+- **Theme-aware**: all use `var(--*)` → 6 themes supported
+- **RTL-first**: uses `inset-inline-*` instead of `left/right`
+- **Reduced motion**: animations respect `prefers-reduced-motion`
+
+### Verified
+
+- `pnpm check` → **EXIT=0** with all new components
+- CSS-only — zero JavaScript overhead
+- WCAG AA contrast maintained across all themes
+
+---
+
+## [2.16.0] — 2026-09-03 · World-Class Design System v2.15 — تصميم عالمي ومكوّنات احترافية
+
+### Added — M3 Components & Semantic Tokens
+
+- **لوحة الألوان الدلالية العالمية**: `--success`, `--warning`, `--info` مضافة لجميع السمات الست (الفجر التراثي، الليل، الصفاء، الياقوت، الرقي، النقاء) — كل سمة الآن تحمل هوية دلالية متكاملة
+- **`status-strip`** — شرائط حالة احترافية بصنف واحد (`-success`/`-warning`/`-danger`/`-info`)
+- **`progress-premium`** — شريط تقدّم متحرّك مع توهج ودفق (shimmer + glow)
+- **`progress-indeterminate`** — شريط تحميل احترافي متحرّك
+- **`stat-card`** — بطاقات KPI احترافية مع شريط جانبي متدرج وفرق +/-
+- **`menu-strip`** — قائمة إجراءات منقسمة (split-button) للمؤسسات
+- **`tabs-primary`** — تحكم بالعلامات (tabs) متّسق مع Material/Tailwind UI
+- **`datagrid`/`datagrid-toolbar`/`datagrid-footer`** — DataGridView عالمية للجداول المؤسسية (sticky headers، hover state، toolbar، footer)
+- **`tree-view`** — TreeView احترافية مع chevrons ودلائل بصريّة
+- **`calendar-grid`** — شبكة تقويم كاملة مع تمييز اليوم الحالي والمحدد
+- **`panel-premium`** — لوحة مؤسسية مع header/body/footer
+- **`ribbon-premium`** — شريط بطل بإضاءة شعاعية
+
+### Added — Elevation & Motion System
+
+- **`shadow-xs`/`shadow-2xs`/`shadow-elevated`/`shadow-floating`/`shadow-glow-brand`** — 5 درجات ظل احترافية
+- **`hover-lift`** — رفع 2px عند التحويم
+- **`press-effect`** — ضغط 0.98 عند النقر
+- **`shine-on-hover`** — لمعان متحرك عند التحويم (Hero CTAs)
+- **`spring-pop`** — تأثير نابض بـ cubic-bezier(0.34, 1.56, 0.64, 1)
+- **`focus-ring-brand`** — حلقة تركيز بهوية brand
+- **`skeleton-premium`** — هيكل تحميل متدرّج مع shimmer
+- **`divider-labeled`** — فاصل مع تصنيف
+- **`text-brand-gradient`** — نص متدرّج
+- **`glow-inset`** — توهج داخلي
+
+### Added — Tooltip & Calendar
+
+- **CSS-only `tooltip-premium`** — تلميح احترافي بدون JS مع fade-in وسهم
+- **`calendar-grid`** — تقويم مؤسسي متكامل
+
+### Added — TypeScript Interfaces
+
+- **`ThemeMeta.success`/`warning`/`info`** — حقول اختيارية جديدة على metadata السمات
+
+### Added — Module Identity Enhancement
+
+- **`ModuleIdentity.pitch`/`kpi`** — حقول اختيارية جديدة على الوحدات الثلاث الرئيسية (accounting, engineering, commercial) للعرض الاحترافي
+
+### Changed — Documentation
+
+- [`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md:1) — ترقية شاملة إلى v2.15 مع قسم 6 جديد يوثّق كل المكوّنات الـ World-Class مع أمثلة، وقسم 7 للوحة الدلالية
+- [`client/src/lib/design.ts`](client/src/lib/design.ts:40) — توسيع `ModuleIdentity` بحقول pitch/kpi
+
+### Verified
+
+- `pnpm check` → **EXIT=0** مع جميع المكوّنات الجديدة
+- جميع المكوّنات تستخدم `var(--*)` بدلاً من قيم hex حرفية → توافق كامل مع جميع السمات الست
+- `prefers-reduced-motion` محترم في جميع الرسوم المتحركة
+- WCAG AA contrast preserved
+
+### Architecture Notes
+
+- **Zero JS overhead**: جميع المكوّنات pure CSS (utility-first via @layer components)
+- **Theme-aware**: كل مكون يستخدم `var()` للسلوك التلقائي عبر السمات
+- **RTL-first**: التصميم يحترم `dir="rtl"` بـ `inset-inline-*` بدلاً من `left/right`
+- **Reduced motion**: الرسوم المتحركة تتعطّل تلقائياً مع `prefers-reduced-motion: reduce`
+
+---
+
+## [2.15.0] — 2026-09-03 · Platform Re-Engineering — هندسة UX + فراغات بصرية + ترويسة المساحات
+
+### Improved — تحسينات بصرية ومعلوماتية شاملة
+
+- **`client/src/pages/Billing.tsx`** — إعادة هندسة كاملة لتجربة المستخدم والقراءة:
+  - **الترويسة**: محاذاة عمودية، padding `py-8`، انتقال سلس لزر العودة، حاوية `flex-col` لاستجابة أفضل
+  - **المساحة الرئيسية**: `space-y-6` → `space-y-8` لإيقاع تنفّس أوضح، `py-6` → `py-8`
+  - **شريط الوصول**: padding `px-4 py-3` → `px-5 py-4`، gap `3` → `4`، أيقونة أكبر، نص مقروء
+  - **بطاقة الحالة الراهنة**: padding `p-5` → `p-6` لاستقرار بصري
+  - **قسم اختيار الدولة**: padding وحجم نص محسّن مع بنية أوضح
+  - **قسم الباقات**: `space-y-6`، عنوان `text-base`، أيقونات `w-5 h-5`، شبكة `gap-6`، شارة السنة بـ emoji و `text-xs font-bold`، البطاقات `p-6`
+  - **بوابات الدفع**: `gap-3` → `gap-4`، padding `p-4` → `p-5`، حاوية الأيقونة `w-9 h-9` → `w-10 h-10`، أحجام نص متّسقة
+  - **ملخص الدفع**: `p-6`، `shadow-md`، `gap-6`، تأكيد القيم بـ `font-bold`، أزرار بحجم `h-10`/`h-11`
+  - **سجل الفواتير**: padding خلايا `px-3 py-2` → `px-4 py-3`، نص `text-xs` → `text-sm`، monospace لأرقام الفواتير، شارات حالة بخط عريض
+  - **بطاقات الثقة والمرونة**: شبكة `gap-6`، `p-6`، عنقان `text-sm`، أيقونات Check بدل النقاط، نص أكبر
+  - **لوحة المالك (OwnerAdminPanel)**: ترويسة `p-6` و`space-y-6`، شبكة السياسات `gap-4`، inputs `h-9`، نص `text-sm`
+  - **بوابات الإدارة**: padding وspacing محسّنة، حقول `h-9`، `space-y-4`
+  - **أكواد التفعيل**: padding `pt-6` → `pt-8`، عنوان `text-base`، `space-y-6`، شبكة حقول `gap-4`، inputs `h-9`، جدول `text-sm` مع hover وحشو `p-3`، شارات حالة `text-xs`
+  - **لوحة الإرسال**: `p-6`، `space-y-4`، أزرار القنوات `h-9` و`text-sm`، inputs بحجم مناسب، نتائج `text-sm` مع padding مريح
+
+### Style
+
+- **ازدحام أقل**: استبدال النصوص الدقيقة (`text-[10px]`/`text-[11px]`) بـ `text-xs`/`text-sm` لقراءة WCAG AA مريحة
+- **مسافات بصرية محسّنة**: `gap-3` → `gap-4`/`gap-6`، `p-4` → `p-5`/`p-6`، `space-y-3/4` → `space-y-4/6/8`
+- **تسلسل بصري واضح**: عناوين من `text-xs/xs` إلى `text-base`، أيقونات `w-4 h-4` → `w-5 h-5`/`w-4 h-4` متناسقة
+- **ترتيب المحتوى التسويقي/الاستشاري**: محفوظ كما هو (موجود بالفعل في [`client/src/lib/brand.ts`](client/src/lib/brand.ts:1) و[`client/src/pages/Landing.tsx`](client/src/pages/Landing.tsx:1)) — تمّ التأكد من التسلسل الهرمي والأقسام التسعة الكاملة
+
+### Verified — End-to-End Authentication
+
+- **`RequireAuth`** ([`client/src/components/RequireAuth.tsx`](client/src/components/RequireAuth.tsx:25)) — يضمن فرض تسجيل الدخول على كل المسارات التشغيلية (41 مسار: `/app`, `/accounting`, `/commercial`, `/inventory`, `/store`, `/procurement`, `/projects`, `/hr`, `/support`, `/pos`, `/billing`, `/permissions`, `/analytics`, `/audit`, إلخ) بحالات ثلاث: loading → شبكة → غير مُصادَق مع زر دخول مُعادِل للبراند
+- **`App.tsx`** ([`client/src/App.tsx`](client/src/App.tsx:107)) — جميع المسارات التشغيلية ملفوفة بـ `<RequireAuth>`؛ مسارات `/` و `/landing` و `/auth/*` و `/claim` و `/reset-password` و `/verify-email` عامة عمداً
+- **Retry mechanism**: عند فشل الشبكة يعرض زر «إعادة المحاولة» بدلاً من رمي المستخدم خارج التطبيق
+- **Backwards compatibility**: `requireAuth` متاح أيضاً كـ hook مساعد في `useAuth.ts`
+
+### Notes
+
+- جميع التحسينات متوافقة مع **Heritage Ledger** Design System ([`docs/DESIGN_SYSTEM.md`](docs/DESIGN_SYSTEM.md:1))
+- لم يتم تغيير أي منطق عمل أو endpoints — تحسينات UI/UX فقط
+- `pnpm check` متوقّع أن يبقى 0 أخطاء؛ `pnpm build` متوقّع EXIT=0
+
+---
+
 ## [2.14.1] — 2026-09-03 · Release hardening — إصلاحات lint + تنظيف النشر الرسمي
 
 ### Fixed
@@ -19,7 +558,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ### Verified
 
-- `pnpm check` 0 أخطاء · `pnpm lint` 0 أخطاء · `pnpm test` **157/157 (1 skipped يتطلب DB)` · `pnpm build` EXIT=0 مع تطبيق migrations
+- `pnpm check` 0 أخطاء · `pnpm lint` 0 أخطاء · `pnpm test` \*\*157/157 (1 skipped يتطلب DB)`·`pnpm build` EXIT=0 مع تطبيق migrations
 
 ---
 

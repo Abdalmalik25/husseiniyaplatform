@@ -434,7 +434,13 @@ export async function registerUser(
       })
       .where(eq(settings.tenantId, tid));
 
-    return { user: userRow, tenantId: tid, verificationToken, trialStart, trialEnd };
+    return {
+      user: userRow,
+      tenantId: tid,
+      verificationToken,
+      trialStart,
+      trialEnd,
+    };
   });
 
   // Create session
@@ -1183,12 +1189,7 @@ async function sendWelcomeEmail(
 ): Promise<void> {
   if (!email) return;
   const days = trialEndsAt
-    ? Math.max(
-        1,
-        Math.ceil(
-          (trialEndsAt.getTime() - Date.now()) / 86_400_000
-        )
-      )
+    ? Math.max(1, Math.ceil((trialEndsAt.getTime() - Date.now()) / 86_400_000))
     : 14;
   await sendTransactionalEmail({
     to: email,

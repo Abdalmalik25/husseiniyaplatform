@@ -218,16 +218,16 @@ export function BatchTrackingPanel() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-ink">
+          <h2 className="text-lg font-bold text-foreground">
             تتبع الدفعات والأرقام التسلسلية
           </h2>
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-muted-foreground">
             إدارة انتهاء الصلاحية، أرقام التشغيل، والأرقام التسلسلية
           </p>
         </div>
         <Button
           size="sm"
-          className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep text-xs h-8"
+          className="press-effect shine-on-hover text-xs h-8"
           onClick={() => setShowCreateDialog(true)}
           disabled={!selectedWarehouseId}
         >
@@ -236,43 +236,54 @@ export function BatchTrackingPanel() {
       </div>
 
       {!selectedWarehouseId ? (
-        <Card className="border-0 shadow-sm bg-white">
-          <CardContent className="p-8 text-center text-gray-400">
-            <Package className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>اختر مخزناً لعرض دفعاته</p>
+        <Card className="panel-premium border-0">
+          <CardContent className="p-8 text-center">
+            <div className="empty-state rounded-2xl border border-border bg-surface p-8">
+              <Package className="w-12 h-12 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-sm font-medium text-foreground">
+                اختر مخزناً لعرض دفعاته
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                قم باختيار مخزن من القائمة أعلاه
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">إجمالي الدفعات</p>
-              <p className="font-bold text-lg text-ink">{totalBatches}</p>
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">
+                إجمالي الدفعات
+              </p>
+              <p className="font-bold text-lg text-foreground">
+                {totalBatches}
+              </p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">إجمالي الكمية</p>
-              <p className="font-bold text-lg text-ink">
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">إجمالي الكمية</p>
+              <p className="font-bold text-lg text-foreground">
                 {formatNum(totalQty)}
               </p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">متاح</p>
-              <p className="font-bold text-lg text-green-600">
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">متاح</p>
+              <p className="font-bold text-lg text-success">
                 {formatNum(totalAvailable)}
               </p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">تنتهي قريباً</p>
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">تنتهي قريباً</p>
               <p
-                className={`font-bold text-lg ${expiringSoonCount > 0 ? "text-amber-600" : "text-green-600"}`}
+                className={`font-bold text-lg ${expiringSoonCount > 0 ? "text-warning" : "text-success"}`}
               >
                 {expiringSoonCount}
               </p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">منتهية</p>
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">منتهية</p>
               <p
-                className={`font-bold text-lg ${expiredCount > 0 ? "text-red-600" : "text-green-600"}`}
+                className={`font-bold text-lg ${expiredCount > 0 ? "text-rose-600" : "text-success"}`}
               >
                 {expiredCount}
               </p>
@@ -332,144 +343,151 @@ export function BatchTrackingPanel() {
             </div>
           </div>
 
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-3 overflow-x-auto">
+          <Card className="panel-premium border-0">
+            <CardContent className="p-4 overflow-x-auto">
               {isLoading ? (
                 <div className="space-y-2">
                   {[...Array(5)].map((_, i) => (
                     <div
                       key={i}
-                      className="h-10 bg-gray-100 rounded animate-pulse"
+                      className="h-10 bg-muted/50 rounded animate-pulse"
                     />
                   ))}
                 </div>
               ) : (
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b bg-gray-50 text-[10px]">
-                      <th className="text-right p-2">رقم الدفعة</th>
-                      <th className="text-right p-2">رقم التشغيل</th>
-                      <th className="text-right p-2">الرقم التسلسلي</th>
-                      <th className="text-right p-2">الصنف</th>
-                      <th className="text-center p-2">الكمية</th>
-                      <th className="text-center p-2">متاح</th>
-                      <th className="text-center p-2">التكلفة</th>
-                      <th className="text-center p-2">تاريخ الإنتاج</th>
-                      <th className="text-center p-2">تاريخ الانتهاء</th>
-                      <th className="text-center p-2">الحالة</th>
-                      <th className="text-left p-2">فواتير الشراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredBatches.map(batch => {
-                      const available =
-                        (batch.quantity || 0) - (batch.reservedQty || 0);
-                      const isExpired =
-                        batch.expiryDate &&
-                        new Date(batch.expiryDate) < new Date();
-                      const isExpiringSoon =
-                        batch.expiryDate &&
-                        new Date(batch.expiryDate) >= new Date() &&
-                        new Date(batch.expiryDate) <=
-                          new Date(
-                            Date.now() + daysAhead * 24 * 60 * 60 * 1000
-                          );
-                      return (
-                        <tr
-                          key={batch.id}
-                          className={`border-b hover:bg-gray-50 ${isExpired ? "bg-red-50" : isExpiringSoon ? "bg-amber-50" : ""}`}
-                        >
-                          <td className="p-2 font-mono text-[10px] font-bold">
-                            {batch.batchNumber}
-                          </td>
-                          <td className="p-2 font-mono text-[10px]">
-                            {batch.lotNumber || "-"}
-                          </td>
-                          <td className="p-2 font-mono text-[10px]">
-                            {batch.serialNumber || "-"}
-                          </td>
-                          <td className="p-2">
-                            <div className="font-medium text-[11px]">
-                              {batch.productName}
+                <div className="datagrid rounded-xl border border-line overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-panel/60 text-muted-foreground font-bold text-[10px]">
+                        <th className="text-right p-2.5">رقم الدفعة</th>
+                        <th className="text-right p-2.5">رقم التشغيل</th>
+                        <th className="text-right p-2.5">الرقم التسلسلي</th>
+                        <th className="text-right p-2.5">الصنف</th>
+                        <th className="text-center p-2.5">الكمية</th>
+                        <th className="text-center p-2.5">متاح</th>
+                        <th className="text-center p-2.5">التكلفة</th>
+                        <th className="text-center p-2.5">تاريخ الإنتاج</th>
+                        <th className="text-center p-2.5">تاريخ الانتهاء</th>
+                        <th className="text-center p-2.5">الحالة</th>
+                        <th className="text-left p-2.5">فواتير الشراء</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredBatches.map(batch => {
+                        const available =
+                          (batch.quantity || 0) - (batch.reservedQty || 0);
+                        const isExpired =
+                          batch.expiryDate &&
+                          new Date(batch.expiryDate) < new Date();
+                        const isExpiringSoon =
+                          batch.expiryDate &&
+                          new Date(batch.expiryDate) >= new Date() &&
+                          new Date(batch.expiryDate) <=
+                            new Date(
+                              Date.now() + daysAhead * 24 * 60 * 60 * 1000
+                            );
+                        return (
+                          <tr
+                            key={batch.id}
+                            className={`border-line hover:bg-muted/30 transition-colors ${isExpired ? "bg-rose-500/5" : isExpiringSoon ? "bg-warning/5" : "bg-surface"}`}
+                          >
+                            <td className="p-2.5 font-mono text-[10px] font-bold text-foreground">
+                              {batch.batchNumber}
+                            </td>
+                            <td className="p-2.5 font-mono text-[10px] text-foreground">
+                              {batch.lotNumber || "-"}
+                            </td>
+                            <td className="p-2.5 font-mono text-[10px] text-foreground">
+                              {batch.serialNumber || "-"}
+                            </td>
+                            <td className="p-2.5">
+                              <div className="font-medium text-[11px] text-foreground">
+                                {batch.productName}
+                              </div>
+                              <div className="text-[9px] text-muted-foreground">
+                                {batch.productCode}
+                              </div>
+                            </td>
+                            <td className="p-2.5 text-center font-mono text-foreground">
+                              {formatNum(batch.quantity || 0)}
+                            </td>
+                            <td className="p-2.5 text-center font-mono text-success font-bold">
+                              {formatNum(available)}
+                            </td>
+                            <td className="p-2.5 text-center font-mono text-brand font-bold">
+                              {formatNum(batch.unitCost)}
+                            </td>
+                            <td className="p-2.5 text-center text-[10px] text-foreground">
+                              {batch.manufacturingDate
+                                ? format(
+                                    new Date(batch.manufacturingDate),
+                                    "yyyy/MM/dd"
+                                  )
+                                : "-"}
+                            </td>
+                            <td className="p-2.5 text-center text-[10px]">
+                              {batch.expiryDate ? (
+                                <span
+                                  className={
+                                    isExpired
+                                      ? "text-rose-600 font-bold"
+                                      : isExpiringSoon
+                                        ? "text-warning font-bold"
+                                        : "text-success"
+                                  }
+                                >
+                                  {format(
+                                    new Date(batch.expiryDate),
+                                    "yyyy/MM/dd"
+                                  )}
+                                </span>
+                              ) : (
+                                "-"
+                              )}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              {isExpired ? (
+                                <Badge className="chip bg-rose-500/15 text-rose-600">
+                                  منتهية
+                                </Badge>
+                              ) : isExpiringSoon ? (
+                                <Badge className="chip bg-warning/15 text-warning">
+                                  قريبة الانتهاء
+                                </Badge>
+                              ) : available <= 0 ? (
+                                <Badge className="chip bg-muted text-muted-foreground">
+                                  منفذ
+                                </Badge>
+                              ) : (
+                                <Badge className="bg-green-100 text-green-700">
+                                  صالحة
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="p-2 text-left text-[10px] text-gray-500">
+                              {batch.purchaseInvoiceId || "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {filteredBatches.length === 0 && (
+                        <tr>
+                          <td colSpan={11} className="text-center py-10">
+                            <div className="empty-state flex flex-col items-center gap-2">
+                              <Package className="w-8 h-8 text-muted-foreground/50" />
+                              <p className="text-sm font-medium text-foreground">
+                                لا توجد دفعات
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                لم يتم العثور على دفعات لهذا المخزن
+                              </p>
                             </div>
-                            <div className="text-[9px] text-gray-400">
-                              {batch.productCode}
-                            </div>
-                          </td>
-                          <td className="p-2 text-center font-mono">
-                            {formatNum(batch.quantity || 0)}
-                          </td>
-                          <td className="p-2 text-center font-mono text-green-600">
-                            {formatNum(available)}
-                          </td>
-                          <td className="p-2 text-center font-mono text-brand">
-                            {formatNum(batch.unitCost)}
-                          </td>
-                          <td className="p-2 text-center text-[10px]">
-                            {batch.manufacturingDate
-                              ? format(
-                                  new Date(batch.manufacturingDate),
-                                  "yyyy/MM/dd"
-                                )
-                              : "-"}
-                          </td>
-                          <td className="p-2 text-center text-[10px]">
-                            {batch.expiryDate ? (
-                              <span
-                                className={
-                                  isExpired
-                                    ? "text-red-600 font-bold"
-                                    : isExpiringSoon
-                                      ? "text-amber-600 font-bold"
-                                      : "text-green-600"
-                                }
-                              >
-                                {format(
-                                  new Date(batch.expiryDate),
-                                  "yyyy/MM/dd"
-                                )}
-                              </span>
-                            ) : (
-                              "-"
-                            )}
-                          </td>
-                          <td className="p-2 text-center">
-                            {isExpired ? (
-                              <Badge className="bg-red-100 text-red-700">
-                                منتهية
-                              </Badge>
-                            ) : isExpiringSoon ? (
-                              <Badge className="bg-amber-100 text-amber-700">
-                                قريبة الانتهاء
-                              </Badge>
-                            ) : available <= 0 ? (
-                              <Badge className="bg-gray-100 text-gray-700">
-                                منفذ
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-green-100 text-green-700">
-                                صالحة
-                              </Badge>
-                            )}
-                          </td>
-                          <td className="p-2 text-left text-[10px] text-gray-500">
-                            {batch.purchaseInvoiceId || "-"}
                           </td>
                         </tr>
-                      );
-                    })}
-                    {filteredBatches.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={11}
-                          className="text-center text-gray-400 py-8"
-                        >
-                          لا توجد دفعات
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardContent>
           </Card>

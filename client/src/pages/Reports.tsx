@@ -869,8 +869,8 @@ export default function Reports() {
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
                   <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-brand" /> المستندات
-                    حسب النوع
+                    <FileText className="w-4 h-4 text-brand" /> المستندات حسب
+                    النوع
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3">
@@ -901,8 +901,7 @@ export default function Reports() {
               <Card className="border-0 shadow-sm bg-white">
                 <CardHeader className="p-3">
                   <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-brand" /> أحدث
-                    المستندات
+                    <FileText className="w-4 h-4 text-brand" /> أحدث المستندات
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3">

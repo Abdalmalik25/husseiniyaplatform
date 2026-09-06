@@ -94,12 +94,7 @@ export async function searchEntities(args: {
         and(
           eq(products.tenantId, tenantId),
           matchAny(
-            [
-              products.name,
-              products.nameAr,
-              products.code,
-              products.barcode,
-            ],
+            [products.name, products.nameAr, products.code, products.barcode],
             variants
           )
         )
@@ -122,10 +117,7 @@ export async function searchEntities(args: {
       .where(
         and(
           eq(customers.tenantId, tenantId),
-          matchAny(
-            [customers.name, customers.code, customers.phone],
-            variants
-          )
+          matchAny([customers.name, customers.code, customers.phone], variants)
         )
       )
       .limit(limit),
@@ -136,10 +128,7 @@ export async function searchEntities(args: {
       .where(
         and(
           eq(suppliers.tenantId, tenantId),
-          matchAny(
-            [suppliers.name, suppliers.code, suppliers.phone],
-            variants
-          )
+          matchAny([suppliers.name, suppliers.code, suppliers.phone], variants)
         )
       )
       .limit(limit),

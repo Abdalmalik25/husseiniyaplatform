@@ -111,15 +111,38 @@ async function accountBalances(
 }
 
 export const financialReportsRouter = router({
-  /** ميزان المراجعة — trial balance */
+  /** ميزان المراجعة — trial balance (with optional prior-period comparison) */
   trialBalance: tenantProcedure
-    .input(z.object({ asOf: z.string().optional() }).optional())
+    .input(
+      z
+        .object({
+          asOf: z.string().optional(),
+          /** If provided, also computes the prior-period closing balance for each account. */
+          previousAsOf: z.string().optional(),
+        })
+        .optional()
+    )
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db) return { rows: [], totals: { debit: 0, credit: 0 } };
       const tid = requireTenantId(ctx);
       const asOf = input?.asOf ? new Date(input.asOf) : undefined;
+      const prevAsOf = input?.previousAsOf
+        ? new Date(input.previousAsOf)
+        : undefined;
+
       const balances = await accountBalances(db, tid, asOf);
+      const prevBalances = prevAsOf
+        ? await accountBalances(db, tid, prevAsOf)
+        : null;
+
+      const prevMap = new Map<number, number>();
+      if (prevBalances) {
+        for (const r of prevBalances) {
+          prevMap.set(r.account.id, r.balance);
+        }
+      }
+
       let totalDebit = 0;
       let totalCredit = 0;
       const rows = balances
@@ -130,6 +153,7 @@ export const financialReportsRouter = router({
           const amount = Math.abs(r.balance);
           if (side === "debit") totalDebit += amount;
           else totalCredit += amount;
+          const prevBalance = prevMap.get(r.account.id) ?? null;
           return {
             accountId: r.account.id,
             code: r.account.code,
@@ -138,14 +162,52 @@ export const financialReportsRouter = router({
             debit: side === "debit" ? amount : 0,
             credit: side === "credit" ? amount : 0,
             balance: r.balance,
+            /** Prior period closing balance — null when previousAsOf is not supplied. */
+            previousBalance: prevBalance,
+            /** Absolute change from prior period. */
+            change:
+              prevBalance != null ? Math.abs(r.balance - prevBalance) : null,
           };
         });
-      return { rows, totals: { debit: totalDebit, credit: totalCredit } };
+
+      const prevTotalDebit = prevBalances
+        ? prevBalances
+            .filter(r => r.balance >= 0)
+            .reduce((s, r) => s + Math.abs(r.balance), 0)
+        : null;
+      const prevTotalCredit = prevBalances
+        ? prevBalances
+            .filter(r => r.balance < 0)
+            .reduce((s, r) => s + Math.abs(r.balance), 0)
+        : null;
+
+      return {
+        rows,
+        totals: {
+          debit: totalDebit,
+          credit: totalCredit,
+          previousDebit: prevTotalDebit,
+          previousCredit: prevTotalCredit,
+        },
+        periodLabel: asOf
+          ? `حتى ${new Date(asOf).toLocaleDateString("ar-EG")}`
+          : "منذ البداية",
+        previousPeriodLabel: prevAsOf
+          ? `حتى ${new Date(prevAsOf).toLocaleDateString("ar-EG")}`
+          : null,
+      };
     }),
 
-  /** قائمة الدخل — income statement */
+  /** قائمة الدخل — income statement (with optional prior-period comparison) */
   incomeStatement: tenantProcedure
-    .input(z.object({ asOf: z.string().optional() }).optional())
+    .input(
+      z
+        .object({
+          asOf: z.string().optional(),
+          previousAsOf: z.string().optional(),
+        })
+        .optional()
+    )
     .query(async ({ ctx, input }) => {
       const db = await getDb();
       if (!db)
@@ -153,16 +215,31 @@ export const financialReportsRouter = router({
           revenues: [],
           expenses: [],
           totals: { revenue: 0, expense: 0, net: 0 },
+          previousTotals: null,
         };
       const tid = requireTenantId(ctx);
       const asOf = input?.asOf ? new Date(input.asOf) : undefined;
+      const prevAsOf = input?.previousAsOf
+        ? new Date(input.previousAsOf)
+        : undefined;
       const balances = await accountBalances(db, tid, asOf);
+      const prevBalances = prevAsOf
+        ? await accountBalances(db, tid, prevAsOf)
+        : null;
+      const prevMap = new Map<number, number>();
+      if (prevBalances) {
+        for (const r of prevBalances) {
+          prevMap.set(r.account.id, r.balance);
+        }
+      }
+      const lookupPrev = (accountId: number) => prevMap.get(accountId) ?? null;
 
       const revenues = balances
         .filter(
           r => r.account.type === "revenue" && Math.abs(r.balance) > 0.0001
         )
         .map(r => ({
+          accountId: r.account.id,
           code: r.account.code,
           name: r.account.name,
           amount: r.balance,
@@ -176,19 +253,51 @@ export const financialReportsRouter = router({
           code: r.account.code,
           name: r.account.name,
           amount: Math.abs(r.balance),
+          previousBalance: lookupPrev(r.account.id),
         }))
         .sort((a, b) => a.code.localeCompare(b.code, "ar"));
 
       const revenueTotal = revenues.reduce((s, r) => s + r.amount, 0);
       const expenseTotal = expenses.reduce((s, r) => s + r.amount, 0);
+      const netIncome = revenueTotal - expenseTotal;
+
+      const prevRevenueTotal = prevBalances
+        ? prevBalances
+            .filter(r => r.account.type === "revenue")
+            .reduce((s, r) => s + Math.abs(r.balance), 0)
+        : null;
+      const prevExpenseTotal = prevBalances
+        ? prevBalances
+            .filter(r => r.account.type === "expense")
+            .reduce((s, r) => s + Math.abs(r.balance), 0)
+        : null;
+
       return {
-        revenues,
+        revenues: revenues.map(r => ({
+          ...r,
+          previousBalance: lookupPrev(r.accountId),
+        })),
         expenses,
         totals: {
           revenue: revenueTotal,
           expense: expenseTotal,
-          net: revenueTotal - expenseTotal,
+          net: netIncome,
         },
+        /** Prior-period totals for period-over-period comparison. */
+        previousTotals:
+          prevRevenueTotal != null && prevExpenseTotal != null
+            ? {
+                revenue: prevRevenueTotal,
+                expense: prevExpenseTotal,
+                net: prevRevenueTotal - prevExpenseTotal,
+              }
+            : null,
+        periodLabel: asOf
+          ? `حتى ${new Date(asOf).toLocaleDateString("ar-EG")}`
+          : "منذ البداية",
+        previousPeriodLabel: prevAsOf
+          ? `حتى ${new Date(prevAsOf).toLocaleDateString("ar-EG")}`
+          : null,
       };
     }),
 

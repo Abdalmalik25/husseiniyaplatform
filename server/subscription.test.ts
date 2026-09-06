@@ -43,7 +43,6 @@ describe("resolveSubscription (flexible lifecycle state machine)", () => {
   });
 
   it("treats missing status as trial", () => {
-
     const d = resolveSubscription(
       null,
       new Date(now.getTime() + 14 * DAY),
@@ -116,4 +115,3 @@ describe("resolveAccess (never-blocks-the-business policy)", () => {
     expect(NEVER_RESTRICTED.has("journal_entries")).toBe(true);
   });
 });
-

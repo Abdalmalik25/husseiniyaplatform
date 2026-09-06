@@ -785,9 +785,7 @@ export function AdvancedInventoryReportsPanel() {
             </Card>
             <Card className="border-0 shadow-sm bg-white p-3">
               <p className="text-[10px] text-gray-500">إجمالي الأصناف</p>
-              <p className="font-bold text-lg text-ink">
-                {abcAnalysis.length}
-              </p>
+              <p className="font-bold text-lg text-ink">{abcAnalysis.length}</p>
             </Card>
           </div>
 

@@ -3,11 +3,7 @@ import { eq, and, or, ilike, asc } from "drizzle-orm";
 import { router, tenantProcedure } from "./_core/trpc";
 import { getDb } from "./db";
 import { customers, suppliers } from "../drizzle/schema";
-import {
-  buildSearchVariants,
-  likePattern,
-  rankRow,
-} from "./_core/searchUtils";
+import { buildSearchVariants, likePattern, rankRow } from "./_core/searchUtils";
 import {
   validatePhone,
   validateEmail,
@@ -40,7 +36,9 @@ export const beneficiariesRouter = router({
       const variants = buildSearchVariants(input.q);
       if (!variants.length) return [];
       const matchAny = (cols: any[]) =>
-        or(...cols.flatMap(col => variants.map(v => ilike(col, likePattern(v)))));
+        or(
+          ...cols.flatMap(col => variants.map(v => ilike(col, likePattern(v))))
+        );
 
       // Both branches run in parallel — latency = slowest, not the sum.
       const [cust, supp] = await Promise.all([
@@ -83,7 +81,10 @@ export const beneficiariesRouter = router({
           _score: rankRow(variants[0], [s.name], [s.code]),
         })),
       ]
-        .sort((a, b) => b._score - a._score || (a.code ?? "").localeCompare(b.code ?? ""))
+        .sort(
+          (a, b) =>
+            b._score - a._score || (a.code ?? "").localeCompare(b.code ?? "")
+        )
         .slice(0, input.limit);
 
       return ranked.map(({ _score: _s, ...row }: any) => row);

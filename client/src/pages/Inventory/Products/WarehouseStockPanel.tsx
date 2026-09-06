@@ -106,8 +106,8 @@ export function WarehouseStockPanel() {
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-bold text-ink">مخزون المخازن</h2>
-          <p className="text-xs text-gray-500">
+          <h2 className="text-lg font-bold text-foreground">مخزون المخازن</h2>
+          <p className="text-xs text-muted-foreground">
             عرض وإدارة الأرصدة لكل مخزن على حدة
           </p>
         </div>
@@ -165,41 +165,50 @@ export function WarehouseStockPanel() {
       </div>
 
       {!selectedWarehouseId ? (
-        <Card className="border-0 shadow-sm bg-white">
-          <CardContent className="p-8 text-center text-gray-400">
-            <WhIcon className="w-12 h-12 mx-auto mb-2 opacity-50" />
-            <p>اختر مخزناً لعرض أرصدته</p>
+        <Card className="panel-premium border-0">
+          <CardContent className="p-8 text-center">
+            <div className="empty-state rounded-2xl border border-border bg-surface p-8">
+              <WhIcon className="w-12 h-12 mx-auto mb-2 text-muted-foreground/50" />
+              <p className="text-sm font-medium text-foreground">
+                اختر مخزناً لعرض أرصدته
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                قم باختيار مخزن من القائمة أعلاه
+              </p>
+            </div>
           </CardContent>
         </Card>
       ) : (
         <>
           <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">إجمالي الأصناف</p>
-              <p className="font-bold text-lg text-ink">{totalItems}</p>
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">
+                إجمالي الأصناف
+              </p>
+              <p className="font-bold text-lg text-foreground">{totalItems}</p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">إجمالي الكمية</p>
-              <p className="font-bold text-lg text-ink">
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">إجمالي الكمية</p>
+              <p className="font-bold text-lg text-foreground">
                 {formatNum(totalQty)}
               </p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">متاح للبيع</p>
-              <p className="font-bold text-lg text-green-600">
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">متاح للبيع</p>
+              <p className="font-bold text-lg text-success">
                 {formatNum(totalAvailable)}
               </p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">محجوز</p>
-              <p className="font-bold text-lg text-amber-600">
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">محجوز</p>
+              <p className="font-bold text-lg text-warning">
                 {formatNum(totalReserved)}
               </p>
             </Card>
-            <Card className="border-0 shadow-sm bg-white p-3">
-              <p className="text-[10px] text-gray-500">منخفضة</p>
+            <Card className="panel-premium border-0 p-3">
+              <p className="text-[10px] text-muted-foreground">منخفضة</p>
               <p
-                className={`font-bold text-lg ${lowStockCount > 0 ? "text-red-600" : "text-green-600"}`}
+                className={`font-bold text-lg ${lowStockCount > 0 ? "text-rose-600" : "text-success"}`}
               >
                 {lowStockCount}
               </p>
@@ -208,7 +217,7 @@ export function WarehouseStockPanel() {
 
           <div className="flex flex-col sm:flex-row gap-2 mb-3">
             <div className="relative flex-1">
-              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="ابحث بالكود أو الاسم..."
                 value={searchQuery}
@@ -221,115 +230,122 @@ export function WarehouseStockPanel() {
                 type="checkbox"
                 checked={lowStockOnly}
                 onChange={e => setLowStockOnly(e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300"
+                className="w-4 h-4 rounded border-border"
               />
               <span>منخفضة المخزون فقط</span>
             </label>
           </div>
 
-          <Card className="border-0 shadow-sm bg-white">
-            <CardContent className="p-3 overflow-x-auto">
+          <Card className="panel-premium border-0">
+            <CardContent className="p-4 overflow-x-auto">
               {isLoading ? (
                 <div className="space-y-2">
                   {[...Array(5)].map((_, i) => (
                     <div
                       key={i}
-                      className="h-10 bg-gray-100 rounded animate-pulse"
+                      className="h-10 bg-muted/50 rounded animate-pulse"
                     />
                   ))}
                 </div>
               ) : (
-                <table className="w-full text-xs">
-                  <thead>
-                    <tr className="border-b bg-gray-50 text-[10px]">
-                      <th className="text-right p-2">الكود</th>
-                      <th className="text-right p-2">الصنف</th>
-                      <th className="text-center p-2">النوع</th>
-                      <th className="text-center p-2">الكمية</th>
-                      <th className="text-center p-2">متاح</th>
-                      <th className="text-center p-2">محجوز</th>
-                      <th className="text-center p-2">الحد الأدنى</th>
-                      <th className="text-left p-2">الحالة</th>
-                      <th className="text-left p-2">آخر حركة</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStock.map(item => {
-                      const available = item.availableQty || 0;
-                      const minStock = item.minStock || 0;
-                      const isLow = available <= minStock && minStock > 0;
-                      return (
-                        <tr
-                          key={item.id}
-                          className={`border-b hover:bg-gray-50 ${isLow ? "bg-red-50" : ""}`}
-                        >
-                          <td className="p-2 font-mono text-[10px]">
-                            {item.productCode}
-                          </td>
-                          <td className="p-2 font-medium">
-                            {item.productName}
-                          </td>
-                          <td className="p-2 text-center">
-                            <Badge
-                              className={
-                                item.productType === "goods"
-                                  ? "bg-blue-100 text-blue-700"
-                                  : "bg-purple-100 text-purple-700"
-                              }
-                              variant="outline"
-                            >
-                              {item.productType === "goods" ? "سلعة" : "خدمة"}
-                            </Badge>
-                          </td>
-                          <td className="p-2 text-center font-mono">
-                            {formatNum(item.quantity || 0)}
-                          </td>
-                          <td className="p-2 text-center font-mono text-green-600">
-                            {formatNum(available)}
-                          </td>
-                          <td className="p-2 text-center font-mono text-amber-600">
-                            {formatNum(item.reservedQty || 0)}
-                          </td>
-                          <td className="p-2 text-center font-mono">
-                            {formatNum(minStock)}
-                          </td>
-                          <td className="p-2 text-left">
-                            {isLow ? (
-                              <Badge className="bg-red-100 text-red-700">
-                                ناقص
+                <div className="datagrid rounded-xl border border-line overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="bg-panel/60 text-muted-foreground font-bold text-[10px]">
+                        <th className="text-right p-2">الكود</th>
+                        <th className="text-right p-2">الصنف</th>
+                        <th className="text-center p-2">النوع</th>
+                        <th className="text-center p-2">الكمية</th>
+                        <th className="text-center p-2">متاح</th>
+                        <th className="text-center p-2">محجوز</th>
+                        <th className="text-center p-2">الحد الأدنى</th>
+                        <th className="text-left p-2">الحالة</th>
+                        <th className="text-left p-2">آخر حركة</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredStock.map(item => {
+                        const available = item.availableQty || 0;
+                        const minStock = item.minStock || 0;
+                        const isLow = available <= minStock && minStock > 0;
+                        return (
+                          <tr
+                            key={item.id}
+                            className={`border-line hover:bg-muted/30 transition-colors ${isLow ? "bg-rose-500/5" : "bg-surface"}`}
+                          >
+                            <td className="p-2.5 font-mono text-[10px] text-foreground">
+                              {item.productCode}
+                            </td>
+                            <td className="p-2.5 font-medium text-foreground">
+                              {item.productName}
+                            </td>
+                            <td className="p-2.5 text-center">
+                              <Badge
+                                className={
+                                  item.productType === "goods"
+                                    ? "chip bg-info/15 text-info"
+                                    : "chip bg-purple-500/15 text-purple-600"
+                                }
+                                variant="outline"
+                              >
+                                {item.productType === "goods" ? "سلعة" : "خدمة"}
                               </Badge>
-                            ) : available === 0 ? (
-                              <Badge className="bg-gray-100 text-gray-700">
-                                منفذ
-                              </Badge>
-                            ) : (
-                              <Badge className="bg-green-100 text-green-700">
-                                ممتاز
-                              </Badge>
-                            )}
-                          </td>
-                          <td className="p-2 text-left text-[10px] text-gray-500">
-                            {item.lastMovementAt
-                              ? new Date(
-                                  item.lastMovementAt
-                                ).toLocaleDateString("ar-EG")
-                              : "-"}
+                            </td>
+                            <td className="p-2.5 text-center font-mono text-foreground">
+                              {formatNum(item.quantity || 0)}
+                            </td>
+                            <td className="p-2.5 text-center font-mono text-success font-bold">
+                              {formatNum(available)}
+                            </td>
+                            <td className="p-2.5 text-center font-mono text-warning font-bold">
+                              {formatNum(item.reservedQty || 0)}
+                            </td>
+                            <td className="p-2.5 text-center font-mono text-foreground">
+                              {formatNum(minStock)}
+                            </td>
+                            <td className="p-2.5 text-left">
+                              {isLow ? (
+                                <Badge className="chip bg-rose-500/15 text-rose-600">
+                                  ناقص
+                                </Badge>
+                              ) : available === 0 ? (
+                                <Badge className="chip bg-muted text-muted-foreground">
+                                  منفذ
+                                </Badge>
+                              ) : (
+                                <Badge className="chip bg-success/15 text-success">
+                                  ممتاز
+                                </Badge>
+                              )}
+                            </td>
+                            <td className="p-2.5 text-left text-[10px] text-muted-foreground">
+                              {item.lastMovementAt
+                                ? new Date(
+                                    item.lastMovementAt
+                                  ).toLocaleDateString("ar-EG")
+                                : "-"}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {filteredStock.length === 0 && (
+                        <tr>
+                          <td colSpan={9} className="text-center py-10">
+                            <div className="empty-state flex flex-col items-center gap-2">
+                              <Package className="w-8 h-8 text-muted-foreground/50" />
+                              <p className="text-sm font-medium text-foreground">
+                                لا توجد بيانات
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                لم يتم العثور على أصناف لهذا المخزن
+                              </p>
+                            </div>
                           </td>
                         </tr>
-                      );
-                    })}
-                    {filteredStock.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={9}
-                          className="text-center text-gray-400 py-8"
-                        >
-                          لا توجد بيانات
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </CardContent>
           </Card>

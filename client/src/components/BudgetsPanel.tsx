@@ -139,8 +139,8 @@ export default function BudgetsPanel({ transactionsData, currency }: Props) {
       <CardContent className="p-4 space-y-3">
         {isLoading ? (
           <div className="py-6 flex items-center justify-center gap-2 text-slate-500 text-xs">
-            <Loader2 className="w-5 h-5 animate-spin text-brand" /> جاري
-            تحميل خطط الميزانية...
+            <Loader2 className="w-5 h-5 animate-spin text-brand" /> جاري تحميل
+            خطط الميزانية...
           </div>
         ) : !budgets || budgets.length === 0 ? (
           <p className="py-6 text-center text-[11px] text-slate-500">

@@ -2179,8 +2179,7 @@ export const paymentGateways = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     code: varchar("code", { length: 60 }).notNull().unique(),
-    providerType: varchar("providerType", { length: 40 })
-      .notNull(), // tap | moyasar | stripe | bank_transfer | cash | whatsapp | manual
+    providerType: varchar("providerType", { length: 40 }).notNull(), // tap | moyasar | stripe | bank_transfer | cash | whatsapp | manual
     name: varchar("name", { length: 120 }).notNull(),
     country: varchar("country", { length: 60 }).default("عالمي").notNull(),
     countryCode: varchar("countryCode", { length: 2 }).default("GL").notNull(),
@@ -2208,10 +2207,7 @@ export const paymentGateways = pgTable(
   t => [
     index("idx_payment_gateway_active").on(t.isActive),
     index("idx_payment_gateway_country").on(t.countryCode),
-    check(
-      "chk_payment_gateway_mode_valid",
-      sql`${t.mode} IN ('test', 'live')`
-    ),
+    check("chk_payment_gateway_mode_valid", sql`${t.mode} IN ('test', 'live')`),
   ]
 );
 
