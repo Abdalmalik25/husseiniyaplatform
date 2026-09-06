@@ -301,6 +301,133 @@ export const APP_NAV: NavItem[] = [
 ];
 
 /**
+ * ────────────────────────────────────────────────────────────────────────
+ * نظام التشغيل — تقسيم مجالي صارم داخل التطبيق (Finance/Commerce/Ops/Intelligence/Governance)
+ * كل مجموعة لها عنوان ووصف — تُعرض في AppSidebar كأقسام منفصلة، لا قائمة مسطحة عشوائية.
+ * ────────────────────────────────────────────────────────────────────────
+ */
+export const APP_GROUPS: ReadonlyArray<{
+  key: string;
+  label: string;
+  description: string;
+  items: NavItem[];
+}> = [
+  {
+    key: "finance",
+    label: "المالية",
+    description: "قيود، قوائم، إقفال",
+    items: [
+      { path: "/accounting", label: "المحاسبة", icon: Wallet, highlight: true },
+      { path: "/journal", label: "القيود المحاسبية", icon: BookOpen },
+      { path: "/manual-journal", label: "قيد يدوي ذكي", icon: Scale },
+      { path: "/cost-centers", label: "مراكز التكلفة", icon: Calculator },
+      {
+        path: "/fiscal-periods",
+        label: "الفترات والإقفال",
+        icon: CalendarClock,
+        highlight: true,
+      },
+      {
+        path: "/financial-statements",
+        label: "القوائم المالية",
+        icon: BarChart3,
+        highlight: true,
+      },
+    ],
+  },
+  {
+    key: "commerce",
+    label: "التجارة والمخزون",
+    description: "بيع، شراء، مخازن",
+    items: [
+      { path: "/commercial", label: "العمليات التجارية", icon: Package },
+      { path: "/pos", label: "نقاط البيع", icon: Receipt, highlight: true },
+      { path: "/inventory", label: "المخزون", icon: Boxes },
+      { path: "/store", label: "المتجر الإلكتروني", icon: ShoppingCart },
+      {
+        path: "/procurement-workspace",
+        label: "Workspace المشتريات",
+        icon: Truck,
+        highlight: true,
+      },
+      { path: "/procurement", label: "المشتريات التنفيذية", icon: Truck },
+      {
+        path: "/supplier-analytics",
+        label: "تحليل الموردين",
+        icon: BarChart3,
+        highlight: true,
+      },
+      { path: "/projects", label: "المشاريع", icon: FolderKanban },
+    ],
+  },
+  {
+    key: "ops",
+    label: "التشغيل والموارد",
+    description: "مهام، موظفون، جودة",
+    items: [
+      { path: "/app", label: "لوحة التحكم", icon: LayoutDashboard },
+      { path: "/hr", label: "الموارد البشرية", icon: Users },
+      { path: "/support", label: "الدعم والجودة", icon: LifeBuoy },
+      { path: "/requisitions", label: "طلبات التوريد", icon: ClipboardList },
+      { path: "/beneficiaries", label: "السجل الموحد", icon: Users },
+      { path: "/basic-data", label: "البيانات الأساسية", icon: Boxes },
+      {
+        path: "/customization",
+        label: "التخصيص والحقول",
+        icon: SlidersHorizontal,
+      },
+    ],
+  },
+  {
+    key: "intelligence",
+    label: "الذكاء والتقارير",
+    description: "مصدر حقيقة واحد",
+    items: [
+      {
+        path: "/reports",
+        label: "التقارير الموحدة",
+        icon: BarChart3,
+        highlight: true,
+      },
+      {
+        path: "/analytics",
+        label: "التحليلات الذكية",
+        icon: BarChart3,
+        highlight: true,
+      },
+      {
+        path: "/operations",
+        label: "لوحة العمليات",
+        icon: Gauge,
+        highlight: true,
+      },
+      { path: "/financial-statements", label: "القوائم المالية", icon: Scale },
+      { path: "/supplier-analytics", label: "ذكاء الموردين", icon: Truck },
+    ],
+  },
+  {
+    key: "governance",
+    label: "الحوكمة والأمان",
+    description: "صلاحيات، تدقيق، فروع",
+    items: [
+      { path: "/audit", label: "سجل التدقيق", icon: History },
+      { path: "/security", label: "أمان الحساب", icon: ShieldCheck },
+      { path: "/permissions", label: "الصلاحيات", icon: ShieldCheck },
+      { path: "/branches", label: "الفروع والصلاحيات", icon: Building2 },
+      { path: "/erp", label: "ERP", icon: LayoutGrid },
+      {
+        path: "/billing",
+        label: "الاشتراك والفوترة",
+        icon: CreditCard,
+        highlight: true,
+      },
+      { path: "/zatca", label: "الفوترة الإلكترونية", icon: ShieldCheck },
+      { path: "/settings", label: "الإعدادات", icon: Settings },
+    ],
+  },
+];
+
+/**
  * Utility tools — intentionally excluded from primary navigation.
  * Surfaced via footer links, the store page, and settings instead.
  */

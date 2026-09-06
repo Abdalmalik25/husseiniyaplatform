@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Globe,
 } from "lucide-react";
-import { APP_NAV, UTILITY_LINKS } from "@/lib/nav";
+import { APP_NAV, UTILITY_LINKS, APP_GROUPS } from "@/lib/nav";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { BrandMark } from "@/components/BrandLogo";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
@@ -412,70 +412,86 @@ export function AppSidebar() {
           </div>
         )}
 
-        {/* Primary app navigation */}
+        {/* Primary app navigation — 5 مجالات تشغيلية منفصلة (Finance/Commerce/Ops/Intelligence/Governance) */}
         <nav
-          className="flex-1 px-2.5 py-3 space-y-1 overflow-y-auto"
+          className="flex-1 px-2.5 py-3 space-y-4 overflow-y-auto scrollbar-thin"
           aria-label="تنقل النظام"
         >
-          {!compact && (
-            <p className="text-[9px] font-bold text-white/40 tracking-wider px-2 pb-1.5">
-              مساحات العمل
-            </p>
-          )}
-          {APP_NAV.map(item => {
-            const Icon = item.icon;
-            const isActive =
-              location === item.path ||
-              (item.path !== "/app" && location.startsWith(item.path));
-            return (
-              <button
-                key={item.path}
-                onClick={() => setLocation(item.path)}
-                aria-current={isActive ? "page" : undefined}
-                title={compact ? item.label : undefined}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${navClass(
-                  isActive
-                )} ${compact ? "justify-center" : ""}`}
-              >
-                {isActive && (
-                  <span className="absolute inset-y-2 right-0 w-1 rounded-full bg-brand-300" />
-                )}
-                <Icon className="w-4 h-4 shrink-0" />
-                {!compact && <span className="truncate">{item.label}</span>}
-                {!compact && item.highlight && !isActive && (
-                  <span className="mr-auto w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
-                )}
-              </button>
-            );
-          })}
+          {APP_GROUPS.map(group => (
+            <div key={group.key} className="space-y-1">
+              {!compact ? (
+                <div className="px-2 pb-1">
+                  <p className="text-[9px] font-black tracking-[0.12em] text-white/35 flex items-center gap-1.5">
+                    {group.label}
+                    <span className="h-px flex-1 bg-white/10" />
+                  </p>
+                  <p className="text-[10px] text-white/30 leading-none mt-0.5">
+                    {group.description}
+                  </p>
+                </div>
+              ) : (
+                <div className="h-px bg-white/10 mx-2" />
+              )}
+              {group.items.map(item => {
+                const Icon = item.icon;
+                const isActive =
+                  location === item.path ||
+                  (item.path !== "/app" && location.startsWith(item.path));
+                return (
+                  <button
+                    key={`${group.key}-${item.path}`}
+                    onClick={() => setLocation(item.path)}
+                    aria-current={isActive ? "page" : undefined}
+                    title={
+                      compact
+                        ? `${group.label}: ${item.label}`
+                        : item.description || item.label
+                    }
+                    className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium transition-all ${navClass(isActive)} ${compact ? "justify-center" : ""}`}
+                  >
+                    {isActive && (
+                      <span className="absolute inset-y-2 right-0 w-1 rounded-full bg-brand-300" />
+                    )}
+                    <Icon className="w-4 h-4 shrink-0" />
+                    {!compact && <span className="truncate">{item.label}</span>}
+                    {!compact && item.highlight && !isActive && (
+                      <span className="mr-auto w-1.5 h-1.5 rounded-full bg-brand animate-pulse" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
 
-          {/* Utility tools — secondary section */}
-          {!compact && (
-            <p className="text-[9px] font-bold text-white/40 tracking-wider px-2 pt-4 pb-1.5">
-              أدوات مساعدة
-            </p>
-          )}
-          {UTILITY_LINKS.map(item => {
-            const Icon = item.icon;
-            const isActive = location === item.path;
-            return (
-              <button
-                key={item.path}
-                onClick={() => setLocation(item.path)}
-                aria-current={isActive ? "page" : undefined}
-                title={compact ? item.label : undefined}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-colors ${navClass(
-                  isActive
-                )} ${compact ? "justify-center" : ""}`}
-              >
-                {isActive && (
-                  <span className="absolute inset-y-2 right-0 w-1 rounded-full bg-brand-300" />
-                )}
-                <Icon className="w-4 h-4 shrink-0 opacity-80" />
-                {!compact && <span>{item.label}</span>}
-              </button>
-            );
-          })}
+          {/* أدوات الموقع التعريفي — مفصولة بصرياً عن النظام */}
+          <div className="pt-2 border-t border-white/10 space-y-1">
+            {!compact && (
+              <p className="text-[9px] font-bold text-white/30 tracking-wider px-2 pb-1">
+                روابط الموقع التعريفي
+              </p>
+            )}
+            {UTILITY_LINKS.map(item => {
+              const Icon = item.icon;
+              const isActive = location === item.path;
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => setLocation(item.path)}
+                  aria-current={isActive ? "page" : undefined}
+                  title={compact ? item.label : undefined}
+                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs transition-colors ${navClass(isActive)} ${compact ? "justify-center" : ""}`}
+                >
+                  {isActive && (
+                    <span className="absolute inset-y-2 right-0 w-1 rounded-full bg-brand-300" />
+                  )}
+                  <Icon className="w-4 h-4 shrink-0 opacity-60" />
+                  {!compact && (
+                    <span className="text-white/60">{item.label}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </nav>
 
         {/* Footer: collapse toggle (desktop) + theme + back to site + logout */}

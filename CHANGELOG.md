@@ -4,6 +4,30 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.25.0] — 2026-09-06 · Site vs System Deep Separation — فصل الموقع التعريفي عن النظام بذكاء عالمي
+
+### Architecture — فصل جذري لا ترقيع
+
+- **قبل**: شريط واحد `HeaderNavbar.tsx:102` يخلط تسويق بنظام (`publicOnly` متذبذب)، `APP_NAV` قائمة مسطحة 27 بند بلا مجالات، `Landing.tsx:188` و `Home.tsx` يستخدمان نفس الهيدر بضوء/ظلام غير متسق، الأدوات (حاسبات/معرفة vs نقاط بيع/مخزون) مختلطة في عنقود واحد — المستخدم لا يميز هل هو في موقع يبيع أم نظام يشغل.
+- **بعد**: `lib/nav.ts:315` — `APP_GROUPS` خمسة مجالات تشغيلية صارمة (مالية/تجارة ومخزون/تشغيل وموارد/ذكاء وتقارير/حوكمة وأمان) مع كل مجموعة `label/description/items`. `HeaderNavbar.tsx:122` شريط ذكي يفلتر `visibleClusters` (الذكاء مخفي في الموقع التعريفي ويظهر فقط داخل النظام المصادق)، و`isMarketingShell` يبدل `top-bar` من `bg-sand/90 border-brand/15 text-ink/60` مع شارة "الموقع التعريفي" إلى `bg-ink-deep/90 text-white/50` مع "نظام التشغيل" — فصل بصري فوري. `AppSidebar.tsx:415` أعيدت من قائمة مسطحة إلى 5 أقسام عنوانية مع خط فاصل ووصف، لا عشوائية. `brand.ts:44` و`package.json:3` → **2.25.0**.
+
+### Design — مظهر منفصل، جسد واحد
+
+- **الموقع التعريفي** (`Landing.tsx:188`): `HeaderNavbar publicOnly` + `bg-sand` + `glass-premium` + هيرو تيل/برونز — يبيع القيمة (IFRS/COSO/PMBOK) مع حاسبة خسارة صامتة ومقارنات، لا جداول تشغيلية.
+- **نظام التشغيل** (`Reports.tsx`/`Analytics.tsx`/`FinancialStatements.tsx` + `AppSidebar`): `bg-background` كثيف + `panel-premium/datagrid/ribbon-premium/stat-card` + `tabs-primary` + `chip/status-strip` — يشغل القرار (ميزان لحظي، تدفق نقدي، تنبيهات) — كل رقم من الخادم، لا تقدير محلي.
+
+### Tools — أدوات مفصولة بلا تلوث
+
+- **أدوات الموقع**: `TOOLS_CLUSTER` (حاسبات BOQ/رواتب، مركز المعرفة IFRS، تتبع طلب، تكامل API، تحميل PWA) — في هيدر الموقع فقط.
+- **أدوات النظام**: `APP_GROUPS.commerce` (pos/store/procurement) + `APP_GROUPS.ops` (requisitions/basic-data) — في سايدبار النظام فقط — لا ظهور لأدوات تشغيلية للزائر قبل الدخول.
+
+### Verified
+
+- `pnpm check` 0 · `pnpm lint` 0 · `pnpm build` (vite 11s ✓) · `pnpm format` 0
+- `vercel alias` يبني `na0yjg921` → `alhusainiaye.vercel.app` v2.25.0
+
+---
+
 ## [2.24.0] — 2026-09-06 · Intelligence & Navigation Deep Upgrade — ترقية الشريط والتقارير والذكاء عميقاً
 
 ### Fixed — الشريط العشوائي مُعالج جذرياً

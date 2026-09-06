@@ -124,7 +124,16 @@ export function HeaderNavbar({
       "/settings",
     ].includes(item.path)
   );
-  const mobileNav = isWorkspace ? APP_NAV.slice(0, 12) : MARKETING_NAV;
+  // فصل صارم: الموقع التعريفي يرى المنصة+الأدوات فقط، النظام يرى الذكاء أيضاً
+  const visibleClusters = DOMAIN_CLUSTERS.filter(c => {
+    if (c.key === "intelligence") return !publicOnly && isAuthenticated;
+    return true;
+  });
+  const mobileNav = isWorkspace
+    ? APP_NAV.slice(0, 12)
+    : publicOnly
+      ? [...MARKETING_NAV.slice(0, 8), ...TOOLS_CLUSTER.slice(0, 2)]
+      : MARKETING_NAV;
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -198,19 +207,34 @@ export function HeaderNavbar({
         ? "bg-white/5 text-brand-300 hover:bg-white/10 border border-brand/30"
         : "text-white/75 hover:bg-white/5 hover:text-white border border-transparent";
 
+  const isMarketingShell = publicOnly || (!isAuthenticated && !isWorkspace);
   return (
     <header className="text-white sticky top-0 z-50" dir="rtl">
-      {/* Top bar — institutional descriptor (world-class subtle) */}
-      <div className="hidden lg:flex items-center justify-between px-4 py-1.5 bg-ink-deep/90 backdrop-blur border-b border-white/5 text-[11px] text-white/50">
-        <span className="font-mono tracking-widest">
+      {/* Top bar — فصل جذري: موقع تعريفي (ساند) vs نظام تشغيل (إنك) */}
+      <div
+        className={`hidden lg:flex items-center justify-between px-4 py-1.5 backdrop-blur border-b text-[11px] ${isMarketingShell ? "bg-sand/90 border-brand/15 text-ink/60" : "bg-ink-deep/90 border-white/5 text-white/50"}`}
+      >
+        <span className="flex items-center gap-2 font-mono tracking-widest">
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isMarketingShell ? "bg-brand/10 text-brand border-brand/20" : "bg-white/10 text-white border-white/20"}`}
+          >
+            {isMarketingShell ? "الموقع التعريفي" : "نظام التشغيل"}
+          </span>
           {brand.names.siteName} — {brand.names.erp}
         </span>
         <span className="flex items-center gap-3">
           <span className="flex items-center gap-1.5">
-            <Phone className="w-3 h-3 text-brand-300" /> {brand.contact.phone}
+            <Phone
+              className={`w-3 h-3 ${isMarketingShell ? "text-brand" : "text-brand-300"}`}
+            />{" "}
+            {brand.contact.phone}
           </span>
-          <span className="w-px h-3 bg-white/10" />
-          <span className="font-mono text-brand-300">
+          <span
+            className={`w-px h-3 ${isMarketingShell ? "bg-ink/10" : "bg-white/10"}`}
+          />
+          <span
+            className={`font-mono ${isMarketingShell ? "text-brand" : "text-brand-300"}`}
+          >
             {brand.names.erp} v{brand.names.version}
           </span>
         </span>
@@ -324,8 +348,8 @@ export function HeaderNavbar({
               );
             })}
 
-            {/* القوائم المنسدلة الغنية — 3 مجالات دقيقة: المنصة / الذكاء / الأدوات */}
-            {DOMAIN_CLUSTERS.map(cluster => {
+            {/* القوائم المنسدلة الغنية — 3 مجالات دقيقة (الذكاء مخفي في الموقع التعريفي) */}
+            {visibleClusters.map(cluster => {
               const ClusterIcon = cluster.icon;
               const items = cluster.items;
               const isOpen = openCluster === cluster.key;
