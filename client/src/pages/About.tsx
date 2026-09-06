@@ -443,28 +443,52 @@ export default function About() {
         <div className="max-w-7xl mx-auto space-y-8">
           {/* رسالة قوية عن الشركة */}
           <div className="max-w-3xl mx-auto text-center space-y-3">
-            <Badge className="bg-slate-900 text-white font-black text-xs px-3 py-1">من نحن — الحسينية لخدمات الأعمال</Badge>
-            <h2 className="text-2xl sm:text-3xl font-black text-ink leading-tight">شريكك الاستراتيجي للنمو — من الفكرة إلى الأثر</h2>
+            <Badge className="bg-slate-900 text-white font-black text-xs px-3 py-1">
+              من نحن — الحسينية لخدمات الأعمال
+            </Badge>
+            <h2 className="text-2xl sm:text-3xl font-black text-ink leading-tight">
+              شريكك الاستراتيجي للنمو — من الفكرة إلى الأثر
+            </h2>
             <p className="text-sm text-slate-600 leading-relaxed">
-              مؤسسة الحسينية لخدمات الأعمال ومركز الحسينية المعرفي — منظومة واحدة تدير حساباتك، مشاريعك الهندسية ومواردك التجارية بمرونة وأمان وشفافية. نحن لا نبيع برامجا، نحن نبني حوكمة تضعك أمام حقيقة واحدة قابلة للتدقيق كل صباح.
+              مؤسسة الحسينية لخدمات الأعمال ومركز الحسينية المعرفي — منظومة
+              واحدة تدير حساباتك، مشاريعك الهندسية ومواردك التجارية بمرونة وأمان
+              وشفافية. نحن لا نبيع برامجا، نحن نبني حوكمة تضعك أمام حقيقة واحدة
+              قابلة للتدقيق كل صباح.
             </p>
           </div>
           <div className="grid md:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-6">
-              <div className="flex items-center gap-2 mb-2"><Compass className="w-5 h-5 text-brand" /><h3 className="font-black text-ink">الرؤية</h3></div>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{vision}</p>
+              <div className="flex items-center gap-2 mb-2">
+                <Compass className="w-5 h-5 text-brand" />
+                <h3 className="font-black text-ink">الرؤية</h3>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                {vision}
+              </p>
             </div>
             <div className="rounded-2xl border border-brand/20 bg-brand/5 p-6">
-              <div className="flex items-center gap-2 mb-2"><Layers className="w-5 h-5 text-brand" /><h3 className="font-black text-ink">الرسالة</h3></div>
-              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">{mission}</p>
+              <div className="flex items-center gap-2 mb-2">
+                <Layers className="w-5 h-5 text-brand" />
+                <h3 className="font-black text-ink">الرسالة</h3>
+              </div>
+              <p className="text-xs sm:text-sm text-slate-600 leading-relaxed">
+                {mission}
+              </p>
             </div>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {values.map(v => (
-              <div key={v.ar} className="rounded-xl border border-slate-200 bg-white p-4 text-center">
-                <div className="text-[11px] font-black tracking-widest text-brand">{v.en}</div>
+              <div
+                key={v.ar}
+                className="rounded-xl border border-slate-200 bg-white p-4 text-center"
+              >
+                <div className="text-[11px] font-black tracking-widest text-brand">
+                  {v.en}
+                </div>
                 <div className="font-black text-ink mt-1">{v.ar}</div>
-                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{v.desc}</p>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">
+                  {v.desc}
+                </p>
               </div>
             ))}
           </div>
@@ -1158,6 +1182,6 @@ export default function About() {
       </Dialog>
 
       {/* Footer */}
-      </div>
+    </div>
   );
 }

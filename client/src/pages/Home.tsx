@@ -849,7 +849,12 @@ export default function Home() {
   return (
     <div className="space-y-4">
       <div className="flex justify-end">
-        <Button variant="outline" size="sm" onClick={() => setIsSettingsOpen(v => !v)} className="text-xs h-8">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsSettingsOpen(v => !v)}
+          className="text-xs h-8"
+        >
           {isSettingsOpen ? "إغلاق الإعدادات" : "إعدادات المؤسسة"}
         </Button>
       </div>
@@ -1238,9 +1243,27 @@ export default function Home() {
         {/* Operational Tabs */}
         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
           <TabsList className="grid grid-cols-3 sm:grid-cols-6 bg-slate-200 h-9 p-1 rounded-xl text-xs mb-3 shadow-inner">
-            <TabsTrigger value="entry" className="text-[10px] sm:text-xs font-semibold" title="القيود اليومية — Daily Journal">اليومية</TabsTrigger>
-            <TabsTrigger value="accounts" className="text-[10px] sm:text-xs font-semibold" title="دليل الحسابات الشجري — Chart of Accounts">الدليل</TabsTrigger>
-            <TabsTrigger value="reports" className="text-[10px] sm:text-xs font-semibold" title="ميزان المراجعة والقوائم — Trial Balance & Statements">التقارير</TabsTrigger>
+            <TabsTrigger
+              value="entry"
+              className="text-[10px] sm:text-xs font-semibold"
+              title="القيود اليومية — Daily Journal"
+            >
+              اليومية
+            </TabsTrigger>
+            <TabsTrigger
+              value="accounts"
+              className="text-[10px] sm:text-xs font-semibold"
+              title="دليل الحسابات الشجري — Chart of Accounts"
+            >
+              الدليل
+            </TabsTrigger>
+            <TabsTrigger
+              value="reports"
+              className="text-[10px] sm:text-xs font-semibold"
+              title="ميزان المراجعة والقوائم — Trial Balance & Statements"
+            >
+              التقارير
+            </TabsTrigger>
             <TabsTrigger
               value="audit"
               className="text-[10px] sm:text-xs font-semibold"

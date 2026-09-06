@@ -326,7 +326,6 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
           جميع نقاط التكامل مشفّرة عبر SSL، ومحمية بـ Rate Limiting وCORS مقيد.
         </section>
       </main>
-
-      </div>
+    </div>
   );
 }

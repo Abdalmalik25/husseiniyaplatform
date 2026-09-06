@@ -136,7 +136,9 @@ export default function Requisitions() {
           ].map(([label, value, tone]) => (
             <Card key={String(label)} className="border-border shadow-sm">
               <CardContent className="p-4">
-                <p className="text-[11px] font-bold text-muted-foreground">{label}</p>
+                <p className="text-[11px] font-bold text-muted-foreground">
+                  {label}
+                </p>
                 <p className={`mt-1 text-xl font-black ${tone}`}>{value}</p>
               </CardContent>
             </Card>
@@ -469,7 +471,9 @@ export default function Requisitions() {
             )}
           <div className="max-h-72 overflow-y-auto space-y-2">
             {(approvals ?? []).length === 0 ? (
-              <p className="text-sm text-muted-foreground">لا توجد اعتمادات بعد.</p>
+              <p className="text-sm text-muted-foreground">
+                لا توجد اعتمادات بعد.
+              </p>
             ) : (
               (approvals ?? []).map((a: any) => (
                 <div

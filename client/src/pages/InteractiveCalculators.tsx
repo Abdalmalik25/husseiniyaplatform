@@ -779,7 +779,6 @@ export default function InteractiveCalculators() {
           </div>
         )}
       </section>
-
-      </div>
+    </div>
   );
 }

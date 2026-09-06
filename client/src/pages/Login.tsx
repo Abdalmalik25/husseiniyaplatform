@@ -274,11 +274,23 @@ export default function Login() {
                 className="w-full"
               >
                 <TabsList className="grid grid-cols-2 bg-ink p-1 rounded-xl border border-white/15 h-10">
-                  <TabsTrigger value="login" className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep">دخول المنشأة</TabsTrigger>
-                  <TabsTrigger value="register" className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep">تأسيس منشأة جديدة</TabsTrigger>
+                  <TabsTrigger
+                    value="login"
+                    className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep"
+                  >
+                    دخول المنشأة
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="register"
+                    className="text-xs font-bold data-[state=active]:bg-brand data-[state=active]:text-ink-deep"
+                  >
+                    تأسيس منشأة جديدة
+                  </TabsTrigger>
                 </TabsList>
                 <p className="text-[11px] text-slate-400 text-center mt-2">
-                  {activeTab === "login" ? "للمحاسب والتاجر: أدخل بيانات منشأتك للدخول إلى النظام التشغيلي" : "للمالك الجديد: أنشئ منشأتك بمعايير IFRS for SMEs — 14 يوم تجربة مجانية"}
+                  {activeTab === "login"
+                    ? "للمحاسب والتاجر: أدخل بيانات منشأتك للدخول إلى النظام التشغيلي"
+                    : "للمالك الجديد: أنشئ منشأتك بمعايير IFRS for SMEs — 14 يوم تجربة مجانية"}
                 </p>
               </Tabs>
             </CardHeader>

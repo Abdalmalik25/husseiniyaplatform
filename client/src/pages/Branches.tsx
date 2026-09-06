@@ -196,7 +196,9 @@ export default function Branches() {
 
               <div className="space-y-2 pt-2">
                 {isPending ? (
-                  <p className="text-[12px] text-muted-foreground">جاري التحميل...</p>
+                  <p className="text-[12px] text-muted-foreground">
+                    جاري التحميل...
+                  </p>
                 ) : (branches ?? []).length === 0 ? (
                   <p className="text-[12px] text-muted-foreground">
                     لا توجد فروع بعد.
@@ -216,9 +218,7 @@ export default function Branches() {
                         </div>
                       </div>
                       <button onClick={() => startEdit(b)}>
-                        <span className="text-[11px] text-success">
-                          تعديل
-                        </span>
+                        <span className="text-[11px] text-success">تعديل</span>
                       </button>
                     </div>
                   ))

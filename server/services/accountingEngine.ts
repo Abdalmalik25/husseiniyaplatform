@@ -227,18 +227,34 @@ export async function postBalancedJournal(
   const accountIds = [...new Set(opts.legs.map(l => l.accountId))];
   if (accountIds.length > 0) {
     const accRows = (await db
-      .select({ id: accounts.id, code: accounts.code, isActive: accounts.isActive })
+      .select({
+        id: accounts.id,
+        code: accounts.code,
+        isActive: accounts.isActive,
+      })
       .from(accounts)
-      .where(and(eq(accounts.tenantId, opts.tenantId), inArray(accounts.id, accountIds)))) as Array<{ id: number; code: string; isActive: boolean | null }>;
+      .where(
+        and(
+          eq(accounts.tenantId, opts.tenantId),
+          inArray(accounts.id, accountIds)
+        )
+      )) as Array<{ id: number; code: string; isActive: boolean | null }>;
     const accMap = new Map(accRows.map(r => [r.id, r]));
     for (const l of opts.legs) {
       const acc = accMap.get(l.accountId);
-      if (!acc) throw new Error(`الحساب ${l.accountId} غير موجود في دليل المؤسسة`);
-      if (acc.isActive === false) throw new Error(`الحساب ${acc.code} موقوف — لا يمكن الترحيل إليه`);
-      if (l.baseAmount == null && l.currencyId != null && l.exchangeRate != null) {
+      if (!acc)
+        throw new Error(`الحساب ${l.accountId} غير موجود في دليل المؤسسة`);
+      if (acc.isActive === false)
+        throw new Error(`الحساب ${acc.code} موقوف — لا يمكن الترحيل إليه`);
+      if (
+        l.baseAmount == null &&
+        l.currencyId != null &&
+        l.exchangeRate != null
+      ) {
         const rate = parseFloat(String(l.exchangeRate));
         const amt = parseFloat(String(l.amount));
-        if (Number.isFinite(rate) && Number.isFinite(amt)) (l as any).baseAmount = (amt * rate).toFixed(2);
+        if (Number.isFinite(rate) && Number.isFinite(amt))
+          (l as any).baseAmount = (amt * rate).toFixed(2);
       }
     }
   }

@@ -943,7 +943,9 @@ export default function Commercial() {
                         </div>
                         <div className="flex items-center gap-4 text-xs">
                           <div className="text-center">
-                            <p className="text-[10px] text-muted-foreground">المخزون</p>
+                            <p className="text-[10px] text-muted-foreground">
+                              المخزون
+                            </p>
                             <p
                               className={`font-bold ${p.currentStock <= p.minStock ? "text-red-600" : "text-green-600"}`}
                             >
@@ -1109,7 +1111,9 @@ export default function Commercial() {
                           </div>
                         </div>
                         <div className="text-left flex flex-col items-end gap-1">
-                          <p className="text-[10px] text-muted-foreground">الرصيد</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            الرصيد
+                          </p>
                           <p
                             className={`font-bold text-xs ${parseFloat(c.balance) > 0 ? "text-red-600" : "text-green-600"}`}
                           >
@@ -1195,7 +1199,9 @@ export default function Commercial() {
                           </div>
                         </div>
                         <div className="text-left flex flex-col items-end gap-1">
-                          <p className="text-[10px] text-muted-foreground">الرصيد</p>
+                          <p className="text-[10px] text-muted-foreground">
+                            الرصيد
+                          </p>
                           <p className="font-bold text-xs text-red-600">
                             {s.balance}
                           </p>

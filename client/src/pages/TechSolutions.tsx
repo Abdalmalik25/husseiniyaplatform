@@ -257,7 +257,6 @@ export default function TechSolutions() {
           </div>
         </div>
       </section>
-
-      </div>
+    </div>
   );
 }

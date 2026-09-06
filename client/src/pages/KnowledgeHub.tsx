@@ -496,7 +496,6 @@ export default function KnowledgeHub() {
           </div>
         </div>
       </section>
-
-      </div>
+    </div>
   );
 }

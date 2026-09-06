@@ -344,7 +344,6 @@ export default function ProjectGovernance() {
           </form>
         </Card>
       </section>
-
-      </div>
+    </div>
   );
 }
