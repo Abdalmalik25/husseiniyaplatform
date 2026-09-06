@@ -31,25 +31,25 @@ export default function Audit() {
   return (
     <div className="min-h-screen flex">
       <AppSidebar />
-      <main className="flex-1 bg-slate-50">
-        <div className="border-b bg-white px-6 py-4">
+      <main className="flex-1 bg-muted">
+        <div className="border-b bg-card px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-rose-600 text-white">
               <History className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">
+              <h1 className="text-xl font-bold text-foreground">
                 سجل التدقيق والأثر
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 سجل لا رجعة فيه لكل العمليات الحساسة — قابلية تتبّع وتوافق
                 (Compliance) بمعيار مؤسسي
               </p>
             </div>
           </div>
           <div className="mt-4 w-full max-w-sm">
-            <div className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3">
-              <Search className="h-4 w-4 text-slate-400" />
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card px-3">
+              <Search className="h-4 w-4 text-muted-foreground" />
               <Input
                 className="h-10 border-0 bg-transparent text-[13px] focus-visible:ring-0"
                 placeholder="بحث في نوع العملية (مثال: قيد، فرع، راتب)..."
@@ -66,7 +66,7 @@ export default function Audit() {
               <div className="overflow-x-auto">
                 <table className="w-full text-[13px]">
                   <thead>
-                    <tr className="border-b bg-slate-50 text-[11px] text-slate-500">
+                    <tr className="border-b bg-muted text-[11px] text-muted-foreground">
                       <th className="text-right p-3">التاريخ</th>
                       <th className="text-right p-3">المستخدم</th>
                       <th className="text-right p-3">العملية</th>
@@ -78,7 +78,7 @@ export default function Audit() {
                       <tr>
                         <td
                           colSpan={4}
-                          className="p-8 text-center text-slate-400"
+                          className="p-8 text-center text-muted-foreground"
                         >
                           جاري التحميل...
                         </td>
@@ -87,7 +87,7 @@ export default function Audit() {
                       <tr>
                         <td
                           colSpan={4}
-                          className="p-8 text-center text-slate-400"
+                          className="p-8 text-center text-muted-foreground"
                         >
                           لا توجد سجلات مطابقة.
                         </td>
@@ -96,12 +96,12 @@ export default function Audit() {
                       items.map((l: any) => (
                         <tr
                           key={l.id}
-                          className="border-b last:border-0 hover:bg-slate-50"
+                          className="border-b last:border-0 hover:bg-muted"
                         >
-                          <td className="p-3 whitespace-nowrap text-slate-500">
+                          <td className="p-3 whitespace-nowrap text-muted-foreground">
                             {fmtDate(l.createdAt)}
                           </td>
-                          <td className="p-3 text-slate-700">
+                          <td className="p-3 text-foreground">
                             {l.userName || `مستخدم #${l.userId}`}
                           </td>
                           <td className="p-3">
@@ -109,7 +109,9 @@ export default function Audit() {
                               {l.action}
                             </Badge>
                           </td>
-                          <td className="p-3 text-slate-600">{l.details}</td>
+                          <td className="p-3 text-muted-foreground">
+                            {l.details}
+                          </td>
                         </tr>
                       ))
                     )}

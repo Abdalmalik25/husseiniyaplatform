@@ -287,7 +287,7 @@ export function createApp(): Express {
     res.setHeader("Cache-Control", "no-store");
     const dbAvailable = await checkDbHealth();
     res.status(dbAvailable ? 200 : 503).json({
-      ok: true,
+      ok: dbAvailable,
       dbAvailable,
       service: "alhusainia-platform",
       institution: "الحسينية لخدمات الأعمال",

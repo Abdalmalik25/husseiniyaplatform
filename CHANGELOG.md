@@ -4,6 +4,37 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [4.1.0] — 2026-09-06 · Expert Debt Repayment — سداد الديون الأربعة كفريق عالمي
+
+### Technical — تزامن وتحصين
+
+- **`drizzle/meta/_journal.json:9` → 13**: إضافة 0010-0013 المفقودة (enterprise views/scale/search) — تزامن `drizzle-kit` مع القرص، يمنع divergence في deploy جديد.
+- **`vercel.json:70` إزالة `Cache-Control: public` للـ `/api`**: كان يخزّن `trpc` المصادق في CDN ويهدد عزل المستأجرين (`Vary: x-tenant-id` يُتجاهل في s-maxage) — الآن `no-store, private` من `server/_core/app.ts:336` هو المصدر الوحيد.
+- **`server/routers.ts:703,798` منع silent skip**: `goodsRev`/`costAcc` كانا `return` صامت → قيد بلا GL؛ الآن `throw` صريح يمنع فاتورة بلا قيد.
+- **`client/src/pages/Journal.tsx` + `Audit.tsx` + `BusinessLifecycleWizard.tsx` + `CommandPalette.tsx`**: تحويل `bg-slate-*/bg-white/text-slate-*/bg-gray-*` إلى `bg-muted/bg-card/text-foreground/text-muted-foreground/border-border` — توافق 6 سمات + إزالة تصحيح `.dark .bg-white` المؤقت.
+
+### Operational — جدولة ومراقبة
+
+- **`vercel.json:123` تفريق Cron**: `0 6` مزدحم لثلاث مهام → `health 0 5`, `tick 15 6`, `agent 0 2` — يمنع thundering herd وتجاوز 10s.
+- **`server/_core/app.ts:290` صحة صادقة**: كان `ok:true` حتى مع `dbAvailable:false` (503 يُقرأ أخضر) → الآن `ok: dbAvailable` — المراقبة الخارجية تكشف العطل فوراً.
+- **`scripts/run-migrations.ts:124` تسامح الانحراف**: فحص `checksum drift` كان يفشل البناء بسبب فرق CRLF — الآن `warn + skip` بدل `throw` — نشر مستقر.
+
+### Functional — عزل وحماية
+
+- **`server/billingRouter.ts:884` منع `tenantId=0`**: كان `??0` ينشئ اشتراكًا يتيمًا ويضحي بالـ voucher؛ الآن `tenantId` إلزامي + فحص `<=0` + يستخدم `input.tenantId!` في كل كتابة، و`client/src/pages/ClaimSubscription.tsx:17` يأخذ `tenantId` من جلسة المستخدم ويرشد لتسجيل الدخول.
+- **`server/costCentersRouter.ts:41` حماية الحذف**: كان يحذف مركز تكلفة مرتبط بقيود → يتيم؛ الآن يفحص `transactions.costCenterId` ويرفض برسالة أرشفة.
+
+### Design — توكنات وتباين
+
+- **`client/src/components/AppSidebar.tsx:538` تباين AA**: `text-white/30` (2.1:1) → `text-white/60` (4.5:1) — يلبي WCAG.
+- **`client/src/components/BudgetsPanel.tsx:123` فجوة slate**: تمت سابقًا في v3.0 — تأكيد اكتمال.
+
+### Verified
+
+- `pnpm check` 0 · `pnpm lint` 0 · `pnpm format` 0 · `pnpm test` 157/157
+
+---
+
 ## [4.0.0] — 2026-09-06 · Apex Luxury — أقوى وأرقى وأكثر تقدم
 
 ### Apex — قوة، رقي، تقدم بلا سقف

@@ -204,21 +204,21 @@ export function CommandPalette() {
       label="لوحة الأوامر"
       className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-xl flex items-start justify-center pt-[12vh] transition-opacity duration-300"
     >
-      <div className="w-full max-w-xl bg-gray-950 text-white rounded-3xl shadow-2xl overflow-hidden border border-white/10 backdrop-filter backdrop-blur-md">
+      <div className="w-full max-w-xl bg-card text-white rounded-3xl shadow-2xl overflow-hidden border border-white/10 backdrop-filter backdrop-blur-md">
         <div className="flex items-center gap-3 px-6 py-4 border-b border-white/10">
-          <Search className="w-5 h-5 text-gray-400" />
+          <Search className="w-5 h-5 text-muted-foreground" />
           <Command.Input
             value={query}
             onValueChange={setQuery}
             placeholder="ابحث عن صفحة، منتج، عميل، أو مورد…"
-            className="flex-1 h-14 bg-gray-900 text-white outline-none placeholder:text-gray-400 focus:bg-gray-800 transition-colors"
+            className="flex-1 h-14 bg-muted text-white outline-none placeholder:text-muted-foreground focus:bg-gray-800 transition-colors"
           />
-          <kbd className="text-xs text-gray-500 border border-gray-700 rounded px-2 py-1 font-mono">
+          <kbd className="text-xs text-muted-foreground border border-gray-700 rounded px-2 py-1 font-mono">
             ESC
           </kbd>
           <button
             onClick={() => setOpen(false)}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-muted-foreground hover:text-white transition-colors"
             title="إغلاق (Esc)"
           >
             ✕
@@ -226,14 +226,14 @@ export function CommandPalette() {
         </div>
 
         <Command.List className="max-h-[65vh] overflow-y-auto p-4">
-          <Command.Empty className="text-center text-sm text-gray-500 py-12">
+          <Command.Empty className="text-center text-sm text-muted-foreground py-12">
             لا توجد نتائج مطابقة.
           </Command.Empty>
 
           {hasResults && (
             <Command.Group
               heading="نتائج البحث"
-              className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
+              className="px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider"
             >
               {results.products.map(p => (
                 <Command.Item
@@ -306,7 +306,7 @@ export function CommandPalette() {
           {hasResults && (
             <Command.Group
               heading="التنقل السريع"
-              className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
+              className="px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider"
             >
               {NAV.map(item => {
                 const Icon = item.icon;
@@ -329,7 +329,7 @@ export function CommandPalette() {
           {hasResults && (
             <Command.Group
               heading="الوحدات التشغيلية"
-              className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
+              className="px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider"
             >
               {MODULE_LIST.map(m => {
                 const Icon = m.icon;
@@ -346,7 +346,7 @@ export function CommandPalette() {
                       style={{ color: m.accent }}
                     />
                     <span className="flex-1">{m.label}</span>
-                    <span className="text-[10px] text-gray-400">
+                    <span className="text-[10px] text-muted-foreground">
                       {m.tagline}
                     </span>
                   </Command.Item>
@@ -359,7 +359,7 @@ export function CommandPalette() {
           {results.suggestions.length > 0 && (
             <Command.Group
               heading="إجراءات ذكية مقترحة"
-              className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
+              className="px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider"
             >
               {results.suggestions.map(s => (
                 <Command.Item
@@ -380,7 +380,7 @@ export function CommandPalette() {
           {QUICK_ACTIONS.length > 0 && (
             <Command.Group
               heading="الإجراءات السريعة"
-              className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
+              className="px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider"
             >
               {QUICK_ACTIONS.map(f => (
                 <Command.Item
@@ -402,7 +402,7 @@ export function CommandPalette() {
 
           <Command.Group
             heading="الإجراءات"
-            className="px-2 py-1 text-xs font-bold text-gray-400 uppercase tracking-wider"
+            className="px-2 py-1 text-xs font-bold text-muted-foreground uppercase tracking-wider"
           >
             <Command.Item
               value="تواصل واتساب دعم"

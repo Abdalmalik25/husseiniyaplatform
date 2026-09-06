@@ -421,11 +421,11 @@ export function AppSidebar() {
             <div key={group.key} className="space-y-1">
               {!compact ? (
                 <div className="px-2 pb-1">
-                  <p className="text-[9px] font-black tracking-[0.12em] text-white/35 flex items-center gap-1.5">
+                  <p className="text-[9px] font-black tracking-[0.12em] text-white/60 flex items-center gap-1.5">
                     {group.label}
                     <span className="h-px flex-1 bg-white/10" />
                   </p>
-                  <p className="text-[10px] text-white/30 leading-none mt-0.5">
+                  <p className="text-[10px] text-white/60 leading-none mt-0.5">
                     {group.description}
                   </p>
                 </div>
@@ -466,7 +466,7 @@ export function AppSidebar() {
           {/* أدوات الموقع التعريفي — مفصولة بصرياً عن النظام */}
           <div className="pt-2 border-t border-white/10 space-y-1">
             {!compact && (
-              <p className="text-[9px] font-bold text-white/30 tracking-wider px-2 pb-1">
+              <p className="text-[9px] font-bold text-white/60 tracking-wider px-2 pb-1">
                 روابط الموقع التعريفي
               </p>
             )}

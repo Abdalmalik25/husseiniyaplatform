@@ -889,6 +889,13 @@ export const billingRouter = router({
       })
     )
     .mutation(async ({ input }) => {
+      // منع تلوث tenantId=0 — يجب تحديد مؤسسة حقيقية
+      if (!input.tenantId || input.tenantId <= 0) {
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "معرّف المؤسسة مطلوب — سجّل الدخول أولاً ثم أعد إدخال الرمز",
+        });
+      }
       const db = await getDb();
       if (!db)
         throw new TRPCError({
@@ -919,11 +926,11 @@ export const billingRouter = router({
         start.getTime() + voucher.periodMonths * 30 * 86_400_000
       );
 
-      // 2) Apply the entitlement
+      // 2) Apply the entitlement — tenantId موثق إلزامي
       const existingSub = await db
         .select({ id: tenantSubscriptions.id })
         .from(tenantSubscriptions)
-        .where(eq(tenantSubscriptions.tenantId, input.tenantId ?? 0))
+        .where(eq(tenantSubscriptions.tenantId, input.tenantId!))
         .limit(1);
 
       const planId = voucher.planId;
@@ -941,7 +948,7 @@ export const billingRouter = router({
           .where(eq(tenantSubscriptions.tenantId, input.tenantId!));
       } else {
         await db.insert(tenantSubscriptions).values({
-          tenantId: input.tenantId ?? 0,
+          tenantId: input.tenantId!,
           planId,
           status: "active",
           billingCycle: "monthly",
@@ -959,7 +966,7 @@ export const billingRouter = router({
           trialEndsAt: end,
           updatedAt: start,
         })
-        .where(eq(settings.tenantId, input.tenantId ?? 0));
+        .where(eq(settings.tenantId, input.tenantId!));
 
       // 4) Record an invoice + payment (no external provider)
       const invoiceNumber = `INV-${start.getFullYear()}-${Math.random()
@@ -971,7 +978,7 @@ export const billingRouter = router({
       const [invoice] = await db
         .insert(billingInvoices)
         .values({
-          tenantId: input.tenantId ?? 0,
+          tenantId: input.tenantId!,
           subscriptionId: existingSub[0]?.id ?? null,
           invoiceNumber,
           status: "paid",
@@ -986,7 +993,7 @@ export const billingRouter = router({
         .returning();
 
       await db.insert(paymentHistory).values({
-        tenantId: input.tenantId ?? 0,
+        tenantId: input.tenantId!,
         invoiceId: invoice.id,
         amount,
         currency: voucher.currency,
@@ -1004,7 +1011,7 @@ export const billingRouter = router({
           activatedAt: start,
           redemption: {
             method: "voucher",
-            tenantId: input.tenantId ?? null,
+            tenantId: input.tenantId!,
           },
         })
         .where(eq(subscriptionCodes.id, voucher.id));

@@ -701,7 +701,10 @@ async function postInvoiceGlEntries(
 
   if (opts.kind === "sale") {
     const goodsRev = await findAccount(cfg.postingRules.goodsRevenueCode);
-    if (!goodsRev) return; // chart not seeded — skip auto-posting
+    if (!goodsRev)
+      throw new Error(
+        `دليل الحسابات غير مهيأ — رمز الإيراد غير موجود: ${cfg.postingRules.goodsRevenueCode}`
+      );
 
     // 1) Receipt side
     if (paid > 0) {
@@ -796,7 +799,10 @@ async function postInvoiceGlEntries(
   } else {
     // purchase
     const costAcc = await findAccount(cfg.postingRules.cogsCode);
-    if (!costAcc) return;
+    if (!costAcc)
+      throw new Error(
+        `دليل الحسابات غير مهيأ — رمز التكلفة غير موجود: ${cfg.postingRules.cogsCode}`
+      );
     await entry(
       costAcc.id,
       "debit",

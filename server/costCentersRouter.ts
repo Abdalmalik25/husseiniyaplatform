@@ -2,7 +2,7 @@ import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { router, tenantProcedure } from "./_core/trpc";
 import { getDb } from "./db";
-import { costCenters } from "../drizzle/schema";
+import { costCenters, transactions } from "../drizzle/schema";
 
 export const costCentersRouter = router({
   list: tenantProcedure.query(async ({ ctx }) => {
@@ -43,6 +43,22 @@ export const costCentersRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db || !ctx.tenantId) throw new Error("DB unavailable");
+      // منع حذف مركز تكلفة مرتبط بقيود محاسبية — يحمي سلامة دفتر الأستاذ
+      const linked = await db
+        .select({ id: transactions.id })
+        .from(transactions)
+        .where(
+          and(
+            eq(transactions.tenantId, ctx.tenantId!),
+            eq(transactions.costCenterId, input.id)
+          )
+        )
+        .limit(1);
+      if (linked.length > 0) {
+        throw new Error(
+          "لا يمكن حذف مركز التكلفة — مرتبط بقيود محاسبية. أرشفه بدلاً من حذفه."
+        );
+      }
       await db
         .delete(costCenters)
         .where(

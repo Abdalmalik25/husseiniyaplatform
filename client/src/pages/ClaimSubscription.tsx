@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Ticket, Loader2, ArrowLeft, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 /**
  * صفحة /claim — عامة (بدون مصادقة).
@@ -17,15 +18,16 @@ export default function ClaimSubscription() {
   const [, navigate] = useLocation();
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const { user, isAuthenticated } = useAuth();
 
   const claim = trpc.billing.claimSubscription.useMutation({
     onSuccess: data => {
-      toast.success(data.message ?? "تم تفعيل الاشتراك بنجاح");
+      toast.success((data as any).message ?? "تم تفعيل الاشتراك بنجاح");
       navigate("/login");
     },
     onError: (err: any) => {
       const msg: string = err?.data?.message ?? err?.message ?? "";
-      if (msg.startsWith("AUTH_REQUIRED")) {
+      if (msg.startsWith("AUTH_REQUIRED") || msg.includes("معرّف المؤسسة")) {
         toast.info("سجّل الدخول أولاً ثم أعد إدخال الرمز — سيعمل تلقائياً.");
         navigate("/login");
         return;
@@ -41,8 +43,23 @@ export default function ClaimSubscription() {
       toast.error("أدخل رمز التفعيل");
       return;
     }
+    // منع تلوث tenantId=0 — نأخذ tenantId من جلسة المستخدم إن وجد، وإلا نطلب تسجيل الدخول
+    const tenantId =
+      (user as any)?.tenantId ??
+      (user as any)?.tenant_id ??
+      (user as any)?.tenant?.id;
+    if (!tenantId) {
+      toast.info(
+        "سجّل الدخول أولاً — الرمز سيرتبط بمؤسستك تلقائياً بعد الدخول."
+      );
+      navigate("/login");
+      return;
+    }
     setSubmitting(true);
-    claim.mutate({ code: clean }, { onSettled: () => setSubmitting(false) });
+    claim.mutate(
+      { code: clean, tenantId: Number(tenantId) },
+      { onSettled: () => setSubmitting(false) }
+    );
   };
 
   return (

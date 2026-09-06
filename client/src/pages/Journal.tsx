@@ -44,7 +44,7 @@ const SOURCE_LABELS: Record<string, { label: string; tone: string }> = {
 function sourceBadge(m: string) {
   const s = SOURCE_LABELS[m] ?? {
     label: m ?? "عام",
-    tone: "bg-slate-100 text-slate-600",
+    tone: "bg-muted text-muted-foreground",
   };
   return <Badge className={`${s.tone} font-medium`}>{s.label}</Badge>;
 }
@@ -86,17 +86,17 @@ function JournalPage() {
   return (
     <div className="min-h-screen flex">
       <AppSidebar />
-      <main className="flex-1 bg-slate-50">
+      <main className="flex-1 bg-muted">
         <Tabs defaultValue="journal" className="min-h-screen flex flex-col">
-          <div className="border-b bg-white px-6 py-4">
+          <div className="border-b bg-card px-6 py-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <BookOpen className="h-6 w-6 text-indigo-600" />
                 <div>
-                  <h1 className="text-xl font-bold text-slate-800">
+                  <h1 className="text-xl font-bold text-foreground">
                     القيود المحاسبية المجمعة
                   </h1>
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm text-muted-foreground">
                     دفتر اليومية التكاملي — كل حركة مالية مرتبطة بوثيقتها المصدر
                     (مبيعات / مشتريات / رواتب)
                   </p>
@@ -146,7 +146,9 @@ function JournalPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 p-6">
               {/* list */}
               <div className="space-y-3">
-                <h2 className="text-sm font-semibold text-slate-600">القيود</h2>
+                <h2 className="text-sm font-semibold text-muted-foreground">
+                  القيود
+                </h2>
                 {isPending ? (
                   <div className="space-y-3">
                     {[0, 1, 2, 3].map(i => (
@@ -155,7 +157,7 @@ function JournalPage() {
                   </div>
                 ) : items.length === 0 ? (
                   <Card>
-                    <CardContent className="p-8 text-center text-slate-400">
+                    <CardContent className="p-8 text-center text-muted-foreground">
                       لا توجد قيود بعد. تُنشأ تلقائياً عند ترحيل الفواتير أو
                       الرواتب.
                     </CardContent>
@@ -168,22 +170,22 @@ function JournalPage() {
                       className={`w-full text-right rounded-xl border p-4 transition hover:shadow-md ${
                         selected === je.id
                           ? "border-indigo-400 bg-indigo-50"
-                          : "bg-white"
+                          : "bg-card"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         {sourceBadge(je.sourceModule)}
-                        <span className="text-xs text-slate-400">
+                        <span className="text-xs text-muted-foreground">
                           {je.postedAt
                             ? new Date(je.postedAt).toLocaleString("ar")
                             : ""}
                         </span>
                       </div>
                       <div className="mt-2 flex items-center justify-between">
-                        <span className="font-mono text-sm text-slate-500">
+                        <span className="font-mono text-sm text-muted-foreground">
                           {je.referenceNo}
                         </span>
-                        <span className="text-sm font-bold text-slate-700">
+                        <span className="text-sm font-bold text-foreground">
                           {fmtCur(parseFloat(je.totalAmount || "0"))}
                         </span>
                       </div>
@@ -194,12 +196,12 @@ function JournalPage() {
 
               {/* detail */}
               <div className="space-y-3">
-                <h2 className="text-sm font-semibold text-slate-600">
+                <h2 className="text-sm font-semibold text-muted-foreground">
                   تفاصيل القيد
                 </h2>
                 {selected === null ? (
                   <Card>
-                    <CardContent className="p-8 text-center text-slate-400">
+                    <CardContent className="p-8 text-center text-muted-foreground">
                       اختر قيداً من القائمة لعرض حركاته.
                     </CardContent>
                   </Card>
@@ -229,10 +231,10 @@ function JournalPage() {
                                   <ArrowDownLeft className="h-4 w-4 text-rose-600" />
                                 )}
                                 <div>
-                                  <div className="text-sm font-medium text-slate-700">
+                                  <div className="text-sm font-medium text-foreground">
                                     {acc?.name || `حساب #${l.accountId}`}
                                   </div>
-                                  <div className="text-xs text-slate-400">
+                                  <div className="text-xs text-muted-foreground">
                                     {l.narration}
                                   </div>
                                 </div>
@@ -334,7 +336,7 @@ function ScheduledJournal() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <CalendarClock className="h-5 w-5 text-indigo-600" />
-          <h2 className="text-lg font-bold text-slate-800">
+          <h2 className="text-lg font-bold text-foreground">
             القيود المحاسبية المجدولة
           </h2>
         </div>
@@ -374,7 +376,7 @@ function ScheduledJournal() {
                   <div>
                     <Label className="text-[11px]">التكرار</Label>
                     <select
-                      className="h-9 w-full rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                      className="h-9 w-full rounded-lg border border-gray-300 px-2 text-xs bg-card"
                       value={frequency}
                       onChange={e => setFrequency(e.target.value as any)}
                     >
@@ -398,7 +400,7 @@ function ScheduledJournal() {
                   <div>
                     <Label className="text-[11px]">الفرع</Label>
                     <select
-                      className="h-9 w-full rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                      className="h-9 w-full rounded-lg border border-gray-300 px-2 text-xs bg-card"
                       value={branchId ?? ""}
                       onChange={e =>
                         setBranchId(
@@ -433,7 +435,7 @@ function ScheduledJournal() {
                         className="grid grid-cols-12 gap-1 items-center"
                       >
                         <select
-                          className="col-span-5 h-9 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                          className="col-span-5 h-9 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                           value={l.accountId ?? ""}
                           onChange={e =>
                             updateLeg(i, {
@@ -539,7 +541,7 @@ function ScheduledJournal() {
         <Skeleton className="h-32 w-full rounded-xl" />
       ) : (list ?? []).length === 0 ? (
         <Card>
-          <CardContent className="p-8 text-center text-slate-400">
+          <CardContent className="p-8 text-center text-muted-foreground">
             لا توجد قيود مجدولة. أضف قيداً ليُنفَّذ تلقائياً حسب التكرار.
           </CardContent>
         </Card>
@@ -550,23 +552,23 @@ function ScheduledJournal() {
               <CardContent className="p-3 flex items-center justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-bold text-slate-700">
+                    <span className="text-sm font-bold text-foreground">
                       {s.name}
                     </span>
                     <Badge
                       className={
                         s.isActive
                           ? "bg-emerald-100 text-emerald-700 text-[10px]"
-                          : "bg-slate-100 text-slate-500 text-[10px]"
+                          : "bg-muted text-muted-foreground text-[10px]"
                       }
                     >
                       {s.isActive ? "نشط" : "متوقف"}
                     </Badge>
-                    <span className="text-[10px] text-slate-400">
+                    <span className="text-[10px] text-muted-foreground">
                       {s.frequency}
                     </span>
                   </div>
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-[11px] text-muted-foreground">
                     التشغيل القادم:{" "}
                     {s.nextRunAt
                       ? new Date(s.nextRunAt).toLocaleString("ar")

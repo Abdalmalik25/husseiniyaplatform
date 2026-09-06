@@ -71,6 +71,34 @@
       "when": 1787967040167,
       "tag": "0009_long_northstar",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1788000000000,
+      "tag": "0010_enterprise_performance_views",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1788100000000,
+      "tag": "0011_enterprise_scale_optimization",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1788200000000,
+      "tag": "0012_sales_invoice_order_link",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1788300000000,
+      "tag": "0013_search_optimization",
+      "breakpoints": true
     }
   ]
 }
