@@ -1761,6 +1761,9 @@ export const salesInvoices = pgTable(
     orderId: integer("orderId"),
     customerId: integer("customerId"),
     branchId: integer("branchId"),
+    costCenterId: integer("costCenterId"),
+    warehouseId: integer("warehouseId"),
+    projectId: integer("projectId"),
     status: salesInvoiceStatusEnum("status").default("draft").notNull(),
     subtotal: decimal("subtotal", { precision: 15, scale: 2 })
       .default("0")
@@ -1814,6 +1817,10 @@ export const salesInvoices = pgTable(
     uniqueIndex("uq_salesInvoices_tenant_order").on(t.tenantId, t.orderId),
     index("idx_salesInvoices_status").on(t.status),
     index("idx_salesInvoices_currency").on(t.currencyId),
+    index("idx_salesInvoices_costCenter").on(t.costCenterId),
+    index("idx_salesInvoices_warehouse").on(t.warehouseId),
+    index("idx_salesInvoices_project").on(t.projectId),
+    index("idx_salesInvoices_branch_costCenter").on(t.branchId, t.costCenterId),
     index("idx_salesInvoices_salesRep").on(t.salesRepId),
     index("idx_salesInvoices_tenant_salesrep").on(t.tenantId, t.salesRepId),
     index("idx_salesInvoices_tenant_status_date").on(
@@ -1888,6 +1895,9 @@ export const purchaseInvoices = pgTable(
     invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
     supplierId: integer("supplierId"),
     branchId: integer("branchId"),
+    costCenterId: integer("costCenterId"),
+    warehouseId: integer("warehouseId"),
+    projectId: integer("projectId"),
     status: purchaseInvoiceStatusEnum("status").default("draft").notNull(),
     subtotal: decimal("subtotal", { precision: 15, scale: 2 })
       .default("0")
@@ -1937,6 +1947,10 @@ export const purchaseInvoices = pgTable(
     index("idx_purchaseInvoices_supplier").on(t.supplierId),
     index("idx_purchaseInvoices_status").on(t.status),
     index("idx_purchaseInvoices_currency").on(t.currencyId),
+    index("idx_purchaseInvoices_costCenter").on(t.costCenterId),
+    index("idx_purchaseInvoices_warehouse").on(t.warehouseId),
+    index("idx_purchaseInvoices_project").on(t.projectId),
+    index("idx_purchaseInvoices_branch_costCenter").on(t.branchId, t.costCenterId),
     unique("purchaseInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
     check(
       "chk_purchase_invoice_subtotal_not_negative",
