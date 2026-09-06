@@ -4,6 +4,27 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [6.0.0] — 2026-09-06 · Final — الإصدار النهائي: شركة واضحة ومنتج منفصل بلا سطحية
+
+### Company vs Product — فصل هوية حقيقي
+
+- **الشركة**: `client/index.html:275` شعار وهوية `مؤسسة الحسينية لخدمات الأعمال — حلول منذ 2018` فقط، بلا `Uamex_erp v{version}` ولا `AES-256` في الواجهة العامة. `MarketingHeader.tsx:184` شريط أبيض نقي: `الرئيسية → من نحن → قطاعات الأعمال (3) → المزيد (كل الأدوات)` + CTA منفصل `دخول النظام / سجل منشأتك`.
+- **المنتج**: `Landing.tsx:85` هرم محتوى جديد `Company → Solutions → Uamex ERP كمنتج مفصول بصريا (dark card: منتج رقمي من الحسينية) → Capabilities → Sectors → Trust → Pricing/CTA` — يجيب فورا `من نحن؟ ماذا؟ لمن؟ قيمة؟`
+- **المسارات**: `client/src/App.tsx:121` `MarketingLayout` (تسويق) و `AppLayout` (`AppHeader` داكن 48px + `AppSidebar`) — ` / → /login (منفصل) → /app` صفر التباس RTL/Desktop/Mobile.
+
+### Content — معرفة لا وعود ولا أرقام سطحية
+
+- `brand.ts:53` من `منصة حوكمة تحول البيانات...` (شرح ذاتي) إلى `قراءة الربح وتقدير التكلفة وتنسيق البحث — أدلة عملية` — قيمة لا وعد.
+- `brand.ts:72` وحدات من `محاسبة بقيد مزدوج IAS` إلى `هل كسبت اليوم — كيف تقرأ هل كسبت` — لغة تاجر لا مصطلح محاسبي.
+- `brand.ts:269` إزالة `14 يوم / 500 مؤسسة` → `تجربة كاملة — تعرف قبل التزام / أمثلة عملية` — تسويق بالمعرفة.
+- `brand.ts:455` تسعير مستوحى بعمق من **دفترة** (6 تطبيقات بسعر واحد + أول مستخدم مشمول + فوترة محلية) و **أودو** (One App Free للأبد + معيارية + تدريب موجه لا DIY) — سعر `9,900 ر.ي/مستخدم` واضح لا `مخصصة` غامضة.
+
+### Verified — E2E 100%
+
+- `pnpm check` 0 · `pnpm lint` 0 · `pnpm format:check` 0 · `pnpm test` 157/157 · `pnpm build` (vite + api) 0 · `enforce-design-system` ✅ · `vercel.json` apex headers ✅
+
+---
+
 ## [5.0.0] — 2026-09-06 · Nuclear Operational Units — الوحدات التشغيلية بقوة نووية وذكاء هندسي عميق End-to-End
 
 ### Nuclear — قوة نووية وذكاء هندسي عميق
