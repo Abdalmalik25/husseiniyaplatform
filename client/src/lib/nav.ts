@@ -31,6 +31,8 @@ import {
   Calculator,
   CalendarClock,
   Cpu,
+  TrendingUp,
+  TrendingDown,
 } from "lucide-react";
 
 export interface NavItem {
@@ -115,6 +117,120 @@ export const MARKETING_NAV: NavItem[] = [
     label: "مركز المعرفة",
     icon: BookOpen,
     description: "أدلة IFRS/COSO/PMBOK وتشخيصات عملية",
+  },
+];
+
+/**
+ * ────────────────────────────────────────────────────────────────────────
+ * Domain-Driven Mega Clusters — حملة الترقية الدقيقة (2026-09)
+ * ────────────────────────────────────────────────────────────────────────
+ * كل عنقود يمثل مجال قيمة واضح — لا عشوائية، لا خلط بين تسويق وأدوات.
+ * HeaderNavbar يستهلك هذه العناقيد مباشرة بدل البناء العشوائي من NAV_BY_PATH.
+ */
+
+// المنصة: الأعمدة الأربعة الحقيقية — كل عمود صفحة/مرساة واضحة
+export const PLATFORM_CLUSTER: NavItem[] = [
+  {
+    path: "/#uamex",
+    label: "Uamex_erp — المنصة الموحدة",
+    icon: Cpu,
+    highlight: true,
+    description: "قيد مزدوج + تدقيق غير قابل للتعديل + صلاحيات COSO",
+  },
+  {
+    path: "/#corporate",
+    label: "الاستشارات المؤسسية",
+    icon: Building2,
+    description: "حوكمة COSO — تشخيص الانحراف وتصميم KPI",
+  },
+  {
+    path: "/#engineering",
+    label: "الهندسة والمساحة",
+    icon: Gauge,
+    description: "BOQ بـ NRM2/POMI بدقة ±5% — GPS/Drone بدقة ±2 سم",
+  },
+  {
+    path: "/#library",
+    label: "الخدمات المعرفية",
+    icon: BookOpen,
+    description: "SPSS v28 + APA 7th — من البحث إلى النشر",
+  },
+];
+
+// الذكاء والتقارير: كل شاشة BI بطبقة خادم موثوقة — مصدر حقيقة واحد
+export const INTELLIGENCE_CLUSTER: NavItem[] = [
+  {
+    path: "/reports",
+    label: "التقارير الموحدة",
+    icon: BarChart3,
+    highlight: true,
+    description:
+      "ميزان مراجعة + دخل + ميزانية — حتى تاريخ محدد مع مقارنة فترات",
+  },
+  {
+    path: "/financial-statements",
+    label: "القوائم المالية (الخادم)",
+    icon: Scale,
+    description:
+      "Trial Balance / Income / Balance Sheet / Cash Flow / AR-AP Aging",
+  },
+  {
+    path: "/analytics",
+    label: "التحليلات الذكية",
+    icon: TrendingUp,
+    description: "إيرادات/مصروفات/صافي ربح + اتجاهات شهرية + تقسيم فروع",
+  },
+  {
+    path: "/supplier-analytics",
+    label: "ذكاء الموردين",
+    icon: Truck,
+    description: "إنفاق شهري، التزامات مفتوحة، متوسط فاتورة، بطاقة أداء مورد",
+  },
+  {
+    path: "/operations",
+    label: "لوحة العمليات",
+    icon: Gauge,
+    description: "تنبيهات، نواقص، طلبات، قيود مجدولة، تقرير التسليم",
+  },
+  {
+    path: "/inventory",
+    label: "تقارير المخزون المتقدمة",
+    icon: Boxes,
+    description: "تقادم، دوران، ABC، مخزون ميت — داخل تبويب المخزون",
+  },
+];
+
+// الأدوات المساعدة: حاسبات ومعرفة وتتبع — لا تلوث التنقل الرئيسي
+export const TOOLS_CLUSTER: NavItem[] = [
+  {
+    path: "/tools",
+    label: "حاسبات ذكية",
+    icon: Calculator,
+    description: "BOQ، رواتب، وفوترة — حاسبة فورية",
+  },
+  {
+    path: "/insights",
+    label: "مركز المعرفة",
+    icon: BookOpen,
+    description: "أدلة IFRS/COSO/PMBOK وتشخيصات عملية",
+  },
+  {
+    path: "/portal",
+    label: "تتبع طلبك",
+    icon: Search,
+    description: "تتبع حالة طلب بالكود",
+  },
+  {
+    path: "/integrate",
+    label: "مركز التكامل",
+    icon: Globe2,
+    description: "واجهات API و Webhooks",
+  },
+  {
+    path: "/download",
+    label: "تحميل التطبيق",
+    icon: Download,
+    description: "PWA + تعليمات التثبيت",
   },
 ];
 

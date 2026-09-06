@@ -4,6 +4,26 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [2.24.0] — 2026-09-06 · Intelligence & Navigation Deep Upgrade — ترقية الشريط والتقارير والذكاء عميقاً
+
+### Fixed — الشريط العشوائي مُعالج جذرياً
+
+- **قبل**: `HeaderNavbar.tsx:39` عنقودان عشوائيان `solutions=[/#uamex/#corporate/#engineering/#library]` + `tools=[/tools/insights/portal/integrate/download]` خلط تسويق بأدوات، و4 روابط مباشرة غير مصنفة، وworkspaceNav مقطوع إلى 6 بنود مع زر "المزيد" غامض — لا مسار للذكاء قبل تسجيل الدخول.
+- **بعد**: `lib/nav.ts:120` مجالات دقيقة: `PLATFORM_CLUSTER` (4 أعمدة حقيقية مع highlight Uamex)، `INTELLIGENCE_CLUSTER` (6 مسارات BI موثوقة: reports/financial-statements/analytics/supplier-analytics/operations/inventory-reports)، `TOOLS_CLUSTER` (5 أدوات مساعدة). `HeaderNavbar.tsx:38` يستهلك `DOMAIN_CLUSTERS` مباشرة — 3 عناقيد ميغا بعناوين `المنصة / الذكاء والتقارير / الأدوات` مع `NAV_BY_PATH` موسع و`ROUTE_PREFETCHERS` يغطي 7 مسارات BI (reports/financial/analytics/supplier/operations/inventory/store) — انتقال فوري بلا عشوائية.
+
+### Added — تقارير بلا تقدير محلي، ذكاء بلا ازدواجية
+
+- **`Reports.tsx` — إعادة هندسة كاملة**: من حوسبة عميل `buildAccountBalances(computeTrialBalance)` المكررة إلى مصدر خادم موثوق `financialReports.*` (trial/income/sheet/cash) مع `asOf` حتى تاريخ + شريط حالة `periodLabel`، وKPI أربعة `stat-card` بمصدر خادم، و`tabs-primary/tab-trigger` مع 7 تبويبات (daily/trial/income/sheet/cash/profitability/documents) بتصميم `panel-premium/ribbon-premium/datagrid/empty-state/skeleton-premium` + تصدير CSV وطباعة QR ووظيفة واتساب — إزالة كاملة لـ `bg-white/border-0 shadow-sm/bg-gray-50`.
+- **`FinancialStatements.tsx` — طبقة BI العميقة**: `ribbon-premium` موحد مع `Reports`، فلاتر `asOf + previousAsOf` مقارنة فترات (previousBalance/change/previousTotals)، 6 تبويبات `tabs-primary`، `ReportCard=panel-premium` و`datagrid` ثيم-aware، `status-strip` للتوازن، `chip` للفئات (current/d30/over90)، تصدير/طباعة لكل تبويب — إزالة `surface` العامة.
+- **`Analytics.tsx` — ذكاء تشغيلي مصحح**: إصلاح `TIME_FILTERS` الخاطئ (fy كان Oct-Mar الغامض → سحب سنة تقويمية واضحة ytd/fy)، `ribbon-premium` مع دلتا شهرية `chip`، `StatCard` ربط مع الشهر الأخير، 6 مخططات `panel-premium` بألوان `var(--success/--brand/--info)` بدل hex ثابت، `empty-state` عند نقص البيانات.
+
+### Verified
+
+- `pnpm check` 0 · `pnpm lint` 0 · `pnpm test` 157/157 · `pnpm build` EXIT 0 (2207 modules, api/index.mjs 1.3mb)
+- `pnpm format` 0 تحذيرات
+
+---
+
 ## [2.23.0] — 2026-09-06 · End-to-End Production Release — الإصدار الإنتاجي النهائي
 
 ### Fixed — سدّ الديون التقنية الحاجبة
@@ -25,7 +45,7 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ### Verified — بوابات الجودة
 
-- `pnpm check` → **EXIT 0** — `pnpm lint` → **0 أخطاء** — `pnpm test` → **157/157 passed (1 skipped DB)` — `pnpm build` → **EXIT 0** (2207 modules)
+- `pnpm check` → **EXIT 0** — `pnpm lint` → **0 أخطاء** — `pnpm test` → **157/157 passed (1 skipped DB)`—`pnpm build` → **EXIT 0\*\* (2207 modules)
 - `pnpm format:check` → **0 تحذيرات** بعد الإصلاح
 - `eslint` صفر أخطاء، `tsc --noEmit` نظيف، الحزم serverless جاهزة للنشر
 

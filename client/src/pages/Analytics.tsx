@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
 import {
   TrendingUp,
@@ -10,19 +11,11 @@ import {
   Package,
   Building2,
   Activity,
-  Calendar,
-  Shield,
-  Flag,
-  Settings,
-  HelpCircle,
   Eye,
-  Download,
-  Mail,
-  Phone,
-  Users as UsersIcon,
-  LogOut,
   Sparkles,
-  MapPin,
+  BarChart3,
+  AlertTriangle,
+  Calendar,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -57,27 +50,22 @@ const AR_MONTHS = [
   "نوفمبر",
   "ديسمبر",
 ];
-
 function fmtMonth(key: string) {
   const [y, m] = key.split("-");
   return `${AR_MONTHS[Number(m) - 1]} ${y.slice(2)}`;
 }
-
 const PIE_COLORS = [
-  "#0e2a2b",
-  "#b87945",
-  "#1f7a6d",
+  "var(--brand)",
+  "var(--info)",
+  "var(--success)",
+  "var(--warning)",
+  "#7c3aed",
+  "#be123c",
+  "#0f766e",
   "#d99a5b",
-  "#3a8f7f",
-  "#8a5a2b",
-  "#56b3a3",
-  "#e879f9",
 ];
-
 function fmt(n: number) {
-  return new Intl.NumberFormat("ar-YE", {
-    maximumFractionDigits: 0,
-  }).format(n);
+  return new Intl.NumberFormat("ar-YE", { maximumFractionDigits: 0 }).format(n);
 }
 
 function ChartCard({
@@ -92,17 +80,17 @@ function ChartCard({
   children: React.ReactNode;
 }) {
   return (
-    <Card className="surface p-4 rounded-2xl flex flex-col">
+    <Card className="panel-premium p-4 flex flex-col">
       <div className="flex items-center gap-2 mb-3">
-        <div className="p-2 rounded-xl bg-brand/10 text-brand">
+        <div className="p-2 rounded-xl bg-brand/10 text-brand border border-brand/20">
           <Icon className="w-4 h-4" />
         </div>
         <div>
           <h3 className="text-sm font-bold text-foreground">{title}</h3>
-          {hint && <p className="text-[10px] text-muted-foreground">{hint}</p>}
+          {hint && <p className="text-[11px] text-muted-foreground">{hint}</p>}
         </div>
       </div>
-      <div className="flex-1 min-h-[240px]" dir="ltr">
+      <div className="flex-1 min-h-[260px]" dir="ltr">
         <ResponsiveContainer width="100%" height="100%">
           {children as any}
         </ResponsiveContainer>
@@ -111,55 +99,40 @@ function ChartCard({
   );
 }
 
-interface TimeFilterOption {
-  label: string;
-  value: string;
-}
-
-const TIME_FILTERS: TimeFilterOption[] = [
+const TIME_FILTERS = [
   { label: "آخر 3 أشهر", value: "3m" },
   { label: "السنة الحالية", value: "ytd" },
-  { label: "السنة المالية", value: "fy" },
+  { label: "السنة المالية (يناير-ديسمبر)", value: "fy" },
   { label: "آخر 12 شهراً", value: "12m" },
   { label: "كل الأوقات", value: "all" },
-];
+] as const;
 
 export default function Analytics() {
   const { data, isPending } = trpc.modules.analytics.summary.useQuery();
-
   const chartData = useMemo(
     () =>
-      (data?.months ?? []).map(m => ({
+      (data?.months ?? []).map((m: any) => ({
         ...m,
         label: fmtMonth(m.month),
       })),
     [data]
   );
-
-  const [timeFilter, setTimeFilter] = useState<TimeFilterOption>(
-    TIME_FILTERS.find(f => f.value === "12m") || TIME_FILTERS[0]
+  const [timeFilter, setTimeFilter] = useState<(typeof TIME_FILTERS)[number]>(
+    TIME_FILTERS[3]
   );
 
   const filteredData = useMemo(() => {
     if (timeFilter.value === "all") return chartData;
-    if (timeFilter.value === "3m") {
-      return chartData.slice(-3);
-    }
+    if (timeFilter.value === "3m") return chartData.slice(-3);
+    if (timeFilter.value === "12m") return chartData.slice(-12);
     if (timeFilter.value === "ytd") {
-      const now = new Date();
-      return chartData.filter(
-        m =>
-          new Date(m.month + "-01") <=
-          new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      );
+      const y = new Date().getFullYear();
+      return chartData.filter((m: any) => m.month.startsWith(String(y)));
     }
     if (timeFilter.value === "fy") {
-      // Financial year starting October
-      return chartData.filter(m => {
-        const [y, mo] = m.month.split("-");
-        const month = Number(mo);
-        return month >= 10 || month <= 3; // Oct-Mar spans two fiscal years
-      });
+      // fiscal = calendar year (strict) — واضح للمستخدم، بلا غموض Oct-Mar السابق الخاطئ
+      const y = new Date().getFullYear();
+      return chartData.filter((m: any) => m.month.startsWith(String(y)));
     }
     return chartData;
   }, [chartData, timeFilter.value]);
@@ -167,69 +140,99 @@ export default function Analytics() {
   const summary = useMemo(() => {
     if (!data) return null;
     const months = data?.months ?? [];
-    if (months.length === 0) return null;
-    const lastMonth = months[months.length - 1];
+    if (!months.length) return null;
+    const prev = months.length >= 2 ? months[months.length - 2] : null;
+    const last = months[months.length - 1];
+    const rev = last.revenue ?? 0;
+    const exp = last.expense ?? 0;
+    const prevRev = prev?.revenue ?? 0;
+    const delta = prevRev ? ((rev - prevRev) / prevRev) * 100 : null;
     return {
-      revenue: lastMonth.revenue ?? 0,
-      expense: lastMonth.expense ?? 0,
-      profit: (lastMonth.revenue ?? 0) - (lastMonth.expense ?? 0),
+      revenue: rev,
+      expense: exp,
+      profit: rev - exp,
       totalRevenue: data?.totals?.revenue ?? 0,
       totalExpense: data?.totals?.expense ?? 0,
       totalProfit: data?.totals?.profit ?? 0,
+      delta,
     };
   }, [data]);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-background" dir="rtl">
       <AppSidebar />
-      <main className="flex-1 px-4 py-6 md:px-8 max-w-[1600px] mx-auto w-full">
-        <header className="mb-6">
-          <div className="flex items-center gap-2">
-            <Activity className="w-5 h-5 text-brand" />
-            <h1 className="text-2xl font-black text-foreground">
-              التحليلات الذكية
-            </h1>
+      <main className="flex-1 px-4 py-6 md:px-8 max-w-[1600px] mx-auto w-full space-y-6">
+        <div className="ribbon-premium">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="chip bg-brand/15 text-brand border border-brand/20">
+                  BI · مصدر خادم موثوق
+                </span>
+                <a
+                  href="/reports"
+                  className="chip bg-info/10 text-info hover:bg-info/15"
+                >
+                  ← التقارير الموحدة
+                </a>
+                <a
+                  href="/financial-statements"
+                  className="chip bg-success/10 text-success hover:bg-success/15"
+                >
+                  القوائم المالية →
+                </a>
+              </div>
+              <h1 className="text-xl font-black font-display text-foreground flex items-center gap-2">
+                <Activity className="w-5 h-5 text-brand" />
+                التحليلات الذكية — ذكاء تشغيلي لحظي
+              </h1>
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
+                اتجاهات شهرية، هوامش، توزيع فروع وقنوات — كلها من نفس دفتر
+                الأستاذ الذي تُبنى عليه القوائم. لا تقدير منفصل، لا ازدواجية.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="chip bg-muted text-muted-foreground">
+                {filteredData.length} شهراً معروضة
+              </span>
+              {summary?.delta != null && (
+                <span
+                  className={`chip ${summary.delta >= 0 ? "bg-success/15 text-success" : "bg-danger/15 text-danger"}`}
+                >
+                  {summary.delta >= 0 ? "▲" : "▼"}{" "}
+                  {Math.abs(summary.delta).toFixed(1)}% عن الشهر السابق
+                </span>
+              )}
+            </div>
           </div>
-          <p className="text-xs text-muted-foreground mt-1">
-            لوحة بيانات تحليلية متقدمة لأداء مؤسستك.
-          </p>
-        </header>
+        </div>
 
-        <section className="mb-6">
-          <div className="flex flex-wrap items-center gap-2 mb-4 p-1.5 rounded-xl bg-muted/40 border border-border w-fit">
-            {TIME_FILTERS.map(filter => (
-              <button
-                key={filter.value}
-                onClick={() => setTimeFilter(filter)}
-                className={`text-xs font-bold px-4 py-2 rounded-lg transition-all ${
-                  timeFilter.value === filter.value
-                    ? "bg-brand text-ink-deep shadow"
-                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
-                }`}
-                type="button"
-              >
-                {filter.label}
-              </button>
-            ))}
-          </div>
-          <p className="text-[11px] text-muted-foreground">
-            الفترة النشطة:{" "}
-            <span className="font-bold text-foreground">
-              {timeFilter.label}
-            </span>{" "}
-            · {filteredData.length} شهراً معروضة
-          </p>
-        </section>
+        <div className="flex flex-wrap items-center gap-2 p-1.5 rounded-xl bg-muted/40 border border-line w-fit">
+          {TIME_FILTERS.map(f => (
+            <button
+              key={f.value}
+              onClick={() => setTimeFilter(f as any)}
+              className={`text-xs font-bold px-4 py-2 rounded-lg transition-all ${timeFilter.value === f.value ? "bg-brand text-brand-foreground shadow press-effect" : "text-muted-foreground hover:text-foreground hover:bg-muted"}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <p className="text-[11px] text-muted-foreground">
+          الفترة النشطة:{" "}
+          <span className="font-bold text-foreground">{timeFilter.label}</span>{" "}
+          · {filteredData.length} شهراً
+        </p>
 
         {isPending ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 animate-pulse">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="h-24 rounded-2xl bg-muted" />
+              <div key={i} className="skeleton-premium h-24 rounded-2xl" />
             ))}
           </div>
         ) : (
           <>
-            <section className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {summary && (
                 <>
                   <StatCard
@@ -237,69 +240,54 @@ export default function Analytics() {
                     value={fmt(summary.totalRevenue)}
                     tone="positive"
                     icon={TrendingUp}
-                    hint="إجمالي الإيرادات للسنة"
+                    hint={`الشهر الأخير: ${fmt(summary.revenue)}`}
                   />
                   <StatCard
                     label="إجمالي المصروفات"
                     value={fmt(summary.totalExpense)}
                     tone="negative"
                     icon={TrendingDown}
-                    hint="إجمالي المصروفات للسنة"
+                    hint={`الشهر الأخير: ${fmt(summary.expense)}`}
                   />
                   <StatCard
-                    label="صافي الربح"
+                    label="صافي الربح التراكمي"
                     value={fmt(summary.totalProfit)}
                     tone="info"
                     icon={Wallet}
-                    hint="الصافي بعد المصاريف"
+                    hint={`الشهر الأخير: ${fmt(summary.profit)}`}
                   />
-                  {summary.revenue > 0 && (
-                    <StatCard
-                      label="هامش الربح"
-                      value={
-                        summary.totalProfit > 0
-                          ? `${((summary.totalProfit / summary.totalRevenue) * 100).toFixed(1)}%`
-                          : "0%"
-                      }
-                      tone="warning"
-                      icon={Eye}
-                      hint="نسبة الربح إلى الإيرادات"
-                    />
-                  )}
-                  {summary.totalExpense > 0 && (
-                    <StatCard
-                      label="كفاءة المصاريف"
-                      value={
-                        summary.totalProfit >= 0
-                          ? `${(((summary.totalRevenue - summary.totalExpense) / summary.totalExpense) * 100).toFixed(1)}%`
-                          : "–"
-                      }
-                      tone="info"
-                      icon={Sparkles}
-                      hint="كفاءة تشغيل المصاريف"
-                    />
-                  )}
+                  <StatCard
+                    label="هامش الربح"
+                    value={
+                      summary.totalRevenue
+                        ? `${((summary.totalProfit / summary.totalRevenue) * 100).toFixed(1)}%`
+                        : "0%"
+                    }
+                    tone="warning"
+                    icon={Eye}
+                    hint="صافي / إيرادات"
+                  />
                 </>
               )}
             </section>
 
             {data?.note && (
-              <p className="text-[10px] text-muted-foreground mb-4 bg-muted/50 rounded-lg p-2 border border-border">
-                ملاحظة: {data.note}
-              </p>
+              <div className="status-strip status-info text-xs">
+                {data.note}
+              </div>
             )}
 
             <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <ChartCard
                 title="الإيرادات مقابل المصروفات"
                 icon={TrendingUp}
-                hint="آخر 12 شهراً (شهري)"
+                hint={`${timeFilter.label} — شهري`}
               >
                 <LineChart
                   data={filteredData}
                   margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8e8" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} width={48} />
                   <Tooltip
@@ -311,7 +299,7 @@ export default function Analytics() {
                     type="monotone"
                     dataKey="revenue"
                     name="الإيرادات"
-                    stroke="#1f7a6d"
+                    stroke="var(--success)"
                     strokeWidth={2.5}
                     dot={false}
                   />
@@ -319,7 +307,7 @@ export default function Analytics() {
                     type="monotone"
                     dataKey="expense"
                     name="المصروفات"
-                    stroke="#d1495b"
+                    stroke="var(--danger, #e11d48)"
                     strokeWidth={2.5}
                     dot={false}
                   />
@@ -335,7 +323,7 @@ export default function Analytics() {
                   data={filteredData}
                   margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8e8" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} width={48} />
                   <Tooltip
@@ -345,7 +333,7 @@ export default function Analytics() {
                   <Bar
                     dataKey="profit"
                     name="صافي الربح"
-                    fill="#0e2a2b"
+                    fill="var(--brand)"
                     radius={[6, 6, 0, 0]}
                   />
                 </BarChart>
@@ -363,7 +351,7 @@ export default function Analytics() {
                 >
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="#e2e8e8"
+                    stroke="var(--line)"
                     horizontal={false}
                   />
                   <XAxis type="number" tick={{ fontSize: 10 }} />
@@ -380,7 +368,7 @@ export default function Analytics() {
                   <Bar
                     dataKey="total"
                     name="المبيعات"
-                    fill="#b87945"
+                    fill="var(--brand)"
                     radius={[0, 6, 6, 0]}
                   />
                 </BarChart>
@@ -419,15 +407,15 @@ export default function Analytics() {
               </ChartCard>
 
               <ChartCard
-                title="مسار الإيرادات عبر الزمن"
+                title="مسار الإيرادات مع الاتجاه"
                 icon={TrendingUp}
-                hint="اتجاه الإيرادات مع متوسط متحرك"
+                hint="أعمدة + خط اتجاه"
               >
                 <ComposedChart
                   data={filteredData}
                   margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
                 >
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8e8" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} width={48} />
                   <Tooltip
@@ -438,7 +426,7 @@ export default function Analytics() {
                   <Bar
                     dataKey="revenue"
                     name="الإيرادات"
-                    fill="#b87945"
+                    fill="var(--brand)"
                     radius={[6, 6, 0, 0]}
                     barSize={18}
                   />
@@ -446,7 +434,7 @@ export default function Analytics() {
                     type="monotone"
                     dataKey="revenue"
                     name="اتجاه"
-                    stroke="#0e2a2b"
+                    stroke="var(--ink, #0e2a2b)"
                     strokeWidth={2}
                     dot={false}
                   />
@@ -456,7 +444,7 @@ export default function Analytics() {
               <ChartCard
                 title="التدفق النقدي التراكمي"
                 icon={Activity}
-                hint="صافي الربح المتراكم — مستوحى من بياناتك الحية"
+                hint="صافي الربح المتراكم"
               >
                 <AreaChart
                   data={
@@ -476,12 +464,20 @@ export default function Analytics() {
                   margin={{ top: 10, right: 16, left: 0, bottom: 0 }}
                 >
                   <defs>
-                    <linearGradient id="cf" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#1f7a6d" stopOpacity={0.5} />
-                      <stop offset="95%" stopColor="#1f7a6d" stopOpacity={0} />
+                    <linearGradient id="cf2" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="5%"
+                        stopColor="var(--success)"
+                        stopOpacity={0.5}
+                      />
+                      <stop
+                        offset="95%"
+                        stopColor="var(--success)"
+                        stopOpacity={0}
+                      />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8e8" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
                   <XAxis dataKey="label" tick={{ fontSize: 10 }} />
                   <YAxis tick={{ fontSize: 10 }} width={48} />
                   <Tooltip
@@ -491,14 +487,27 @@ export default function Analytics() {
                   <Area
                     type="monotone"
                     dataKey="cashflow"
-                    name="التدفق النقدي"
-                    stroke="#1f7a6d"
+                    name="التدفق"
+                    stroke="var(--success)"
                     strokeWidth={2.5}
-                    fill="url(#cf)"
+                    fill="url(#cf2)"
                   />
                 </AreaChart>
               </ChartCard>
             </section>
+
+            {(data?.topProducts?.length ?? 0) === 0 &&
+              (data?.salesByBranch?.length ?? 0) === 0 && (
+                <div className="empty-state">
+                  <AlertTriangle className="w-8 h-8 text-muted-foreground" />
+                  <p className="text-sm font-bold">
+                    لا توجد بيانات كافية للتحليل
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    سجّل قيوداً ومبيعات معتمدة لتظهر الاتجاهات.
+                  </p>
+                </div>
+              )}
           </>
         )}
       </main>

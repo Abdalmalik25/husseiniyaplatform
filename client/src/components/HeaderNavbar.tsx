@@ -22,8 +22,16 @@ import { useI18n } from "@/lib/i18n";
 import { BrandLogo } from "@/components/BrandLogo";
 import { TenantSwitcher } from "@/components/TenantSwitcher";
 import { ThemeSwitcher } from "@/components/ThemeSwitcher";
-import { APP_NAV, MARKETING_NAV, UTILITY_LINKS, type NavItem } from "@/lib/nav";
-import { Zap, ArrowLeft, MessageSquare } from "lucide-react";
+import {
+  APP_NAV,
+  MARKETING_NAV,
+  UTILITY_LINKS,
+  PLATFORM_CLUSTER,
+  INTELLIGENCE_CLUSTER,
+  TOOLS_CLUSTER,
+  type NavItem,
+} from "@/lib/nav";
+import { Zap, ArrowLeft, MessageSquare, BarChart3 } from "lucide-react";
 import { uamexDemoLink, brand } from "@/lib/brand";
 
 interface HeaderNavbarProps {
@@ -33,49 +41,54 @@ interface HeaderNavbarProps {
 }
 
 /**
- * مجموعات القائمة المنسدلة — خبير عالمي: الأقسام الرئيسية بارزة، الأدوات في قائمة واحدة
- * Hick's Law: 3 روابط مباشرة + 2 عنقود غني (حلول + أدوات) = 5 عناصر علوية فقط
+ * هندسة التنقل المجالية — 3 عناقيد ميغا دقيقة بدل العشوائية
+ * Hick's Law: 3 روابط مباشرة + 3 عناقيد غنية = 6 عناصر علوية بحد أقصى
+ * كل عنقود يمثل مجال قيمة واضح — المنصة / الذكاء / الأدوات
  */
-const MEGA_CLUSTERS: ReadonlyArray<{
+const DOMAIN_CLUSTERS: ReadonlyArray<{
   key: string;
   label: string;
   icon: React.ComponentType<{ className?: string }>;
-  paths: string[];
+  items: NavItem[];
 }> = [
+  { key: "platform", label: "المنصة", icon: Layers, items: PLATFORM_CLUSTER },
   {
-    key: "solutions",
-    label: "الحلول",
-    icon: Layers,
-    paths: ["/#uamex", "/#corporate", "/#engineering", "/#library"],
+    key: "intelligence",
+    label: "الذكاء والتقارير",
+    icon: BarChart3,
+    items: INTELLIGENCE_CLUSTER,
   },
-  {
-    key: "tools",
-    label: "الأدوات",
-    icon: Compass,
-    paths: ["/tools", "/insights", "/portal", "/integrate", "/download"],
-  },
+  { key: "tools", label: "الأدوات", icon: Compass, items: TOOLS_CLUSTER },
 ];
-/** روابط مباشرة — الأقسام الرئيسية فقط */
-const DIRECT_NAV_PATHS = ["/", "/about", "/pricing", "/contact"];
+/** روابط مباشرة — الأقسام التحويلية فقط (لا خلط مع الأدوات) */
+const DIRECT_NAV_PATHS = ["/", "/pricing", "/about", "/contact"];
 const NAV_BY_PATH = new Map(
-  [...MARKETING_NAV, ...UTILITY_LINKS].map(item => [item.path, item])
+  [...MARKETING_NAV, ...UTILITY_LINKS, ...INTELLIGENCE_CLUSTER].map(item => [
+    item.path,
+    item,
+  ])
 );
 
 /**
- * جلب مسبق عند النية (Hover/Focus Intent Prefetch):
- * المستخدم الذي يمرّر فوق رابط يُرجَّح أنه سينقر — نحمّل الحزمة مسبقًا
- * فيبدو التنقل فوريًا، بينما الزائر العادي لا يدفع بايتًا واحدًا إضافيًا.
+ * جلب مسبق عند النية — يغطي الآن الذكاء والتقارير بدقة (لا عشوائية)
+ * كل مسار BI يُحمّل خلفياً عند المرور — يبدو الانتقال فورياً
  */
 const ROUTE_PREFETCHERS: Record<string, () => Promise<unknown>> = {
   "/about": () => import("@/pages/About"),
-  "/solutions": () => import("@/pages/TechSolutions"),
-  "/insights": () => import("@/pages/KnowledgeHub"),
-  "/tools": () => import("@/pages/InteractiveCalculators"),
   "/pricing": () => import("@/pages/Pricing"),
   "/contact": () => import("@/pages/Contact"),
+  "/tools": () => import("@/pages/InteractiveCalculators"),
+  "/insights": () => import("@/pages/KnowledgeHub"),
   "/portal": () => import("@/pages/Portal"),
   "/integrate": () => import("@/pages/Integrate"),
   "/download": () => import("@/pages/Download"),
+  "/reports": () => import("@/pages/Reports"),
+  "/financial-statements": () => import("@/pages/FinancialStatements"),
+  "/analytics": () => import("@/pages/Analytics"),
+  "/supplier-analytics": () => import("@/pages/SupplierAnalytics"),
+  "/operations": () => import("@/pages/Operations"),
+  "/inventory": () => import("@/pages/Inventory"),
+  "/store": () => import("@/pages/Store"),
 };
 const prefetchedRoutes = new Set<string>();
 function prefetchRoute(path: string) {
@@ -311,21 +324,20 @@ export function HeaderNavbar({
               );
             })}
 
-            {/* القوائم المنسدلة الغنية */}
-            {MEGA_CLUSTERS.map(cluster => {
+            {/* القوائم المنسدلة الغنية — 3 مجالات دقيقة: المنصة / الذكاء / الأدوات */}
+            {DOMAIN_CLUSTERS.map(cluster => {
               const ClusterIcon = cluster.icon;
-              const items = cluster.paths
-                .map(p => NAV_BY_PATH.get(p))
-                .filter((i): i is NavItem => Boolean(i));
+              const items = cluster.items;
               const isOpen = openCluster === cluster.key;
               const containsActive = items.some(i => location === i.path);
+              const isIntelligence = cluster.key === "intelligence";
               return (
                 <div
                   key={cluster.key}
                   className="relative"
                   onMouseEnter={() => {
                     setOpenCluster(cluster.key);
-                    cluster.paths.forEach(p => prefetchRoute(p));
+                    items.forEach(it => prefetchRoute(it.path));
                   }}
                   onMouseLeave={() => setOpenCluster(null)}
                 >
@@ -350,7 +362,7 @@ export function HeaderNavbar({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 10, scale: 0.97 }}
                         transition={{ duration: 0.18, ease: "easeOut" }}
-                        className="absolute top-full right-0 mt-2 min-w-[320px] rounded-2xl border border-brand/25 bg-ink-deep/95 backdrop-blur-2xl shadow-2xl shadow-black/60 p-2 origin-top"
+                        className={`absolute top-full right-0 mt-2 rounded-2xl border bg-ink-deep/95 backdrop-blur-2xl shadow-2xl shadow-black/60 p-2 origin-top ${isIntelligence ? "min-w-[420px] border-brand/30" : "min-w-[320px] border-brand/25"}`}
                       >
                         {items.map(item => {
                           const Icon = item.icon;

@@ -1,7 +1,14 @@
 import { useState, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -14,41 +21,51 @@ import {
   Download,
   Printer,
   FileText,
+  Scale,
+  Wallet,
+  Landmark,
+  ShieldCheck,
+  Sparkles,
+  Activity,
+  Eye,
+  Calendar,
+  BarChart3,
+  AlertTriangle,
 } from "lucide-react";
 import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { openPrintableInvoiceWindow } from "@/lib/pdfInvoiceGenerator";
-import {
-  buildAccountBalances,
-  computeBalanceSheet,
-  computeIncomeStatement,
-  computeTrialBalance,
-} from "@/lib/accountingReports";
 import { toast } from "sonner";
 import { fmtNum } from "@/lib/format";
+import { downloadCsv } from "@/lib/csv";
 
 type ReportType =
+  | "daily"
   | "trialBalance"
   | "incomeStatement"
   | "balanceSheet"
   | "cashFlow"
-  | "accountAnalysis"
-  | "performanceScore"
-  | "daily";
+  | "profitability"
+  | "documents";
+
+const fmt = (n: number | undefined | null) =>
+  Number(n ?? 0).toLocaleString("ar-EG", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
 export default function Reports() {
   const utils = trpc.useUtils();
   const [activeReport, setActiveReport] = useState<ReportType>("daily");
+  const [asOf, setAsOf] = useState("");
   const [reportDate, setReportDate] = useState(
     new Date().toISOString().slice(0, 10)
   );
+
+  // Daily — نقطة البيع
   const { data: dailyData } = trpc.sales.dailySummary.useQuery(
     { date: reportDate },
     { staleTime: 30_000 }
   );
-  const { data: accountsData, isLoading: loadingAccounts } =
-    trpc.accounting.getAccounts.useQuery();
-  const { data: transactionsData, isLoading: loadingTx } =
-    trpc.accounting.getTransactions.useQuery(undefined, { staleTime: 60_000 });
   const { data: summaryData } = trpc.accounting.getDashboardSummary.useQuery(
     undefined,
     { staleTime: 60_000 }
@@ -56,229 +73,184 @@ export default function Reports() {
   const { data: settingsData } = trpc.accounting.getSettings.useQuery();
   const { data: docsReport } = trpc.modules.documents.recent.useQuery();
   const { data: profitability } = trpc.modules.reports.profitability.useQuery();
+
+  // Server-authoritative financial statements — مصدر حقيقة واحد
+  const finInput = asOf ? { asOf } : undefined;
+  const trial = trpc.financialReports.trialBalance.useQuery(finInput as any, {
+    staleTime: 30_000,
+  });
+  const income = trpc.financialReports.incomeStatement.useQuery(
+    finInput as any,
+    { staleTime: 30_000 }
+  );
+  const sheet = trpc.financialReports.balanceSheet.useQuery(finInput as any, {
+    staleTime: 30_000,
+  });
+  const cash = trpc.financialReports.cashFlow.useQuery(finInput as any, {
+    staleTime: 30_000,
+  });
+
   const processAlerts = trpc.erp.processAlerts.useMutation({
     onSuccess: (r: any) => {
       toast.success(
-        `تم إنشاء ${r.total} تنبيه استباقي (نقطة إعادة طلب: ${r.created.reorder}، مستحقات متأخرة: ${r.created.overdueSales + r.created.overduePurchase})`
+        `تم إنشاء ${r.total} تنبيه استباقي (إعادة طلب: ${r.created.reorder}، مستحقات: ${r.created.overdueSales + r.created.overduePurchase})`
       );
       utils.modules.notifications.list.invalidate();
       utils.modules.notifications.unreadCount.invalidate();
     },
     onError: (e: any) => toast.error(e.message),
   });
-  const { data: openingBalancesData } =
-    trpc.accounting.getOpeningBalances.useQuery(
-      { periodName: settingsData?.accountingPeriod || "السنة المالية 2026" },
-      { enabled: !!settingsData }
+
+  const isFinLoading = trial.isLoading || income.isLoading || sheet.isLoading;
+
+  const exportCurrent = () => {
+    let cols: string[] | undefined;
+    let rows: (string | number)[][] | undefined;
+    // eslint-disable-next-line no-useless-assignment
+    let file = "report";
+    if (activeReport === "trialBalance" && trial.data?.rows) {
+      cols = ["الكود", "الحساب", "النوع", "مدين", "دائن", "الرصيد"];
+      rows = trial.data.rows.map((r: any) => [
+        r.code,
+        r.name,
+        r.type,
+        r.debit || 0,
+        r.credit || 0,
+        r.balance,
+      ]);
+      file = "trialBalance";
+    } else if (activeReport === "incomeStatement" && income.data) {
+      cols = ["البند", "الكود", "المبلغ"];
+      rows = [
+        ...income.data.revenues.map((r: any) => [r.name, r.code, r.amount]),
+        ["إجمالي الإيرادات", "", income.data.totals.revenue],
+        ...income.data.expenses.map((r: any) => [r.name, r.code, r.amount]),
+        ["إجمالي المصروفات", "", income.data.totals.expense],
+        ["صافي الدخل", "", income.data.totals.net],
+      ];
+      file = "incomeStatement";
+    } else if (activeReport === "cashFlow" && cash.data?.lines) {
+      cols = ["الكود", "الحساب", "صافي التدفق"];
+      rows = cash.data.lines.map((r: any) => [r.code, r.name, r.net]);
+      file = "cashFlow";
+    } else {
+      toast.error("لا توجد بيانات للتصدير في هذا التبويب");
+      return;
+    }
+    if (!cols || !rows) return;
+    const n = downloadCsv(
+      `${file}_${new Date().toISOString().slice(0, 10)}.csv`,
+      cols,
+      rows as any
     );
-  const isLoading = loadingAccounts || loadingTx;
-
-  const accountBalances = useMemo(() => {
-    if (!accountsData || !transactionsData) return [];
-    return buildAccountBalances(
-      accountsData,
-      transactionsData,
-      Object.fromEntries(
-        (openingBalancesData || []).map((ob: any) => [
-          ob.accountId,
-          { amount: ob.amount, type: ob.type },
-        ])
-      )
-    );
-  }, [accountsData, transactionsData, openingBalancesData]);
-
-  const trialBalance = useMemo(
-    () => computeTrialBalance(accountBalances),
-    [accountBalances]
-  );
-
-  const incomeStatement = useMemo(
-    () => computeIncomeStatement(accountBalances),
-    [accountBalances]
-  );
-
-  const balanceSheet = useMemo(
-    () => computeBalanceSheet(accountBalances, incomeStatement.netIncome),
-    [accountBalances, incomeStatement.netIncome]
-  );
-
-  const formatNum = (n: number) =>
-    n.toLocaleString("ar-EG", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    });
+    toast.success(`تم تصدير ${n} صف`);
+  };
 
   return (
-    <div className="min-h-screen bg-sand" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       <HeaderNavbar />
-
-      <main className="max-w-5xl mx-auto p-3 space-y-3">
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <Card className="border-0 shadow-sm bg-white p-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-green-100 text-green-600 w-8 h-8 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-4 h-4" />
+      <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* ── Institutional Ribbon — توحيد هوية التقارير والذكاء ── */}
+        <div className="ribbon-premium">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="chip bg-brand/15 text-brand border border-brand/20">
+                  IFRS · COSO · مصدر حقيقة واحد
+                </span>
+                <span className="chip bg-success/15 text-success">
+                  خادم موثوق
+                </span>
               </div>
-              <div>
-                <p className="text-[10px] text-gray-500">الإيرادات</p>
-                <p className="font-bold text-xs text-green-600">
-                  {formatNum(summaryData?.totalRevenue || 0)} ر.ي
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="border-0 shadow-sm bg-white p-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-red-100 text-red-600 w-8 h-8 rounded-lg flex items-center justify-center">
-                <TrendingDown className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-500">المصروفات</p>
-                <p className="font-bold text-xs text-red-600">
-                  {formatNum(summaryData?.totalExpense || 0)} ر.ي
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="border-0 shadow-sm bg-white p-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-brand text-white w-8 h-8 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-500">صافي الدخل</p>
-                <p className="font-bold text-xs text-ink">
-                  {formatNum(summaryData?.netIncome || 0)} ر.ي
-                </p>
-              </div>
-            </div>
-          </Card>
-          <Card className="border-0 shadow-sm bg-white p-3">
-            <div className="flex items-center gap-2">
-              <div className="bg-blue-100 text-blue-600 w-8 h-8 rounded-lg flex items-center justify-center">
-                <DollarSign className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="text-[10px] text-gray-500">الأصول</p>
-                <p className="font-bold text-xs text-blue-600">
-                  {formatNum(summaryData?.totalAssets || 0)} ر.ي
-                </p>
-              </div>
-            </div>
-          </Card>
-        </div>
-
-        {/* Institutional Header & Action Toolbar */}
-        <div className="bg-ink text-white p-4 sm:p-5 rounded-2xl shadow-md space-y-3">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-            <div>
-              <Badge className="bg-brand text-ink-deep font-bold text-xs mb-1">
-                المشترك الأول والافتراضي المعتمد
-              </Badge>
-              <h1 className="text-xl sm:text-2xl font-bold font-display text-white">
-                الحسينية لخدمات الأعمال — التقارير والقوائم المالية
+              <h1 className="text-xl font-black font-display text-foreground flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-brand" />
+                التقارير وذكاء الأعمال — من القيد إلى القرار
               </h1>
-              <p className="text-xs text-slate-300 mt-1">
-                تقرير موحد لكل القطاعات — مختوم إلكترونياً بـ QR وخاضع لضوابط
-                IFRS ومسار تدقيق COSO
+              <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">
+                كل رقم هنا يُحتسب من دفتر الأستاذ مباشرة (openingBalances +
+                posted transactions) — بلا تقدير محلي. حتى تاريخ محدد، مع مقارنة
+                فترات وختم QR.
               </p>
             </div>
-
-            {/* Action Buttons: Print & WhatsApp Share */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="space-y-1">
+                <Label className="text-[11px] font-bold">حتى تاريخ</Label>
+                <Input
+                  type="date"
+                  value={asOf}
+                  onChange={e => setAsOf(e.target.value)}
+                  className="h-9 w-40 text-xs"
+                />
+              </div>
+              {asOf && (
+                <Button
+                  variant="ghost"
+                  className="h-9 text-xs"
+                  onClick={() => setAsOf("")}
+                >
+                  مسح الفترة
+                </Button>
+              )}
+              <div className="h-9 w-px bg-line mx-1 hidden sm:block" />
               <Button
                 size="sm"
+                variant="outline"
+                className="h-9 text-xs press-effect"
+                onClick={exportCurrent}
+              >
+                <Download className="w-3.5 h-3.5 ml-1" />
+                تصدير CSV
+              </Button>
+              <Button
+                size="sm"
+                className="h-9 text-xs bg-brand hover:bg-brand-deep text-brand-foreground press-effect shine-on-hover"
                 onClick={() => {
-                  const fmt = (n?: number) =>
-                    n === undefined || n === null || isNaN(n)
-                      ? "0.00"
-                      : n.toLocaleString("en-US", {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        });
-                  const typeLabel = (t: string) =>
-                    t === "asset"
-                      ? "أصول"
-                      : t === "liability"
-                        ? "خصوم"
-                        : t === "equity"
-                          ? "حقوق ملكية"
-                          : t === "revenue"
-                            ? "إيرادات"
-                            : "مصروفات";
-                  let title: string;
-                  let columns: string[];
-                  let rows: (string | number)[][];
-                  if (activeReport === "trialBalance") {
-                    title = "ميزان المراجعة العمومي";
-                    columns = ["الرمز", "اسم الحساب", "النوع", "مدين", "دائن"];
-                    rows = trialBalance.accounts.map(a => [
-                      a.code ?? "",
-                      a.name,
-                      typeLabel(a.type),
-                      (a.balance ?? 0) > 0 ? fmt(a.balance) : "-",
-                      (a.balance ?? 0) < 0
-                        ? fmt(Math.abs(a.balance ?? 0))
-                        : "-",
-                    ]);
-                    rows.push([
-                      "",
-                      "الإجمالي",
-                      "",
-                      fmt(trialBalance.totalDebits),
-                      fmt(trialBalance.totalCredits),
-                    ]);
-                  } else if (activeReport === "incomeStatement") {
-                    title = "قائمة الدخل والأرباح والخسائر";
-                    columns = ["البيان", "المبلغ"];
-                    rows = incomeStatement.revenues.map(a => [
-                      a.name,
-                      fmt(a.balance),
-                    ]);
-                    rows.push([
-                      "إجمالي الإيرادات",
-                      fmt(incomeStatement.totalRevenue),
-                    ]);
-                    rows.push(["", ""]);
-                    rows.push(
-                      ...incomeStatement.expenses.map(a => [
-                        a.name,
-                        fmt(Math.abs(a.balance)),
-                      ])
-                    );
-                    rows.push([
-                      "إجمالي المصروفات",
-                      fmt(incomeStatement.totalExpenses),
-                    ]);
-                    rows.push(["صافي الدخل", fmt(incomeStatement.netIncome)]);
-                  } else {
-                    title = "الميزانية العمومية";
-                    columns = ["البيان", "المبلغ"];
-                    rows = balanceSheet.assets.map(a => [
-                      a.name,
-                      fmt(a.balance),
-                    ]);
-                    rows.push(["إجمالي الأصول", fmt(balanceSheet.totalAssets)]);
-                    rows.push(["", ""]);
-                    rows.push(
-                      ...balanceSheet.liabilities.map(a => [
-                        a.name,
-                        fmt(Math.abs(a.balance)),
-                      ])
-                    );
-                    rows.push(
-                      ...balanceSheet.equity
-                        .filter(a => a.balance !== 0)
-                        .map(a => [a.name, fmt(a.balance)])
-                    );
-                    rows.push([
-                      "إجمالي الخصوم وحقوق الملكية",
-                      fmt(
-                        balanceSheet.totalLiabilities + balanceSheet.totalEquity
-                      ),
-                    ]);
-                  }
+                  // يبني نفس منطق الطباعة لكن بمصدر خادم
+                  const title =
+                    activeReport === "trialBalance"
+                      ? "ميزان المراجعة — مصدر خادم"
+                      : activeReport === "incomeStatement"
+                        ? "قائمة الدخل — مصدر خادم"
+                        : activeReport === "balanceSheet"
+                          ? "الميزانية العمومية — مصدر خادم"
+                          : "تقرير مالي موحد";
+                  const cols =
+                    activeReport === "trialBalance"
+                      ? ["الرمز", "الحساب", "النوع", "مدين", "دائن"]
+                      : ["البيان", "المبلغ"];
+                  const rows: (string | number)[][] =
+                    activeReport === "trialBalance"
+                      ? (trial.data?.rows ?? []).map((a: any) => [
+                          a.code,
+                          a.name,
+                          a.type,
+                          a.debit ? fmt(a.debit) : "-",
+                          a.credit ? fmt(a.credit) : "-",
+                        ])
+                      : activeReport === "incomeStatement"
+                        ? [
+                            ...(income.data?.revenues ?? []).map((a: any) => [
+                              a.name,
+                              fmt(a.amount),
+                            ]),
+                            [
+                              "إجمالي الإيرادات",
+                              fmt(income.data?.totals.revenue),
+                            ],
+                            ...(income.data?.expenses ?? []).map((a: any) => [
+                              a.name,
+                              fmt(a.amount),
+                            ]),
+                            [
+                              "إجمالي المصروفات",
+                              fmt(income.data?.totals.expense),
+                            ],
+                            ["صافي الدخل", fmt(income.data?.totals.net)],
+                          ]
+                        : (sheet.data?.assets ?? []).map((a: any) => [
+                            a.name,
+                            fmt(a.amount),
+                          ]);
                   openPrintableInvoiceWindow({
                     invoiceNumber: `REP-${activeReport.toUpperCase()}-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}`,
                     invoiceDate: new Date().toISOString(),
@@ -289,50 +261,116 @@ export default function Reports() {
                     items: [],
                     subtotal: summaryData?.totalRevenue || 0,
                     total: summaryData?.netIncome || 0,
-                    notes: `إجمالي الإيرادات: ${summaryData?.totalRevenue?.toLocaleString()} YER | المصروفات: ${summaryData?.totalExpense?.toLocaleString()} YER | صافي الدخل: ${summaryData?.netIncome?.toLocaleString()} YER`,
-                    report: { title, columns, rows },
+                    notes: `حتى تاريخ: ${asOf || "حتى الآن"} | الإيرادات: ${summaryData?.totalRevenue?.toLocaleString()} | المصروفات: ${summaryData?.totalExpense?.toLocaleString()} | صافي: ${summaryData?.netIncome?.toLocaleString()}`,
+                    report: { title, columns: cols, rows },
                   });
                 }}
-                className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
               >
-                <Printer className="w-4 h-4" />
-                طباعة التقرير بـ QR
+                <Printer className="w-3.5 h-3.5 ml-1" />
+                طباعة بـ QR
               </Button>
-
               <Button
                 size="sm"
+                className="h-9 text-xs bg-emerald-600 hover:bg-emerald-700 text-white press-effect"
                 onClick={() => {
                   const repTitle =
                     activeReport === "trialBalance"
                       ? "ميزان المراجعة"
                       : activeReport === "incomeStatement"
                         ? "قائمة الدخل"
-                        : "الميزانية العمومية";
+                        : activeReport === "balanceSheet"
+                          ? "الميزانية العمومية"
+                          : "التقرير المالي";
                   const text = encodeURIComponent(
-                    `السلام عليكم، التقرير المالي الرسمي لـ (مجموعة الحسينية):\n- التقرير: ${repTitle}\n- الإيرادات: ${summaryData?.totalRevenue?.toLocaleString()} YER\n- المصروفات: ${summaryData?.totalExpense?.toLocaleString()} YER\n- صافي الدخل: ${summaryData?.netIncome?.toLocaleString()} YER\n- إجمالي الأصول: ${summaryData?.totalAssets?.toLocaleString()} YER\n- رابط التقرير: ${window.location.origin}/reports`
+                    `التقرير المالي — الحسينية\n- التقرير: ${repTitle}\n- حتى: ${asOf || "حتى الآن"}\n- الإيرادات: ${summaryData?.totalRevenue?.toLocaleString()} YER\n- المصروفات: ${summaryData?.totalExpense?.toLocaleString()} YER\n- صافي: ${summaryData?.netIncome?.toLocaleString()} YER\n- الرابط: ${window.location.origin}/reports`
                   );
                   window.open(`https://wa.me/?text=${text}`, "_blank");
                 }}
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
               >
-                <Download className="w-4 h-4" />
-                مشاركة عبر الواتساب
+                <Download className="w-3.5 h-3.5 ml-1" />
+                واتساب
               </Button>
             </div>
           </div>
+          {asOf && trial.data?.periodLabel && (
+            <div className="status-strip status-info mt-4 text-xs">
+              الفترة النشطة:{" "}
+              <span className="font-bold">{trial.data.periodLabel}</span> — جميع
+              الأرصدة محسوبة حتى هذا التاريخ من دفتر الأستاذ مباشرة.
+            </div>
+          )}
         </div>
 
-        {/* ─── Proactive alerts (Module C) ─── */}
-        <div className="flex justify-end">
+        {/* ── KPIs — 4 بطاقات ذكية بمصدر خادم ── */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <KpiCard
+            label="إجمالي المدين"
+            value={fmt(trial.data?.totals.debit)}
+            icon={Scale}
+            tone="brand"
+            hint={trial.data ? "من الخادم" : "تحميل…"}
+            loading={trial.isLoading}
+          />
+          <KpiCard
+            label="صافي الدخل"
+            value={fmt(income.data?.totals.net)}
+            icon={TrendingUp}
+            tone={Number(income.data?.totals.net) >= 0 ? "good" : "bad"}
+            hint="قائمة الدخل"
+            loading={income.isLoading}
+          />
+          <KpiCard
+            label="إجمالي الأصول"
+            value={fmt(sheet.data?.totals.assets)}
+            icon={Landmark}
+            tone="info"
+            hint="الميزانية"
+            loading={sheet.isLoading}
+          />
+          <KpiCard
+            label="صافي التدفق النقدي"
+            value={fmt(cash.data?.net)}
+            icon={Wallet}
+            tone="good"
+            hint="حسابات نقدية فقط"
+            loading={cash.isLoading}
+          />
+        </div>
+
+        {/* تنبيهات استباقية + رابط الذكاء */}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+            <ShieldCheck className="w-3.5 h-3.5 text-brand" />
+            كل تقرير يُختم بـ QR ويُحفظ في سجل التدقيق — قابل للمراجعة الخارجية.
+            <a
+              href="/financial-statements"
+              className="text-brand hover:underline font-bold"
+            >
+              فتح القوائم المالية (الخادم) →
+            </a>
+            <span className="w-px h-3 bg-line" />
+            <a
+              href="/analytics"
+              className="text-brand hover:underline font-bold"
+            >
+              التحليلات الذكية →
+            </a>
+            <a
+              href="/operations"
+              className="text-brand hover:underline font-bold"
+            >
+              لوحة العمليات →
+            </a>
+          </div>
           <Button
             size="sm"
             onClick={() => processAlerts.mutate()}
             disabled={processAlerts.isPending}
-            className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
+            className="h-8 text-xs bg-brand hover:bg-brand-deep text-brand-foreground press-effect"
           >
-            <FileText className="w-4 h-4" />
+            <FileText className="w-3.5 h-3.5 ml-1" />
             {processAlerts.isPending
-              ? "جاري التوليد..."
+              ? "جاري التوليد…"
               : "توليد التنبيهات الاستباقية"}
           </Button>
         </div>
@@ -340,329 +378,441 @@ export default function Reports() {
         <Tabs
           value={activeReport}
           onValueChange={v => setActiveReport(v as ReportType)}
+          className="space-y-4"
         >
-          <TabsList className="grid w-full grid-cols-6 h-10 bg-white border">
-            <TabsTrigger value="daily" className="text-[10px]">
-              التقرير اليومي
+          <TabsList className="tabs-primary w-full">
+            <TabsTrigger value="daily" className="tab-trigger">
+              <Calendar className="w-3.5 h-3.5" />
+              اليومي
             </TabsTrigger>
-            <TabsTrigger value="trialBalance" className="text-[10px]">
+            <TabsTrigger value="trialBalance" className="tab-trigger">
+              <Scale className="w-3.5 h-3.5" />
               ميزان المراجعة
             </TabsTrigger>
-            <TabsTrigger value="incomeStatement" className="text-[10px]">
+            <TabsTrigger value="incomeStatement" className="tab-trigger">
+              <TrendingUp className="w-3.5 h-3.5" />
               قائمة الدخل
             </TabsTrigger>
-            <TabsTrigger value="balanceSheet" className="text-[10px]">
-              الميزانية العمومية
+            <TabsTrigger value="balanceSheet" className="tab-trigger">
+              <Landmark className="w-3.5 h-3.5" />
+              الميزانية
             </TabsTrigger>
-            <TabsTrigger value="profitability" className="text-[10px]">
+            <TabsTrigger value="cashFlow" className="tab-trigger">
+              <Wallet className="w-3.5 h-3.5" />
+              التدفقات
+            </TabsTrigger>
+            <TabsTrigger value="profitability" className="tab-trigger">
+              <Sparkles className="w-3.5 h-3.5" />
               الربحية
             </TabsTrigger>
-            <TabsTrigger value="documents" className="text-[10px]">
+            <TabsTrigger value="documents" className="tab-trigger">
+              <FileText className="w-3.5 h-3.5" />
               المستندات
             </TabsTrigger>
           </TabsList>
 
-          {/* Trial Balance */}
+          {/* ── Trial Balance — مصدر خادم بالكامل ── */}
           <TabsContent value="trialBalance">
-            <Card className="border-0 shadow-sm bg-white">
-              <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-ink">
-                  ميزان العموم
-                </CardTitle>
+            <Card className="panel-premium">
+              <CardHeader className="ribbon-premium">
+                <div className="flex items-center justify-between gap-2">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <Scale className="w-4 h-4 text-brand" />
+                    ميزان المراجعة — حتى تاريخ
+                    {trial.data?.periodLabel
+                      ? ` (${trial.data.periodLabel})`
+                      : ""}
+                  </CardTitle>
+                  {trial.data && (
+                    <Badge variant="outline" className="chip">
+                      {trial.data.rows.length} حساب برصيد
+                    </Badge>
+                  )}
+                </div>
+                <CardDescription className="text-xs">
+                  كل حساب برصيد ≠ 0 — المدين = الدائن. من الخادم مباشرة.
+                </CardDescription>
               </CardHeader>
-              <CardContent className="p-3">
-                {isLoading ? (
-                  <div className="space-y-2">
+              <CardContent className="p-0">
+                {trial.isLoading ? (
+                  <div className="p-4 space-y-2">
                     {[1, 2, 3, 4, 5].map(i => (
-                      <div
-                        key={i}
-                        className="h-9 bg-gray-100 rounded animate-pulse"
-                      />
+                      <div key={i} className="skeleton-premium h-9 rounded" />
                     ))}
                   </div>
+                ) : (trial.data?.rows?.length ?? 0) === 0 ? (
+                  <div className="empty-state">
+                    <Scale className="w-8 h-8 text-muted-foreground" />
+                    <p className="text-sm font-bold">
+                      لا توجد أرصدة حتى هذا التاريخ
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      جرّب تغيير تاريخ "حتى" أو تسجيل قيود معتمدة.
+                    </p>
+                  </div>
                 ) : (
-                  <div className="overflow-x-auto">
+                  <div className="datagrid overflow-x-auto">
                     <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b bg-gray-50">
-                          <th className="text-right p-2 font-bold text-[10px]">
-                            الكود
-                          </th>
-                          <th className="text-right p-2 font-bold text-[10px]">
-                            اسم الحساب
-                          </th>
-                          <th className="text-right p-2 font-bold text-[10px]">
-                            النوع
-                          </th>
-                          <th className="text-left p-2 font-bold text-[10px]">
-                            مدين
-                          </th>
-                          <th className="text-left p-2 font-bold text-[10px]">
-                            دائن
+                      <thead className="bg-panel/60">
+                        <tr className="border-b border-line">
+                          <th className="text-right p-3 font-bold">الكود</th>
+                          <th className="text-right p-3 font-bold">الحساب</th>
+                          <th className="text-right p-3 font-bold">النوع</th>
+                          <th className="text-left p-3 font-bold">مدين</th>
+                          <th className="text-left p-3 font-bold">دائن</th>
+                          <th className="text-left p-3 font-bold">
+                            الرصيد المحايد
                           </th>
                         </tr>
                       </thead>
                       <tbody>
-                        {trialBalance.accounts.map(a => (
-                          <tr key={a.id} className="border-b hover:bg-gray-50">
-                            <td className="p-2 font-mono text-[10px]">
-                              {a.code}
+                        {trial.data?.rows.map((r: any) => (
+                          <tr
+                            key={r.accountId}
+                            className="border-b border-line hover:bg-muted/30 transition-colors"
+                          >
+                            <td className="p-3 font-mono text-[11px]">
+                              {r.code}
                             </td>
-                            <td className="p-2 font-bold">{a.name}</td>
-                            <td className="p-2">
-                              <Badge variant="outline" className="text-[9px]">
-                                {a.type === "asset"
-                                  ? "أصول"
-                                  : a.type === "liability"
-                                    ? "خصوم"
-                                    : a.type === "equity"
-                                      ? "حقوق ملكية"
-                                      : a.type === "revenue"
-                                        ? "إيرادات"
-                                        : "مصروفات"}
-                              </Badge>
+                            <td className="p-3 font-bold">{r.name}</td>
+                            <td className="p-3">
+                              <span className="chip text-[10px]">{r.type}</span>
                             </td>
-                            <td className="p-2 text-left font-mono">
-                              {(a.balance ?? 0) > 0
-                                ? formatNum(a.balance ?? 0)
-                                : "-"}
+                            <td className="p-3 text-left font-mono">
+                              {r.debit ? fmt(r.debit) : "—"}
                             </td>
-                            <td className="p-2 text-left font-mono">
-                              {(a.balance ?? 0) < 0
-                                ? formatNum(Math.abs(a.balance ?? 0))
-                                : "-"}
+                            <td className="p-3 text-left font-mono">
+                              {r.credit ? fmt(r.credit) : "—"}
+                            </td>
+                            <td className="p-3 text-left font-mono">
+                              {fmt(r.balance)}
                             </td>
                           </tr>
                         ))}
                       </tbody>
-                      <tfoot>
-                        <tr className="border-t-2 bg-gray-100 font-bold">
-                          <td colSpan={3} className="p-2 text-[10px]">
-                            الإجمالي
-                          </td>
-                          <td className="p-2 text-left font-mono text-[10px]">
-                            {formatNum(trialBalance.totalDebits)}
-                          </td>
-                          <td className="p-2 text-left font-mono text-[10px]">
-                            {formatNum(trialBalance.totalCredits)}
-                          </td>
-                        </tr>
-                      </tfoot>
                     </table>
                   </div>
                 )}
-                {!isLoading && (
-                  <div className="mt-2 flex items-center gap-2">
-                    {trialBalance.isBalanced ? (
-                      <Badge className="bg-green-100 text-green-700 text-[10px]">
-                        متوازن
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-red-100 text-red-700 text-[10px]">
-                        غير متوازن — فرق:{" "}
-                        {formatNum(
-                          Math.abs(
-                            trialBalance.totalDebits - trialBalance.totalCredits
-                          )
-                        )}
-                      </Badge>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Income Statement */}
-          <TabsContent value="incomeStatement">
-            <Card className="border-0 shadow-sm bg-white">
-              <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-ink">
-                  قائمة الدخل (الأرباح والخسائر)
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-3 space-y-4">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    {[1, 2, 3, 4].map(i => (
-                      <div
-                        key={i}
-                        className="h-9 bg-gray-100 rounded animate-pulse"
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <>
-                    <div>
-                      <h3 className="text-xs font-bold text-green-600 mb-2 flex items-center gap-1">
-                        <ArrowUp className="w-3 h-3" />
-                        الإيرادات
-                      </h3>
-                      {incomeStatement.revenues.map(a => (
-                        <div
-                          key={a.id}
-                          className="flex justify-between py-1 border-b text-xs"
-                        >
-                          <span>{a.name}</span>
-                          <span className="font-mono text-green-600">
-                            {formatNum(a.balance)} ر.ي
-                          </span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between py-2 font-bold text-xs bg-green-50 px-2 rounded mt-1">
-                        <span>إجمالي الإيرادات</span>
-                        <span className="text-green-600">
-                          {formatNum(incomeStatement.totalRevenue)} ر.ي
-                        </span>
-                      </div>
-                    </div>
-                    <div>
-                      <h3 className="text-xs font-bold text-red-600 mb-2 flex items-center gap-1">
-                        <ArrowDown className="w-3 h-3" />
-                        المصروفات
-                      </h3>
-                      {incomeStatement.expenses.map(a => (
-                        <div
-                          key={a.id}
-                          className="flex justify-between py-1 border-b text-xs"
-                        >
-                          <span>{a.name}</span>
-                          <span className="font-mono text-red-600">
-                            {formatNum(Math.abs(a.balance))} ر.ي
-                          </span>
-                        </div>
-                      ))}
-                      <div className="flex justify-between py-2 font-bold text-xs bg-red-50 px-2 rounded mt-1">
-                        <span>إجمالي المصروفات</span>
-                        <span className="text-red-600">
-                          {formatNum(incomeStatement.totalExpenses)} ر.ي
-                        </span>
-                      </div>
-                    </div>
-                    <div
-                      className={`flex justify-between py-3 font-bold text-sm px-3 rounded-lg ${incomeStatement.netIncome >= 0 ? "bg-ink text-brand" : "bg-red-600 text-white"}`}
+                {trial.data && (
+                  <div className="datagrid-footer flex flex-wrap items-center gap-2 justify-between">
+                    <span className="text-xs font-bold">
+                      الإجمالي — مدين {fmt(trial.data.totals.debit)} = دائن{" "}
+                      {fmt(trial.data.totals.credit)}
+                    </span>
+                    <Badge
+                      className={
+                        Math.abs(
+                          trial.data.totals.debit - trial.data.totals.credit
+                        ) < 0.01
+                          ? "bg-success/15 text-success"
+                          : "bg-danger/15 text-danger"
+                      }
                     >
-                      <span>صافي الدخل</span>
-                      <span>{formatNum(incomeStatement.netIncome)} ر.ي</span>
-                    </div>
-                  </>
+                      {Math.abs(
+                        trial.data.totals.debit - trial.data.totals.credit
+                      ) < 0.01
+                        ? "متوازن ✓"
+                        : `غير متوازن — فرق ${fmt(Math.abs(trial.data.totals.debit - trial.data.totals.credit))}`}
+                    </Badge>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Balance Sheet */}
+          {/* ── Income Statement ── */}
+          <TabsContent value="incomeStatement">
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card className="panel-premium">
+                <CardHeader className="ribbon-premium">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-success">
+                    <ArrowUp className="w-4 h-4" />
+                    الإيرادات
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {income.isLoading ? (
+                    <div className="p-4 space-y-2">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="skeleton-premium h-8" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="datagrid">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b bg-panel/60">
+                            <th className="text-right p-2">البند</th>
+                            <th className="text-left p-2">المبلغ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {income.data?.revenues.map((r: any) => (
+                            <tr
+                              key={r.code}
+                              className="border-b border-line hover:bg-muted/30"
+                            >
+                              <td className="p-2.5">
+                                <span className="font-mono text-[10px] text-muted-foreground ml-2">
+                                  {r.code}
+                                </span>
+                                {r.name}
+                              </td>
+                              <td className="p-2.5 text-left font-mono text-success">
+                                {fmt(r.amount)} ر.ي
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-success/5 font-bold">
+                            <td className="p-2.5">إجمالي الإيرادات</td>
+                            <td className="p-2.5 text-left text-success">
+                              {fmt(income.data?.totals.revenue)} ر.ي
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="panel-premium">
+                <CardHeader className="ribbon-premium">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2 text-danger">
+                    <ArrowDown className="w-4 h-4" />
+                    المصروفات
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0">
+                  {income.isLoading ? (
+                    <div className="p-4 space-y-2">
+                      {[1, 2, 3].map(i => (
+                        <div key={i} className="skeleton-premium h-8" />
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="datagrid">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="border-b bg-panel/60">
+                            <th className="text-right p-2">البند</th>
+                            <th className="text-left p-2">المبلغ</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {income.data?.expenses.map((r: any) => (
+                            <tr
+                              key={r.code}
+                              className="border-b border-line hover:bg-muted/30"
+                            >
+                              <td className="p-2.5">
+                                <span className="font-mono text-[10px] text-muted-foreground ml-2">
+                                  {r.code}
+                                </span>
+                                {r.name}
+                              </td>
+                              <td className="p-2.5 text-left font-mono text-danger">
+                                {fmt(r.amount)} ر.ي
+                              </td>
+                            </tr>
+                          ))}
+                          <tr className="bg-danger/5 font-bold">
+                            <td className="p-2.5">إجمالي المصروفات</td>
+                            <td className="p-2.5 text-left text-danger">
+                              {fmt(income.data?.totals.expense)} ر.ي
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+            <div
+              className={`mt-4 flex items-center justify-between p-4 rounded-xl font-black text-sm ${Number(income.data?.totals.net) >= 0 ? "bg-ink text-brand" : "bg-danger text-white"}`}
+            >
+              <span>صافي الدخل</span>
+              <span className="font-mono text-base">
+                {fmt(income.data?.totals.net)} ر.ي
+              </span>
+            </div>
+          </TabsContent>
+
+          {/* ── Balance Sheet ── */}
           <TabsContent value="balanceSheet">
-            <Card className="border-0 shadow-sm bg-white">
-              <CardHeader className="p-3">
-                <CardTitle className="text-sm font-bold text-ink">
-                  الميزان العمومي
+            <div className="grid md:grid-cols-3 gap-4">
+              {[
+                {
+                  title: "الأصول",
+                  icon: Wallet,
+                  rows: sheet.data?.assets,
+                  color: "text-info",
+                },
+                {
+                  title: "الخصوم",
+                  icon: Landmark,
+                  rows: sheet.data?.liabilities,
+                  color: "text-warning",
+                },
+                {
+                  title: "حقوق الملكية",
+                  icon: UsersIcon,
+                  rows: sheet.data?.equity,
+                  color: "text-brand",
+                },
+              ].map(s => (
+                <Card key={s.title} className="panel-premium">
+                  <CardHeader className="ribbon-premium">
+                    <CardTitle
+                      className={`text-sm font-bold flex items-center gap-2 ${s.color}`}
+                    >
+                      <s.icon className="w-4 h-4" />
+                      {s.title}
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    {sheet.isLoading ? (
+                      <div className="p-3 space-y-2">
+                        {[1, 2, 3].map(i => (
+                          <div key={i} className="skeleton-premium h-8" />
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="datagrid">
+                        <table className="w-full text-xs">
+                          <thead>
+                            <tr className="border-b bg-panel/60">
+                              <th className="text-right p-2">البند</th>
+                              <th className="text-left p-2">المبلغ</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {(s.rows as any[] | undefined)?.map((r: any) => (
+                              <tr
+                                key={r.code}
+                                className="border-b border-line hover:bg-muted/30"
+                              >
+                                <td className="p-2.5">{r.name}</td>
+                                <td className="p-2.5 text-left font-mono">
+                                  {fmt(r.amount)} ر.ي
+                                </td>
+                              </tr>
+                            ))}
+                            {(!s.rows || s.rows.length === 0) && (
+                              <tr>
+                                <td
+                                  colSpan={2}
+                                  className="p-6 text-center text-muted-foreground text-xs"
+                                >
+                                  لا توجد أرصدة
+                                </td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+            <div className="mt-4 grid grid-cols-3 gap-3">
+              <SummaryStat
+                label="الأصول"
+                value={fmt(sheet.data?.totals.assets)}
+              />
+              <SummaryStat
+                label="الخصوم"
+                value={fmt(sheet.data?.totals.liabilities)}
+              />
+              <SummaryStat
+                label="حقوق الملكية"
+                value={fmt(sheet.data?.totals.equity)}
+              />
+            </div>
+          </TabsContent>
+
+          {/* ── Cash Flow ── */}
+          <TabsContent value="cashFlow">
+            <Card className="panel-premium">
+              <CardHeader className="ribbon-premium">
+                <CardTitle className="text-sm font-bold flex items-center gap-2">
+                  <Wallet className="w-4 h-4 text-brand" />
+                  التدفقات النقدية — حسابات نقدية فقط (1xx)
                 </CardTitle>
+                <CardDescription className="text-xs">
+                  صافي التغير في الحسابات النقدية خلال الفترة حتى{" "}
+                  {asOf || "حتى الآن"}
+                </CardDescription>
               </CardHeader>
-              <CardContent className="p-3">
-                {isLoading ? (
-                  <div className="space-y-2">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                      <div
-                        key={i}
-                        className="h-9 bg-gray-100 rounded animate-pulse"
-                      />
+              <CardContent className="p-0">
+                {cash.isLoading ? (
+                  <div className="p-4 space-y-2">
+                    {[1, 2, 3].map(i => (
+                      <div key={i} className="skeleton-premium h-8" />
                     ))}
                   </div>
+                ) : (cash.data?.lines?.length ?? 0) === 0 ? (
+                  <div className="empty-state">
+                    <Wallet className="w-8 h-8 text-muted-foreground" />
+                    <p className="text-sm font-bold">
+                      لا توجد حركات نقدية في الفترة
+                    </p>
+                  </div>
                 ) : (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <h3 className="text-xs font-bold text-blue-600 mb-2">
-                          الأصول
-                        </h3>
-                        {balanceSheet.assets.map(a => (
-                          <div
-                            key={a.id}
-                            className="flex justify-between py-1 border-b text-xs"
+                  <div className="datagrid overflow-x-auto">
+                    <table className="w-full text-xs">
+                      <thead className="bg-panel/60">
+                        <tr className="border-b border-line">
+                          <th className="text-right p-3">الكود</th>
+                          <th className="text-right p-3">الحساب النقدي</th>
+                          <th className="text-left p-3">صافي التدفق</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {cash.data?.lines.map((r: any) => (
+                          <tr
+                            key={r.accountId}
+                            className="border-b border-line hover:bg-muted/30"
                           >
-                            <span>{a.name}</span>
-                            <span className="font-mono">
-                              {formatNum(a.balance)} ر.ي
-                            </span>
-                          </div>
-                        ))}
-                        <div className="flex justify-between py-2 font-bold text-xs bg-blue-50 px-2 rounded mt-1">
-                          <span>إجمالي الأصول</span>
-                          <span>{formatNum(balanceSheet.totalAssets)} ر.ي</span>
-                        </div>
-                      </div>
-                      <div>
-                        <h3 className="text-xs font-bold text-red-600 mb-2">
-                          الخصوم وحقوق الملكية
-                        </h3>
-                        {balanceSheet.liabilities.map(a => (
-                          <div
-                            key={a.id}
-                            className="flex justify-between py-1 border-b text-xs"
-                          >
-                            <span>{a.name}</span>
-                            <span className="font-mono">
-                              {formatNum(Math.abs(a.balance))} ر.ي
-                            </span>
-                          </div>
-                        ))}
-                        {balanceSheet.equity
-                          .filter(a => a.balance !== 0)
-                          .map((a, i) => (
-                            <div
-                              key={i}
-                              className="flex justify-between py-1 border-b text-xs"
+                            <td className="p-3 font-mono">{r.code}</td>
+                            <td className="p-3 font-medium">{r.name}</td>
+                            <td
+                              className={`p-3 text-left font-mono font-bold ${r.net >= 0 ? "text-success" : "text-danger"}`}
                             >
-                              <span>{a.name}</span>
-                              <span className="font-mono">
-                                {formatNum(a.balance)} ر.ي
-                              </span>
-                            </div>
-                          ))}
-                        <div className="flex justify-between py-2 font-bold text-xs bg-red-50 px-2 rounded mt-1">
-                          <span>إجمالي الخصوم وحقوق الملكية</span>
-                          <span>
-                            {formatNum(
-                              balanceSheet.totalLiabilities +
-                                balanceSheet.totalEquity
-                            )}{" "}
-                            ر.ي
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex items-center gap-2">
-                      {Math.abs(
-                        balanceSheet.totalAssets -
-                          (balanceSheet.totalLiabilities +
-                            balanceSheet.totalEquity)
-                      ) < 0.01 ? (
-                        <Badge className="bg-green-100 text-green-700 text-[10px]">
-                          الميزان متوازن
-                        </Badge>
-                      ) : (
-                        <Badge className="bg-red-100 text-red-700 text-[10px]">
-                          الميزان غير متوازن
-                        </Badge>
-                      )}
-                    </div>
-                  </>
+                              {fmt(r.net)} ر.ي
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                {cash.data && (
+                  <div className="datagrid-footer font-bold flex justify-between">
+                    <span>صافي التدفق الكلي</span>
+                    <span
+                      className={`font-mono ${Number(cash.data.net) >= 0 ? "text-success" : "text-danger"}`}
+                    >
+                      {fmt(cash.data.net)} ر.ي
+                    </span>
+                  </div>
                 )}
               </CardContent>
             </Card>
           </TabsContent>
 
-          {/* Daily Sales Report */}
+          {/* ── Daily ── */}
           <TabsContent value="daily">
-            <div className="space-y-3">
-              <div className="bg-ink text-white p-4 rounded-2xl shadow-md flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="space-y-4">
+              <div className="panel-premium p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                 <div>
-                  <h1 className="text-lg font-bold font-display">
+                  <h2 className="text-base font-black flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-brand" />
                     التقرير اليومي للمبيعات
-                  </h1>
-                  <p className="text-xs text-slate-300 mt-1">
-                    ملخص المبيعات وأساليب الدفع وأفضل الأصناف عن يوم محدد
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    ملخص المبيعات وأساليب الدفع وأفضل الأصناف — يوم محدد
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -670,10 +820,11 @@ export default function Reports() {
                     type="date"
                     value={reportDate}
                     onChange={e => setReportDate(e.target.value)}
-                    className="h-9 text-xs bg-white text-ink w-auto"
+                    className="h-9 text-xs w-auto"
                   />
                   <Button
                     size="sm"
+                    className="h-9 text-xs bg-brand text-brand-foreground press-effect"
                     onClick={() => {
                       const d = dailyData;
                       if (!d) return;
@@ -706,62 +857,55 @@ export default function Reports() {
                         ],
                         subtotal: d.totalSales,
                         total: d.totalSales,
-                        notes: `إجمالي المبيعات: ${d.totalSales?.toLocaleString()} YER | المحصل: ${d.totalPaid?.toLocaleString()} YER | الآجل: ${d.credit?.toLocaleString()} YER | اليوم السابق: ${d.previousDayTotal?.toLocaleString()} YER`,
+                        notes: `إجمالي: ${d.totalSales?.toLocaleString()} | المحصل: ${d.totalPaid?.toLocaleString()} | الآجل: ${d.credit?.toLocaleString()} | اليوم السابق: ${d.previousDayTotal?.toLocaleString()}`,
                       });
                     }}
-                    className="bg-brand hover:bg-brand-deep hover:text-sand text-ink-deep font-bold text-xs h-9 px-3 rounded-xl flex items-center gap-1.5 shadow"
                   >
-                    <Printer className="w-4 h-4" />
-                    طباعة
+                    <Printer className="w-3.5 h-3.5 ml-1" />
+                    طباعة يومية
                   </Button>
                 </div>
               </div>
-
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <Card className="border-0 shadow-sm bg-white p-3">
-                  <p className="text-[10px] text-gray-500">عدد الفواتير</p>
-                  <p className="font-bold text-lg text-ink">
-                    {dailyData?.invoiceCount ?? 0}
-                  </p>
-                </Card>
-                <Card className="border-0 shadow-sm bg-white p-3">
-                  <p className="text-[10px] text-gray-500">إجمالي المبيعات</p>
-                  <p className="font-bold text-lg text-green-600">
-                    {formatNum(dailyData?.totalSales || 0)} ر.ي
-                  </p>
-                </Card>
-                <Card className="border-0 shadow-sm bg-white p-3">
-                  <p className="text-[10px] text-gray-500">المبلغ المحصل</p>
-                  <p className="font-bold text-lg text-brand">
-                    {formatNum(dailyData?.totalPaid || 0)} ر.ي
-                  </p>
-                </Card>
-                <Card className="border-0 shadow-sm bg-white p-3">
-                  <p className="text-[10px] text-gray-500">الآجل (غير محصل)</p>
-                  <p className="font-bold text-lg text-red-500">
-                    {formatNum(dailyData?.credit || 0)} ر.ي
-                  </p>
-                </Card>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <StatMini
+                  label="عدد الفواتير"
+                  value={String(dailyData?.invoiceCount ?? 0)}
+                  tone="text-ink"
+                />
+                <StatMini
+                  label="إجمالي المبيعات"
+                  value={`${fmt(dailyData?.totalSales)} ر.ي`}
+                  tone="text-success"
+                />
+                <StatMini
+                  label="المبلغ المحصل"
+                  value={`${fmt(dailyData?.totalPaid)} ر.ي`}
+                  tone="text-brand"
+                />
+                <StatMini
+                  label="الآجل"
+                  value={`${fmt(dailyData?.credit)} ر.ي`}
+                  tone="text-danger"
+                />
               </div>
-
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <Card className="border-0 shadow-sm bg-white">
-                  <CardHeader className="p-3">
-                    <CardTitle className="text-sm font-bold text-ink">
+                <Card className="panel-premium">
+                  <CardHeader className="ribbon-premium">
+                    <CardTitle className="text-sm font-bold">
                       توزيع أساليب الدفع
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-3 space-y-2">
+                  <CardContent className="p-4 space-y-3">
                     {(
                       [
-                        ["cash", "نقدي", "text-green-600"],
-                        ["card", "بطاقة", "text-blue-600"],
-                        ["transfer", "تحويل", "text-purple-600"],
-                        ["credit", "آجل", "text-red-600"],
-                        ["online", "أونلاين", "text-orange-600"],
+                        ["cash", "نقدي", "text-success"],
+                        ["card", "بطاقة", "text-info"],
+                        ["transfer", "تحويل", "text-warning"],
+                        ["credit", "آجل", "text-danger"],
+                        ["online", "أونلاين", "text-brand"],
                       ] as const
                     ).map(([key, label, color]) => {
-                      const val = dailyData?.byMethod?.[key] || 0;
+                      const val = (dailyData as any)?.byMethod?.[key] || 0;
                       const pct =
                         dailyData && dailyData.totalSales > 0
                           ? (val / dailyData.totalSales) * 100
@@ -771,12 +915,12 @@ export default function Reports() {
                           <div className="flex justify-between text-xs">
                             <span>{label}</span>
                             <span className={`font-bold ${color}`}>
-                              {formatNum(val)} ر.ي
+                              {fmt(val)} ر.ي
                             </span>
                           </div>
-                          <div className="h-2 bg-gray-100 rounded mt-1 overflow-hidden">
+                          <div className="h-2 bg-muted rounded mt-1 overflow-hidden">
                             <div
-                              className="h-full bg-brand"
+                              className="h-full bg-brand transition-all"
                               style={{ width: `${pct}%` }}
                             />
                           </div>
@@ -785,110 +929,169 @@ export default function Reports() {
                     })}
                   </CardContent>
                 </Card>
-
-                <Card className="border-0 shadow-sm bg-white">
-                  <CardHeader className="p-3">
-                    <CardTitle className="text-sm font-bold text-ink">
+                <Card className="panel-premium">
+                  <CardHeader className="ribbon-premium">
+                    <CardTitle className="text-sm font-bold">
                       أفضل الأصناف مبيعاً
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="p-3 overflow-x-auto">
+                  <CardContent className="p-0">
                     {!dailyData || dailyData.topProducts.length === 0 ? (
-                      <p className="text-xs text-gray-400 text-center py-6">
-                        لا توجد مبيعات في هذا اليوم
-                      </p>
+                      <div className="empty-state">
+                        <Activity className="w-8 h-8 text-muted-foreground" />
+                        <p className="text-xs">لا توجد مبيعات في هذا اليوم</p>
+                      </div>
                     ) : (
+                      <div className="datagrid overflow-x-auto">
+                        <table className="w-full text-xs">
+                          <thead className="bg-panel/60">
+                            <tr className="border-b border-line">
+                              <th className="text-right p-2">الصنف</th>
+                              <th className="text-center p-2">الكمية</th>
+                              <th className="text-left p-2">الإيراد</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {dailyData.topProducts.map((p: any, i: number) => (
+                              <tr
+                                key={p.productId}
+                                className="border-b border-line hover:bg-muted/30"
+                              >
+                                <td className="p-2">
+                                  <span className="text-[10px] text-muted-foreground ml-1">
+                                    {i + 1}.
+                                  </span>
+                                  {p.productName}
+                                </td>
+                                <td className="p-2 text-center font-mono">
+                                  {p.qty}
+                                </td>
+                                <td className="p-2 text-left font-mono text-brand">
+                                  {fmt(p.revenue)} ر.ي
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* ── Profitability ── */}
+          <TabsContent value="profitability">
+            <div className="grid gap-3 lg:grid-cols-2">
+              <Card className="panel-premium">
+                <CardHeader className="ribbon-premium">
+                  <CardTitle className="text-sm font-bold">
+                    الربحية حسب مندوب المبيعات
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-0 overflow-x-auto">
+                  {!profitability || profitability.byRep.length === 0 ? (
+                    <div className="empty-state">
+                      <Eye className="w-8 h-8 text-muted-foreground" />
+                      <p className="text-xs">لا توجد مناديب أو مبيعات.</p>
+                    </div>
+                  ) : (
+                    <div className="datagrid">
                       <table className="w-full text-xs">
-                        <thead>
-                          <tr className="border-b bg-gray-50 text-[10px]">
-                            <th className="text-right p-1.5 font-bold">
-                              الصنف
-                            </th>
-                            <th className="text-center p-1.5 font-bold">
-                              الكمية
-                            </th>
-                            <th className="text-left p-1.5 font-bold">
-                              الإيراد
-                            </th>
+                        <thead className="bg-panel/60">
+                          <tr className="border-b border-line">
+                            <th className="text-right p-2">المندوب</th>
+                            <th className="text-left p-2">المبيعات</th>
+                            <th className="text-left p-2">العمولة</th>
+                            <th className="text-left p-2">البونص</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {dailyData.topProducts.map((p, i) => (
-                            <tr key={p.productId} className="border-b">
-                              <td className="p-1.5">
-                                <span className="text-[10px] text-gray-400 mr-1">
-                                  {i + 1}.
-                                </span>
-                                {p.productName}
+                          {profitability.byRep.map((r: any) => (
+                            <tr
+                              key={r.rep.id}
+                              className="border-b border-line hover:bg-muted/30"
+                            >
+                              <td className="p-2 font-bold">{r.rep.name}</td>
+                              <td className="p-2 text-left font-mono">
+                                {fmtNum(r.salesTotal)} ر.ي
                               </td>
-                              <td className="p-1.5 text-center font-mono">
-                                {p.qty}
+                              <td className="p-2 text-left font-mono text-success">
+                                {fmtNum(r.commission)} ر.ي
                               </td>
-                              <td className="p-1.5 text-left font-mono text-brand">
-                                {formatNum(p.revenue)} ر.ي
+                              <td className="p-2 text-left font-mono text-brand">
+                                {fmtNum(r.bonus)} ر.ي
                               </td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-
-              <Card className="border-0 shadow-sm bg-white">
-                <CardContent className="p-3 flex items-center justify-between">
-                  <div>
-                    <p className="text-[10px] text-gray-500">
-                      إجمالي مبيعات اليوم السابق
-                    </p>
-                    <p className="font-bold text-xs text-ink">
-                      {formatNum(dailyData?.previousDayTotal || 0)} ر.ي
-                    </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+              <Card className="panel-premium">
+                <CardHeader className="ribbon-premium">
+                  <CardTitle className="text-sm font-bold">
+                    الخصومات والعروض
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center justify-between rounded-xl border border-line p-3 text-xs">
+                    <span className="text-muted-foreground">
+                      إجمالي الخصم الممنوح
+                    </span>
+                    <span className="font-bold text-danger">
+                      {fmtNum(profitability?.discountTotal || 0)} ر.ي
+                    </span>
                   </div>
-                  <Badge
-                    className={
-                      (dailyData?.totalSales || 0) >=
-                      (dailyData?.previousDayTotal || 0)
-                        ? "bg-green-100 text-green-700 text-[10px]"
-                        : "bg-red-100 text-red-700 text-[10px]"
-                    }
-                  >
-                    {(dailyData?.totalSales || 0) >=
-                    (dailyData?.previousDayTotal || 0)
-                      ? "أعلى/مساوٍ لليوم السابق"
-                      : "أقل من اليوم السابق"}
-                  </Badge>
+                  <div className="flex items-center justify-between rounded-xl border border-line p-3 text-xs">
+                    <span className="text-muted-foreground">
+                      فواتير بها خصم
+                    </span>
+                    <span className="font-bold text-brand">
+                      {profitability?.discountedInvoices ?? 0}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-xl border border-line p-3 text-xs">
+                    <span className="text-muted-foreground">العروض النشطة</span>
+                    <span className="font-bold">
+                      {profitability?.offers ?? 0}
+                    </span>
+                  </div>
                 </CardContent>
               </Card>
             </div>
           </TabsContent>
-          {/* Documents Report */}
+
+          {/* ── Documents ── */}
           <TabsContent value="documents">
             <div className="grid gap-3 lg:grid-cols-2">
-              <Card className="border-0 shadow-sm bg-white">
-                <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-brand" /> المستندات حسب
-                    النوع
+              <Card className="panel-premium">
+                <CardHeader className="ribbon-premium">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-brand" />
+                    المستندات حسب النوع
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3">
                   {(docsReport?.byType ?? []).length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-4">
-                      لا توجد مستندات مرتبطة
-                    </p>
+                    <div className="empty-state py-6">
+                      <FileText className="w-8 h-8 text-muted-foreground" />
+                      <p className="text-xs">لا توجد مستندات مرتبطة</p>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {(docsReport?.byType ?? []).map((b: any) => (
                         <div
                           key={b.entityType || "غير محدد"}
-                          className="flex items-center justify-between rounded-lg border p-2"
+                          className="flex items-center justify-between rounded-xl border border-line p-3"
                         >
-                          <span className="text-[12px] font-bold text-ink">
+                          <span className="text-xs font-bold">
                             {b.entityType || "غير محدد"}
                           </span>
-                          <span className="text-[12px] font-mono text-brand">
+                          <span className="chip bg-brand/10 text-brand">
                             {b.count}
                           </span>
                         </div>
@@ -897,34 +1100,35 @@ export default function Reports() {
                   )}
                 </CardContent>
               </Card>
-
-              <Card className="border-0 shadow-sm bg-white">
-                <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
-                    <FileText className="w-4 h-4 text-brand" /> أحدث المستندات
+              <Card className="panel-premium">
+                <CardHeader className="ribbon-premium">
+                  <CardTitle className="text-sm font-bold flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-brand" />
+                    أحدث المستندات
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3">
                   {(docsReport?.items ?? []).length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-4">
-                      لا توجد مستندات
-                    </p>
+                    <div className="empty-state py-6">
+                      <FileText className="w-8 h-8 text-muted-foreground" />
+                      <p className="text-xs">لا توجد مستندات</p>
+                    </div>
                   ) : (
-                    <div className="space-y-2 max-h-72 overflow-y-auto">
+                    <div className="space-y-2 max-h-72 overflow-y-auto scrollbar-thin">
                       {(docsReport?.items ?? []).map((d: any) => (
                         <div
                           key={d.id}
-                          className="flex items-center justify-between rounded-lg border p-2"
+                          className="flex items-center justify-between rounded-xl border border-line p-3"
                         >
                           <div className="min-w-0">
-                            <p className="text-[12px] font-bold truncate">
+                            <p className="text-xs font-bold truncate">
                               {d.title}
                             </p>
-                            <p className="text-[10px] text-muted-foreground">
+                            <p className="text-[11px] text-muted-foreground">
                               {d.entityType || "غير محدد"} #{d.entityId}
                             </p>
                           </div>
-                          <span className="text-[10px] text-muted-foreground">
+                          <span className="text-[11px] text-muted-foreground">
                             {new Date(d.createdAt).toLocaleDateString("ar-EG")}
                           </span>
                         </div>
@@ -935,95 +1139,59 @@ export default function Reports() {
               </Card>
             </div>
           </TabsContent>
-          {/* ─── Profitability (Module B) ─── */}
-          <TabsContent value="profitability">
-            <div className="grid gap-3 lg:grid-cols-2">
-              <Card className="border-0 shadow-sm bg-white">
-                <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-ink">
-                    الربحية حسب مندوب المبيعات
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 overflow-x-auto">
-                  {!profitability || profitability.byRep.length === 0 ? (
-                    <p className="text-xs text-gray-400 text-center py-6">
-                      لا توجد مناديب أو مبيعات.
-                    </p>
-                  ) : (
-                    <table className="w-full text-xs">
-                      <thead>
-                        <tr className="border-b bg-gray-50 text-[10px]">
-                          <th className="text-right p-1.5 font-bold">
-                            المندوب
-                          </th>
-                          <th className="text-left p-1.5 font-bold">
-                            المبيعات
-                          </th>
-                          <th className="text-left p-1.5 font-bold">العمولة</th>
-                          <th className="text-left p-1.5 font-bold">البونص</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {profitability.byRep.map((r: any) => (
-                          <tr key={r.rep.id} className="border-b">
-                            <td className="p-1.5 font-bold">{r.rep.name}</td>
-                            <td className="p-1.5 text-left font-mono">
-                              {fmtNum(r.salesTotal)} ر.ي
-                            </td>
-                            <td className="p-1.5 text-left font-mono text-emerald-600">
-                              {fmtNum(r.commission)} ر.ي
-                            </td>
-                            <td className="p-1.5 text-left font-mono text-brand">
-                              {fmtNum(r.bonus)} ر.ي
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="border-0 shadow-sm bg-white">
-                <CardHeader className="p-3">
-                  <CardTitle className="text-sm font-bold text-ink">
-                    الخصومات والعروض
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-3 space-y-3">
-                  <div className="flex items-center justify-between rounded-lg border p-2 text-[12px]">
-                    <span className="text-slate-600">
-                      إجمالي الخصم الممنوح (الفواتير النشطة)
-                    </span>
-                    <span className="font-bold text-rose-600">
-                      {fmtNum(profitability?.discountTotal || 0)} ر.ي
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border p-2 text-[12px]">
-                    <span className="text-slate-600">فواتير بها خصم</span>
-                    <span className="font-bold text-brand">
-                      {profitability?.discountedInvoices ?? 0}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between rounded-lg border p-2 text-[12px]">
-                    <span className="text-slate-600">
-                      العروض النشطة المعرّفة
-                    </span>
-                    <span className="font-bold">
-                      {profitability?.offers ?? 0}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-gray-400">
-                    ملاحظة: الخصم الممنوح مجمّع من بنود فواتير المبيعات غير
-                    الملغاة. ربط كل خصم بعرض محدد مؤجَّل (يُحفظ معرّف العرض على
-                    البند لاحقاً).
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
         </Tabs>
       </main>
     </div>
   );
+}
+
+function KpiCard({ label, value, icon: Icon, tone, hint, loading }: any) {
+  const color =
+    tone === "good"
+      ? "text-success"
+      : tone === "bad"
+        ? "text-danger"
+        : tone === "info"
+          ? "text-info"
+          : "text-brand";
+  return (
+    <Card className="stat-card">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className={color}>
+          <Icon className="w-4 h-4" />
+        </span>
+        {label}
+      </div>
+      {loading ? (
+        <div className="skeleton-premium h-6 mt-2 rounded" />
+      ) : (
+        <p className={`text-lg font-black mt-2 font-mono ${color}`}>
+          {value} ر.ي
+        </p>
+      )}
+      <p className="text-[11px] text-muted-foreground mt-1">{hint}</p>
+    </Card>
+  );
+}
+
+function SummaryStat({ label, value }: any) {
+  return (
+    <Card className="panel-premium p-3 text-center">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className="text-base font-black font-mono mt-1">{value} ر.ي</p>
+    </Card>
+  );
+}
+
+function StatMini({ label, value, tone }: any) {
+  return (
+    <Card className="panel-premium p-4 text-center">
+      <p className="text-[11px] text-muted-foreground">{label}</p>
+      <p className={`text-lg font-black mt-1 font-mono ${tone}`}>{value}</p>
+    </Card>
+  );
+}
+
+function UsersIcon(props: any) {
+  return <Eye {...props} />;
 }
