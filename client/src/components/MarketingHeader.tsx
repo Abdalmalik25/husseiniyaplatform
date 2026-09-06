@@ -184,10 +184,15 @@ export function MarketingHeader({ onOpenSettings }: Props) {
           <span className="px-2 py-0.5 rounded-full text-[10px] font-black border bg-slate-900 text-white border-slate-900">
             {brand.names.siteName}
           </span>
-          <span className="hidden xl:inline font-medium">خدمات أعمال متكاملة — منذ 2018</span>
+          <span className="hidden xl:inline font-medium">
+            خدمات أعمال متكاملة — منذ 2018
+          </span>
         </span>
         <span className="flex items-center gap-3 font-medium">
-          <a href={`tel:${brand.contact.phone}`} className="flex items-center gap-1.5 hover:text-slate-900 transition-colors">
+          <a
+            href={`tel:${brand.contact.phone}`}
+            className="flex items-center gap-1.5 hover:text-slate-900 transition-colors"
+          >
             <Phone className="w-3 h-3 text-slate-400" />
             {brand.contact.phone}
           </a>
@@ -333,16 +338,35 @@ export function MarketingHeader({ onOpenSettings }: Props) {
                 </div>
               );
             })}
-            <button onClick={() => setLocation("/contact")} className="hidden lg:inline-flex h-8 px-3.5 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50">تواصل</button>
+            <button
+              onClick={() => setLocation("/contact")}
+              className="hidden lg:inline-flex h-8 px-3.5 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50"
+            >
+              تواصل
+            </button>
             {isAuthenticated ? (
-              <Button onClick={() => setLocation("/app")} className="bg-slate-900 hover:bg-black text-white font-bold h-8 px-4 rounded-lg text-[13px]">
+              <Button
+                onClick={() => setLocation("/app")}
+                className="bg-slate-900 hover:bg-black text-white font-bold h-8 px-4 rounded-lg text-[13px]"
+              >
                 <Zap className="w-3.5 h-3.5" />
                 ادخل النظام
               </Button>
             ) : (
               <>
-                <Button variant="ghost" onClick={() => setLocation("/login")} className="hidden lg:inline-flex h-8 px-3.5 rounded-lg text-[13px] text-slate-700 hover:bg-slate-50">دخول النظام</Button>
-                <Button onClick={() => setLocation("/login")} className="bg-slate-900 hover:bg-black text-white font-bold h-8 px-4 rounded-lg text-[13px]">سجل منشأتك</Button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setLocation("/login")}
+                  className="hidden lg:inline-flex h-8 px-3.5 rounded-lg text-[13px] text-slate-700 hover:bg-slate-50"
+                >
+                  دخول النظام
+                </Button>
+                <Button
+                  onClick={() => setLocation("/login")}
+                  className="bg-slate-900 hover:bg-black text-white font-bold h-8 px-4 rounded-lg text-[13px]"
+                >
+                  سجل منشأتك
+                </Button>
               </>
             )}
           </nav>
@@ -379,10 +403,32 @@ export function MarketingHeader({ onOpenSettings }: Props) {
               onClick={() => setMobileOpen(false)}
               className="md:hidden fixed inset-0 top-[84px] bg-black/40 backdrop-blur-sm z-40"
             />
-            <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} className="md:hidden absolute inset-x-3 top-full mt-2 rounded-2xl border bg-white border-slate-200 shadow-xl p-3 space-y-3 max-h-[70vh] overflow-y-auto z-50">
+            <motion.div
+              initial={{ y: -10, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: -10, opacity: 0 }}
+              className="md:hidden absolute inset-x-3 top-full mt-2 rounded-2xl border bg-white border-slate-200 shadow-xl p-3 space-y-3 max-h-[70vh] overflow-y-auto z-50"
+            >
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => { setLocation("/login"); setMobileOpen(false); }} className="h-9 text-xs border-slate-200">دخول النظام</Button>
-                <Button onClick={() => { setLocation("/login"); setMobileOpen(false); }} className="h-9 text-xs bg-slate-900 text-white">سجل منشأتك</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setLocation("/login");
+                    setMobileOpen(false);
+                  }}
+                  className="h-9 text-xs border-slate-200"
+                >
+                  دخول النظام
+                </Button>
+                <Button
+                  onClick={() => {
+                    setLocation("/login");
+                    setMobileOpen(false);
+                  }}
+                  className="h-9 text-xs bg-slate-900 text-white"
+                >
+                  سجل منشأتك
+                </Button>
               </div>
               {mobileNav.map(item => {
                 const I = item.icon;
