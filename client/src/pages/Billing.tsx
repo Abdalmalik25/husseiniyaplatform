@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -180,7 +179,6 @@ export default function Billing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-display flex">
-      <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">
         {/* ── Header Section ── */}
         <div className="brand-gradient text-white">

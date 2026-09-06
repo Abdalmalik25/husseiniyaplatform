@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -757,7 +756,6 @@ function InvoicesPanel({
 
   return (
     <div className="min-h-screen flex">
-      <AppSidebar />
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-8 md:px-6 space-y-4">
         <div className="flex flex-col sm:flex-row gap-2 items-center justify-between">
           <div className="flex gap-2 w-full sm:w-auto">

@@ -32,7 +32,6 @@ import {
   BarChart3,
   AlertTriangle,
 } from "lucide-react";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { openPrintableInvoiceWindow } from "@/lib/pdfInvoiceGenerator";
 import { toast } from "sonner";
 import { fmtNum } from "@/lib/format";
@@ -148,7 +147,6 @@ export default function Reports() {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <HeaderNavbar />
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* ── Institutional Ribbon — توحيد هوية التقارير والذكاء ── */}
         <div className="ribbon-premium">

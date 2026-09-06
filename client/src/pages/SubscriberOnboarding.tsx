@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -40,14 +39,23 @@ import {
   type OnboardingInput,
 } from "@/lib/onboardingPresets";
 
+/** منهجية معيارية عالمية — تسلسل مألوف للمحاسب والتاجر: معلومة → هيكل → محاسبة → تشغيل → حوكمة → إطلاق */
 const STEPS = [
-  "النشاط",
-  "النموذج التشغيلي",
-  "الدليل المحاسبي",
-  "مراكز التكلفة",
-  "الأدوار والأسقف",
-  "المراجعة والإطلاق",
+  "١ المعلومات الأساسية",
+  "٢ الهيكل التنظيمي",
+  "٣ الإعدادات المحاسبية",
+  "٤ العمليات والمخزون",
+  "٥ الصلاحيات والاعتماد",
+  "٦ المراجعة والإطلاق",
 ];
+const STEP_DESC: Record<number, string> = {
+  0: "بيانات المنشأة والقطاع والدولة — حجر الأساس الضريبي والعملة",
+  1: "الفروع وأنماط البيع — يحدد سياسات الائتمان والعملاء والمخزون",
+  2: "الدليل المحاسبي المعياري (IFRS for SMEs) + السياسات الضريبية",
+  3: "مراكز التكلفة الهرمية — للربط بالمشاريع والفروع والتقارير",
+  4: "الصلاحيات ومصفوفة الاعتماد (COSO) — من ينشئ/يعتمد/يرحل",
+  5: "مراجعة تكاملية وإطلاق — كل شيء جاهز للعمل الفعلي",
+};
 
 export default function SubscriberOnboarding() {
   const [, setLocation] = useLocation();
@@ -123,7 +131,6 @@ export default function SubscriberOnboarding() {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <HeaderNavbar />
       <main className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         {/* Progress */}
         <div className="space-y-3">

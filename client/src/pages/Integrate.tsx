@@ -1,7 +1,5 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
-import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -136,8 +134,6 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
 
   return (
     <div className="min-h-screen bg-sand text-ink pb-20 font-sans" dir="rtl">
-      <HeaderNavbar />
-
       {/* Hero */}
       <section className="relative brand-gradient text-white py-16 px-4 overflow-hidden border-b border-ink-600">
         <div className="absolute inset-0 brand-dotgrid opacity-10" />
@@ -331,7 +327,6 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
         </section>
       </main>
 
-      <SiteFooter />
-    </div>
+      </div>
   );
 }

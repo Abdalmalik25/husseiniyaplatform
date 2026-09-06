@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import {
   Card,
   CardContent,
@@ -167,8 +166,6 @@ export default function Settings() {
 
   return (
     <div className="min-h-screen bg-sand text-ink pb-20" dir="rtl">
-      <HeaderNavbar />
-
       <main className="max-w-4xl mx-auto px-4 py-8 space-y-6">
         <div className="flex items-center justify-between border-b border-slate-200 pb-4">
           <div>

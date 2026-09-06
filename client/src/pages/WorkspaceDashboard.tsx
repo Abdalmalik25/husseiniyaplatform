@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { keepPreviousData } from "@tanstack/react-query";
 import { useLocation } from "wouter";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { StatCard } from "@/components/ui/stat-card";
@@ -30,7 +29,6 @@ import { EngineeringBOQCalculator } from "@/components/EngineeringBOQCalculator"
 import { BusinessLifecycleWizard } from "@/components/BusinessLifecycleWizard";
 import { EnterpriseOnboardingChecklist } from "@/components/EnterpriseOnboardingChecklist";
 import { LiveExecutiveCockpit } from "@/components/LiveExecutiveCockpit";
-import { AppSidebar } from "@/components/AppSidebar";
 import {
   MODULES,
   MODULE_LIST,
@@ -211,16 +209,9 @@ export default function WorkspaceDashboard() {
   }, [isLoading, lowStockCount, commercialStats]);
 
   return (
-    <div
-      className="min-h-screen bg-background text-foreground font-sans transition-colors flex"
-      dir="rtl"
-    >
+    <div className="space-y-6">
       {/* App shell sidebar — Layer 2 navigation */}
-      <AppSidebar />
-
-      <div className="flex-1 min-w-0">
-        <HeaderNavbar />
-
+      <div>
         {/* Trial status banner */}
         <div className="brand-gradient text-white py-2 px-4 shadow border-b border-white/10">
           <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-xs">

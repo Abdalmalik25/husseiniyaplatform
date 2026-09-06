@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { AppSidebar } from "@/components/AppSidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -160,7 +159,6 @@ export default function Analytics() {
 
   return (
     <div className="flex min-h-screen bg-background" dir="rtl">
-      <AppSidebar />
       <main className="flex-1 px-4 py-6 md:px-8 max-w-[1600px] mx-auto w-full space-y-6">
         <div className="ribbon-premium">
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">

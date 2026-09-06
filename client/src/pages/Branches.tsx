@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { AppSidebar } from "@/components/AppSidebar";
 import { trpc } from "@/lib/trpc";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DeniedScreen } from "@/components/DeniedScreen";
@@ -124,7 +123,6 @@ export default function Branches() {
 
   return (
     <div className="min-h-screen flex">
-      <AppSidebar />
       <main className="flex-1 bg-muted">
         <div className="border-b bg-card px-6 py-4">
           <div className="flex items-center gap-3">

@@ -1,7 +1,5 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
-import { SiteFooter } from "@/components/SiteFooter";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -166,8 +164,6 @@ export default function Pricing() {
       className="min-h-screen bg-sand text-ink dark:bg-background dark:text-foreground font-display"
       dir="rtl"
     >
-      <HeaderNavbar />
-
       {/* Hero */}
       <section className="relative text-white py-20 px-4 overflow-hidden bg-ink">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(184,121,69,0.15),transparent_60%)]" />
@@ -401,7 +397,6 @@ export default function Pricing() {
         </div>
       </section>
 
-      <SiteFooter />
-    </div>
+      </div>
   );
 }

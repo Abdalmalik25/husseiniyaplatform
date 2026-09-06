@@ -14,7 +14,6 @@ import {
   WifiOff,
 } from "lucide-react";
 import { toast } from "sonner";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 
 type DeviceType = "android" | "ios" | "desktop" | "unknown";
 type InstallMethod = "pwa" | "apk" | "playstore" | "appstore" | "manual";
@@ -284,8 +283,6 @@ export default function DownloadPage() {
       className="min-h-screen bg-gradient-to-br from-sand to-muted flex flex-col"
       dir="rtl"
     >
-      <HeaderNavbar />
-
       <main className="flex-1 max-w-2xl mx-auto w-full p-4 space-y-4">
         {/* Device Detection Card */}
         <Card className="border-0 shadow-md bg-white">

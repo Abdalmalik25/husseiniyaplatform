@@ -12,7 +12,6 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { SiteFooter } from "@/components/SiteFooter";
 
 function fmt(iso?: string | Date) {
@@ -64,7 +63,6 @@ export default function Security() {
       className="min-h-screen bg-ink-deep text-white flex flex-col font-display"
       dir="rtl"
     >
-      <HeaderNavbar />
       <main className="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6 md:p-10">
         <div className="flex items-center justify-between mb-6">
           <div>

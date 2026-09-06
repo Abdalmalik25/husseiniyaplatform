@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
-import { AppSidebar } from "@/components/AppSidebar";
 import { CustomFields } from "@/components/CustomFields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -228,7 +227,6 @@ export default function HR() {
 
   return (
     <div className="min-h-screen flex">
-      <AppSidebar />
       <main className="mx-auto w-full max-w-[1200px] flex-1 px-4 py-8 md:px-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>

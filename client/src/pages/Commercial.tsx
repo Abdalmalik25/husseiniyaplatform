@@ -51,7 +51,6 @@ import {
   Tag,
 } from "lucide-react";
 import { toast } from "sonner";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { statusColors, statusLabels } from "./commercial/lib/status-maps";
 import {
   exportProductsCsv,
@@ -828,8 +827,6 @@ export default function Commercial() {
 
   return (
     <div className="min-h-screen bg-sand" dir="rtl">
-      <HeaderNavbar />
-
       <main className="max-w-7xl mx-auto p-3">
         <div className="mb-3">
           <div className="relative">

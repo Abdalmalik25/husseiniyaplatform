@@ -64,7 +64,6 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import BudgetsPanel from "@/components/BudgetsPanel";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { put } from "@/lib/offline/db";
 
 type ImportRow = {
@@ -848,10 +847,12 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-sand text-ink pb-28" dir="rtl">
-      {/* Unified Header Navbar */}
-      <HeaderNavbar onOpenSettings={() => setIsSettingsOpen(!isSettingsOpen)} />
-
+    <div className="space-y-4">
+      <div className="flex justify-end">
+        <Button variant="outline" size="sm" onClick={() => setIsSettingsOpen(v => !v)} className="text-xs h-8">
+          {isSettingsOpen ? "إغلاق الإعدادات" : "إعدادات المؤسسة"}
+        </Button>
+      </div>
       {isSettingsOpen && (
         <div className="bg-ink-600 border-b border-ink-500 px-4 py-2.5">
           <div className="max-w-7xl mx-auto flex flex-wrap items-center gap-2 text-xs text-white">
@@ -1237,24 +1238,9 @@ export default function Home() {
         {/* Operational Tabs */}
         <Tabs value={activeTab} onValueChange={(v: any) => setActiveTab(v)}>
           <TabsList className="grid grid-cols-3 sm:grid-cols-6 bg-slate-200 h-9 p-1 rounded-xl text-xs mb-3 shadow-inner">
-            <TabsTrigger
-              value="entry"
-              className="text-[10px] sm:text-xs font-semibold"
-            >
-              الإدخال
-            </TabsTrigger>
-            <TabsTrigger
-              value="accounts"
-              className="text-[10px] sm:text-xs font-semibold"
-            >
-              الدليل الشجري
-            </TabsTrigger>
-            <TabsTrigger
-              value="reports"
-              className="text-[10px] sm:text-xs font-semibold"
-            >
-              السجل والتقارير
-            </TabsTrigger>
+            <TabsTrigger value="entry" className="text-[10px] sm:text-xs font-semibold" title="القيود اليومية — Daily Journal">اليومية</TabsTrigger>
+            <TabsTrigger value="accounts" className="text-[10px] sm:text-xs font-semibold" title="دليل الحسابات الشجري — Chart of Accounts">الدليل</TabsTrigger>
+            <TabsTrigger value="reports" className="text-[10px] sm:text-xs font-semibold" title="ميزان المراجعة والقوائم — Trial Balance & Statements">التقارير</TabsTrigger>
             <TabsTrigger
               value="audit"
               className="text-[10px] sm:text-xs font-semibold"

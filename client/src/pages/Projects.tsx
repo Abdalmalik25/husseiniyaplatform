@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { useLocation } from "wouter";
 import { trpc } from "@/lib/trpc";
-import { AppSidebar } from "@/components/AppSidebar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -150,7 +149,6 @@ export default function Projects() {
 
   return (
     <div className="min-h-screen bg-background text-foreground font-display flex">
-      <AppSidebar />
       <div className="ribbon-premium mx-3 mt-3">
         <div className="flex items-center gap-3 mb-4">
           <button onClick={() => setLocation("/app")} className="chip text-xs">

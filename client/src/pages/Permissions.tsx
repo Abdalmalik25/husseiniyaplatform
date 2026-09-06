@@ -3,7 +3,6 @@ import { trpc } from "@/lib/trpc";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DeniedScreen } from "@/components/DeniedScreen";
 import { toast } from "sonner";
-import { AppSidebar } from "@/components/AppSidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +50,6 @@ export default function Permissions() {
 
   return (
     <div className="flex min-h-screen bg-muted/30">
-      <AppSidebar />
       <main className="flex-1 p-4 md:p-6 space-y-5">
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-ink text-brand">

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -53,7 +52,6 @@ import {
   ClipboardList,
 } from "lucide-react";
 import { goLogin } from "@/const";
-import { SiteFooter } from "@/components/SiteFooter";
 import {
   brand,
   whatsappLink,
@@ -210,7 +208,6 @@ export default function Landing() {
       className="min-h-screen bg-sand text-ink dark:bg-background dark:text-foreground font-display"
       dir="rtl"
     >
-      <HeaderNavbar publicOnly />
       <StickySectionNav />
 
       {/* ═══════════════════════════════════════════════════════════
@@ -1737,8 +1734,6 @@ export default function Landing() {
           </p>
         </div>
       </section>
-
-      <SiteFooter />
 
       {/* بانر موافقة الكوكيز — محترم للخصوصية ومطابق لمعايير GDPR/Privacy */}
       <CookieConsent />

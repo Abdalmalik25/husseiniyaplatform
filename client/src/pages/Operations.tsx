@@ -1,5 +1,4 @@
 import { useLocation } from "wouter";
-import { AppSidebar } from "@/components/AppSidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { trpc } from "@/lib/trpc";
 import {
@@ -81,7 +80,6 @@ export default function Operations() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex" dir="rtl">
-      <AppSidebar />
       <main className="flex-1 w-full max-w-7xl mx-auto px-4 py-8 space-y-6">
         <div>
           <h1 className="text-2xl font-black font-display text-ink">

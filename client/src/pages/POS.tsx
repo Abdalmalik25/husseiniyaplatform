@@ -1,7 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { AppSidebar } from "@/components/AppSidebar";
 import { StatCard } from "@/components/ui/stat-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -258,7 +257,6 @@ export default function POS() {
 
   return (
     <div className="flex min-h-screen bg-muted/30">
-      <AppSidebar />
       <main className="flex-1 p-4 md:p-6 space-y-5">
         {/* Header */}
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">

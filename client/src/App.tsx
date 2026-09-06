@@ -21,6 +21,8 @@ import { CircularProgress } from "@/components/ui/circular-progress";
 import { LoadingProvider } from "@/lib/loading-context";
 import { GlobalQuickActions } from "@/components/GlobalQuickActions";
 import { WishlistProvider } from "@/lib/wishlist";
+import { MarketingLayout } from "@/layouts/MarketingLayout";
+import { AppLayout } from "@/layouts/AppLayout";
 
 const Landing = lazy(() => import("@/pages/Landing"));
 const Login = lazy(() => import("@/pages/Login"));
@@ -115,188 +117,144 @@ function Router() {
       <div id="main-content" tabIndex={-1} className="focus:outline-none">
         <Suspense fallback={<InitialBootLoader />}>
           <Switch>
-            {/* ── Public marketing & guest pages (no session required) ── */}
-            <Route path={"/"} component={Landing} />
+            {/* ── Public marketing & guest pages — MarketingLayout (أبيض Stripe) ── */}
+            <Route path={"/"}>
+              <MarketingLayout><Landing /></MarketingLayout>
+            </Route>
             <Route path={"/login"} component={Login} />
             <Route path={"/claim"} component={ClaimSubscription} />
             <Route path={"/reset-password"} component={ResetPassword} />
             <Route path={"/verify-email"} component={VerifyEmail} />
-            <Route path={"/about"} component={About} />
-            <Route path={"/portal"} component={Portal} />
-            <Route path={"/download"} component={Download} />
-            <Route path={"/pricing"} component={Pricing} />
-            <Route path={"/contact"} component={Contact} />
-            <Route path={"/insights"} component={KnowledgeHub} />
-            <Route path={"/tools"} component={InteractiveCalculators} />
-            <Route path={"/solutions"} component={TechSolutions} />
-            <Route path={"/governance"} component={ProjectGovernance} />
-            <Route path={"/integrate"} component={Integrate} />
+            <Route path={"/about"}>
+              <MarketingLayout><About /></MarketingLayout>
+            </Route>
+            <Route path={"/portal"}>
+              <MarketingLayout><Portal /></MarketingLayout>
+            </Route>
+            <Route path={"/download"}>
+              <MarketingLayout><Download /></MarketingLayout>
+            </Route>
+            <Route path={"/pricing"}>
+              <MarketingLayout><Pricing /></MarketingLayout>
+            </Route>
+            <Route path={"/contact"}>
+              <MarketingLayout><Contact /></MarketingLayout>
+            </Route>
+            <Route path={"/insights"}>
+              <MarketingLayout><KnowledgeHub /></MarketingLayout>
+            </Route>
+            <Route path={"/tools"}>
+              <MarketingLayout><InteractiveCalculators /></MarketingLayout>
+            </Route>
+            <Route path={"/solutions"}>
+              <MarketingLayout><TechSolutions /></MarketingLayout>
+            </Route>
+            <Route path={"/governance"}>
+              <MarketingLayout><ProjectGovernance /></MarketingLayout>
+            </Route>
+            <Route path={"/integrate"}>
+              <MarketingLayout><Integrate /></MarketingLayout>
+            </Route>
 
-            {/* ── Operational pages (login + subscription required) ── */}
+            {/* ── Operational pages — AppLayout (داكن + سايدبار) — يبدأ من /app بعد تسجيل الدخول ── */}
             <Route path={"/app"}>
-              <RequireAuth>
-                <WorkspaceDashboard />
-              </RequireAuth>
+              <RequireAuth><AppLayout><WorkspaceDashboard /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/accounting"}>
-              <RequireAuth>
-                <Home />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Home /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/commercial"}>
-              <RequireAuth>
-                <Commercial />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Commercial /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/reports"}>
-              <RequireAuth>
-                <Reports />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Reports /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/settings"}>
-              <RequireAuth>
-                <Settings />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Settings /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/erp"}>
-              <RequireAuth>
-                <ErpPage />
-              </RequireAuth>
+              <RequireAuth><AppLayout><ErpPage /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/inventory"}>
-              <RequireAuth>
-                <Inventory />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Inventory /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/store"}>
-              <RequireAuth>
-                <Store />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Store /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/security"}>
-              <RequireAuth>
-                <Security />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Security /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/procurement-workspace"}>
-              <RequireAuth>
-                <ProcurementWorkspace />
-              </RequireAuth>
+              <RequireAuth><AppLayout><ProcurementWorkspace /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/supplier-analytics"}>
-              <RequireAuth>
-                <SupplierAnalytics />
-              </RequireAuth>
+              <RequireAuth><AppLayout><SupplierAnalytics /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/procurement"}>
-              <RequireAuth>
-                <Procurement />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Procurement /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/projects"}>
-              <RequireAuth>
-                <Projects />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Projects /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/hr"}>
-              <RequireAuth>
-                <HRPage />
-              </RequireAuth>
+              <RequireAuth><AppLayout><HRPage /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/support"}>
-              <RequireAuth>
-                <SupportQuality />
-              </RequireAuth>
+              <RequireAuth><AppLayout><SupportQuality /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/pos"}>
-              <RequireAuth>
-                <POSPage />
-              </RequireAuth>
+              <RequireAuth><AppLayout><POSPage /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/permissions"}>
-              <RequireAuth>
-                <Permissions />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Permissions /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/basic-data"}>
-              <RequireAuth>
-                <BasicData />
-              </RequireAuth>
+              <RequireAuth><AppLayout><BasicData /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/journal"}>
-              <RequireAuth>
-                <Journal />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Journal /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/manual-journal"}>
-              <RequireAuth>
-                <ManualJournal />
-              </RequireAuth>
+              <RequireAuth><AppLayout><ManualJournal /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/customization"}>
-              <RequireAuth>
-                <Customization />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Customization /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/branches"}>
-              <RequireAuth>
-                <Branches />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Branches /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/audit"}>
-              <RequireAuth>
-                <Audit />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Audit /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/requisitions"}>
-              <RequireAuth>
-                <Requisitions />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Requisitions /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/operations"}>
-              <RequireAuth>
-                <Operations />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Operations /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/analytics"}>
-              <RequireAuth>
-                <Analytics />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Analytics /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/billing"}>
-              <RequireAuth>
-                <Billing />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Billing /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/onboarding"}>
-              <RequireAuth>
-                <SubscriberOnboarding />
-              </RequireAuth>
+              <RequireAuth><AppLayout><SubscriberOnboarding /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/cost-centers"}>
-              <RequireAuth>
-                <CostCenters />
-              </RequireAuth>
+              <RequireAuth><AppLayout><CostCenters /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/zatca"}>
-              <RequireAuth>
-                <ZatcaIntegration />
-              </RequireAuth>
+              <RequireAuth><AppLayout><ZatcaIntegration /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/beneficiaries"}>
-              <RequireAuth>
-                <Beneficiaries />
-              </RequireAuth>
+              <RequireAuth><AppLayout><Beneficiaries /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/financial-statements"}>
-              <RequireAuth>
-                <FinancialStatements />
-              </RequireAuth>
+              <RequireAuth><AppLayout><FinancialStatements /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/fiscal-periods"}>
-              <RequireAuth>
-                <FiscalPeriods />
-              </RequireAuth>
+              <RequireAuth><AppLayout><FiscalPeriods /></AppLayout></RequireAuth>
             </Route>
             <Route path={"/404"} component={NotFound} />
             <Route component={NotFound} />

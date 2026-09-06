@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -151,7 +150,6 @@ export default function FinancialStatements() {
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
-      <HeaderNavbar />
       <main className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* ── Ribbon — هوية مالية موحدة مع Reports ── */}
         <div className="ribbon-premium">

@@ -1,5 +1,4 @@
 ﻿import React, { useState } from "react";
-import { HeaderNavbar } from "@/components/HeaderNavbar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -77,8 +76,6 @@ export default function Portal() {
 
   return (
     <div className="min-h-screen bg-sand text-ink pb-20 font-sans" dir="rtl">
-      <HeaderNavbar />
-
       <main className="max-w-5xl mx-auto px-4 py-10 space-y-8">
         {/* Banner Section */}
         <div className="bg-gradient-to-br from-ink to-ink-600 text-white rounded-3xl p-6 sm:p-8 shadow-xl space-y-4">

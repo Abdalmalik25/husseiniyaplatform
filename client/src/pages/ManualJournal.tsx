@@ -1,5 +1,4 @@
 import { useMemo, useState } from "react";
-import { AppSidebar } from "@/components/AppSidebar";
 import { trpc } from "@/lib/trpc";
 import { RequireAuth } from "@/components/RequireAuth";
 import { Card, CardContent } from "@/components/ui/card";
@@ -138,7 +137,6 @@ export default function ManualJournal() {
 
   return (
     <div className="min-h-screen flex">
-      <AppSidebar />
       <main className="flex-1 bg-muted">
         <div className="border-b bg-card px-6 py-4">
           <div className="flex items-center gap-3">

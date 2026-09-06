@@ -15,7 +15,6 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { AppSidebar } from "@/components/AppSidebar";
 import { openPrintableInvoiceWindow } from "@/lib/pdfInvoiceGenerator";
 import {
   Search,
@@ -248,7 +247,6 @@ export default function Store() {
 
   return (
     <div className="min-h-screen bg-sand flex" dir="rtl">
-      <AppSidebar />
       <div className="flex-1 min-w-0 flex flex-col">
         <div className="bg-ink-800 text-white border-b border-ink-600 shadow-sm py-2 px-4 sticky top-0 z-30">
           <div className="max-w-6xl mx-auto flex items-center justify-between gap-2">
