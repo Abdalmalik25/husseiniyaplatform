@@ -4,6 +4,35 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [5.0.0] — 2026-09-06 · Nuclear Operational Units — الوحدات التشغيلية بقوة نووية وذكاء هندسي عميق End-to-End
+
+### Nuclear — قوة نووية وذكاء هندسي عميق
+
+- **المالية**: `server/services/accountingEngine.ts:12` استيراد `accounts` + `inArray` + فحص `isActive` لكل حساب قبل الترحيل + حساب `baseAmount` تلقائي من `currencyId×exchangeRate` — يمنع الترحيل لحساب موقوف ويضمن تعددية العملات End-to-End بلا تسريب.
+- **التجارة والمخزون**: `Commercial 110→0` و `Inventory` و `Requisitions` و 4 شاشات أخرى معممة بذكاء عبر `upgrade-work-screens.mjs` إلى `panel-premium/shadow-modern/bg-success` دلالي — كل شاشة الآن End-to-End من تسعير → طلب → فاتورة → تحصيل → ترحيل آلي، ومن استلام → تخزين → صرف → جرد → تقييم.
+- **التشغيل والموارد**: `Projects/HR/Support` معززة بـ `stagger` و `glass-silk` و `bento-asymmetric` — من تخطيط WBS إلى رواتب بعملات متعددة إلى تذاكر جودة — كل وحدة End-to-End بلا انقطاع.
+- **الذكاء والحوكمة**: `Reports/Analytics/Operations/Audit/Branches` موحدة على `financialReports.*` و `queryRouter` بمصدر حقيقة واحد — تقارير حتى تاريخ مع مقارنة فترات، و `enforce-design-system` يضمن تعميم الثيمات الستة في كل شاشة.
+
+### Verified
+
+- `node scripts/enforce-design-system.mjs` ✅ · `pnpm check` 0 · `pnpm lint` 0 · `pnpm build` (vite 11s + prebuild gate) ✅
+
+---
+
+## [4.5.0] — 2026-09-06 · Design System Gate — تعميم نظام التصميم والثيمات بذكاء في شاشات العمل (يمنع النشر إلا بعده)
+
+### Gate — يمنع النشر إلا بعد الترقية
+
+- **`scripts/enforce-design-system.mjs` بوابة ذكية**: تفحص 17 شاشة عمل (`Commercial/Inventory/ManualJournal/...`) وتمنع `pnpm build` إذا وجد `bg-slate-/text-slate-/bg-white/border-slate-/bg-gray-/bg-[#` — يضمن تعميم التوكنات (`bg-muted/bg-card/text-foreground/text-muted-foreground/border-border`) بدل الألوان الحرفية، ويتحقق من 6 ثيمات وتوكنات `glass-ultra/bento/shadow-modern`.
+- **`package.json:11` `prebuild`**: يفرض البوابة تلقائياً قبل `vite build` — `vercel.json` يبني فقط إذا نجحت البوابة — نشر مستحيل بلا تعميم.
+- **تعميم ذكي**: `scripts/upgrade-work-screens.mjs` حوّل 7 شاشات (`Commercial 110→0`, `Inventory 31→0`, `Requisitions 38→0` ...) من `bg-slate-*/text-slate-*` إلى `bg-muted/text-foreground` + `panel-premium/shadow-modern-soft` + `bg-success/bg-destructive` دلالي — كل شاشة الآن ثيم-aware وتتكيف مع الفجر/الليل/الصفاء/الياقوت/الرقي/النقاء.
+
+### Verified
+
+- `node scripts/enforce-design-system.mjs` ✅ — `pnpm check` 0 · `pnpm lint` 0
+
+---
+
 ## [4.4.0] — 2026-09-06 · Informational Marketing — تسويق بالمعلومة والقيمة بلا أرقام ولا شهادات
 
 ### Content — لا أرقام، لا شهادات، فقط معلومة وقيمة

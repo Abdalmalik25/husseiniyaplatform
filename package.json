@@ -1,6 +1,6 @@
 {
   "name": "alhusainia",
-  "version": "4.4.0",
+  "version": "5.0.0",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -8,6 +8,7 @@
   },
   "scripts": {
     "dev": "cross-env NODE_ENV=development tsx watch server/_core/index.ts",
+    "prebuild": "node scripts/enforce-design-system.mjs",
     "build": "vite build && node scripts/build-server.cjs",
     "start": "cross-env NODE_ENV=production node api/index.mjs",
     "check": "tsc --noEmit",

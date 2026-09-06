@@ -52,7 +52,7 @@ function ProductSelect({
         className="h-9 text-xs"
       />
       <select
-        className="w-full h-9 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+        className="w-full h-9 rounded-lg border border-border px-2 text-xs bg-card"
         value={value ?? ""}
         onChange={e => onChange(e.target.value ? Number(e.target.value) : null)}
       >
@@ -143,14 +143,14 @@ export default function Inventory() {
           <Boxes className="w-7 h-7 text-brand" />
           <div>
             <h1 className="text-xl font-bold font-display">وحدة المخزون</h1>
-            <p className="text-xs text-slate-300 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               بيانات أساسية، عمليات، تقارير تحليلية وتفصيلية، وتقييم المخزون
             </p>
           </div>
         </div>
 
         <Tabs defaultValue="dashboard">
-          <TabsList className="grid w-full grid-cols-3 md:grid-cols-8 h-10 bg-white border">
+          <TabsList className="grid w-full grid-cols-3 md:grid-cols-8 h-10 bg-card border">
             <TabsTrigger
               value="dashboard"
               className="text-[10px] flex items-center gap-1"
@@ -226,7 +226,7 @@ export default function Inventory() {
                 danger={(summary.data?.lowStockCount ?? 0) > 0}
               />
             </div>
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="p-3">
                 <CardTitle className="text-sm font-bold text-ink">
                   توزيع المخزون حسب التصنيف
@@ -235,7 +235,7 @@ export default function Inventory() {
               <CardContent className="p-3 overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b bg-gray-50 text-[10px]">
+                    <tr className="border-b bg-muted text-[10px]">
                       <th className="text-right p-1.5">التصنيف</th>
                       <th className="text-center p-1.5">الكمية</th>
                       <th className="text-left p-1.5">القيمة (تكلفة)</th>
@@ -258,7 +258,7 @@ export default function Inventory() {
                       <tr>
                         <td
                           colSpan={3}
-                          className="text-center text-gray-400 py-4"
+                          className="text-center text-muted-foreground py-4"
                         >
                           لا توجد أصناف
                         </td>
@@ -273,7 +273,7 @@ export default function Inventory() {
           {/* ─── Operations ─── */}
           <TabsContent value="operations" className="space-y-3">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <Card className="border-0 shadow-sm bg-white">
+              <Card className="panel-premium shadow-modern-soft">
                 <CardHeader className="p-3">
                   <CardTitle className="text-sm font-bold text-ink">
                     تسوية / جرد / إدخال / إخراج
@@ -288,7 +288,7 @@ export default function Inventory() {
                     <div>
                       <Label className="text-[11px]">العملية</Label>
                       <select
-                        className="w-full h-9 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                        className="w-full h-9 rounded-lg border border-border px-2 text-xs bg-card"
                         value={opType}
                         onChange={e => setOpType(e.target.value as any)}
                       >
@@ -349,7 +349,7 @@ export default function Inventory() {
                 </CardContent>
               </Card>
 
-              <Card className="border-0 shadow-sm bg-white">
+              <Card className="panel-premium shadow-modern-soft">
                 <CardHeader className="p-3">
                   <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
                     <ArrowLeftRight className="w-4 h-4" /> تحويل بين المخازن
@@ -412,7 +412,7 @@ export default function Inventory() {
 
           {/* ─── Reports ─── */}
           <TabsContent value="reports" className="space-y-3">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="p-3">
                 <CardTitle className="text-sm font-bold text-ink">
                   تقييم المخزون (تكلفة وبيع)
@@ -422,7 +422,7 @@ export default function Inventory() {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b bg-gray-50 text-[10px]">
+                      <tr className="border-b bg-muted text-[10px]">
                         <th className="text-right p-1.5">الكود</th>
                         <th className="text-right p-1.5">الصنف</th>
                         <th className="text-center p-1.5">النوع</th>
@@ -443,7 +443,7 @@ export default function Inventory() {
                             <Badge
                               className={
                                 i.type === "goods"
-                                  ? "bg-blue-100 text-blue-700 text-[9px]"
+                                  ? "bg-info/10 text-info text-[9px]"
                                   : "bg-purple-100 text-purple-700 text-[9px]"
                               }
                             >
@@ -466,7 +466,7 @@ export default function Inventory() {
                       ))}
                     </tbody>
                     <tfoot>
-                      <tr className="font-bold bg-gray-50">
+                      <tr className="font-bold bg-muted">
                         <td colSpan={5} className="p-1.5 text-left">
                           الإجماليات
                         </td>
@@ -483,7 +483,7 @@ export default function Inventory() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="p-3">
                 <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
                   <AlertTriangle className="w-4 h-4 text-amber-500" /> تنبيهات
@@ -492,7 +492,7 @@ export default function Inventory() {
               </CardHeader>
               <CardContent className="p-3">
                 {(lowStock.data || []).length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-4">
+                  <p className="text-xs text-muted-foreground text-center py-4">
                     لا توجد أصناف منخفضة
                   </p>
                 ) : (
@@ -500,7 +500,7 @@ export default function Inventory() {
                     {(lowStock.data || []).map(p => (
                       <Badge
                         key={p.id}
-                        className="bg-amber-100 text-amber-800 text-[10px]"
+                        className="bg-warning/10 text-amber-800 text-[10px]"
                       >
                         {p.name} ({p.currentStock}/{p.minStock})
                       </Badge>
@@ -510,7 +510,7 @@ export default function Inventory() {
               </CardContent>
             </Card>
 
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="p-3">
                 <CardTitle className="text-sm font-bold text-ink">
                   كرت الصنف (حركة وتعاقب الأرصدة)
@@ -525,7 +525,7 @@ export default function Inventory() {
                 {stockCard.data && (
                   <table className="w-full text-xs">
                     <thead>
-                      <tr className="border-b bg-gray-50 text-[10px]">
+                      <tr className="border-b bg-muted text-[10px]">
                         <th className="text-right p-1.5">التاريخ</th>
                         <th className="text-center p-1.5">النوع</th>
                         <th className="text-center p-1.5">الكمية</th>
@@ -539,7 +539,7 @@ export default function Inventory() {
                             {new Date(m.createdAt).toLocaleString("en-GB")}
                           </td>
                           <td className="p-1.5 text-center">
-                            <Badge className="bg-gray-100 text-gray-700 text-[9px]">
+                            <Badge className="bg-muted text-muted-foreground text-[9px]">
                               {m.type}
                             </Badge>
                           </td>
@@ -555,7 +555,7 @@ export default function Inventory() {
                         <tr>
                           <td
                             colSpan={4}
-                            className="text-center text-gray-400 py-4"
+                            className="text-center text-muted-foreground py-4"
                           >
                             لا حركات
                           </td>
@@ -570,7 +570,7 @@ export default function Inventory() {
 
           {/* ─── Warehouses ─── */}
           <TabsContent value="warehouses" className="space-y-3">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="p-3">
                 <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
                   <WhIcon className="w-4 h-4" /> المخازن
@@ -616,7 +616,7 @@ export default function Inventory() {
                 </div>
                 <table className="w-full text-xs">
                   <thead>
-                    <tr className="border-b bg-gray-50 text-[10px]">
+                    <tr className="border-b bg-muted text-[10px]">
                       <th className="text-right p-1.5">الكود</th>
                       <th className="text-right p-1.5">الاسم</th>
                       <th className="text-right p-1.5">الموقع</th>
@@ -635,7 +635,7 @@ export default function Inventory() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            className="text-rose-600 text-[10px] h-7"
+                            className="text-destructive text-[10px] h-7"
                             onClick={() => removeWh.mutate({ id: w.id })}
                           >
                             حذف
@@ -651,7 +651,7 @@ export default function Inventory() {
 
           {/* ─── Reorder Suggestions (Module C) ─── */}
           <TabsContent value="reorder" className="space-y-3">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="p-3">
                 <div className="flex items-center justify-between gap-2">
                   <CardTitle className="text-sm font-bold text-ink flex items-center gap-1.5">
@@ -673,7 +673,7 @@ export default function Inventory() {
               </CardHeader>
               <CardContent className="p-3">
                 {(reorderSuggestions.data ?? []).length === 0 ? (
-                  <p className="text-xs text-gray-400 text-center py-4">
+                  <p className="text-xs text-muted-foreground text-center py-4">
                     لا توجد أصناف تحتاج إعادة طلب (لم يتم تحديد نقطة إعادة طلب)
                   </p>
                 ) : (
@@ -681,13 +681,13 @@ export default function Inventory() {
                     {(reorderSuggestions.data ?? []).map((s: any) => (
                       <div
                         key={s.product.id}
-                        className="flex items-center justify-between p-2 bg-amber-50 rounded-lg border border-amber-200"
+                        className="flex items-center justify-between p-2 bg-warning/10 rounded-lg border border-amber-200"
                       >
                         <div>
                           <p className="font-bold text-xs text-ink">
                             {s.product.name}
                           </p>
-                          <p className="text-[10px] text-gray-500">
+                          <p className="text-[10px] text-muted-foreground">
                             الرصيد: {s.currentStock} • نقطة الطلب:{" "}
                             {s.reorderPoint} • المقترح: {s.suggestedQty}
                           </p>
@@ -720,7 +720,7 @@ export default function Inventory() {
           {/* ─── Valuation (FIFO/LIFO/WAVG) ─── */}
           <TabsContent value="valuation" className="space-y-3">
             <div className="p-3">
-              <p className="text-xs text-gray-500 mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 استخدم لوحة المعلومات (Dashboard) للحصول على تجربة تقييم شاملة
                 مع FIFO/LIFO/المتوسط المرجح
               </p>
@@ -740,7 +740,7 @@ export default function Inventory() {
           {/* ─── Advanced Analytics ─── */}
           <TabsContent value="advanced" className="space-y-3">
             <div className="p-3">
-              <p className="text-xs text-gray-500 mb-3">
+              <p className="text-xs text-muted-foreground mb-3">
                 استخدم لوحة المعلومات (Dashboard) للوصول لتقارير التقادم،
                 الدوران، تحليل ABC، والمخزون الميت
               </p>
@@ -789,7 +789,7 @@ function ProductUnitsPanel({ productId }: { productId: number | null }) {
     (units ?? []).find((u: any) => u.id === id)?.name || `#${id}`;
 
   return (
-    <Card className="border-0 shadow-sm bg-white">
+    <Card className="panel-premium shadow-modern-soft">
       <CardHeader className="p-3">
         <button
           className="flex w-full items-center justify-between text-sm font-bold text-ink"
@@ -834,7 +834,7 @@ function ProductUnitsPanel({ productId }: { productId: number | null }) {
                   <Button
                     size="sm"
                     variant="ghost"
-                    className="h-7 text-[10px] text-rose-600"
+                    className="h-7 text-[10px] text-destructive"
                     onClick={() => delPU.mutate({ id: p.id })}
                   >
                     حذف
@@ -850,7 +850,7 @@ function ProductUnitsPanel({ productId }: { productId: number | null }) {
           )}
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             <select
-              className="h-9 rounded-lg border border-gray-300 px-2 text-xs bg-white col-span-2 md:col-span-1"
+              className="h-9 rounded-lg border border-border px-2 text-xs bg-card col-span-2 md:col-span-1"
               value={puUnit ?? ""}
               onChange={e =>
                 setPuUnit(e.target.value ? Number(e.target.value) : null)
@@ -920,8 +920,8 @@ function Kpi({
   danger?: boolean;
 }) {
   return (
-    <Card className="border-0 shadow-sm bg-white p-3">
-      <p className="text-[10px] text-gray-500">{label}</p>
+    <Card className="panel-premium shadow-modern-soft p-3">
+      <p className="text-[10px] text-muted-foreground">{label}</p>
       <p
         className={`font-bold text-lg ${danger ? "text-rose-500" : "text-ink"}`}
       >
@@ -942,7 +942,7 @@ function WhSelect({
 }) {
   return (
     <select
-      className="w-full h-9 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+      className="w-full h-9 rounded-lg border border-border px-2 text-xs bg-card"
       value={value ?? ""}
       onChange={e => onChange(e.target.value ? Number(e.target.value) : null)}
     >

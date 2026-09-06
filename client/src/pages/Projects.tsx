@@ -69,11 +69,11 @@ const PROJ_STATUS_LABEL: Record<string, string> = {
   cancelled: "ملغى",
 };
 const PROJ_STATUS_TONE: Record<string, string> = {
-  planning: "bg-slate-100 text-slate-600",
-  active: "bg-emerald-100 text-emerald-700",
-  on_hold: "bg-amber-100 text-amber-700",
+  planning: "bg-muted text-muted-foreground",
+  active: "bg-success/10 text-success",
+  on_hold: "bg-warning/10 text-warning",
   completed: "bg-sky-100 text-sky-700",
-  cancelled: "bg-rose-100 text-rose-700",
+  cancelled: "bg-destructive/10 text-destructive",
 };
 const TASK_STATUS_LABEL: Record<string, string> = {
   todo: "قيد الانتظار",
@@ -82,10 +82,10 @@ const TASK_STATUS_LABEL: Record<string, string> = {
   done: "مكتملة",
 };
 const TASK_STATUS_TONE: Record<string, string> = {
-  todo: "bg-slate-100 text-slate-600",
+  todo: "bg-muted text-muted-foreground",
   in_progress: "bg-sky-100 text-sky-700",
-  review: "bg-amber-100 text-amber-700",
-  done: "bg-emerald-100 text-emerald-700",
+  review: "bg-warning/10 text-warning",
+  done: "bg-success/10 text-success",
 };
 const PRIORITY_LABEL: Record<string, string> = {
   low: "منخفضة",
@@ -94,10 +94,10 @@ const PRIORITY_LABEL: Record<string, string> = {
   urgent: "عاجلة",
 };
 const PRIORITY_TONE: Record<string, string> = {
-  low: "bg-slate-100 text-slate-600",
+  low: "bg-muted text-muted-foreground",
   medium: "bg-sky-100 text-sky-700",
-  high: "bg-amber-100 text-amber-700",
-  urgent: "bg-rose-100 text-rose-700",
+  high: "bg-warning/10 text-warning",
+  urgent: "bg-destructive/10 text-destructive",
 };
 
 const fmt = (v?: string | number) => {
@@ -395,7 +395,7 @@ export default function Projects() {
                           <div className="flex items-center gap-2">
                             <div className="h-2 w-16 overflow-hidden rounded-full bg-panel">
                               <div
-                                className={`h-full rounded-full ${p.progressPct >= 75 ? "bg-emerald-500" : p.progressPct >= 40 ? "bg-sky-500" : "bg-amber-500"}`}
+                                className={`h-full rounded-full ${p.progressPct >= 75 ? "bg-success/100" : p.progressPct >= 40 ? "bg-sky-500" : "bg-warning/100"}`}
                                 style={{ width: `${p.progressPct}%` }}
                               />
                             </div>
@@ -415,7 +415,7 @@ export default function Projects() {
                         </td>
                         <td className="px-3 py-2 text-center">
                           <span
-                            className={`rounded-full px-2 py-0.5 text-xs font-bold ${p.budgetUsedPct > 100 ? "bg-rose-100 text-rose-700" : p.budgetUsedPct > 80 ? "bg-amber-100 text-amber-700" : "bg-emerald-100 text-emerald-700"}`}
+                            className={`rounded-full px-2 py-0.5 text-xs font-bold ${p.budgetUsedPct > 100 ? "bg-destructive/10 text-destructive" : p.budgetUsedPct > 80 ? "bg-warning/10 text-warning" : "bg-success/10 text-success"}`}
                           >
                             {p.budgetUsedPct}%
                           </span>
@@ -426,7 +426,7 @@ export default function Projects() {
                         </td>
                         <td className="px-3 py-2 text-center">
                           {p.overdueTasks > 0 ? (
-                            <span className="rounded-full bg-rose-100 px-2 py-0.5 text-xs font-bold text-rose-700">
+                            <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-xs font-bold text-destructive">
                               {p.overdueTasks}
                             </span>
                           ) : (
@@ -626,10 +626,10 @@ function ProjectsPanel({
                         <div
                           className={`h-full rounded-full ${
                             progressOf(p.id) >= 75
-                              ? "bg-emerald-500"
+                              ? "bg-success/100"
                               : progressOf(p.id) >= 40
                                 ? "bg-sky-500"
-                                : "bg-amber-500"
+                                : "bg-warning/100"
                           }`}
                           style={{ width: `${progressOf(p.id)}%` }}
                         />
@@ -654,12 +654,12 @@ function ProjectsPanel({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="h-7 text-[10px] text-rose-600"
+                            className="h-7 text-[10px] text-destructive"
                           >
                             <Trash2 className="w-3 h-3" />
                           </Button>
                         </AlertDialogTrigger>
-                        <AlertDialogContent className="bg-white max-w-md">
+                        <AlertDialogContent className="bg-card max-w-md">
                           <AlertDialogHeader>
                             <AlertDialogTitle className="text-sm text-ink">
                               حذف المشروع نهائياً؟
@@ -676,7 +676,7 @@ function ProjectsPanel({
                             <AlertDialogAction
                               disabled={deleteM.isPending}
                               onClick={() => deleteM.mutate({ id: p.id })}
-                              className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 font-bold"
+                              className="bg-destructive hover:bg-rose-700 text-white text-xs h-9 font-bold"
                             >
                               {deleteM.isPending
                                 ? "جاري الحذف..."
@@ -713,7 +713,7 @@ function ProjectsPanel({
           }
         }}
       >
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               {editId !== null ? "تعديل مشروع" : "مشروع جديد"}
@@ -1102,13 +1102,13 @@ function TasksPanel({
                         <Button
                           size="sm"
                           variant="outline"
-                          className="h-7 text-[10px] text-rose-600"
+                          className="h-7 text-[10px] text-destructive"
                           aria-label="حذف المهمة"
                         >
                           <Trash2 className="w-3 h-3" />
                         </Button>
                       </AlertDialogTrigger>
-                      <AlertDialogContent className="bg-white max-w-md">
+                      <AlertDialogContent className="bg-card max-w-md">
                         <AlertDialogHeader>
                           <AlertDialogTitle className="text-sm text-ink">
                             حذف المهمة؟
@@ -1125,7 +1125,7 @@ function TasksPanel({
                           <AlertDialogAction
                             disabled={deleteM.isPending}
                             onClick={() => deleteM.mutate({ id: t.id })}
-                            className="bg-rose-600 hover:bg-rose-700 text-white text-xs h-9 font-bold"
+                            className="bg-destructive hover:bg-rose-700 text-white text-xs h-9 font-bold"
                           >
                             {deleteM.isPending ? "جاري الحذف..." : "حذف نهائي"}
                           </AlertDialogAction>
@@ -1157,7 +1157,7 @@ function TasksPanel({
           if (!o) setEditingId(null);
         }}
       >
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               {editingId !== null ? "تعديل المهمة" : "مهمة جديدة"}

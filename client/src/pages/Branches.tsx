@@ -125,17 +125,17 @@ export default function Branches() {
   return (
     <div className="min-h-screen flex">
       <AppSidebar />
-      <main className="flex-1 bg-slate-50">
-        <div className="border-b bg-white px-6 py-4">
+      <main className="flex-1 bg-muted">
+        <div className="border-b bg-card px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-success text-white">
               <Building2 className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">
+              <h1 className="text-xl font-bold text-foreground">
                 الفروع والصلاحيات
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 إدارة الفروع وتوزيع الصلاحيات لكل مستخدم حسب الفرع — عزل تشغيلي
                 بمعيار عالمي
               </p>
@@ -147,7 +147,7 @@ export default function Branches() {
           {/* branches */}
           <Card>
             <CardContent className="p-4 space-y-3">
-              <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <GitBranch className="h-4 w-4" /> الفروع
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
@@ -173,7 +173,7 @@ export default function Branches() {
               <div className="flex gap-2">
                 <Button
                   size="sm"
-                  className="bg-emerald-600 text-white hover:bg-emerald-700"
+                  className="bg-success text-white hover:bg-emerald-700"
                   onClick={submitBranch}
                   disabled={createBranch.isPending || updateBranch.isPending}
                 >
@@ -198,27 +198,27 @@ export default function Branches() {
 
               <div className="space-y-2 pt-2">
                 {isPending ? (
-                  <p className="text-[12px] text-slate-400">جاري التحميل...</p>
+                  <p className="text-[12px] text-muted-foreground">جاري التحميل...</p>
                 ) : (branches ?? []).length === 0 ? (
-                  <p className="text-[12px] text-slate-400">
+                  <p className="text-[12px] text-muted-foreground">
                     لا توجد فروع بعد.
                   </p>
                 ) : (
                   (branches ?? []).map((b: any) => (
                     <div
                       key={b.id}
-                      className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3"
+                      className="flex items-center justify-between rounded-xl border border-border bg-muted p-3"
                     >
                       <div>
-                        <div className="text-[13px] font-bold text-slate-700">
+                        <div className="text-[13px] font-bold text-foreground">
                           {b.name} {b.isMain ? "⭐" : ""}
                         </div>
-                        <div className="text-[11px] text-slate-400">
+                        <div className="text-[11px] text-muted-foreground">
                           {b.code} · {b.city || "—"}
                         </div>
                       </div>
                       <button onClick={() => startEdit(b)}>
-                        <span className="text-[11px] text-emerald-600">
+                        <span className="text-[11px] text-success">
                           تعديل
                         </span>
                       </button>
@@ -232,11 +232,11 @@ export default function Branches() {
           {/* user-branch permissions */}
           <Card>
             <CardContent className="p-4 space-y-3">
-              <h2 className="text-sm font-bold text-slate-700 flex items-center gap-2">
+              <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
                 <ShieldCheck className="h-4 w-4" /> صلاحيات المستخدمين حسب الفرع
               </h2>
               <select
-                className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px]"
+                className="h-9 w-full rounded-lg border border-border bg-card px-2 text-[12px]"
                 value={selUser}
                 onChange={e =>
                   setSelUser(e.target.value ? Number(e.target.value) : "")
@@ -256,16 +256,16 @@ export default function Branches() {
                   return (
                     <div
                       key={b.id}
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-2"
+                      className="rounded-xl border border-border bg-muted p-2"
                     >
-                      <div className="mb-1 text-[12px] font-bold text-slate-700">
+                      <div className="mb-1 text-[12px] font-bold text-foreground">
                         {b.name}
                       </div>
                       <div className="flex flex-wrap gap-3">
                         {PERM_LABELS.map(pl => (
                           <label
                             key={pl.key}
-                            className="flex items-center gap-1 text-[11px] text-slate-600"
+                            className="flex items-center gap-1 text-[11px] text-muted-foreground"
                           >
                             <input
                               type="checkbox"
@@ -291,7 +291,7 @@ export default function Branches() {
 
               <Button
                 size="sm"
-                className="w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                className="w-full bg-success text-white hover:bg-emerald-700"
                 onClick={savePerms}
                 disabled={assign.isPending}
               >

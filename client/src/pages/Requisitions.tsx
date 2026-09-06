@@ -32,9 +32,9 @@ const STATUS_LABEL: Record<string, string> = {
   received: "مستلمة",
 };
 const STATUS_TONE: Record<string, string> = {
-  draft: "bg-slate-100 text-slate-600",
-  approved: "bg-emerald-50 text-emerald-700",
-  rejected: "bg-rose-50 text-rose-700",
+  draft: "bg-muted text-muted-foreground",
+  approved: "bg-success/10 text-success",
+  rejected: "bg-destructive/10 text-destructive",
   received: "bg-brand-50 text-brand-700",
 };
 
@@ -106,17 +106,17 @@ export default function Requisitions() {
   return (
     <div className="min-h-screen flex">
       <AppSidebar />
-      <main className="flex-1 bg-slate-50">
-        <div className="border-b bg-white px-6 py-4">
+      <main className="flex-1 bg-muted">
+        <div className="border-b bg-card px-6 py-4">
           <div className="flex items-center gap-3">
             <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white">
               <ClipboardList className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">
+              <h1 className="text-xl font-bold text-foreground">
                 طلبات التوريد
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 سير عمل الشراء الداخلي: طلب ← اعتماد ← استلام (يُرحَّل تلقائياً
                 إلى الدفتر)
               </p>
@@ -126,19 +126,19 @@ export default function Requisitions() {
 
         <div className="px-6 pt-6 grid grid-cols-2 xl:grid-cols-5 gap-3">
           {[
-            ["إجمالي الطلبات", kpis?.total ?? 0, "text-slate-800"],
-            ["بانتظار الاعتماد", kpis?.pending ?? 0, "text-amber-700"],
-            ["طلبات معتمدة", kpis?.approved ?? 0, "text-blue-700"],
-            ["مستلمة", kpis?.received ?? 0, "text-emerald-700"],
+            ["إجمالي الطلبات", kpis?.total ?? 0, "text-foreground"],
+            ["بانتظار الاعتماد", kpis?.pending ?? 0, "text-warning"],
+            ["طلبات معتمدة", kpis?.approved ?? 0, "text-info"],
+            ["مستلمة", kpis?.received ?? 0, "text-success"],
             [
               "القيمة المفتوحة",
               `${money(kpis?.openValue)} YER`,
               "text-brand-700",
             ],
           ].map(([label, value, tone]) => (
-            <Card key={String(label)} className="border-slate-200 shadow-sm">
+            <Card key={String(label)} className="border-border shadow-sm">
               <CardContent className="p-4">
-                <p className="text-[11px] font-bold text-slate-500">{label}</p>
+                <p className="text-[11px] font-bold text-muted-foreground">{label}</p>
                 <p className={`mt-1 text-xl font-black ${tone}`}>{value}</p>
               </CardContent>
             </Card>
@@ -153,7 +153,7 @@ export default function Requisitions() {
             </CardHeader>
             <CardContent className="space-y-3">
               <div>
-                <Label className="mb-1 block text-[11px] font-bold text-slate-500">
+                <Label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                   البند
                 </Label>
                 <Input
@@ -165,7 +165,7 @@ export default function Requisitions() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="mb-1 block text-[11px] font-bold text-slate-500">
+                  <Label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                     الكمية
                   </Label>
                   <Input
@@ -175,7 +175,7 @@ export default function Requisitions() {
                   />
                 </div>
                 <div>
-                  <Label className="mb-1 block text-[11px] font-bold text-slate-500">
+                  <Label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                     الوحدة
                   </Label>
                   <Input
@@ -187,7 +187,7 @@ export default function Requisitions() {
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <Label className="mb-1 block text-[11px] font-bold text-slate-500">
+                  <Label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                     التكلفة التقديرية
                   </Label>
                   <Input
@@ -198,7 +198,7 @@ export default function Requisitions() {
                   />
                 </div>
                 <div>
-                  <Label className="mb-1 block text-[11px] font-bold text-slate-500">
+                  <Label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                     العملة
                   </Label>
                   <Input
@@ -209,7 +209,7 @@ export default function Requisitions() {
                 </div>
               </div>
               <div>
-                <Label className="mb-1 block text-[11px] font-bold text-slate-500">
+                <Label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                   وصف
                 </Label>
                 <Textarea
@@ -221,19 +221,19 @@ export default function Requisitions() {
               </div>
               {/* ─── Multi-step approvers (Module A) ─────────────────── */}
               <div>
-                <Label className="mb-1 block text-[11px] font-bold text-slate-500">
+                <Label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                   معتمدون بالترتيب (اختياري)
                 </Label>
-                <div className="max-h-32 overflow-y-auto rounded-lg border border-slate-200 p-2 space-y-1">
+                <div className="max-h-32 overflow-y-auto rounded-lg border border-border p-2 space-y-1">
                   {(users ?? []).length === 0 ? (
-                    <p className="text-[11px] text-slate-400">
+                    <p className="text-[11px] text-muted-foreground">
                       لا يوجد مستخدمون
                     </p>
                   ) : (
                     (users ?? []).map((u: any) => (
                       <label
                         key={u.id}
-                        className="flex items-center gap-2 text-[12px] text-slate-700"
+                        className="flex items-center gap-2 text-[12px] text-foreground"
                       >
                         <input
                           type="checkbox"
@@ -252,7 +252,7 @@ export default function Requisitions() {
                   )}
                 </div>
                 {approvers.length > 0 && (
-                  <p className="mt-1 text-[10px] text-slate-400">
+                  <p className="mt-1 text-[10px] text-muted-foreground">
                     سيتم الاعتماد بالترتيب:{" "}
                     {approvers
                       .map(
@@ -306,7 +306,7 @@ export default function Requisitions() {
                     <TableRow>
                       <TableCell
                         colSpan={6}
-                        className="py-8 text-center text-slate-400"
+                        className="py-8 text-center text-muted-foreground"
                       >
                         جاري التحميل...
                       </TableCell>
@@ -315,7 +315,7 @@ export default function Requisitions() {
                     <TableRow>
                       <TableCell
                         colSpan={6}
-                        className="py-8 text-center text-slate-400"
+                        className="py-8 text-center text-muted-foreground"
                       >
                         لا توجد طلبات توريد.
                       </TableCell>
@@ -323,16 +323,16 @@ export default function Requisitions() {
                   ) : (
                     list.map((r: any) => (
                       <TableRow key={r.id}>
-                        <TableCell className="text-[12px] font-mono text-slate-500">
+                        <TableCell className="text-[12px] font-mono text-muted-foreground">
                           {r.requisitionNumber}
                         </TableCell>
-                        <TableCell className="text-[13px] font-medium text-slate-800">
+                        <TableCell className="text-[13px] font-medium text-foreground">
                           {r.itemName}
                         </TableCell>
-                        <TableCell className="text-[12px] text-slate-600">
+                        <TableCell className="text-[12px] text-muted-foreground">
                           {r.quantity} {r.unit}
                         </TableCell>
-                        <TableCell className="text-[12px] text-slate-600">
+                        <TableCell className="text-[12px] text-muted-foreground">
                           {r.estimatedCost} {r.currency}
                         </TableCell>
                         <TableCell>
@@ -357,7 +357,7 @@ export default function Requisitions() {
                                 <>
                                   <Button
                                     size="sm"
-                                    className="h-7 px-2 text-[11px] bg-emerald-600 hover:bg-emerald-700"
+                                    className="h-7 px-2 text-[11px] bg-success hover:bg-emerald-700"
                                     onClick={() =>
                                       approve.mutate({
                                         id: r.id,
@@ -371,7 +371,7 @@ export default function Requisitions() {
                                   <Button
                                     size="sm"
                                     variant="outline"
-                                    className="h-7 px-2 text-[11px] text-rose-600 border-rose-200"
+                                    className="h-7 px-2 text-[11px] text-destructive border-destructive/20"
                                     onClick={() =>
                                       approve.mutate({
                                         id: r.id,
@@ -424,8 +424,8 @@ export default function Requisitions() {
           {/* ─── Multi-step progress (Module A) ──────────────────── */}
           {reqForApproval?.approvers &&
             (reqForApproval.approvers as any[]).length > 0 && (
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
-                <p className="text-[12px] font-bold text-slate-700">
+              <div className="rounded-lg border border-border bg-muted p-3 space-y-2">
+                <p className="text-[12px] font-bold text-foreground">
                   سير الاعتماد: الخطوة{" "}
                   {(Number(reqForApproval.approvalStep) || 0) + 1} من{" "}
                   {reqForApproval.approvers.length}
@@ -440,15 +440,15 @@ export default function Requisitions() {
                         `مستخدم ${uid}`;
                       const state = entry
                         ? entry.action === "approved"
-                          ? "bg-emerald-50 text-emerald-700"
-                          : "bg-rose-50 text-rose-700"
+                          ? "bg-success/10 text-success"
+                          : "bg-destructive/10 text-destructive"
                         : i === (Number(reqForApproval.approvalStep) || 0)
-                          ? "bg-amber-50 text-amber-700"
-                          : "bg-white text-slate-400";
+                          ? "bg-warning/10 text-warning"
+                          : "bg-card text-muted-foreground";
                       return (
                         <li
                           key={i}
-                          className={`flex items-center justify-between rounded-md border border-slate-200 px-2 py-1 text-[12px] ${state}`}
+                          className={`flex items-center justify-between rounded-md border border-border px-2 py-1 text-[12px] ${state}`}
                         >
                           <span>
                             {i + 1}. {name}
@@ -471,21 +471,21 @@ export default function Requisitions() {
             )}
           <div className="max-h-72 overflow-y-auto space-y-2">
             {(approvals ?? []).length === 0 ? (
-              <p className="text-sm text-slate-400">لا توجد اعتمادات بعد.</p>
+              <p className="text-sm text-muted-foreground">لا توجد اعتمادات بعد.</p>
             ) : (
               (approvals ?? []).map((a: any) => (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-[12px]"
+                  className="flex items-center justify-between rounded-lg border border-border px-3 py-2 text-[12px]"
                 >
-                  <span className="text-slate-600">
+                  <span className="text-muted-foreground">
                     المستوى {a.level} — {a.note || "بدون ملاحظة"}
                   </span>
                   <Badge
                     className={
                       a.decision === "approved"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-rose-50 text-rose-700"
+                        ? "bg-success/10 text-success"
+                        : "bg-destructive/10 text-destructive"
                     }
                   >
                     {a.decision === "approved" ? "معتمد" : "مرفوض"}
@@ -534,7 +534,7 @@ export default function Requisitions() {
             </DialogTitle>
           </DialogHeader>
           <div>
-            <Label className="mb-1 block text-[11px] font-bold text-slate-500">
+            <Label className="mb-1 block text-[11px] font-bold text-muted-foreground">
               التكلفة الفعلية (يُرحَّل كالتزام مستحق)
             </Label>
             <Input
@@ -592,8 +592,8 @@ function ApprovalAction({
     `المستخدم ${currentApprover}`;
 
   return (
-    <div className="space-y-2 border-t border-slate-200 pt-3">
-      <p className="text-[11px] text-slate-500">
+    <div className="space-y-2 border-t border-border pt-3">
+      <p className="text-[11px] text-muted-foreground">
         {canAct
           ? `دورك الآن: أنت المعتمد في الخطوة ${step + 1}`
           : `بانتظار اعتماد: ${currentName} (الخطوة ${step + 1})`}
@@ -607,7 +607,7 @@ function ApprovalAction({
       <div className="flex gap-2">
         <Button
           size="sm"
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+          className="flex-1 bg-success hover:bg-emerald-700 text-white"
           disabled={!canAct || isPending}
           onClick={() => onApprove(note)}
         >
@@ -616,7 +616,7 @@ function ApprovalAction({
         <Button
           size="sm"
           variant="outline"
-          className="flex-1 text-rose-600 border-rose-200"
+          className="flex-1 text-destructive border-destructive/20"
           disabled={!canAct || isPending}
           onClick={() => onReject(note)}
         >
@@ -624,7 +624,7 @@ function ApprovalAction({
         </Button>
       </div>
       {!canAct && (
-        <p className="text-[10px] text-amber-600">
+        <p className="text-[10px] text-warning">
           الزر متاح فقط للمعتمد الحالي في هذه الخطوة.
         </p>
       )}

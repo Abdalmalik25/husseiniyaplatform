@@ -20,7 +20,7 @@
  * additive infra new features (fixed assets, allocations, revaluation, corrections,
  * accruals, closing) can lean on.
  */
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import type { NodePgDatabase } from "drizzle-orm/node-postgres";
 import { validateOrThrow } from "./doubleEntryValidator";
 import {
@@ -28,6 +28,7 @@ import {
   transactions,
   branches,
   fiscalPeriods,
+  accounts,
 } from "../../drizzle/schema";
 
 type Db = any;
@@ -221,6 +222,26 @@ export async function postBalancedJournal(
   assertLegs(opts.legs, requireBalanced, opts.narration);
   if (postImmediately)
     await assertPeriodOpen(db, opts.tenantId, opts.date, opts.narration);
+
+  // Deep engineering: account existence + active + baseAmount auto-calc (multi-currency)
+  const accountIds = [...new Set(opts.legs.map(l => l.accountId))];
+  if (accountIds.length > 0) {
+    const accRows = (await db
+      .select({ id: accounts.id, code: accounts.code, isActive: accounts.isActive })
+      .from(accounts)
+      .where(and(eq(accounts.tenantId, opts.tenantId), inArray(accounts.id, accountIds)))) as Array<{ id: number; code: string; isActive: boolean | null }>;
+    const accMap = new Map(accRows.map(r => [r.id, r]));
+    for (const l of opts.legs) {
+      const acc = accMap.get(l.accountId);
+      if (!acc) throw new Error(`الحساب ${l.accountId} غير موجود في دليل المؤسسة`);
+      if (acc.isActive === false) throw new Error(`الحساب ${acc.code} موقوف — لا يمكن الترحيل إليه`);
+      if (l.baseAmount == null && l.currencyId != null && l.exchangeRate != null) {
+        const rate = parseFloat(String(l.exchangeRate));
+        const amt = parseFloat(String(l.amount));
+        if (Number.isFinite(rate) && Number.isFinite(amt)) (l as any).baseAmount = (amt * rate).toFixed(2);
+      }
+    }
+  }
 
   const effectiveBranchId = await resolveBranch(
     db,

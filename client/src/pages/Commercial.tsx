@@ -833,12 +833,12 @@ export default function Commercial() {
       <main className="max-w-7xl mx-auto p-3">
         <div className="mb-3">
           <div className="relative">
-            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
               placeholder="بحث في المنتجات، العملاء، الموردين..."
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
-              className="bg-white border-gray-200 pr-10 h-9 text-sm"
+              className="bg-card border-border pr-10 h-9 text-sm"
             />
           </div>
         </div>
@@ -877,7 +877,7 @@ export default function Commercial() {
 
           {/* ─── Products Tab ─── */}
           <TabsContent value="products">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="flex flex-row items-center justify-between p-3">
                 <CardTitle className="text-sm font-bold text-ink">
                   المنتجات والمخازن
@@ -886,7 +886,7 @@ export default function Commercial() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-xs h-8 border-gray-200"
+                    className="text-xs h-8 border-border"
                     onClick={() => exportProductsCsv(productsData)}
                     title="تصدير الأصناف الحالية إلى CSV"
                   >
@@ -896,7 +896,7 @@ export default function Commercial() {
                   <Button
                     size="sm"
                     variant="outline"
-                    className="text-xs h-8 border-gray-200"
+                    className="text-xs h-8 border-border"
                     onClick={() => setShowImportDialog(true)}
                     title="استيراد أصناف/خدمات من ملف CSV"
                   >
@@ -920,7 +920,7 @@ export default function Commercial() {
                       {[1, 2, 3].map(i => (
                         <div
                           key={i}
-                          className="h-16 bg-gray-100 rounded-lg animate-pulse"
+                          className="h-16 bg-muted rounded-lg animate-pulse"
                         />
                       ))}
                     </div>
@@ -929,7 +929,7 @@ export default function Commercial() {
                     productsData.map(p => (
                       <div
                         key={p.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                        className="flex items-center justify-between p-3 bg-muted rounded-lg border"
                       >
                         <div className="flex items-center gap-3">
                           <div className="bg-ink text-brand w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
@@ -939,14 +939,14 @@ export default function Commercial() {
                             <p className="font-bold text-xs text-ink">
                               {p.name}
                             </p>
-                            <p className="text-[10px] text-gray-500">
+                            <p className="text-[10px] text-muted-foreground">
                               {p.category || "بدون فئة"} • {p.unit}
                             </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4 text-xs">
                           <div className="text-center">
-                            <p className="text-[10px] text-gray-500">المخزون</p>
+                            <p className="text-[10px] text-muted-foreground">المخزون</p>
                             <p
                               className={`font-bold ${p.currentStock <= p.minStock ? "text-red-600" : "text-green-600"}`}
                             >
@@ -954,7 +954,7 @@ export default function Commercial() {
                             </p>
                           </div>
                           <div className="text-center">
-                            <p className="text-[10px] text-gray-500">
+                            <p className="text-[10px] text-muted-foreground">
                               سعر الشراء
                             </p>
                             <p className="font-bold text-ink">
@@ -962,7 +962,7 @@ export default function Commercial() {
                             </p>
                           </div>
                           <div className="text-center">
-                            <p className="text-[10px] text-gray-500">
+                            <p className="text-[10px] text-muted-foreground">
                               سعر البيع
                             </p>
                             <p className="font-bold text-green-600">
@@ -970,7 +970,7 @@ export default function Commercial() {
                             </p>
                           </div>
                           {p.barcode && (
-                            <Barcode className="w-4 h-4 text-gray-400" />
+                            <Barcode className="w-4 h-4 text-muted-foreground" />
                           )}
                           <div className="flex items-center gap-1">
                             <Button
@@ -1044,7 +1044,7 @@ export default function Commercial() {
                       </div>
                     ))}
                   {productsData.length === 0 && (
-                    <p className="text-center text-gray-400 text-sm py-8">
+                    <p className="text-center text-muted-foreground text-sm py-8">
                       لا توجد منتجات
                     </p>
                   )}
@@ -1055,7 +1055,7 @@ export default function Commercial() {
 
           {/* ─── Customers Tab ─── */}
           <TabsContent value="customers">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="flex flex-row items-center justify-between p-3">
                 <CardTitle className="text-sm font-bold text-ink">
                   العملاء
@@ -1076,7 +1076,7 @@ export default function Commercial() {
                       {[1, 2, 3].map(i => (
                         <div
                           key={i}
-                          className="h-16 bg-gray-100 rounded-lg animate-pulse"
+                          className="h-16 bg-muted rounded-lg animate-pulse"
                         />
                       ))}
                     </div>
@@ -1085,7 +1085,7 @@ export default function Commercial() {
                     customersData.map(c => (
                       <div
                         key={c.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                        className="flex items-center justify-between p-3 bg-muted rounded-lg border"
                       >
                         <div className="flex items-center gap-3">
                           <div className="bg-brand text-white w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
@@ -1095,7 +1095,7 @@ export default function Commercial() {
                             <p className="font-bold text-xs text-ink">
                               {c.name}
                             </p>
-                            <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                               {c.phone && (
                                 <span className="flex items-center gap-1">
                                   <Phone className="w-3 h-3" />
@@ -1112,7 +1112,7 @@ export default function Commercial() {
                           </div>
                         </div>
                         <div className="text-left flex flex-col items-end gap-1">
-                          <p className="text-[10px] text-gray-500">الرصيد</p>
+                          <p className="text-[10px] text-muted-foreground">الرصيد</p>
                           <p
                             className={`font-bold text-xs ${parseFloat(c.balance) > 0 ? "text-red-600" : "text-green-600"}`}
                           >
@@ -1130,7 +1130,7 @@ export default function Commercial() {
                       </div>
                     ))}
                   {customersData.length === 0 && (
-                    <p className="text-center text-gray-400 text-sm py-8">
+                    <p className="text-center text-muted-foreground text-sm py-8">
                       لا يوجد عملاء
                     </p>
                   )}
@@ -1141,7 +1141,7 @@ export default function Commercial() {
 
           {/* ─── Suppliers Tab ─── */}
           <TabsContent value="suppliers">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="flex flex-row items-center justify-between p-3">
                 <CardTitle className="text-sm font-bold text-ink">
                   الموردين
@@ -1162,7 +1162,7 @@ export default function Commercial() {
                       {[1, 2, 3].map(i => (
                         <div
                           key={i}
-                          className="h-16 bg-gray-100 rounded-lg animate-pulse"
+                          className="h-16 bg-muted rounded-lg animate-pulse"
                         />
                       ))}
                     </div>
@@ -1171,7 +1171,7 @@ export default function Commercial() {
                     suppliersData.map(s => (
                       <div
                         key={s.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                        className="flex items-center justify-between p-3 bg-muted rounded-lg border"
                       >
                         <div className="flex items-center gap-3">
                           <div className="bg-ink text-brand w-10 h-10 rounded-lg flex items-center justify-center font-bold text-xs">
@@ -1181,7 +1181,7 @@ export default function Commercial() {
                             <p className="font-bold text-xs text-ink">
                               {s.name}
                             </p>
-                            <div className="flex items-center gap-2 text-[10px] text-gray-500">
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
                               {s.phone && (
                                 <span className="flex items-center gap-1">
                                   <Phone className="w-3 h-3" />
@@ -1198,7 +1198,7 @@ export default function Commercial() {
                           </div>
                         </div>
                         <div className="text-left flex flex-col items-end gap-1">
-                          <p className="text-[10px] text-gray-500">الرصيد</p>
+                          <p className="text-[10px] text-muted-foreground">الرصيد</p>
                           <p className="font-bold text-xs text-red-600">
                             {s.balance}
                           </p>
@@ -1214,7 +1214,7 @@ export default function Commercial() {
                       </div>
                     ))}
                   {suppliersData.length === 0 && (
-                    <p className="text-center text-gray-400 text-sm py-8">
+                    <p className="text-center text-muted-foreground text-sm py-8">
                       لا يوجد موردين
                     </p>
                   )}
@@ -1278,7 +1278,7 @@ export default function Commercial() {
                           >
                             {statusLabelsMap[inv.status] || inv.status}
                           </Badge>
-                          <p className="font-bold text-sm text-emerald-700 font-mono">
+                          <p className="font-bold text-sm text-success font-mono">
                             {inv.total} ر.ي
                           </p>
                           <p className="text-[10px] text-muted-foreground/70 font-mono">
@@ -1297,7 +1297,7 @@ export default function Commercial() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-[10px] h-7 text-emerald-700 border-emerald-200 hover:bg-emerald-50/40 press-effect"
+                                className="text-[10px] h-7 text-success border-success/20 hover:bg-success/10/40 press-effect"
                                 onClick={() => openPayDialog(inv, "sales")}
                               >
                                 <Wallet className="w-3 h-3 ml-1" /> دفعة
@@ -1321,7 +1321,7 @@ export default function Commercial() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-[10px] h-7 text-rose-600 border-rose-200 hover:bg-rose-50/40 press-effect"
+                              className="text-[10px] h-7 text-destructive border-destructive/20 hover:bg-destructive/10/40 press-effect"
                               disabled={updateSaleStatus.isPending}
                               onClick={() => {
                                 if (
@@ -1422,7 +1422,7 @@ export default function Commercial() {
                           >
                             {statusLabelsMap[inv.status] || inv.status}
                           </Badge>
-                          <p className="font-bold text-sm text-rose-600 font-mono">
+                          <p className="font-bold text-sm text-destructive font-mono">
                             {inv.total} ر.ي
                           </p>
                           <p className="text-[10px] text-muted-foreground/70 font-mono">
@@ -1441,7 +1441,7 @@ export default function Commercial() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-[10px] h-7 text-emerald-700 border-emerald-200 hover:bg-emerald-50/40 press-effect"
+                                className="text-[10px] h-7 text-success border-success/20 hover:bg-success/10/40 press-effect"
                                 onClick={() => openPayDialog(inv, "purchases")}
                               >
                                 <Wallet className="w-3 h-3 ml-1" /> دفعة
@@ -1451,7 +1451,7 @@ export default function Commercial() {
                             <Button
                               size="sm"
                               variant="outline"
-                              className="text-[10px] h-7 text-rose-600 border-rose-200 hover:bg-rose-50/40 press-effect"
+                              className="text-[10px] h-7 text-destructive border-destructive/20 hover:bg-destructive/10/40 press-effect"
                               disabled={updatePurchaseStatus.isPending}
                               onClick={() => {
                                 if (
@@ -1499,7 +1499,7 @@ export default function Commercial() {
 
           {/* ─── Orders Tab ─── */}
           <TabsContent value="orders">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="flex flex-row items-center justify-between p-3">
                 <CardTitle className="text-sm font-bold text-ink">
                   طلبات التوزيع
@@ -1525,7 +1525,7 @@ export default function Commercial() {
                       {[1, 2, 3].map(i => (
                         <div
                           key={i}
-                          className="h-16 bg-gray-100 rounded-lg animate-pulse"
+                          className="h-16 bg-muted rounded-lg animate-pulse"
                         />
                       ))}
                     </div>
@@ -1534,7 +1534,7 @@ export default function Commercial() {
                     ordersData?.map(o => (
                       <div
                         key={o.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                        className="flex items-center justify-between p-3 bg-muted rounded-lg border"
                       >
                         <div>
                           <p className="font-bold text-xs text-ink flex items-center gap-2">
@@ -1545,7 +1545,7 @@ export default function Commercial() {
                               </Badge>
                             )}
                           </p>
-                          <p className="text-[10px] text-gray-500 flex items-center gap-1">
+                          <p className="text-[10px] text-muted-foreground flex items-center gap-1">
                             <User className="w-3 h-3" />
                             {customerNameOf(o.customerId)} •{" "}
                             {o.deliveryAddress || "بدون عنوان"}
@@ -1605,7 +1605,7 @@ export default function Commercial() {
                       </div>
                     ))}
                   {(!ordersData || ordersData.length === 0) && (
-                    <p className="text-center text-gray-400 text-sm py-8">
+                    <p className="text-center text-muted-foreground text-sm py-8">
                       لا توجد طلبات
                     </p>
                   )}
@@ -1616,7 +1616,7 @@ export default function Commercial() {
 
           {/* ─── Offers Tab (Module B) ─── */}
           <TabsContent value="offers">
-            <Card className="border-0 shadow-sm bg-white">
+            <Card className="panel-premium shadow-modern-soft">
               <CardHeader className="flex flex-row items-center justify-between p-3">
                 <CardTitle className="text-sm font-bold text-ink">
                   العروض المالية والكمية
@@ -1635,11 +1635,11 @@ export default function Commercial() {
                   {(offersData ?? []).map((o: any) => (
                     <div
                       key={o.id}
-                      className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                      className="flex items-center justify-between p-3 bg-muted rounded-lg border"
                     >
                       <div>
                         <p className="font-bold text-xs text-ink">{o.name}</p>
-                        <p className="text-[10px] text-gray-500">
+                        <p className="text-[10px] text-muted-foreground">
                           {o.kind === "financial" ? "خصم مالي" : "عرض كمي"} •{" "}
                           {Number(o.discountPercent)}% خصم
                           {o.minQty ? ` • حد أدنى ${o.minQty}` : ""}
@@ -1685,7 +1685,7 @@ export default function Commercial() {
                     </div>
                   ))}
                   {(!offersData || offersData.length === 0) && (
-                    <p className="text-center text-gray-400 text-sm py-8">
+                    <p className="text-center text-muted-foreground text-sm py-8">
                       لا توجد عروض
                     </p>
                   )}
@@ -1698,7 +1698,7 @@ export default function Commercial() {
 
       {/* ─── Product Dialog ─── */}
       <Dialog open={showProductDialog} onOpenChange={setShowProductDialog}>
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               إضافة منتج جديد
@@ -1807,7 +1807,7 @@ export default function Commercial() {
               <div>
                 <Label className="text-[10px]">نوع الصنف</Label>
                 <select
-                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                   value={productForm.productType}
                   onChange={e =>
                     setProductForm({
@@ -1925,7 +1925,7 @@ export default function Commercial() {
             </div>
 
             {productForm.productType === "service" && (
-              <div className="border rounded-lg p-2 space-y-2 bg-amber-50/50">
+              <div className="border rounded-lg p-2 space-y-2 bg-warning/10/50">
                 <p className="text-[10px] font-bold text-ink">
                   تسعير الخدمة (تكلفة دقيقة/مرنة)
                 </p>
@@ -1933,7 +1933,7 @@ export default function Commercial() {
                   <div>
                     <Label className="text-[10px]">طريقة التكلفة</Label>
                     <select
-                      className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                      className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                       value={productForm.costMethod}
                       onChange={e =>
                         setProductForm({
@@ -1993,7 +1993,7 @@ export default function Commercial() {
                   <div>
                     <Label className="text-[10px]">وضع السعر</Label>
                     <select
-                      className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                      className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                       value={productForm.priceMode}
                       onChange={e =>
                         setProductForm({
@@ -2080,7 +2080,7 @@ export default function Commercial() {
 
       {/* ─── Customer Dialog ─── */}
       <Dialog open={showCustomerDialog} onOpenChange={setShowCustomerDialog}>
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               إضافة عميل جديد
@@ -2165,7 +2165,7 @@ export default function Commercial() {
 
       {/* ─── Supplier Dialog ─── */}
       <Dialog open={showSupplierDialog} onOpenChange={setShowSupplierDialog}>
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               إضافة مورد جديد
@@ -2250,13 +2250,13 @@ export default function Commercial() {
 
       {/* ─── Customer Detail Dialog (custom fields) ─── */}
       <Dialog open={customerDetailOpen} onOpenChange={setCustomerDetailOpen}>
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               تفاصيل العميل: {selectedCustomer?.name}
             </DialogTitle>
           </DialogHeader>
-          <div className="text-[11px] text-gray-500 space-y-1">
+          <div className="text-[11px] text-muted-foreground space-y-1">
             <p>الكود: {selectedCustomer?.code}</p>
             <p>الهاتف: {selectedCustomer?.phone}</p>
             <p>المدينة: {selectedCustomer?.city}</p>
@@ -2272,13 +2272,13 @@ export default function Commercial() {
 
       {/* ─── Supplier Detail Dialog (custom fields) ─── */}
       <Dialog open={supplierDetailOpen} onOpenChange={setSupplierDetailOpen}>
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               تفاصيل المورد: {selectedSupplier?.name}
             </DialogTitle>
           </DialogHeader>
-          <div className="text-[11px] text-gray-500 space-y-1">
+          <div className="text-[11px] text-muted-foreground space-y-1">
             <p>الكود: {selectedSupplier?.code}</p>
             <p>الهاتف: {selectedSupplier?.phone}</p>
             <p>المدينة: {selectedSupplier?.city}</p>
@@ -2294,7 +2294,7 @@ export default function Commercial() {
 
       {/* ─── Offers Dialog (Module B) ─── */}
       <Dialog open={showOfferDialog} onOpenChange={setShowOfferDialog}>
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">عرض جديد</DialogTitle>
           </DialogHeader>
@@ -2313,7 +2313,7 @@ export default function Commercial() {
               <div>
                 <Label className="text-[10px]">النوع</Label>
                 <select
-                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                   value={offerForm.kind}
                   onChange={e =>
                     setOfferForm({ ...offerForm, kind: e.target.value })
@@ -2351,7 +2351,7 @@ export default function Commercial() {
               <div>
                 <Label className="text-[10px]">منتج (اختياري)</Label>
                 <select
-                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                   value={offerForm.productId ?? ""}
                   onChange={e =>
                     setOfferForm({
@@ -2374,7 +2374,7 @@ export default function Commercial() {
             <div>
               <Label className="text-[10px]">تصنيف (اختياري)</Label>
               <select
-                className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                 value={offerForm.categoryId ?? ""}
                 onChange={e =>
                   setOfferForm({
@@ -2462,7 +2462,7 @@ export default function Commercial() {
 
       {/* ─── Offers Edit Dialog (Module B) ─── */}
       <Dialog open={!!editOffer} onOpenChange={o => !o && setEditOffer(null)}>
-        <DialogContent className="bg-white max-w-md">
+        <DialogContent className="bg-card max-w-md">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">تعديل العرض</DialogTitle>
           </DialogHeader>
@@ -2482,7 +2482,7 @@ export default function Commercial() {
                 <div>
                   <Label className="text-[10px]">النوع</Label>
                   <select
-                    className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                    className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                     value={editOffer.kind}
                     onChange={e =>
                       setEditOffer({ ...editOffer, kind: e.target.value })
@@ -2520,7 +2520,7 @@ export default function Commercial() {
                 <div>
                   <Label className="text-[10px]">منتج (اختياري)</Label>
                   <select
-                    className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                    className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                     value={editOffer.productId ?? ""}
                     onChange={e =>
                       setEditOffer({
@@ -2543,7 +2543,7 @@ export default function Commercial() {
               <div>
                 <Label className="text-[10px]">تصنيف (اختياري)</Label>
                 <select
-                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                   value={editOffer.categoryId ?? ""}
                   onChange={e =>
                     setEditOffer({
@@ -2632,7 +2632,7 @@ export default function Commercial() {
 
       {/* ─── Sale Dialog ─── */}
       <Dialog open={showSaleDialog} onOpenChange={setShowSaleDialog}>
-        <DialogContent className="bg-white max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-card max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               فاتورة مبيعات جديدة / نقطة بيع
@@ -2715,7 +2715,7 @@ export default function Commercial() {
               <div>
                 <Label className="text-[10px]">موقع العمل</Label>
                 <select
-                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                   value={saleWorkSiteId ?? ""}
                   onChange={e =>
                     setSaleWorkSiteId(
@@ -2734,7 +2734,7 @@ export default function Commercial() {
               <div>
                 <Label className="text-[10px]">الجهاز</Label>
                 <select
-                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                  className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                   value={saleDeviceId ?? ""}
                   onChange={e =>
                     setSaleDeviceId(
@@ -2797,7 +2797,7 @@ export default function Commercial() {
                       <p className="text-[10px] font-bold text-ink truncate">
                         {item.productName}
                       </p>
-                      <p className="text-[9px] text-gray-400">
+                      <p className="text-[9px] text-muted-foreground">
                         {fmtNum(parseFloat(item.unitPrice) * item.quantity)} −
                         خصم {item.discount || "0"} ={" "}
                         <span className="font-bold text-brand">
@@ -2851,11 +2851,11 @@ export default function Commercial() {
               })}
               <div className="flex flex-col gap-1 pt-2 border-t text-[11px]">
                 <div className="flex justify-between">
-                  <span className="text-gray-500">المجموع الفرعي</span>
+                  <span className="text-muted-foreground">المجموع الفرعي</span>
                   <span className="font-bold">{fmtNum(saleTotal)} ر.ي</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-500">إجمالي الخصم</span>
+                  <span className="text-muted-foreground">إجمالي الخصم</span>
                   <span className="font-bold text-red-500">
                     {fmtNum(saleDiscountTotal)} ر.ي
                   </span>
@@ -2908,7 +2908,7 @@ export default function Commercial() {
 
       {/* ─── ZATCA e-invoice QR (Saudi) ─── */}
       <Dialog open={!!zatcaView} onOpenChange={o => !o && setZatcaView(null)}>
-        <DialogContent className="bg-white max-w-sm">
+        <DialogContent className="bg-card max-w-sm">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               الفاتورة الإلكترونية (ZATCA)
@@ -2916,20 +2916,20 @@ export default function Commercial() {
           </DialogHeader>
           {zatcaView && (
             <div className="space-y-2 text-center">
-              <p className="text-[11px] text-gray-500">
+              <p className="text-[11px] text-muted-foreground">
                 رمز الاستجابة السريعة (TLV Base64) — الصقه في مولّد QR لعرضه
                 للعميل أو خزّنه مع الفاتورة.
               </p>
               <textarea
                 readOnly
                 rows={4}
-                className="w-full p-2 rounded border border-gray-200 text-[10px] font-mono bg-gray-50"
+                className="w-full p-2 rounded border border-border text-[10px] font-mono bg-muted"
                 value={zatcaView.qrBase64 || ""}
               />
-              <p className="text-[10px] text-gray-400 break-all">
+              <p className="text-[10px] text-muted-foreground break-all">
                 UUID: {zatcaView.uuid}
               </p>
-              <p className="text-[10px] text-gray-400 break-all">
+              <p className="text-[10px] text-muted-foreground break-all">
                 Hash: {zatcaView.hash?.slice(0, 32)}…
               </p>
             </div>
@@ -2954,7 +2954,7 @@ export default function Commercial() {
 
       {/* ─── Purchase Dialog ─── */}
       <Dialog open={showPurchaseDialog} onOpenChange={setShowPurchaseDialog}>
-        <DialogContent className="bg-white max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-card max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               فاتورة مشتريات جديدة
@@ -3072,7 +3072,7 @@ export default function Commercial() {
 
       {/* ─── Order Dialog ─── */}
       <Dialog open={showOrderDialog} onOpenChange={setShowOrderDialog}>
-        <DialogContent className="bg-white max-w-lg max-h-[80vh] overflow-y-auto">
+        <DialogContent className="bg-card max-w-lg max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-sm text-ink">
               طلب توزيع جديد
@@ -3203,11 +3203,11 @@ export default function Commercial() {
           </DialogHeader>
           {payTarget && (
             <div className="space-y-3 pt-2">
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs space-y-1">
-                <p className="font-bold text-slate-800">
+              <div className="rounded-lg bg-muted border border-border p-2.5 text-xs space-y-1">
+                <p className="font-bold text-foreground">
                   {payTarget.invoice.invoiceNumber}
                 </p>
-                <p className="text-slate-600">
+                <p className="text-muted-foreground">
                   إجمالي الفاتورة:{" "}
                   <b>
                     {Number(payTarget.invoice.total).toLocaleString("en-US")}
@@ -3219,7 +3219,7 @@ export default function Commercial() {
                     )}
                   </b>
                 </p>
-                <p className="text-emerald-700 font-bold">
+                <p className="text-success font-bold">
                   المتبقي:{" "}
                   {Math.max(
                     0,
@@ -3230,7 +3230,7 @@ export default function Commercial() {
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[11px] font-bold text-slate-700">
+                  <Label className="text-[11px] font-bold text-foreground">
                     مبلغ الدفعة
                   </Label>
                   <Input
@@ -3239,18 +3239,18 @@ export default function Commercial() {
                     value={payAmount}
                     onChange={e => setPayAmount(e.target.value)}
                     placeholder="0.00"
-                    className="h-8 text-xs font-mono bg-slate-50"
+                    className="h-8 text-xs font-mono bg-muted"
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[11px] font-bold text-slate-700">
+                  <Label className="text-[11px] font-bold text-foreground">
                     طريقة الدفع
                   </Label>
                   <Select
                     value={payMethod}
                     onValueChange={v => setPayMethod(v as any)}
                   >
-                    <SelectTrigger className="h-8 text-xs bg-slate-50">
+                    <SelectTrigger className="h-8 text-xs bg-muted">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -3271,31 +3271,31 @@ export default function Commercial() {
                 </div>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700">
+                <Label className="text-[11px] font-bold text-foreground">
                   تاريخ الدفعة (اختياري)
                 </Label>
                 <Input
                   type="date"
                   value={payDate}
                   onChange={e => setPayDate(e.target.value)}
-                  className="h-8 text-xs bg-slate-50"
+                  className="h-8 text-xs bg-muted"
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700">
+                <Label className="text-[11px] font-bold text-foreground">
                   ملاحظات (اختياري)
                 </Label>
                 <Input
                   value={payNotes}
                   onChange={e => setPayNotes(e.target.value)}
                   placeholder="مثال: دفعة أولى..."
-                  className="h-8 text-xs bg-slate-50"
+                  className="h-8 text-xs bg-muted"
                 />
               </div>
             </div>
           )}
           <DialogFooter className="flex gap-2 pt-2">
-            <label className="flex items-center gap-1.5 text-[11px] text-slate-600 cursor-pointer select-none">
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={printAfterSave}
@@ -3317,7 +3317,7 @@ export default function Commercial() {
               size="sm"
               onClick={handlePay}
               disabled={createPayment.isPending}
-              className="text-xs h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-bold"
+              className="text-xs h-8 bg-success hover:bg-emerald-700 text-white font-bold"
             >
               {createPayment.isPending ? (
                 <Loader2 className="w-3 h-3 animate-spin ml-1" />
@@ -3344,7 +3344,7 @@ export default function Commercial() {
           </DialogHeader>
           <div className="space-y-3 pt-2">
             <div className="space-y-1">
-              <Label className="text-[11px] font-bold text-slate-700">
+              <Label className="text-[11px] font-bold text-foreground">
                 اسم المنتج
               </Label>
               <Input
@@ -3360,7 +3360,7 @@ export default function Commercial() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700">
+                <Label className="text-[11px] font-bold text-foreground">
                   سعر البيع
                 </Label>
                 <Input
@@ -3375,7 +3375,7 @@ export default function Commercial() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700">
+                <Label className="text-[11px] font-bold text-foreground">
                   سعر الشراء
                 </Label>
                 <Input
@@ -3392,7 +3392,7 @@ export default function Commercial() {
             </div>
             <div className="grid grid-cols-2 gap-2">
               <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700">
+                <Label className="text-[11px] font-bold text-foreground">
                   حد الإنذار (minStock)
                 </Label>
                 <Input
@@ -3409,7 +3409,7 @@ export default function Commercial() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700">
+                <Label className="text-[11px] font-bold text-foreground">
                   الباركود
                 </Label>
                 <BarcodeScanner
@@ -3424,7 +3424,7 @@ export default function Commercial() {
                 <div>
                   <Label className="text-[10px]">نوع الصنف</Label>
                   <select
-                    className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                    className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                     value={editProductForm.productType}
                     onChange={e =>
                       setEditProductForm({
@@ -3498,12 +3498,12 @@ export default function Commercial() {
               </div>
 
               {editProductForm.productType === "service" && (
-                <div className="border rounded-lg p-2 space-y-2 bg-amber-50/50">
+                <div className="border rounded-lg p-2 space-y-2 bg-warning/10/50">
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <Label className="text-[10px]">طريقة التكلفة</Label>
                       <select
-                        className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                        className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                         value={editProductForm.costMethod}
                         onChange={e =>
                           setEditProductForm({
@@ -3563,7 +3563,7 @@ export default function Commercial() {
                     <div>
                       <Label className="text-[10px]">وضع السعر</Label>
                       <select
-                        className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+                        className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
                         value={editProductForm.priceMode}
                         onChange={e =>
                           setEditProductForm({
@@ -3706,26 +3706,26 @@ export default function Commercial() {
           </DialogHeader>
           {adjustProduct && (
             <div className="space-y-3 pt-2">
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs">
-                <p className="text-slate-600">
+              <div className="rounded-lg bg-muted border border-border p-2.5 text-xs">
+                <p className="text-muted-foreground">
                   المخزون الحالي:{" "}
                   <b
                     className={
                       adjustProduct.currentStock <= adjustProduct.minStock
                         ? "text-red-600"
-                        : "text-slate-800"
+                        : "text-foreground"
                     }
                   >
                     {adjustProduct.currentStock}
                   </b>{" "}
                   {adjustProduct.unit}
                 </p>
-                <p className="text-slate-500 text-[10px]">
+                <p className="text-muted-foreground text-[10px]">
                   حد الإنذار: {adjustProduct.minStock} {adjustProduct.unit}
                 </p>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700">
+                <Label className="text-[11px] font-bold text-foreground">
                   نوع العملية
                 </Label>
                 <Select
@@ -3751,7 +3751,7 @@ export default function Commercial() {
                 </Select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700">
+                <Label className="text-[11px] font-bold text-foreground">
                   الكمية
                 </Label>
                 <Input
@@ -3768,7 +3768,7 @@ export default function Commercial() {
                 />
               </div>
               <div className="space-y-1">
-                <Label className="text-[11px] font-bold text-slate-700">
+                <Label className="text-[11px] font-bold text-foreground">
                   سبب العملية (اختياري)
                 </Label>
                 <Input
@@ -3829,8 +3829,8 @@ export default function Commercial() {
           </DialogHeader>
           {convertOrder && (
             <div className="space-y-3 pt-2">
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs space-y-1">
-                <p className="font-bold text-slate-800 flex items-center gap-2">
+              <div className="rounded-lg bg-muted border border-border p-2.5 text-xs space-y-1">
+                <p className="font-bold text-foreground flex items-center gap-2">
                   {convertOrder.orderNumber}
                   {isWebOrder(convertOrder) && (
                     <Badge className="text-[9px] bg-purple-100 text-purple-700">
@@ -3838,20 +3838,20 @@ export default function Commercial() {
                     </Badge>
                   )}
                 </p>
-                <p className="text-slate-500">
+                <p className="text-muted-foreground">
                   الإجمالي:{" "}
-                  <b className="text-slate-800 font-mono">
+                  <b className="text-foreground font-mono">
                     {Number(convertOrder.total).toLocaleString("en-US")} ر.ي
                   </b>
                 </p>
-                <p className="text-[10px] text-slate-400">
+                <p className="text-[10px] text-muted-foreground">
                   المخزون محجوز منذ وقت الطلب — لن يُخصم مرة أخرى عند إنشاء
                   الفاتورة
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <div className="space-y-1">
-                  <Label className="text-[11px] font-bold text-slate-700">
+                  <Label className="text-[11px] font-bold text-foreground">
                     طريقة الدفع
                   </Label>
                   <Select
@@ -3860,7 +3860,7 @@ export default function Commercial() {
                       setConvertForm({ ...convertForm, paymentMethod: v })
                     }
                   >
-                    <SelectTrigger className="h-8 text-xs bg-slate-50">
+                    <SelectTrigger className="h-8 text-xs bg-muted">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -3883,7 +3883,7 @@ export default function Commercial() {
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[11px] font-bold text-slate-700">
+                  <Label className="text-[11px] font-bold text-foreground">
                     المبلغ المدفوع الآن
                   </Label>
                   <Input
@@ -3897,11 +3897,11 @@ export default function Commercial() {
                         paidAmount: e.target.value,
                       })
                     }
-                    className="h-8 text-xs font-mono bg-slate-50"
+                    className="h-8 text-xs font-mono bg-muted"
                   />
                 </div>
               </div>
-              <p className="text-[10px] text-slate-400">
+              <p className="text-[10px] text-muted-foreground">
                 المدفوع = الإجمالي → فاتورة «مدفوعة» • أقل من الإجمالي → «مدفوعة
                 جزئياً» والرصيد يتراكم على العميل • صفر → «مؤكدة» (آجل)
               </p>
@@ -3958,10 +3958,10 @@ export default function Commercial() {
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-3 pt-2">
-            <p className="text-[11px] text-slate-500 leading-relaxed">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
               الأعمدة:{" "}
               <code
-                className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded"
+                className="text-[10px] bg-muted px-1.5 py-0.5 rounded"
                 dir="ltr"
               >
                 code,name,type,category,unit,purchasePrice,salePrice,wholesalePrice,minStock,currentStock,barcode
@@ -3992,11 +3992,11 @@ export default function Commercial() {
               <Download className="w-3 h-3 ml-1" /> تنزيل نموذج جاهز (Template)
             </Button>
             {importRows && (
-              <div className="rounded-lg bg-slate-50 border border-slate-200 p-2.5 text-xs space-y-1">
-                <p className="font-bold text-slate-700">
+              <div className="rounded-lg bg-muted border border-border p-2.5 text-xs space-y-1">
+                <p className="font-bold text-foreground">
                   جاهز للاستيراد: {importRows.length} صفاً
                 </p>
-                <p className="text-slate-500 text-[10px]">
+                <p className="text-muted-foreground text-[10px]">
                   سيتم التحديث حسب الرمز (code) — الأسعار والرصيد وحد الإنذار
                   ستُحدَّث للقائم منها
                 </p>
@@ -4045,7 +4045,7 @@ function AcctSelect({
 }) {
   return (
     <select
-      className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-white"
+      className="w-full h-8 rounded-lg border border-gray-300 px-2 text-xs bg-card"
       value={value ?? ""}
       onChange={e =>
         onChange(e.target.value ? Number(e.target.value) : undefined)

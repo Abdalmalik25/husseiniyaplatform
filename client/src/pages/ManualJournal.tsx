@@ -139,17 +139,17 @@ export default function ManualJournal() {
   return (
     <div className="min-h-screen flex">
       <AppSidebar />
-      <main className="flex-1 bg-slate-50">
-        <div className="border-b bg-white px-6 py-4">
+      <main className="flex-1 bg-muted">
+        <div className="border-b bg-card px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-indigo-600 text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-brand text-white">
               <Scale className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">
+              <h1 className="text-xl font-bold text-foreground">
                 قيد محاسبي يدوي ذكي
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 إنشاء قيود متوازنة مع إكمال تلقائي واقتراحات حسابات مبنية على
                 تاريخ العمليات
               </p>
@@ -164,7 +164,7 @@ export default function ManualJournal() {
               <CardContent className="p-4 space-y-3">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-[11px] font-bold text-slate-500">
+                    <label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                       بيان القيد
                     </label>
                     <Input
@@ -175,7 +175,7 @@ export default function ManualJournal() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] font-bold text-slate-500">
+                    <label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                       التاريخ
                     </label>
                     <Input
@@ -186,11 +186,11 @@ export default function ManualJournal() {
                     />
                   </div>
                   <div>
-                    <label className="mb-1 block text-[11px] font-bold text-slate-500">
+                    <label className="mb-1 block text-[11px] font-bold text-muted-foreground">
                       الفرع
                     </label>
                     <select
-                      className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px]"
+                      className="h-9 w-full rounded-lg border border-border bg-card px-2 text-[12px]"
                       value={branchId}
                       onChange={e =>
                         setBranchId(
@@ -213,7 +213,7 @@ export default function ManualJournal() {
             <Card>
               <CardContent className="p-4 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-700">الحركات</h2>
+                  <h2 className="text-sm font-bold text-foreground">الحركات</h2>
                   <Button size="sm" variant="outline" onClick={addLine}>
                     <Plus className="h-4 w-4" /> حركة
                   </Button>
@@ -223,11 +223,11 @@ export default function ManualJournal() {
                   {lines.map(l => (
                     <div
                       key={l.key}
-                      className="grid grid-cols-12 gap-2 items-center rounded-xl border border-slate-200 bg-slate-50 p-2"
+                      className="grid grid-cols-12 gap-2 items-center rounded-xl border border-border bg-muted p-2"
                     >
                       <div className="col-span-12 sm:col-span-5">
                         <select
-                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px] text-slate-700"
+                          className="h-9 w-full rounded-lg border border-border bg-card px-2 text-[12px] text-foreground"
                           value={l.accountId}
                           onChange={e =>
                             updateLine(l.key, {
@@ -247,7 +247,7 @@ export default function ManualJournal() {
                       </div>
                       <div className="col-span-4 sm:col-span-2">
                         <select
-                          className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px]"
+                          className="h-9 w-full rounded-lg border border-border bg-card px-2 text-[12px]"
                           value={l.type}
                           onChange={e =>
                             updateLine(l.key, {
@@ -290,20 +290,20 @@ export default function ManualJournal() {
                 </div>
 
                 {/* balance */}
-                <div className="flex flex-wrap items-center justify-between rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex flex-wrap items-center justify-between rounded-xl border border-border bg-card p-3">
                   <div className="flex gap-4 text-[13px]">
-                    <span className="text-emerald-700 font-bold">
+                    <span className="text-success font-bold">
                       مدين: {fmt(totalDebit)}
                     </span>
-                    <span className="text-rose-700 font-bold">
+                    <span className="text-destructive font-bold">
                       دائن: {fmt(totalCredit)}
                     </span>
                   </div>
                   <span
                     className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-[11px] font-bold ${
                       balanced
-                        ? "bg-emerald-100 text-emerald-700"
-                        : "bg-amber-100 text-amber-700"
+                        ? "bg-success/10 text-success"
+                        : "bg-warning/10 text-warning"
                     }`}
                   >
                     {balanced ? (
@@ -319,7 +319,7 @@ export default function ManualJournal() {
                 </div>
 
                 <Button
-                  className="h-11 w-full bg-indigo-600 text-white hover:bg-indigo-700"
+                  className="h-11 w-full bg-brand text-white hover:bg-indigo-700"
                   onClick={submit}
                   disabled={createEntry.isPending || !balanced}
                 >
@@ -336,12 +336,12 @@ export default function ManualJournal() {
           <div className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-2">
-                <div className="flex items-center gap-2 text-indigo-600">
+                <div className="flex items-center gap-2 text-brand">
                   <Sparkles className="h-4 w-4" />
                   <h3 className="text-sm font-bold">حسابات مقترحة</h3>
                 </div>
                 {suggestions.length === 0 ? (
-                  <p className="text-[12px] text-slate-400">
+                  <p className="text-[12px] text-muted-foreground">
                     اكتب بيان القيد لتظهر الحسابات الأنسب تلقائياً.
                   </p>
                 ) : (
@@ -361,7 +361,7 @@ export default function ManualJournal() {
                             },
                           ])
                         }
-                        className="rounded-full border border-indigo-200 bg-indigo-50 px-3 py-1 text-[11px] font-medium text-indigo-700 hover:bg-indigo-100"
+                        className="rounded-full border border-indigo-200 bg-brand/10 px-3 py-1 text-[11px] font-medium text-brand hover:bg-indigo-100"
                       >
                         {a.code} · {a.name}
                       </button>
@@ -373,19 +373,19 @@ export default function ManualJournal() {
 
             <Card>
               <CardContent className="p-4 space-y-2">
-                <div className="flex items-center gap-2 text-slate-600">
+                <div className="flex items-center gap-2 text-muted-foreground">
                   <History className="h-4 w-4" />
                   <h3 className="text-sm font-bold">بيانات سابقة</h3>
                 </div>
                 {recent.length === 0 ? (
-                  <p className="text-[12px] text-slate-400">لا يوجد.</p>
+                  <p className="text-[12px] text-muted-foreground">لا يوجد.</p>
                 ) : (
                   <div className="flex flex-wrap gap-2">
                     {recent.map((r, i) => (
                       <button
                         key={i}
                         onClick={() => setNarration(r)}
-                        className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[11px] text-slate-600 hover:bg-slate-100"
+                        className="rounded-full border border-border bg-muted px-3 py-1 text-[11px] text-muted-foreground hover:bg-muted"
                       >
                         {r}
                       </button>
@@ -397,7 +397,7 @@ export default function ManualJournal() {
 
             <Card>
               <CardContent className="p-4 space-y-2">
-                <div className="flex items-center gap-2 text-amber-600">
+                <div className="flex items-center gap-2 text-warning">
                   <Lightbulb className="h-4 w-4" />
                   <h3 className="text-sm font-bold">رؤى ذكية</h3>
                 </div>
@@ -405,7 +405,7 @@ export default function ManualJournal() {
                   {insights.map((ins, i) => (
                     <li
                       key={i}
-                      className="rounded-lg bg-amber-50 p-2 text-[12px] text-amber-800"
+                      className="rounded-lg bg-warning/10 p-2 text-[12px] text-amber-800"
                     >
                       {ins}
                     </li>

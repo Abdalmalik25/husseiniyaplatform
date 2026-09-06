@@ -87,17 +87,17 @@ export default function Customization() {
   return (
     <div className="min-h-screen flex">
       <AppSidebar />
-      <main className="flex-1 bg-slate-50">
-        <div className="border-b bg-white px-6 py-4">
+      <main className="flex-1 bg-muted">
+        <div className="border-b bg-card px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-800 text-white">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-muted text-white">
               <SlidersHorizontal className="h-6 w-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-800">
+              <h1 className="text-xl font-bold text-foreground">
                 التخصيص والحقول الإضافية
               </h1>
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted-foreground">
                 أضف حقولاً مخصصة لأي كيان تشغيلي دون تعديل هياكل النظام — مرونة
                 وتخصيص بحسب نشاطكم
               </p>
@@ -110,11 +110,11 @@ export default function Customization() {
           <div className="lg:col-span-2 space-y-4">
             <Card>
               <CardContent className="p-4 space-y-3">
-                <label className="block text-[11px] font-bold text-slate-500">
+                <label className="block text-[11px] font-bold text-muted-foreground">
                   نوع الكيان
                 </label>
                 <select
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[13px]"
+                  className="h-9 w-full rounded-lg border border-border bg-card px-2 text-[13px]"
                   value={entityType}
                   onChange={e => setEntityType(e.target.value)}
                 >
@@ -127,24 +127,24 @@ export default function Customization() {
 
                 <div className="mt-2 space-y-2">
                   {isPending ? (
-                    <p className="text-[12px] text-slate-400">
+                    <p className="text-[12px] text-muted-foreground">
                       جاري التحميل...
                     </p>
                   ) : (defs ?? []).length === 0 ? (
-                    <p className="text-[12px] text-slate-400">
+                    <p className="text-[12px] text-muted-foreground">
                       لا توجد حقول مخصصة لهذا الكيان بعد.
                     </p>
                   ) : (
                     (defs ?? []).map((d: any) => (
                       <div
                         key={d.id}
-                        className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-3"
+                        className="flex items-center justify-between rounded-xl border border-border bg-muted p-3"
                       >
                         <div>
-                          <div className="text-[13px] font-bold text-slate-700">
+                          <div className="text-[13px] font-bold text-foreground">
                             {d.label}
                           </div>
-                          <div className="text-[11px] text-slate-400">
+                          <div className="text-[11px] text-muted-foreground">
                             {d.key} ·{" "}
                             {FIELD_TYPES.find(t => t.value === d.type)?.label}
                             {d.required ? " · إلزامي" : ""}
@@ -166,7 +166,7 @@ export default function Customization() {
           <div className="space-y-4">
             <Card>
               <CardContent className="p-4 space-y-2">
-                <h3 className="text-sm font-bold text-slate-700">
+                <h3 className="text-sm font-bold text-foreground">
                   إضافة حقل جديد
                 </h3>
                 <Input
@@ -182,7 +182,7 @@ export default function Customization() {
                   onChange={e => setKey(e.target.value)}
                 />
                 <select
-                  className="h-9 w-full rounded-lg border border-slate-300 bg-white px-2 text-[12px]"
+                  className="h-9 w-full rounded-lg border border-border bg-card px-2 text-[12px]"
                   value={type}
                   onChange={e => setType(e.target.value)}
                 >
@@ -200,7 +200,7 @@ export default function Customization() {
                     onChange={e => setOptions(e.target.value)}
                   />
                 )}
-                <label className="flex items-center gap-2 text-[12px] text-slate-600">
+                <label className="flex items-center gap-2 text-[12px] text-muted-foreground">
                   <input
                     type="checkbox"
                     checked={required}
@@ -210,7 +210,7 @@ export default function Customization() {
                 </label>
                 <Button
                   size="sm"
-                  className="w-full bg-slate-800 text-white hover:bg-slate-900"
+                  className="w-full bg-muted text-white hover:bg-muted"
                   onClick={addField}
                   disabled={createDef.isPending}
                 >
@@ -221,7 +221,7 @@ export default function Customization() {
 
             <Card>
               <CardContent className="p-4">
-                <h3 className="mb-2 text-sm font-bold text-slate-700">
+                <h3 className="mb-2 text-sm font-bold text-foreground">
                   معاينة حية (
                   {ENTITY_TYPES.find(e => e.value === entityType)?.label})
                 </h3>
