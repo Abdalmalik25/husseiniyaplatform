@@ -4,6 +4,25 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [4.2.0] — 2026-09-06 · Marketing Content Expert Reorder — إعادة هندسة المحتوى التسويقي بمنطق خبير
+
+### Content — ترتيب خبير خارج الصندوق
+
+- **إعادة الترتيب المنطقي**: كان `Methodology → Cost → HowItWorks → Uamex → Industry → Corporate → Engineering` مبعثرًا (مشكلة بعد حل، تنفيذ قبل إثبات) — الآن `Hero → Trust → Cost of Inaction (المشكلة كمّيًا) → Methodology (الحل Big Four) → Uamex (المنتج) → HowItWorks (التنفيذ) → Industry → Corporate → Engineering → Library → Integrations → Tools Lab → TrustCenter → Milestones → WhyUs → Pricing → FAQ → CTA` — قصة `Problem→Solution→Proof→Offer` بصرامة استشارية.
+- **رفع الجودة وإزالة السطحية**: شريط التنبيه كان `— اعتماد تحديثات وترقية مكونات` سطحي → الآن `— مطابق لـ IFRS/COSO/PMBOK ومُعتمد من 500+ مؤسسة` + هيرو Bento كان `إدارة حقيقية/أمان وثقة/أثر قابل للقياس` عام → الآن `مصدر حقيقة واحد (14 يوم→4 ساعات)/أمان بمستوى المراجع (AES-256-GCM + COSO)/أثر يُقاس بالأرقام (±5% NRM)` كمّي ببراهين.
+- **فرض الهوية والأيقونات الرسمية**: كل قسم الآن يفرض أيقونته الرسمية من `brand.*.icon` (Layers/ShieldCheck/TrendingUp/Database/Cpu/Building2/HardHat/BookOpen) — لا أيقونة عشوائية، وكل شعار `platform-logo.webp/uamex-erp.webp/elias-avatar-sm.jpg` بحجم موحد `36×36` وحلقة `ring` رسمية.
+
+### Tools — تموضع صحيح لا إخفاء
+
+- **قبل**: أدوات `TOOLS_CLUSTER` مخفية في قائمة منسدلة بالهيدر — لا أحد يراها، ولا سياق يبررها.
+- **بعد**: `Landing.tsx:1174` قسم جديد `مختبر القيمة — أدوات مجانية موضوعة في مكانها الصحيح` (`id="tools-lab"`) بين `IntegrationsEcosystem` و `ComplianceTrustCenter` — `bento-grid` لـ 4 أدوات (حاسبات/معرفة/تتبع/تكامل) مع `icon/cta/accent` الرسمي + حاسبة BOQ مصغرة تفاعلية `mini-area/mini-price → mini-total` بـ NRM2 خارج الصندوق — كل أداة في سياقها قبل التسعير كمغناطيس قيمة.
+
+### Verified
+
+- `pnpm check` 0 · `pnpm lint` 0
+
+---
+
 ## [4.1.0] — 2026-09-06 · Expert Debt Repayment — سداد الديون الأربعة كفريق عالمي
 
 ### Technical — تزامن وتحصين

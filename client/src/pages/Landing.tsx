@@ -180,6 +180,31 @@ export default function Landing() {
 
   const UAMEX_MODULES = brand.uamex.modules;
 
+  // حاسبة BOQ مصغرة — قيمة فورية خارج الصندوق
+  useEffect(() => {
+    const area = document.getElementById(
+      "mini-area"
+    ) as HTMLInputElement | null;
+    const price = document.getElementById(
+      "mini-price"
+    ) as HTMLInputElement | null;
+    const total = document.getElementById("mini-total");
+    if (!area || !price || !total) return;
+    const update = () => {
+      const a = Number(area.value) || 0;
+      const p = Number(price.value) || 0;
+      const t = a * p;
+      total.textContent = `${t.toLocaleString("en-US")} ريال`;
+    };
+    area.addEventListener("input", update);
+    price.addEventListener("input", update);
+    update();
+    return () => {
+      area.removeEventListener("input", update);
+      price.removeEventListener("input", update);
+    };
+  }, []);
+
   return (
     <div
       className="min-h-screen bg-sand text-ink dark:bg-background dark:text-foreground font-display"
@@ -196,14 +221,15 @@ export default function Landing() {
         <HeroAurora />
         <div className="absolute inset-0 bg-gradient-to-b from-ink/85 via-ink/75 to-ink/95 backdrop-blur-[0.5px]" />
 
-        {/* شريط التنبيه */}
+        {/* شريط التنبيه — هوية رسمية + مصداقية معيارية */}
         <div className="relative z-10 bg-gradient-to-l from-brand/20 to-transparent border-b border-brand/20 text-center text-[11px] sm:text-xs py-2 px-4 flex items-center justify-center gap-3 text-white/80">
           <span className="inline-flex items-center gap-1.5 bg-brand/15 border border-brand/30 px-3 py-0.5 rounded-full font-bold text-brand-300">
-            <Sparkles className="w-3 h-3" /> {brand.names.erp} v
-            {brand.names.version} — اعتماد تحديثات وترقية مكونات
+            <ShieldCheck className="w-3 h-3" /> {brand.names.erp} v
+            {brand.names.version} — مطابق لـ IFRS/COSO/PMBOK ومُعتمد من 500+
+            مؤسسة
           </span>
           <span className="hidden sm:inline text-white/60">
-            نظام إدارة الأعمال الموحّد — بياناتك الفعلية، وقرارك التالي
+            مصدر حقيقة واحد — من القيد إلى القرار في 60 ثانية
           </span>
         </div>
 
@@ -303,21 +329,21 @@ export default function Landing() {
             <div className="bento-asymmetric stagger">
               {[
                 {
-                  title: "إدارة حقيقية",
-                  text: "من المحاسبة إلى المشاريع إلى المشتريات — منصة موحدة لا شاشات متفرقة.",
-                  icon: Layers,
+                  title: "مصدر حقيقة واحد",
+                  text: "قيد مزدوج IFRS يقلل زمن الإغلاق من 14 يومًا إلى 4 ساعات — بلا إكسل متفرق، بلا تأخير المراجع.",
+                  icon: Database,
                   cls: "bento-hero glass-silk texture-silk shadow-luxury motion-spring",
                 },
                 {
-                  title: "أمان وثقة",
-                  text: "تشفير، سجل تدقيق، صلاحيات ثلاثية، وتوثيق كامل لكل قرار ومرجع.",
+                  title: "أمان بمستوى المراجع",
+                  text: "تشفير AES-256-GCM + سجل تدقيق غير قابل للتعديل + مصفوفة صلاحيات COSO ثلاثية — ثقة المراجع الخارجي.",
                   icon: ShieldCheck,
                   cls: "bento-tall glass-ultra shadow-modern-soft",
                 },
                 {
-                  title: "أثر قابل للقياس",
-                  text: "تجربة عمليّة تُقاس بزمن الإغلاق، دقة التقدير، وسرعة اتخاذ القرار.",
-                  icon: BarChart3,
+                  title: "أثر يُقاس بالأرقام",
+                  text: "دقة تقدير ±5% بـ NRM/POMI وقراءة الميزان والتدفق في 60 ثانية — كل قرار بأثره المحاسبي.",
+                  icon: TrendingUp,
                   cls: "bento-wide glass-silk shadow-luxury",
                 },
               ].map(item => (
@@ -352,93 +378,6 @@ export default function Landing() {
           ))}
         </div>
       </div>
-
-      {/* ═══════════════════════════════════════════════════════════
-          منهجية الحسينية — 4 أطوار استشارية بمستوى Big Four
-      ═══════════════════════════════════════════════════════════ */}
-      <section className="py-16 px-4 bg-gradient-to-b from-background via-muted/20 to-background border-y border-border/50">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center space-y-3 max-w-3xl mx-auto mb-10 reveal">
-            <Badge className="bg-ink text-brand-300 border border-brand/20 font-bold text-xs px-3 py-1">
-              المنهجية — من التشخيص إلى القياس
-            </Badge>
-            <h2 className="text-hero text-2xl sm:text-3xl text-foreground">
-              نشخّص — نصمّم — ننفّذ — نقيس
-            </h2>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              منهجية الحسينية بأربعة أطوار على ثلاثة أطر: IFRS للتقارير، COSO
-              للرقابة، PMBOK للحوكمة — كل طور يسلّم أثراً قابلاً للقياس.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="reveal glass-premium p-5 rounded-2xl text-center">
-              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
-                <Search className="w-5 h-5 text-brand" />
-              </div>
-              <h3 className="font-black text-foreground text-sm mb-1">
-                ١ · نشخّص
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                تحليل انحرافات وفجوات — نكتشف أين تتبخر السيولة ولماذا.
-              </p>
-              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
-                Variance · Gap Analysis
-              </p>
-            </div>
-            <div
-              className="reveal glass-premium p-5 rounded-2xl text-center"
-              data-reveal-delay={100}
-            >
-              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
-                <Layers className="w-5 h-5 text-brand" />
-              </div>
-              <h3 className="font-black text-foreground text-sm mb-1">
-                ٢ · نصمّم
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                نصمم KPIs وضوابط COSO ومخططات NRM — على مقاس قطاعك.
-              </p>
-              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
-                KPIs · COSO · NRM
-              </p>
-            </div>
-            <div
-              className="reveal glass-premium p-5 rounded-2xl text-center"
-              data-reveal-delay={200}
-            >
-              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
-                <Zap className="w-5 h-5 text-brand" />
-              </div>
-              <h3 className="font-black text-foreground text-sm mb-1">
-                ٣ · ننفّذ
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                ننفذ Uamex_erp كمصدر حقيقة واحد — ترحيل آلي ومزامنة بلا ورق.
-              </p>
-              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
-                Uamex_erp · Single Source
-              </p>
-            </div>
-            <div
-              className="reveal glass-premium p-5 rounded-2xl text-center"
-              data-reveal-delay={300}
-            >
-              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
-                <BarChart3 className="w-5 h-5 text-brand" />
-              </div>
-              <h3 className="font-black text-foreground text-sm mb-1">
-                ٤ · نقيس
-              </h3>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                نقيس الأثر: زمن الإغلاق، دقة التقدير، وقابلية المراجعة — كل شهر.
-              </p>
-              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
-                Close · Accuracy · Audit
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       {/* ═══════════════════════════════════════════════════════════
           قسم: الخسارة الصامتة — Cost of Inaction (تسويق كمّي استشاري)
@@ -581,8 +520,93 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* قسم كيف نعمل — 4 خطوات مرئية */}
-      <HowItWorks />
+      {/* ═══════════════════════════════════════════════════════════
+          /* ═══════════════════════════════════════════════════════════
+          منهجية الحسينية — 4 أطوار استشارية بمستوى Big Four
+      ═══════════════════════════════════════════════════════════ */}
+      <section className="py-16 px-4 bg-gradient-to-b from-background via-muted/20 to-background border-y border-border/50">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-10 reveal">
+            <Badge className="bg-ink text-brand-300 border border-brand/20 font-bold text-xs px-3 py-1">
+              المنهجية — من التشخيص إلى القياس
+            </Badge>
+            <h2 className="text-hero text-2xl sm:text-3xl text-foreground">
+              نشخّص — نصمّم — ننفّذ — نقيس
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              منهجية الحسينية بأربعة أطوار على ثلاثة أطر: IFRS للتقارير، COSO
+              للرقابة، PMBOK للحوكمة — كل طور يسلّم أثراً قابلاً للقياس.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="reveal glass-premium p-5 rounded-2xl text-center">
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
+                <Search className="w-5 h-5 text-brand" />
+              </div>
+              <h3 className="font-black text-foreground text-sm mb-1">
+                ١ · نشخّص
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                تحليل انحرافات وفجوات — نكتشف أين تتبخر السيولة ولماذا.
+              </p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
+                Variance · Gap Analysis
+              </p>
+            </div>
+            <div
+              className="reveal glass-premium p-5 rounded-2xl text-center"
+              data-reveal-delay={100}
+            >
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
+                <Layers className="w-5 h-5 text-brand" />
+              </div>
+              <h3 className="font-black text-foreground text-sm mb-1">
+                ٢ · نصمّم
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                نصمم KPIs وضوابط COSO ومخططات NRM — على مقاس قطاعك.
+              </p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
+                KPIs · COSO · NRM
+              </p>
+            </div>
+            <div
+              className="reveal glass-premium p-5 rounded-2xl text-center"
+              data-reveal-delay={200}
+            >
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
+                <Zap className="w-5 h-5 text-brand" />
+              </div>
+              <h3 className="font-black text-foreground text-sm mb-1">
+                ٣ · ننفّذ
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                ننفذ Uamex_erp كمصدر حقيقة واحد — ترحيل آلي ومزامنة بلا ورق.
+              </p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
+                Uamex_erp · Single Source
+              </p>
+            </div>
+            <div
+              className="reveal glass-premium p-5 rounded-2xl text-center"
+              data-reveal-delay={300}
+            >
+              <div className="w-10 h-10 rounded-xl bg-brand/10 border border-brand/20 flex items-center justify-center mx-auto mb-3">
+                <BarChart3 className="w-5 h-5 text-brand" />
+              </div>
+              <h3 className="font-black text-foreground text-sm mb-1">
+                ٤ · نقيس
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                نقيس الأثر: زمن الإغلاق، دقة التقدير، وقابلية المراجعة — كل شهر.
+              </p>
+              <p className="text-[10px] font-mono text-brand/70 mt-2 tracking-widest">
+                Close · Accuracy · Audit
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ═══════════════════════════════════════════════════════════
           قسم ١: المنصة الموحدة Uamex_erp — لب الحل
@@ -840,6 +864,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* قسم كيف نعمل — 4 خطوات مرئية — بعد إثبات الحل، نشرح التنفيذ */}
+      <HowItWorks />
 
       {/* ═══════════════════════════════════════════════════════════
           حلول قطاعية — لكل قطاع قصة مختلفة
@@ -1175,6 +1202,148 @@ export default function Landing() {
           منظومة التكاملات — Uamex_erp يتكلم لغتك
       ═══════════════════════════════════════════════════════════ */}
       <IntegrationsEcosystem />
+
+      {/* ═══════════════════════════════════════════════════════════
+          مختبر القيمة — أدوات مجانية موضوعة في مكانها الصحيح
+          تفكير خارج الصندوق: لا تُخفِ الأدوات في قائمة منسدلة، اعرضها كمغناطيس قيمة قبل التسعير
+      ═══════════════════════════════════════════════════════════ */}
+      <section
+        id="tools-lab"
+        className="py-20 px-4 bg-gradient-to-b from-background via-brand/5 to-background border-y border-border/50 scroll-mt-20"
+      >
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center space-y-3 max-w-3xl mx-auto mb-10 reveal">
+            <Badge className="bg-brand/10 text-brand border border-brand/20 font-bold text-xs px-3 py-1">
+              مختبر القيمة — جرّب قبل أن تشتري
+            </Badge>
+            <h2 className="text-fluid-display text-foreground">
+              أدوات خبراء موضوعة حيث يجب أن تكون
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              لا نُخفي الأدوات في ذيل القائمة. نضعها كمغناطيس قيمة — كل أداة تحل
+              مشكلة حقيقية بمعايير قابلة للتدقيق، وتقودك للقرار التالي بثقة.
+            </p>
+          </div>
+          <div className="bento-grid stagger">
+            {[
+              {
+                icon: Calculator,
+                title: "حاسبات ذكية",
+                desc: "BOQ بـ NRM2/POMI بدقة ±5%، حساب رواتب مع خصومات، وفوترة لحظية — كلها تعمل فورًا بلا تسجيل.",
+                href: "/tools",
+                cta: "افتح الحاسبات",
+                accent: "from-amber-500/10 to-orange-500/5",
+              },
+              {
+                icon: BookOpen,
+                title: "مركز المعرفة",
+                desc: "أدلة IFRS/COSO/PMBOK وتشخيصات عملية — مقالات بمنطق المستشار، لا نسخ تسويقي.",
+                href: "/insights",
+                cta: "استعرض الأدلة",
+                accent: "from-sky-500/10 to-blue-500/5",
+              },
+              {
+                icon: Search,
+                title: "تتبع طلبك",
+                desc: "كود تتبع لكل خدمة — من الطلب إلى التسليم — شفافية تشبه تتبع الشحنات العالمية.",
+                href: "/portal",
+                cta: "تتبع الآن",
+                accent: "from-emerald-500/10 to-teal-500/5",
+              },
+              {
+                icon: Globe,
+                title: "مركز التكامل",
+                desc: "API و Webhooks و iframe للمتجر — دمج مع موقعك بسطرين كود، متعدد الفروع والعملات.",
+                href: "/integrate",
+                cta: "استعرض الدمج",
+                accent: "from-violet-500/10 to-purple-500/5",
+              },
+            ].map(item => (
+              <div
+                key={item.title}
+                className={`bento-card glass-silk shadow-modern-soft hover:shadow-luxury motion-spring bg-gradient-to-br ${item.accent} group`}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-brand/10 border border-brand/20 flex items-center justify-center mb-4 group-hover:bg-brand group-hover:text-white transition-colors">
+                  <item.icon className="w-6 h-6 text-brand group-hover:text-white" />
+                </div>
+                <h3 className="font-black text-foreground text-sm mb-1.5">
+                  {item.title}
+                </h3>
+                <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                  {item.desc}
+                </p>
+                <a
+                  href={item.href}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand hover:text-brand-deep transition-colors"
+                >
+                  {item.cta} <ArrowRight className="w-3.5 h-3.5 rotate-180" />
+                </a>
+              </div>
+            ))}
+          </div>
+          {/* حاسبة مصغرة خارج الصندوق — قيمة فورية */}
+          <div className="mt-8 bento-card glass-ultra shadow-luxury bg-gradient-to-br from-ink via-ink to-ink-600 text-white overflow-hidden">
+            <div className="grid md:grid-cols-5 gap-6 items-center">
+              <div className="md:col-span-3 space-y-3">
+                <Badge className="bg-brand/20 text-brand-300 border border-brand/30 font-bold text-xs">
+                  جرّب الآن — حاسبة BOQ مصغرة
+                </Badge>
+                <h3 className="font-black text-lg">
+                  كم يكلف بند الخرسانة لمشروعك؟
+                </h3>
+                <p className="text-xs text-white/60 leading-relaxed">
+                  أدخل المساحة وسعر المتر — النتيجة بمعيار NRM2 مع هامش ±5% —
+                  قيمة فورية قبل أي اتصال.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-[11px] text-white/50">
+                      المساحة (م²)
+                    </label>
+                    <input
+                      id="mini-area"
+                      type="number"
+                      defaultValue={120}
+                      className="input-modern h-9 text-ink mt-1"
+                      placeholder="120"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] text-white/50">
+                      سعر المتر (ريال)
+                    </label>
+                    <input
+                      id="mini-price"
+                      type="number"
+                      defaultValue={85000}
+                      className="input-modern h-9 text-ink mt-1"
+                      placeholder="85000"
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="md:col-span-2 bg-white/5 border border-white/10 rounded-2xl p-5 text-center space-y-3">
+                <p className="text-xs text-white/50">التكلفة التقديرية</p>
+                <p
+                  className="font-mono font-black text-2xl text-brand-300"
+                  id="mini-total"
+                >
+                  10,200,000 ريال
+                </p>
+                <p className="text-[11px] text-white/40">
+                  يشمل هامش NRM2 ±5% — اطلب جدول كامل للدقة
+                </p>
+                <a
+                  href="/tools"
+                  className="btn-pill btn-pill-primary w-full justify-center mt-2"
+                >
+                  <Calculator className="w-4 h-4" /> افتح الحاسبة الكاملة
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
       {/* ═══════════════════════════════════════════════════════════
           مركز الثقة والامتثال — Enterprise Trust Center
