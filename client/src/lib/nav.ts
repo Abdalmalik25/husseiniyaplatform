@@ -122,13 +122,14 @@ export const MARKETING_NAV: NavItem[] = [
 
 /**
  * ────────────────────────────────────────────────────────────────────────
- * Domain-Driven Mega Clusters — حملة الترقية الدقيقة (2026-09)
+ * Domain-Driven Mega Clusters — منطق خبير لمستوى شركة عالمية (2026-09)
  * ────────────────────────────────────────────────────────────────────────
- * كل عنقود يمثل مجال قيمة واضح — لا عشوائية، لا خلط بين تسويق وأدوات.
- * HeaderNavbar يستهلك هذه العناقيد مباشرة بدل البناء العشوائي من NAV_BY_PATH.
+ * 4 مجالات فقط — كل مجال يجيب عن سؤال واحد واضح:
+ * الحلول: ماذا تحل لي؟ (JTBD) · المنصة: كيف تعمل؟ (How) · الموارد: كيف أتعلم وأدمج؟ · الشركة: من أنتم؟
+ * HeaderNavbar يستهلك هذه العناقيد مباشرة — لا عشوائية، لا خلط تسويق/نظام.
  */
 
-// المنصة: الأعمدة الأربعة الحقيقية — كل عمود صفحة/مرساة واضحة
+// المنصة: كيف تعمل — مصدر الحقيقة الموحد فقط (لا يخلط بالخدمات)
 export const PLATFORM_CLUSTER: NavItem[] = [
   {
     path: "/#uamex",
@@ -137,6 +138,22 @@ export const PLATFORM_CLUSTER: NavItem[] = [
     highlight: true,
     description: "قيد مزدوج + تدقيق غير قابل للتعديل + صلاحيات COSO",
   },
+  {
+    path: "/#methodology",
+    label: "المنهجية المعتمدة",
+    icon: Scale,
+    description: "IFRS / COSO / PMBOK / ISO — أثر قابل للتدقيق",
+  },
+  {
+    path: "/#trust-center",
+    label: "الأمن والامتثال",
+    icon: ShieldCheck,
+    description: "AES-256-GCM + عزل مستأجرين + نسخ مشفّر",
+  },
+];
+
+// الحلول: ماذا تحل لي — 3 مسارات وظيفية بمنطق العميل لا بمنطق الأقسام
+export const SOLUTIONS_CLUSTER: NavItem[] = [
   {
     path: "/#corporate",
     label: "الاستشارات المؤسسية",
@@ -200,7 +217,7 @@ export const INTELLIGENCE_CLUSTER: NavItem[] = [
   },
 ];
 
-// الأدوات المساعدة: حاسبات ومعرفة وتتبع — لا تلوث التنقل الرئيسي
+// الموارد: كيف أتعلم وأدمج — أدوات ومعرفة بلا تلوث
 export const TOOLS_CLUSTER: NavItem[] = [
   {
     path: "/tools",
@@ -215,22 +232,44 @@ export const TOOLS_CLUSTER: NavItem[] = [
     description: "أدلة IFRS/COSO/PMBOK وتشخيصات عملية",
   },
   {
-    path: "/portal",
-    label: "تتبع طلبك",
-    icon: Search,
-    description: "تتبع حالة طلب بالكود",
-  },
-  {
     path: "/integrate",
     label: "مركز التكامل",
     icon: Globe2,
     description: "واجهات API و Webhooks",
   },
   {
+    path: "/portal",
+    label: "تتبع طلبك",
+    icon: Search,
+    description: "تتبع حالة طلب بالكود",
+  },
+  {
     path: "/download",
     label: "تحميل التطبيق",
     icon: Download,
     description: "PWA + تعليمات التثبيت",
+  },
+];
+
+// الشركة: من أنتم — ثقة وتسعير وتواصل (قمع التحويل)
+export const COMPANY_CLUSTER: NavItem[] = [
+  {
+    path: "/about",
+    label: "من نحن",
+    icon: Building2,
+    description: "قصة الحسينية ورسالتها وفريقها",
+  },
+  {
+    path: "/pricing",
+    label: "الأسعار",
+    icon: CreditCard,
+    description: "باقات تنمو معك — 14 يوماً مجاناً",
+  },
+  {
+    path: "/contact",
+    label: "تواصل",
+    icon: Phone,
+    description: "استشارة أولية مجانية خلال 24 ساعة",
   },
 ];
 
