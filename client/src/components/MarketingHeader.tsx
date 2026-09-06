@@ -180,27 +180,19 @@ export function MarketingHeader({ onOpenSettings }: Props) {
       <div
         className={`hidden lg:flex items-center justify-between px-4 backdrop-blur border-b text-[11px] transition-all duration-300 ${scrolled ? "h-0 overflow-hidden opacity-0 py-0 border-transparent" : "h-7 py-0 opacity-100"} bg-white/80 border-slate-200 text-slate-500`}
       >
-        <span className="flex items-center gap-2.5 font-mono tracking-widest">
+        <span className="flex items-center gap-2.5 tracking-normal">
           <span className="px-2 py-0.5 rounded-full text-[10px] font-black border bg-slate-900 text-white border-slate-900">
-            ALHUSAINIA
+            {brand.names.siteName}
           </span>
-          <span className="hidden xl:inline font-sans font-medium tracking-normal">
-            {brand.names.siteName} — {brand.names.erp} v{brand.names.version}
-          </span>
+          <span className="hidden xl:inline font-medium">خدمات أعمال متكاملة — منذ 2018</span>
         </span>
         <span className="flex items-center gap-3 font-medium">
-          <a
-            href={`tel:${brand.contact.phone}`}
-            className="flex items-center gap-1.5 hover:opacity-80 transition-opacity"
-          >
+          <a href={`tel:${brand.contact.phone}`} className="flex items-center gap-1.5 hover:text-slate-900 transition-colors">
             <Phone className="w-3 h-3 text-slate-400" />
             {brand.contact.phone}
           </a>
           <span className="w-px h-3 bg-slate-200" />
-          <span className="hidden sm:inline-flex items-center gap-1.5">
-            <ShieldCheck className="w-3 h-3 text-emerald-500" />
-            AES-256-GCM · عزل مستأجرين
-          </span>
+          <span className="hidden sm:inline">{brand.contact.address}</span>
         </span>
       </div>
       <div className="border-b backdrop-blur-xl bg-white/90 border-slate-200 shadow-apex glass-silk texture-silk-v2">
@@ -341,19 +333,18 @@ export function MarketingHeader({ onOpenSettings }: Props) {
                 </div>
               );
             })}
-            <button
-              onClick={() => setLocation("/contact")}
-              className="hidden lg:inline-flex h-8 px-3.5 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50"
-            >
-              تواصل
-            </button>
-            <Button
-              onClick={() => setLocation(isAuthenticated ? "/app" : "/login")}
-              className="bg-slate-900 hover:bg-black text-white font-bold h-8 px-4 rounded-lg text-[13px]"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              {isAuthenticated ? "ادخل النظام" : "ابدأ مجاناً"}
-            </Button>
+            <button onClick={() => setLocation("/contact")} className="hidden lg:inline-flex h-8 px-3.5 rounded-lg text-[13px] text-slate-600 hover:bg-slate-50">تواصل</button>
+            {isAuthenticated ? (
+              <Button onClick={() => setLocation("/app")} className="bg-slate-900 hover:bg-black text-white font-bold h-8 px-4 rounded-lg text-[13px]">
+                <Zap className="w-3.5 h-3.5" />
+                ادخل النظام
+              </Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={() => setLocation("/login")} className="hidden lg:inline-flex h-8 px-3.5 rounded-lg text-[13px] text-slate-700 hover:bg-slate-50">دخول النظام</Button>
+                <Button onClick={() => setLocation("/login")} className="bg-slate-900 hover:bg-black text-white font-bold h-8 px-4 rounded-lg text-[13px]">سجل منشأتك</Button>
+              </>
+            )}
           </nav>
           <div className="flex items-center gap-1.5">
             {onOpenSettings && (
@@ -388,12 +379,11 @@ export function MarketingHeader({ onOpenSettings }: Props) {
               onClick={() => setMobileOpen(false)}
               className="md:hidden fixed inset-0 top-[84px] bg-black/40 backdrop-blur-sm z-40"
             />
-            <motion.div
-              initial={{ y: -10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              exit={{ y: -10, opacity: 0 }}
-              className="md:hidden absolute inset-x-3 top-full mt-2 rounded-2xl border bg-white border-slate-200 shadow-xl p-3 space-y-1.5 max-h-[70vh] overflow-y-auto z-50"
-            >
+            <motion.div initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} className="md:hidden absolute inset-x-3 top-full mt-2 rounded-2xl border bg-white border-slate-200 shadow-xl p-3 space-y-3 max-h-[70vh] overflow-y-auto z-50">
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => { setLocation("/login"); setMobileOpen(false); }} className="h-9 text-xs border-slate-200">دخول النظام</Button>
+                <Button onClick={() => { setLocation("/login"); setMobileOpen(false); }} className="h-9 text-xs bg-slate-900 text-white">سجل منشأتك</Button>
+              </div>
               {mobileNav.map(item => {
                 const I = item.icon;
                 const active = location === item.path;
