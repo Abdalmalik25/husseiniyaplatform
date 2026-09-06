@@ -107,11 +107,9 @@ export function HeaderNavbar({
     !publicOnly &&
     isAuthenticated &&
     APP_NAV.some(item => location === item.path);
-  // الشريط العالمي: نفس الترتيب الخبير في كل الحالات — لا إخفاء عشوائي
+  const currentAppItem = APP_NAV.find(item => location === item.path || (item.path !== "/app" && location.startsWith(item.path)));
   const visibleClusters = DOMAIN_CLUSTERS;
-  const mobileNav = isWorkspace
-    ? APP_NAV.slice(0, 12)
-    : [...SOLUTIONS_CLUSTER, ...PLATFORM_CLUSTER, ...TOOLS_CLUSTER.slice(0, 2), ...COMPANY_CLUSTER];
+  const mobileNav = [...SOLUTIONS_CLUSTER, ...PLATFORM_CLUSTER, ...TOOLS_CLUSTER.slice(0, 2), ...COMPANY_CLUSTER];
 
   React.useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 12);
@@ -179,53 +177,98 @@ export function HeaderNavbar({
   const baseBtn =
     "h-8 px-3 text-[13px] font-medium transition-all gap-1.5 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none rounded-lg";
   const navClass = (active: boolean, highlight?: boolean) => {
-    if (isMarketingShell) {
-      if (active) return "bg-slate-900 text-white font-bold shadow-sm";
-      if (highlight) return "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100";
-      return "text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent";
-    }
-    return active
-      ? "bg-brand/15 text-brand-300 font-bold border border-brand/40 shadow-inner"
-      : highlight
-        ? "bg-white/5 text-brand-300 hover:bg-white/10 border border-brand/30"
-        : "text-white/75 hover:bg-white/5 hover:text-white border border-transparent";
+    if (active) return "bg-slate-900 text-white font-bold shadow-sm";
+    if (highlight) return "bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100";
+    return "text-slate-600 hover:text-slate-900 hover:bg-slate-50 border border-transparent";
   };
 
-  const isMarketingShell = publicOnly || (!isAuthenticated && !isWorkspace);
+  // فصل جذري — هيدر نظام مستقل تماما (لا عناقيد تسويقية إطلاقا)
+  if (isWorkspace) {
+    return (
+      <header className="sticky top-0 z-40 bg-ink border-b border-white/10 backdrop-blur-xl" dir="rtl">
+        <div className="max-w-[1600px] mx-auto px-3 lg:px-4 flex items-center justify-between gap-3 h-[48px]">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="hidden sm:inline-flex items-center gap-2 text-[11px] font-mono text-white/40">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              {isOnline ? "متصل" : "أوفلاين"}
+              {isSyncing && <RefreshCw className="w-3 h-3 animate-spin text-brand-300" />}
+            </span>
+            <span className="h-4 w-px bg-white/10 hidden sm:block" />
+            <div className="flex items-center gap-1.5 text-xs min-w-0">
+              <span className="text-white/40 hidden md:inline">نظام التشغيل</span>
+              <span className="text-white/20 hidden md:inline">/</span>
+              <span className="font-bold text-white truncate">{currentAppItem?.label ?? "لوحة التحكم"}</span>
+              {currentAppItem?.description && (
+                <span className="hidden lg:inline text-white/40 text-[11px] truncate">— {currentAppItem.description}</span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => window.dispatchEvent(new Event("alh:open-command"))}
+              className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 text-[11px] transition-colors"
+              title="بحث شامل (Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-brand-300" />
+              بحث
+              <span className="hidden xl:inline-flex text-[10px] font-mono bg-white/10 border border-white/10 rounded px-1">⌘K</span>
+            </button>
+            <ThemeSwitcher compact />
+            {!publicOnly && <TenantSwitcher />}
+            {isAuthenticated && (
+              <span className="hidden md:inline-flex items-center gap-1.5 h-7 px-2.5 rounded-full border border-brand/20 bg-brand/10 text-brand-300 text-[11px] font-bold">
+                <ShieldCheck className="w-3 h-3" />
+                {user?.name?.split(" ")[0] || "مشرف"}
+              </span>
+            )}
+            <Button variant="ghost" size="sm" onClick={() => setMobileOpen(!mobileOpen)} className="lg:hidden text-white p-2 h-8 w-8 hover:bg-white/5" aria-label="قائمة النظام">
+              {mobileOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            </Button>
+          </div>
+        </div>
+        {mobileOpen && (
+          <div className="lg:hidden border-t border-white/10 bg-ink-deep p-2 space-y-1 max-h-[60vh] overflow-y-auto">
+            {APP_NAV.slice(0, 14).map(item => {
+              const Icon = item.icon;
+              const active = location === item.path;
+              return (
+                <button key={item.path} onClick={() => { setLocation(item.path); setMobileOpen(false); }} className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs font-medium ${active ? "bg-brand text-ink-deep font-bold" : "text-white/70 hover:bg-white/5 hover:text-white"}`}>
+                  <Icon className="w-4 h-4" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </header>
+    );
+  }
+
   return (
-    <header
-      className={`sticky top-0 z-50 ${isMarketingShell ? "text-ink" : "text-white"}`}
-      dir="rtl"
-    >
-      {/* Top bar — مستوى مؤسسي: سطر معلومات رفيع كـ Stripe/Vercel — يختفي عند التمرير لتوفير مساحة */}
+    <header className="sticky top-0 z-50 text-ink" dir="rtl">
+      {/* Top bar — سطر ثقة رفيع كـ Stripe — يختفي عند التمرير */}
       <div
-        className={`hidden lg:flex items-center justify-between px-4 backdrop-blur border-b text-[11px] transition-all duration-300 ${scrolled ? "h-0 overflow-hidden opacity-0 py-0 border-transparent" : "h-7 py-0 opacity-100"} ${isMarketingShell ? "bg-white/80 border-slate-200 text-slate-500" : "bg-ink-deep/90 border-white/5 text-white/50"}`}
+        className={`hidden lg:flex items-center justify-between px-4 backdrop-blur border-b text-[11px] transition-all duration-300 ${scrolled ? "h-0 overflow-hidden opacity-0 py-0 border-transparent" : "h-7 py-0 opacity-100"} bg-white/80 border-slate-200 text-slate-500`}
       >
         <span className="flex items-center gap-2.5 font-mono tracking-widest">
-          <span
-            className={`px-2 py-0.5 rounded-full text-[10px] font-black border ${isMarketingShell ? "bg-slate-900 text-white border-slate-900" : "bg-white/10 text-white border-white/20"}`}
-          >
-            {isMarketingShell ? "ALHUSAINIA" : "نظام التشغيل"}
-          </span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black border bg-slate-900 text-white border-slate-900">ALHUSAINIA</span>
           <span className="hidden xl:inline font-sans font-medium tracking-normal">
             {brand.names.siteName} — {brand.names.erp} v{brand.names.version}
           </span>
         </span>
         <span className="flex items-center gap-3 font-medium">
           <a href={`tel:${brand.contact.phone}`} className="flex items-center gap-1.5 hover:opacity-80 transition-opacity">
-            <Phone className={`w-3 h-3 ${isMarketingShell ? "text-slate-400" : "text-brand-300"}`} />
+            <Phone className="w-3 h-3 text-slate-400" />
             {brand.contact.phone}
           </a>
-          <span className={`w-px h-3 ${isMarketingShell ? "bg-slate-200" : "bg-white/10"}`} />
+          <span className="w-px h-3 bg-slate-200" />
           <span className="hidden sm:inline-flex items-center gap-1.5">
             <ShieldCheck className="w-3 h-3 text-emerald-500" />
             AES-256-GCM · عزل مستأجرين
           </span>
         </span>
       </div>
-      <div
-        className={`border-b backdrop-blur-xl transition-all duration-300 ${isMarketingShell ? "bg-white/90 border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.04)]" : "bg-ink/80 border-white/5 shadow-[0_8px_32px_rgba(0,0,0,0.35)]"}`}
-      >
+      <div className="border-b backdrop-blur-xl transition-all duration-300 bg-white/90 border-slate-200 shadow-[0_1px_3px_rgba(0,0,0,0.04),0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4 h-[56px]">
           {/* Brand — identity lockup */}
           <div
@@ -234,63 +277,25 @@ export function HeaderNavbar({
             role="link"
             aria-label="alhusainiaye — الصفحة الرئيسية"
           >
-            <BrandLogo
-              size={scrolled ? 32 : 38}
-              className="transition-transform duration-300 group-hover/brand:scale-105 drop-shadow-[0_2px_10px_rgba(184,121,69,0.35)]"
-            />
-            <div className="hidden lg:flex items-center gap-2">
-              {!publicOnly && (
-                <span
-                  className={`inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border font-mono font-bold text-[10px] transition-colors ${
-                    isOnline
-                      ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-300"
-                      : "border-rose-400/30 bg-rose-400/10 text-rose-300"
-                  }`}
-                  title={
-                    isOnline
-                      ? "متصل بالخادم"
-                      : "وضع عدم الاتصال — ستتم المزامنة تلقائياً"
-                  }
-                >
-                  {isSyncing ? (
-                    <RefreshCw className="w-3 h-3 animate-spin" />
-                  ) : (
-                    <span
-                      className={`w-1.5 h-1.5 rounded-full ${
-                        isOnline
-                          ? "bg-emerald-400 animate-pulse"
-                          : "bg-rose-400"
-                      }`}
-                    />
-                  )}
-                  {isSyncing ? "مزامنة…" : isOnline ? "متصل" : "أوفلاين"}
-                </span>
-              )}
-              {isAuthenticated && !publicOnly && (
-                <span className="inline-flex items-center gap-1.5 h-6 px-2.5 rounded-full border border-brand/30 bg-brand/10 text-brand-300 font-mono font-bold text-[10px]">
-                  <ShieldCheck className="w-3 h-3" />
-                  {user?.name || "مشرف المنصة"}
-                </span>
-              )}
-            </div>
+            <BrandLogo size={32} className="transition-transform duration-300 group-hover/brand:scale-105" />
           </div>
 
-          {/* Helper tools — أدوات مساعدة رفيعة كـ Linear — لا تنافس التنقل */}
-          <div className={`hidden lg:flex items-center gap-1 pr-3 mr-1 border-r ${isMarketingShell ? "border-slate-200" : "border-white/10"}`}>
+          {/* Helper tools — أدوات مساعدة رفيعة — لا تنافس التنقل */}
+          <div className="hidden lg:flex items-center gap-1 pr-3 mr-1 border-r border-slate-200">
             <button
               onClick={() => window.dispatchEvent(new Event("alh:open-command"))}
-              className={`flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] transition-colors border ${isMarketingShell ? "bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white hover:border-slate-300" : "bg-white/5 border-white/10 text-white/60 hover:text-white hover:bg-white/10"}`}
+              className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] transition-colors border bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white hover:border-slate-300"
               aria-label="بحث شامل"
               title="بحث شامل (Ctrl+K)"
             >
-              <Search className={`w-3.5 h-3.5 ${isMarketingShell ? "text-slate-400" : "text-brand-300"}`} />
+              <Search className="w-3.5 h-3.5 text-slate-400" />
               <span className="hidden xl:inline">بحث</span>
-              <span className={`hidden xl:inline-flex items-center gap-0.5 text-[10px] font-mono border rounded px-1 py-0 ${isMarketingShell ? "bg-white border-slate-200 text-slate-400" : "bg-white/10 border-white/10 text-white/40"}`}>⌘K</span>
+              <span className="hidden xl:inline-flex items-center gap-0.5 text-[10px] font-mono border rounded px-1 py-0 bg-white border-slate-200 text-slate-400">⌘K</span>
             </button>
             <ThemeSwitcher compact />
             <button
               onClick={handleLanguageToggle}
-              className={`flex items-center gap-1 h-7 px-2 rounded-lg text-[11px] transition-colors ${isMarketingShell ? "text-slate-400 hover:text-slate-900 hover:bg-slate-50" : "text-white/50 hover:text-white hover:bg-white/5"}`}
+              className="flex items-center gap-1 h-7 px-2 rounded-lg text-[11px] transition-colors text-slate-400 hover:text-slate-900 hover:bg-slate-50"
               aria-label="تبديل اللغة"
             >
               <Globe className="w-3.5 h-3.5" />
@@ -351,9 +356,9 @@ export function HeaderNavbar({
                     aria-expanded={isOpen}
                     className={`${baseBtn} ${navClass(containsActive)} group`}
                   >
-                    <ClusterIcon className={`w-3.5 h-3.5 ${isMarketingShell && !containsActive ? "text-slate-400" : "text-brand-300"}`} />
+                    <ClusterIcon className={`w-3.5 h-3.5 ${!containsActive ? "text-slate-400" : "text-brand-300"}`} />
                     {cluster.label}
-                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} ${isMarketingShell ? "text-slate-400" : ""}`} />
+                    <ChevronDown className={`w-3 h-3 transition-transform duration-200 ${isOpen ? "rotate-180" : ""} text-slate-400`} />
                   </Button>
                   <AnimatePresence>
                     {isOpen && (
@@ -362,7 +367,7 @@ export function HeaderNavbar({
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}
                         transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-                        className={`absolute top-full right-0 mt-2 rounded-2xl border p-2 origin-top ${isMarketingShell ? "min-w-[340px] bg-white border-slate-200 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.06)]" : "min-w-[320px] bg-ink-deep/95 backdrop-blur-2xl border-white/10 shadow-2xl shadow-black/60"}`}
+                        className="absolute top-full right-0 mt-2 rounded-2xl border p-2 origin-top min-w-[340px] bg-white border-slate-200 shadow-[0_8px_32px_rgba(0,0,0,0.08),0_2px_8px_rgba(0,0,0,0.06)]"
                       >
                         {items.map(item => {
                           const Icon = item.icon;
@@ -374,20 +379,18 @@ export function HeaderNavbar({
                               onMouseEnter={() => prefetchRoute(item.path)}
                               onFocus={() => prefetchRoute(item.path)}
                               aria-current={isActive ? "page" : undefined}
-                              className={`w-full flex items-start gap-3 rounded-xl px-3 py-2.5 text-right transition-colors duration-150 group/item ${isActive ? (isMarketingShell ? "bg-slate-900 text-white" : "bg-brand/10") : isMarketingShell ? "hover:bg-slate-50" : "hover:bg-white/5"}`}
+                              className={`w-full flex items-start gap-3 rounded-xl px-3 py-2.5 text-right transition-colors duration-150 group/item ${isActive ? "bg-slate-900 text-white" : "hover:bg-slate-50"}`}
                             >
-                              <span className={`mt-0.5 w-9 h-9 shrink-0 rounded-lg border flex items-center justify-center transition-colors ${isActive ? (isMarketingShell ? "bg-white/10 border-white/10 text-white" : "bg-brand border-brand text-ink-deep") : isMarketingShell ? "bg-slate-50 border-slate-200 text-slate-600 group-hover/item:bg-slate-900 group-hover/item:text-white group-hover/item:border-slate-900" : "bg-brand/10 border-brand/25 text-brand-300 group-hover/item:bg-brand group-hover/item:text-ink-deep"}`}>
+                              <span className={`mt-0.5 w-9 h-9 shrink-0 rounded-lg border flex items-center justify-center transition-colors ${isActive ? "bg-white/10 border-white/10 text-white" : "bg-slate-50 border-slate-200 text-slate-600 group-hover/item:bg-slate-900 group-hover/item:text-white group-hover/item:border-slate-900"}`}>
                                 <Icon className="w-4 h-4" />
                               </span>
                               <span className="flex flex-col gap-0.5">
-                                <span className={`text-[13px] font-bold flex items-center gap-2 ${isActive ? (isMarketingShell ? "text-white" : "text-white") : isMarketingShell ? "text-slate-900" : "text-white"}`}>
+                                <span className={`text-[13px] font-bold flex items-center gap-2 ${isActive ? "text-white" : "text-slate-900"}`}>
                                   {item.label}
-                                  {item.highlight && (
-                                    <span className={`text-[9px] px-1.5 py-0.5 rounded-full font-black ${isMarketingShell ? "bg-amber-100 text-amber-700" : "bg-brand/20 text-brand-300"}`}>ERP</span>
-                                  )}
+                                  {item.highlight && <span className="text-[9px] px-1.5 py-0.5 rounded-full font-black bg-amber-100 text-amber-700">ERP</span>}
                                 </span>
                                 {item.description && (
-                                  <span className={`text-[11px] leading-relaxed ${isActive ? (isMarketingShell ? "text-white/70" : "text-white/50") : isMarketingShell ? "text-slate-500" : "text-white/50"}`}>{item.description}</span>
+                                  <span className={`text-[11px] leading-relaxed ${isActive ? "text-white/70" : "text-slate-500"}`}>{item.description}</span>
                                 )}
                               </span>
                             </button>
@@ -400,68 +403,32 @@ export function HeaderNavbar({
               );
             })}
 
-            {/* CTAs مرتبة كـ Stripe: ثانوي هادئ + أساسي صلب */}
-            {!isAuthenticated ? (
-              <>
-                <button
-                  onClick={() => setLocation("/contact")}
-                  className={`hidden lg:inline-flex items-center h-8 px-3.5 rounded-lg text-[13px] font-medium transition-colors mr-1 ${isMarketingShell ? "text-slate-600 hover:text-slate-900 hover:bg-slate-50" : "text-white/70 hover:text-white hover:bg-white/5"}`}
-                >
-                  تواصل
-                </button>
-                <Button
-                  onClick={() => setLocation("/app")}
-                  className="relative overflow-hidden group/cta bg-slate-900 hover:bg-black text-white font-bold h-8 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 text-[13px] mr-1"
-                >
-                  <Zap className="w-3.5 h-3.5 fill-current" />
-                  ابدأ مجاناً
-                </Button>
-              </>
-            ) : (
-              <Button
-                onClick={() => setLocation("/app")}
-                className="relative overflow-hidden group/cta bg-brand hover:bg-brand-deep text-ink-deep font-black h-8 px-4 rounded-lg shadow-sm hover:shadow transition-all flex items-center gap-1.5 text-[13px] mr-1"
-              >
-                لوحة التحكم
-                <ArrowLeft className="w-3.5 h-3.5 transition-transform group-hover/cta:-translate-x-0.5" />
-              </Button>
-            )}
+            {/* CTAs — فصل تسويقي نقي: لا لوحة تحكم هنا، فقط تسويق */}
+            <button
+              onClick={() => setLocation("/contact")}
+              className="hidden lg:inline-flex items-center h-8 px-3.5 rounded-lg text-[13px] font-medium transition-colors mr-1 text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+            >
+              تواصل
+            </button>
+            <Button
+              onClick={() => setLocation(isAuthenticated ? "/app" : "/login")}
+              className="relative overflow-hidden group/cta bg-slate-900 hover:bg-black text-white font-bold h-8 px-4 rounded-lg shadow-sm hover:shadow-md transition-all flex items-center gap-1.5 text-[13px] mr-1"
+            >
+              <Zap className="w-3.5 h-3.5 fill-current" />
+              {isAuthenticated ? "ادخل النظام" : "ابدأ مجاناً"}
+            </Button>
           </nav>
 
-          {/* Actions — يمين الشريط: إجراءات فقط (التنقل في الوسط) */}
+          {/* Actions — لا أدوات نظام هنا إطلاقا — فقط إعدادات الصفحة إن وجدت */}
           <div className="flex items-center gap-1.5">
-            {!publicOnly && <TenantSwitcher />}
-            {isAuthenticated && !publicOnly && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setLocation("/security")}
-                className={`hidden sm:flex h-8 px-2.5 rounded-lg items-center gap-1.5 text-xs font-medium ${isMarketingShell ? "text-slate-500 hover:text-slate-900 hover:bg-slate-50" : "text-white/70 hover:text-white hover:bg-white/5"}`}
-              >
-                <ShieldCheck className={`w-3.5 h-3.5 ${isMarketingShell ? "text-slate-400" : "text-brand-300"}`} />
-                <span>الأمان</span>
-              </Button>
-            )}
             {onOpenSettings && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onOpenSettings}
-                className={`h-8 text-xs px-2.5 hidden sm:flex items-center gap-1 ${isMarketingShell ? "bg-white border-slate-200 text-slate-600 hover:bg-slate-50" : "bg-white/5 border-white/15 text-white hover:bg-white/10"}`}
-              >
+              <Button variant="outline" size="sm" onClick={onOpenSettings} className="h-8 text-xs px-2.5 hidden sm:flex items-center gap-1 bg-white border-slate-200 text-slate-600 hover:bg-slate-50">
                 <Settings className="w-3.5 h-3.5" />
                 <span>إعدادات</span>
               </Button>
             )}
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setMobileOpen(!mobileOpen)}
-              className={`md:hidden p-2 h-9 w-9 ${isMarketingShell ? "text-slate-700 hover:bg-slate-50" : "text-white hover:bg-white/5"}`}
-              aria-label="فتح القائمة"
-              aria-expanded={mobileOpen}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setMobileOpen(!mobileOpen)} className="md:hidden p-2 h-9 w-9 text-slate-700 hover:bg-slate-50" aria-label="فتح القائمة" aria-expanded={mobileOpen}>
               {mobileOpen ? (
                 <X className="w-5 h-5" />
               ) : (
@@ -486,15 +453,7 @@ export function HeaderNavbar({
               className="md:hidden fixed inset-0 top-[64px] z-40 bg-black/60 backdrop-blur-sm"
               aria-hidden="true"
             />
-            <motion.div
-              key="panel"
-              initial={{ opacity: 0, y: -14 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -14 }}
-              transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }}
-              className={`md:hidden absolute inset-x-3 top-full z-50 mt-2 rounded-2xl border p-3 space-y-1.5 max-h-[calc(100dvh-110px)] overflow-y-auto backdrop-blur-2xl shadow-2xl ${isMarketingShell ? "bg-white border-slate-200 shadow-[0_16px_48px_rgba(0,0,0,0.12)]" : "bg-ink-deep/95 border-white/10 shadow-black/60"}`}
-              aria-label="قائمة التنقل"
-            >
+            <motion.div key="panel" initial={{ opacity: 0, y: -14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -14 }} transition={{ duration: 0.25, ease: [0.32, 0.72, 0, 1] }} className="md:hidden absolute inset-x-3 top-full z-50 mt-2 rounded-2xl border p-3 space-y-1.5 max-h-[calc(100dvh-110px)] overflow-y-auto backdrop-blur-2xl shadow-2xl bg-white border-slate-200 shadow-[0_16px_48px_rgba(0,0,0,0.12)]" aria-label="قائمة التنقل">
               {/* Primary CTA */}
               <button
                 onClick={() => {
@@ -534,24 +493,14 @@ export function HeaderNavbar({
                     transition={{ delay: 0.03 * index, duration: 0.22 }}
                     onClick={() => navigateOrScroll(item.path)}
                     aria-current={isActive ? "page" : undefined}
-                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${
-                      isActive
-                        ? isMarketingShell ? "bg-slate-900 text-white font-bold" : "bg-brand/15 text-brand-300 font-bold border border-brand/30"
-                        : item.highlight
-                          ? isMarketingShell ? "text-amber-700 border border-amber-200 bg-amber-50" : "text-brand-300 border border-brand/25 hover:bg-brand/10"
-                          : isMarketingShell ? "text-slate-700 hover:bg-slate-50 border border-transparent" : "text-white/80 hover:bg-white/5 border border-transparent"
-                    }`}
+                    className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-medium transition-colors ${isActive ? "bg-slate-900 text-white font-bold" : item.highlight ? "text-amber-700 border border-amber-200 bg-amber-50" : "text-slate-700 hover:bg-slate-50 border border-transparent"}`}
                   >
                     <Icon className="w-4 h-4 shrink-0" />
                     <span className="flex flex-col items-start gap-0.5">
                       <span>{item.label}</span>
-                      {item.description && (
-                        <span className={`text-[10px] font-normal ${isMarketingShell ? "text-slate-400" : "text-white/40"}`}>{item.description}</span>
-                      )}
+                      {item.description && <span className="text-[10px] font-normal text-slate-400">{item.description}</span>}
                     </span>
-                    {item.highlight && (
-                      <span className={`mr-auto text-[9px] px-2 py-0.5 rounded-full font-black ${isMarketingShell ? "bg-slate-900 text-white" : "bg-brand/20 text-brand-300"}`}>ERP</span>
-                    )}
+                    {item.highlight && <span className="mr-auto text-[9px] px-2 py-0.5 rounded-full font-black bg-slate-900 text-white">ERP</span>}
                   </motion.button>
                 );
               })}
@@ -564,7 +513,7 @@ export function HeaderNavbar({
                     onOpenSettings();
                     setMobileOpen(false);
                   }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs ${isMarketingShell ? "text-slate-600 hover:bg-slate-50" : "text-white/70 hover:bg-white/5"}`}
+                  className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-slate-600 hover:bg-slate-50"
                 >
                   <Settings className="w-4 h-4" />
                   <span>إعدادات المؤسسة</span>
@@ -575,9 +524,9 @@ export function HeaderNavbar({
                   setLanguage(language === "ar" ? "en" : "ar");
                   setMobileOpen(false);
                 }}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs ${isMarketingShell ? "text-slate-600 hover:bg-slate-50" : "text-white/70 hover:bg-white/5"}`}
+                className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs text-slate-600 hover:bg-slate-50"
               >
-                <Globe className={`w-4 h-4 ${isMarketingShell ? "text-slate-400" : "text-brand-300"}`} />
+                <Globe className="w-4 h-4 text-slate-400" />
                 <span>العربية / English</span>
               </button>
             </motion.div>
