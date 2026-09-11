@@ -29,6 +29,20 @@ export async function getDb() {
 }
 
 /**
+ * Get the DB instance or throw a clear, typed error.
+ * Used by routers that cannot degrade silently (financial/clinical writes).
+ */
+export async function dbOrThrow() {
+  const db = await getDb();
+  if (!db) {
+    throw new Error(
+      "DATABASE_UNAVAILABLE: قاعدة البيانات غير متاحة حالياً، حاول مرة أخرى لاحقاً"
+    );
+  }
+  return db;
+}
+
+/**
  * Warm-up the serverless DB layer so the FIRST real query after a cold start
  * does not pay the full round-trip latency (Neon cold start can take ~10s).
  * Idempotent and fail-safe: it never throws — the pool remains usable.
@@ -39,11 +53,11 @@ export async function warmDatabase(): Promise<void> {
     const db = await getDb();
     if (db) {
       await db.execute(sql`select 1`);
+      _warmed = true;
     }
   } catch (error) {
-    console.warn("[Database] Warm-up failed (will retry lazily):", error);
-  } finally {
-    _warmed = true;
+    console.warn("[Database] Warm-up failed (will retry in 5s):", error);
+    setTimeout(() => warmDatabase().catch(() => {}), 5000);
   }
 }
 

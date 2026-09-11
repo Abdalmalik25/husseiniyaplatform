@@ -1,6 +1,7 @@
 import React from "react";
 import { useLocation } from "wouter";
-import { Search, Menu, X, ShieldCheck, RefreshCw } from "lucide-react";
+import { Menu, X, ShieldCheck, RefreshCw } from "lucide-react";
+import { HusSearchIcon } from "@/components/icons/HusIcons";
 import { Button } from "@/components/ui/button";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -24,7 +25,7 @@ export function AppHeader({
 
   return (
     <header
-      className="sticky top-0 z-30 bg-ink border-b border-white/10 backdrop-blur-xl shadow-apex"
+      className="header-apex-dark sticky top-0 z-30"
       dir="rtl"
     >
       <div className="max-w-[1600px] mx-auto px-3 lg:px-4 flex items-center justify-between gap-3 h-[48px]">
@@ -39,7 +40,7 @@ export function AppHeader({
               <Menu className="w-4 h-4" />
             </Button>
           )}
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-mono text-white/40">
+          <span className="nav-apex hidden sm:inline-flex items-center gap-1.5 text-[11px] text-white/40">
             <span
               className={`w-1.5 h-1.5 rounded-full ${isOnline ? "bg-emerald-400 animate-pulse" : "bg-rose-400"}`}
             />
@@ -52,7 +53,7 @@ export function AppHeader({
           <div className="flex items-center gap-1.5 text-xs min-w-0">
             <span className="text-white/40 hidden md:inline">نظام التشغيل</span>
             <span className="text-white/20 hidden md:inline">/</span>
-            <span className="font-bold text-white truncate">
+            <span className="nav-apex font-bold text-white truncate text-[13px]">
               {current?.label ?? "لوحة التحكم"}
             </span>
             {current?.description && (
@@ -66,10 +67,11 @@ export function AppHeader({
           <button
             onClick={() => window.dispatchEvent(new Event("alh:open-command"))}
             className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 text-[11px]"
+            style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}
           >
-            <Search className="w-3.5 h-3.5 text-brand-300" />
+            <HusSearchIcon size={13} className="text-brand-300" />
             بحث
-            <span className="hidden xl:inline-flex text-[10px] font-mono bg-white/10 border border-white/10 rounded px-1">
+            <span className="hidden xl:inline-flex text-[10px] bg-white/10 border border-white/10 rounded px-1" style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}>
               ⌘K
             </span>
           </button>

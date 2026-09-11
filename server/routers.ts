@@ -35,6 +35,16 @@ import {
   inventoryReportsRouter,
 } from "./accountingClosingRouter";
 import { assertPeriodOpen } from "./services/accountingEngine";
+import { pharmacyRouter } from "./pharmacyRouter";
+import { quotationRouter } from "./quotationRouter";
+import { vouchersRouter } from "./vouchersRouter";
+import { healthcareRouter } from "./healthcareRouter";
+import { securityRouter } from "./securityRouter";
+import { documentTemplateRouter } from "./documentTemplateRouter";
+import { debtReportsRouter } from "./debtReportsRouter";
+import { invoiceEnhancementsRouter } from "./invoiceEnhancementsRouter";
+import { procurementReportsRouter } from "./procurementReportsRouter";
+import { posIntelligenceRouter } from "./posIntelligenceRouter";
 
 /**
  * Separation of Duties (SoD): the creator of a financial transaction must not
@@ -309,15 +319,7 @@ async function seedDefaultAccountsForTenant(
       await db
         .insert(accounts)
         .values({ ...acc, tenantId })
-        .onConflictDoUpdate({
-          target: accounts.code,
-          set: {
-            name: acc.name,
-            type: acc.type,
-            category: acc.category,
-            description: acc.description,
-          },
-        });
+        .onConflictDoNothing();
     }
     const existingSettings = await db
       .select()
@@ -545,7 +547,7 @@ function parseConfig<T>(v: any, def: T): T {
   }
 }
 
-async function getTenantConfig(db: any, tenantId: number | null) {
+export async function getTenantConfig(db: any, tenantId: number | null) {
   if (!tenantId || !db) {
     return {
       posConfig: DEFAULT_POS_CONFIG,
@@ -644,6 +646,9 @@ async function postInvoiceGlEntries(
       .limit(1);
     return rows[0];
   };
+
+  // IFRS: منع الترحيل في فترة مغلقة
+  await assertPeriodOpen(tx, opts.tenantId, new Date(), `فاتورة ${opts.invoiceNumber}`);
 
   const pending: Array<Record<string, any>> = [];
   const entry = (
@@ -1035,6 +1040,16 @@ export const appRouter = router({
   modules: modulesRouter,
   aliasAi: aliasAiRouter,
   backup: backupRouter,
+    pharmacy: pharmacyRouter,
+    quotations: quotationRouter,
+    vouchers: vouchersRouter,
+    healthcare: healthcareRouter,
+    security: securityRouter,
+    documentTemplate: documentTemplateRouter,
+    debtReports: debtReportsRouter,
+    invoiceEnhancements: invoiceEnhancementsRouter,
+    procurementReports: procurementReportsRouter,
+    posIntelligence: posIntelligenceRouter,
   auth: router({
     // SECURITY: strip credential material before it ever reaches the client.
     // `passwordHash` and session-tracking columns must never be serialized

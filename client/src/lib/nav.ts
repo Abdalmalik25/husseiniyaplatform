@@ -34,6 +34,15 @@ import {
   TrendingUp,
   TrendingDown,
 } from "lucide-react";
+import {
+  HusHomeIcon,
+  HusLayersIcon,
+  HusPlatformIcon,
+  HusCompassIcon,
+  HusLinkIcon,
+  HusShieldIcon,
+  HusScaleIcon,
+} from "@/components/icons/HusIcons";
 
 export interface NavItem {
   path: string;
@@ -55,67 +64,67 @@ export interface NavItem {
  *           store page, settings) — never in the primary navigation.
  */
 
-/** Public marketing site navigation — خبير عالمي: الأقسام الرئيسية بارزة، الأدوات في قائمة */
+/** Public marketing site navigation — HusIcons الرسمية 100% Tajawal */
 export const MARKETING_NAV: NavItem[] = [
   {
     path: "/",
     label: "الرئيسية",
-    icon: HomeIcon,
+    icon: HusHomeIcon,
     description: "نظرة شاملة — من القيد إلى القرار",
   },
   {
     path: "/#uamex",
     label: "المنصة الموحدة",
-    icon: Cpu,
+    icon: HusPlatformIcon,
     description: "Uamex_erp — مصدر حقيقة واحد بمعايير IFRS/COSO",
   },
   {
     path: "/#corporate",
     label: "الاستشارات المؤسسية",
-    icon: Building2,
+    icon: HusLayersIcon,
     description: "حوكمة بمعايير COSO — من التشخيص إلى القياس",
   },
   {
     path: "/#engineering",
     label: "الهندسة والمساحة",
-    icon: Info,
+    icon: HusCompassIcon,
     description: "تقدير NRM/POMI يُحتَج به أمام الممول",
   },
   {
     path: "/#library",
     label: "الخدمات المعرفية",
-    icon: BookOpen,
+    icon: HusPlatformIcon,
     description: "SPSS v28 + APA 7th — من البحث إلى النشر",
   },
   {
     path: "/pricing",
     label: "الأسعار",
-    icon: CreditCard,
+    icon: HusScaleIcon,
     description: "باقات تنمو معك — 14 يوماً مجاناً بلا بطاقة",
   },
   {
     path: "/about",
     label: "من نحن",
-    icon: Building2,
+    icon: HusLayersIcon,
     description: "قصة الحسينية ورسالتها وخدماتها المؤسسية",
   },
   {
     path: "/contact",
     label: "تواصل",
-    icon: Phone,
+    icon: HusLinkIcon,
     description: "استشارة أولية مجانية خلال 24 ساعة",
   },
   // الأدوات — تُعرض في قائمة واحدة ذكية
   {
     path: "/tools",
     label: "حاسبات ذكية",
-    icon: Calculator,
+    icon: HusScaleIcon,
     description: "BOQ، رواتب، وفوترة — حاسبة فورية",
   },
   {
     path: "/insights",
     label: "مركز المعرفة",
-    icon: BookOpen,
+    icon: HusPlatformIcon,
     description: "أدلة IFRS/COSO/PMBOK وتشخيصات عملية",
   },
 ];
@@ -134,20 +143,20 @@ export const PLATFORM_CLUSTER: NavItem[] = [
   {
     path: "/#uamex",
     label: "Uamex_erp — المنصة الموحدة",
-    icon: Cpu,
+    icon: HusPlatformIcon,
     highlight: true,
     description: "قيد مزدوج + تدقيق غير قابل للتعديل + صلاحيات COSO",
   },
   {
     path: "/#methodology",
     label: "المنهجية المعتمدة",
-    icon: Scale,
+    icon: HusScaleIcon,
     description: "IFRS / COSO / PMBOK / ISO — أثر قابل للتدقيق",
   },
   {
     path: "/#trust-center",
     label: "الأمن والامتثال",
-    icon: ShieldCheck,
+    icon: HusShieldIcon,
     description: "AES-256-GCM + عزل مستأجرين + نسخ مشفّر",
   },
 ];
@@ -157,19 +166,19 @@ export const SOLUTIONS_CLUSTER: NavItem[] = [
   {
     path: "/#corporate",
     label: "الاستشارات المؤسسية",
-    icon: Building2,
+    icon: HusLayersIcon,
     description: "حوكمة COSO — تشخيص الانحراف وتصميم KPI",
   },
   {
     path: "/#engineering",
     label: "الهندسة والمساحة",
-    icon: Gauge,
+    icon: HusCompassIcon,
     description: "BOQ بـ NRM2/POMI بدقة ±5% — GPS/Drone بدقة ±2 سم",
   },
   {
     path: "/#library",
     label: "الخدمات المعرفية",
-    icon: BookOpen,
+    icon: HusPlatformIcon,
     description: "SPSS v28 + APA 7th — من البحث إلى النشر",
   },
 ];
@@ -217,30 +226,30 @@ export const INTELLIGENCE_CLUSTER: NavItem[] = [
   },
 ];
 
-// الموارد: كيف أتعلم وأدمج — أدوات ومعرفة بلا تلوث
+// الموارد: كيف أتعلم وأدمج — أدوات ومعرفة بلا تلوث (أيقونات رسمية مخصصة)
 export const TOOLS_CLUSTER: NavItem[] = [
   {
     path: "/tools",
     label: "حاسبات ذكية",
-    icon: Calculator,
+    icon: HusScaleIcon,
     description: "BOQ، رواتب، وفوترة — حاسبة فورية",
   },
   {
     path: "/insights",
     label: "مركز المعرفة",
-    icon: BookOpen,
+    icon: HusPlatformIcon,
     description: "أدلة IFRS/COSO/PMBOK وتشخيصات عملية",
   },
   {
     path: "/integrate",
     label: "مركز التكامل",
-    icon: Globe2,
+    icon: HusLinkIcon,
     description: "واجهات API و Webhooks",
   },
   {
     path: "/portal",
     label: "تتبع طلبك",
-    icon: Search,
+    icon: HusLinkIcon,
     description: "تتبع حالة طلب بالكود",
   },
   {
@@ -251,93 +260,31 @@ export const TOOLS_CLUSTER: NavItem[] = [
   },
 ];
 
-// الشركة: من أنتم — ثقة وتسعير وتواصل (قمع التحويل)
+// الشركة: من أنتم — ثقة وتسعير وتواصل (قمع التحويل) — HusIcons
 export const COMPANY_CLUSTER: NavItem[] = [
   {
     path: "/about",
     label: "من نحن",
-    icon: Building2,
+    icon: HusLayersIcon,
     description: "قصة الحسينية ورسالتها وفريقها",
   },
   {
     path: "/pricing",
     label: "الأسعار",
-    icon: CreditCard,
+    icon: HusScaleIcon,
     description: "باقات تنمو معك — 14 يوماً مجاناً",
   },
   {
     path: "/contact",
     label: "تواصل",
-    icon: Phone,
+    icon: HusLinkIcon,
     description: "استشارة أولية مجانية خلال 24 ساعة",
   },
 ];
 
-/** Authenticated app shell navigation — rendered inside the sidebar. */
-export const APP_NAV: NavItem[] = [
-  { path: "/app", label: "لوحة التحكم", icon: LayoutDashboard },
-  { path: "/accounting", label: "المحاسبة", icon: Wallet, highlight: true },
-  { path: "/commercial", label: "العمليات التجارية", icon: Package },
-  { path: "/inventory", label: "المخزون", icon: Boxes },
-  { path: "/store", label: "المتجر الإلكتروني", icon: ShoppingCart },
-  {
-    path: "/procurement-workspace",
-    label: "Workspace المشتريات",
-    icon: Truck,
-    highlight: true,
-  },
-  {
-    path: "/supplier-analytics",
-    label: "تحليل الموردين",
-    icon: BarChart3,
-    highlight: true,
-  },
-  { path: "/procurement", label: "المشتريات التنفيذية", icon: Truck },
-  { path: "/projects", label: "المشاريع", icon: FolderKanban },
-  { path: "/hr", label: "الموارد البشرية", icon: Users },
-  { path: "/support", label: "الدعم والجودة", icon: LifeBuoy },
-  { path: "/pos", label: "نقاط البيع", icon: Receipt, highlight: true },
-  { path: "/permissions", label: "الصلاحيات", icon: ShieldCheck },
-  { path: "/basic-data", label: "البيانات الأساسية", icon: Boxes },
-  { path: "/journal", label: "القيود المحاسبية", icon: BookOpen },
-  { path: "/manual-journal", label: "قيد يدوي ذكي", icon: Scale },
-  { path: "/cost-centers", label: "مراكز التكلفة", icon: Calculator },
-  {
-    path: "/financial-statements",
-    label: "القوائم المالية",
-    icon: BarChart3,
-    highlight: true,
-  },
-  {
-    path: "/fiscal-periods",
-    label: "الفترات والإقفال",
-    icon: CalendarClock,
-    highlight: true,
-  },
-  { path: "/customization", label: "التخصيص والحقول", icon: SlidersHorizontal },
-  { path: "/branches", label: "الفروع والصلاحيات", icon: Building2 },
-  { path: "/security", label: "أمان الحساب", icon: ShieldCheck },
-  { path: "/audit", label: "سجل التدقيق", icon: History },
-  { path: "/requisitions", label: "طلبات التوريد", icon: ClipboardList },
-  { path: "/beneficiaries", label: "السجل الموحد", icon: Users },
-  { path: "/reports", label: "التقارير", icon: BarChart3 },
-  { path: "/erp", label: "ERP", icon: LayoutGrid },
-  { path: "/operations", label: "لوحة العمليات", icon: Gauge, highlight: true },
-  {
-    path: "/analytics",
-    label: "التحليلات الذكية",
-    icon: BarChart3,
-    highlight: true,
-  },
-  {
-    path: "/billing",
-    label: "الاشتراك والفوترة",
-    icon: CreditCard,
-    highlight: true,
-  },
-  { path: "/zatca", label: "الفوترة الإلكترونية", icon: ShieldCheck },
-  { path: "/settings", label: "الإعدادات", icon: Settings },
-];
+/** Authenticated app shell navigation — مشتق من APP_GROUPS (مصدر وحيد) */
+const _APP_NAV_FLAT: NavItem[] = [] as NavItem[];
+// سيُملأ لاحقاً بعد تعريف APP_GROUPS لتجنب التكرار — انظر أسفل الملف
 
 /**
  * ────────────────────────────────────────────────────────────────────────
@@ -471,8 +418,22 @@ export const APP_GROUPS: ReadonlyArray<{
  * Surfaced via footer links, the store page, and settings instead.
  */
 export const UTILITY_LINKS: NavItem[] = [
-  { path: "/portal", label: "تتبع طلبك", icon: Search },
-  { path: "/integrate", label: "مركز التكامل", icon: Globe2 },
-  { path: "/download", label: "تحميل التطبيق", icon: Download },
-  { path: "/onboarding", label: "تهيئة المشترك", icon: Settings },
+  { path: "/portal", label: "تتبع طلبك", icon: HusLinkIcon },
+  { path: "/integrate", label: "مركز التكامل", icon: HusLinkIcon },
+  { path: "/download", label: "تحميل التطبيق", icon: HusShieldIcon },
+  { path: "/onboarding", label: "تهيئة المشترك", icon: HusLayersIcon },
 ];
+
+// ── اشتقاق APP_NAV من APP_GROUPS — مصدر وحيد يمنع انحراف الروابط ──
+function dedupeByPath(items: NavItem[]): NavItem[] {
+  const seen = new Set<string>();
+  const out: NavItem[] = [];
+  for (const it of items) {
+    if (!seen.has(it.path)) {
+      seen.add(it.path);
+      out.push(it);
+    }
+  }
+  return out;
+}
+export const APP_NAV: NavItem[] = dedupeByPath(APP_GROUPS.flatMap(g => g.items));

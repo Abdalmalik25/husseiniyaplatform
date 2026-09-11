@@ -45,6 +45,10 @@ export const placeOrderInputSchema = z.object({
 });
 export type PlaceOrderInput = z.infer<typeof placeOrderInputSchema>;
 
+function escapeIlikePattern(raw: string): string {
+  return raw.replace(/[%_\\]/g, "\\$&");
+}
+
 export async function getCatalog(
   db: Db,
   tenantId: number,
@@ -56,11 +60,12 @@ export async function getCatalog(
     isNull(products.deletedAt),
   ];
   if (input?.search) {
+    const safe = escapeIlikePattern(input.search.trim());
     conditions.push(
       or(
-        ilike(products.name, `%${input.search}%`),
-        ilike(products.code, `%${input.search}%`),
-        ilike(products.barcode, `%${input.search}%`)
+        ilike(products.name, `%${safe}%`),
+        ilike(products.code, `%${safe}%`),
+        ilike(products.barcode, `%${safe}%`)
       )!
     );
   }
@@ -153,8 +158,8 @@ export async function placePublicOrder(
 
   const now = new Date();
   const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  const randPart = Math.random().toString(36).substring(2, 6).toUpperCase();
-  const orderNumber = `WEB-${datePart}-${randPart}`;
+  const uuidPart = crypto.randomUUID().slice(0, 6).toUpperCase().replace(/-/g, "");
+  const orderNumber = `WEB-${datePart}-${uuidPart}`;
 
   let customerId: number | null = null;
   const phone = input.customerPhone
@@ -173,7 +178,7 @@ export async function placePublicOrder(
         .insert(customers)
         .values({
           tenantId,
-          code: `WEB-${datePart}-${randPart}`,
+          code: `WEB-${datePart}-${uuidPart}`,
           name: input.customerName.trim(),
           phone,
           address: input.deliveryAddress || null,

@@ -115,6 +115,33 @@ export const printPaymentReceipt = async (data: {
   }
 };
 
+/**
+ * Parse a ZATCA e-invoice stamp (Phase 2 compliance) from raw input.
+ * Returns null for missing/invalid stamps. Supports both canonical
+ * (`uuid`, `qrBase64`, `hash`, `stampedAt`) and alias (`invoiceUuid`,
+ * `qr`, `invoiceHash`) field names.
+ */
+export function parseZatca(raw: unknown): {
+  uuid: string;
+  qrBase64: string;
+  hash: string;
+  stampedAt?: string;
+} | null {
+  if (typeof raw !== "string") return null;
+  if (!raw.trim()) return null;
+  try {
+    const obj = JSON.parse(raw) as Record<string, unknown>;
+    const uuid = (obj.uuid ?? obj.invoiceUuid) as string | undefined;
+    const qrBase64 = (obj.qrBase64 ?? obj.qr) as string | undefined;
+    const hash = (obj.hash ?? obj.invoiceHash) as string | undefined;
+    if (!uuid || !qrBase64 || !hash) return null;
+    const stampedAt = obj.stampedAt as string | undefined;
+    return { uuid, qrBase64, hash, ...(stampedAt ? { stampedAt } : {}) };
+  } catch {
+    return null;
+  }
+}
+
 export const printSaleInvoice = async (invId: number, utils: any) => {
   try {
     const [detail, settings] = await Promise.all([

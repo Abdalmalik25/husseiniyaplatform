@@ -3,71 +3,341 @@ import { useLocation } from "wouter";
 import { resolvePageMeta } from "@/lib/pageTitles";
 
 /**
- * PageTitle — إدارة الرأس لا عناوين الألسنة فقط — بل وصف الصفحة وCanonical وOpenGraph:
+ * PageTitle
+ * ---------------------------------------------------------------------------
+ * مسؤول عن إدارة:
  *
- *  - الصفحات العامة (الزائر): عند مشاركة رابط بأي قناة (واتساب/فيسبوك/إكس)
- *    يظهر عنوان + وصف + صورة احترافيون بدل رابط مجرد بلا سياق.
- *  - المسارات التشغيلية المحمية: تحديث العنوان والوصف فقط — لا نحطّ canonical
- *    ولا نكشف روابط داخلية قد تنسرب للمشاركين الخارجيين.
- *  - الوظائف مساعدة أنشأ-إن-غاب حتى يعمل المكوّن مهما كانت حالة head الأولية.
+ * - document.title
+ * - meta description
+ * - robots
+ * - canonical للصفحات العامة فقط
+ * - Open Graph للصفحات العامة فقط
+ * - Twitter Card للصفحات العامة فقط
+ *
+ * قواعد التشغيل:
+ *
+ * Public route:
+ *   - index, follow
+ *   - canonical
+ *   - Open Graph
+ *   - Twitter metadata
+ *
+ * Protected / operational route:
+ *   - noindex, nofollow
+ *   - لا canonical
+ *   - لا Open Graph
+ *   - لا Twitter metadata
+ *
+ * ملاحظة:
+ * هذا المكوّن Client-side ويعمل بعد تحميل التطبيق.
+ * لضمان قراءة Social Crawlers للـ OG tags في SPA بشكل كامل،
+ * يفضل SSR / SSG / prerender للصفحات العامة.
  */
-function ensureMeta(attr: "name" | "property", key: string): HTMLMetaElement {
-  const selector =
-    attr === "name" ? `meta[name="${key}"]` : `meta[property="${key}"]`;
-  let el = document.head.querySelector<HTMLMetaElement>(selector);
-  if (!el) {
-    el = document.createElement("meta");
-    el.setAttribute(attr, key);
-    document.head.appendChild(el);
+
+/* -------------------------------------------------------------------------- */
+/* Types                                                                      */
+/* -------------------------------------------------------------------------- */
+
+type MetaAttribute = "name" | "property";
+
+/* -------------------------------------------------------------------------- */
+/* Constants                                                                  */
+/* -------------------------------------------------------------------------- */
+
+const MANAGED_META: ReadonlyArray<
+  readonly [MetaAttribute, string]
+> = [
+  ["name", "description"],
+  ["name", "robots"],
+
+  ["property", "og:title"],
+  ["property", "og:description"],
+  ["property", "og:url"],
+  ["property", "og:type"],
+
+  ["name", "twitter:title"],
+  ["name", "twitter:description"],
+];
+
+/* -------------------------------------------------------------------------- */
+/* Meta helpers                                                               */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Returns an existing meta element or creates it if missing.
+ */
+function ensureMeta(
+  attribute: MetaAttribute,
+  key: string
+): HTMLMetaElement {
+  const elements = document.head.querySelectorAll<HTMLMetaElement>(
+    `meta[${attribute}]`
+  );
+
+  for (const element of elements) {
+    if (element.getAttribute(attribute) === key) {
+      return element;
+    }
   }
-  return el;
+
+  const element = document.createElement("meta");
+
+  element.setAttribute(attribute, key);
+
+  document.head.appendChild(element);
+
+  return element;
 }
 
-function ensureCanonical(): HTMLLinkElement {
-  let el = document.head.querySelector<HTMLLinkElement>(
+/**
+ * Sets meta content.
+ */
+function setMeta(
+  attribute: MetaAttribute,
+  key: string,
+  content: string
+): void {
+  ensureMeta(attribute, key).setAttribute("content", content);
+}
+
+/**
+ * Removes a specific meta element.
+ */
+function removeMeta(
+  attribute: MetaAttribute,
+  key: string
+): void {
+  const elements = document.head.querySelectorAll<HTMLMetaElement>(
+    `meta[${attribute}]`
+  );
+
+  for (const element of elements) {
+    if (element.getAttribute(attribute) === key) {
+      element.remove();
+    }
+  }
+}
+
+/**
+ * Removes all metadata managed by PageTitle.
+ *
+ * This is important in SPA navigation so metadata from a previous
+ * public route cannot remain active after navigating to a protected route.
+ */
+function clearManagedMeta(): void {
+  for (const [attribute, key] of MANAGED_META) {
+    removeMeta(attribute, key);
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Canonical helpers                                                          */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Returns the canonical link element if present.
+ */
+function getCanonical(): HTMLLinkElement | null {
+  return document.head.querySelector<HTMLLinkElement>(
     'link[rel="canonical"]'
   );
-  if (!el) {
-    el = document.createElement("link");
-    el.setAttribute("rel", "canonical");
-    document.head.appendChild(el);
-  }
-  return el;
 }
+
+/**
+ * Creates or updates canonical.
+ */
+function setCanonical(url: string): void {
+  let element = getCanonical();
+
+  if (!element) {
+    element = document.createElement("link");
+    element.setAttribute("rel", "canonical");
+    document.head.appendChild(element);
+  }
+
+  element.setAttribute("href", url);
+}
+
+/**
+ * Removes canonical.
+ */
+function removeCanonical(): void {
+  const elements = document.head.querySelectorAll<HTMLLinkElement>(
+    'link[rel="canonical"]'
+  );
+
+  for (const element of elements) {
+    element.remove();
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* URL helpers                                                                */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Converts a route URL into an absolute URL.
+ *
+ * Examples:
+ *
+ * /about
+ * =>
+ * https://example.com/about
+ *
+ * https://example.com/about
+ * =>
+ * https://example.com/about
+ */
+function toAbsoluteUrl(value: string): string {
+  try {
+    return new URL(value, window.location.origin).href;
+  } catch {
+    return value;
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* Component                                                                  */
+/* -------------------------------------------------------------------------- */
 
 export function PageTitle() {
   const [location] = useLocation();
 
   useEffect(() => {
     const meta = resolvePageMeta(location);
+
+    /**
+     * Always clean metadata from the previous route first.
+     *
+     * This prevents stale:
+     *
+     * - canonical
+     * - og:title
+     * - og:description
+     * - og:url
+     * - twitter metadata
+     *
+     * from leaking between SPA routes.
+     */
+    clearManagedMeta();
+    removeCanonical();
+
+    /**
+     * ------------------------------------------------------------------------
+     * Document title
+     * ------------------------------------------------------------------------
+     */
     document.title = meta.title;
 
-    // Description يُحدَّث في كل الحالات — عنوان وواصف مفيدان في الألسنة
-    // وفي التخزين المؤقت حتى للمسارات المحمية.
-    ensureMeta("name", "description").setAttribute("content", meta.description);
+    /**
+     * ------------------------------------------------------------------------
+     * Description
+     * ------------------------------------------------------------------------
+     *
+     * Description is useful for both public and operational pages,
+     * but operational pages are explicitly blocked from indexing.
+     */
+    setMeta(
+      "name",
+      "description",
+      meta.description
+    );
 
-    if (meta.canonical) {
-      ensureCanonical().setAttribute("href", meta.canonical);
-      ensureMeta("property", "og:title").setAttribute("content", meta.title);
-      ensureMeta("property", "og:description").setAttribute(
-        "content",
-        meta.description
+    /**
+     * ------------------------------------------------------------------------
+     * Protected / operational route
+     * ------------------------------------------------------------------------
+     *
+     * Current PageMeta contract uses the presence of canonical
+     * to identify public/indexable pages.
+     *
+     * No canonical means:
+     *
+     * - noindex
+     * - nofollow
+     * - no canonical
+     * - no Open Graph
+     * - no Twitter metadata
+     */
+    if (!meta.canonical) {
+      setMeta(
+        "name",
+        "robots",
+        "noindex, nofollow"
       );
-      ensureMeta("property", "og:url").setAttribute("content", meta.canonical);
-      ensureMeta("property", "og:type").setAttribute("content", "website");
-      ensureMeta("name", "twitter:title").setAttribute("content", meta.title);
-      ensureMeta("name", "twitter:description").setAttribute(
-        "content",
-        meta.description
-      );
-      // Public route → explicitly crawler-friendly (undo any leftover noindex).
-      ensureMeta("name", "robots").setAttribute("content", "index, follow");
-    } else {
-      // Protected operational route → never let search engines index the page.
-      // Complements robots.txt at the page level (belt-and-braces): the customer's
-      // financial/site data and internal routes stay out of SERPs.
-      ensureMeta("name", "robots").setAttribute("content", "noindex, nofollow");
+
+      return;
     }
+
+    /**
+     * ------------------------------------------------------------------------
+     * Public route
+     * ------------------------------------------------------------------------
+     */
+
+    const canonical = toAbsoluteUrl(meta.canonical);
+
+    /**
+     * Canonical
+     */
+    setCanonical(canonical);
+
+    /**
+     * Robots
+     */
+    setMeta(
+      "name",
+      "robots",
+      "index, follow"
+    );
+
+    /**
+     * ------------------------------------------------------------------------
+     * Open Graph
+     * ------------------------------------------------------------------------
+     */
+    setMeta(
+      "property",
+      "og:title",
+      meta.title
+    );
+
+    setMeta(
+      "property",
+      "og:description",
+      meta.description
+    );
+
+    setMeta(
+      "property",
+      "og:url",
+      canonical
+    );
+
+    setMeta(
+      "property",
+      "og:type",
+      "website"
+    );
+
+    /**
+     * ------------------------------------------------------------------------
+     * Twitter / X
+     * ------------------------------------------------------------------------
+     *
+     * Keep these aligned with the public page metadata.
+     */
+    setMeta(
+      "name",
+      "twitter:title",
+      meta.title
+    );
+
+    setMeta(
+      "name",
+      "twitter:description",
+      meta.description
+    );
   }, [location]);
 
   return null;

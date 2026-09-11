@@ -4,22 +4,26 @@ import { withViewTransition } from "@/lib/viewTransition";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  Search,
   Menu,
   X,
   Globe,
   ChevronDown,
-  Layers,
-  Compass,
   Phone,
   ShieldCheck,
   Settings,
   Zap,
-  Home as HomeIcon,
   Info,
-  MoreHorizontal,
+  Home as HomeIcon,
 } from "lucide-react";
 import { MessageSquare } from "lucide-react";
+import {
+  HusHomeIcon,
+  HusLayersIcon,
+  HusGridIcon,
+  HusSearchIcon,
+  HusPlatformIcon,
+  HusCompassIcon,
+} from "@/components/icons/HusIcons";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
 import { BrandLogo } from "@/components/BrandLogo";
@@ -56,10 +60,10 @@ const DOMAIN_CLUSTERS: ReadonlyArray<{
   {
     key: "business",
     label: "قطاعات الأعمال",
-    icon: Layers,
+    icon: HusLayersIcon,
     items: BUSINESS_SECTORS_ITEMS,
   },
-  { key: "more", label: "المزيد", icon: MoreHorizontal, items: MORE_ITEMS },
+  { key: "more", label: "المزيد", icon: HusGridIcon, items: MORE_ITEMS },
 ];
 const NAV_BY_PATH = new Map(
   [
@@ -103,7 +107,7 @@ export function MarketingHeader({ onOpenSettings }: Props) {
   const homeItem: NavItem = {
     path: "/",
     label: "الرئيسية",
-    icon: HomeIcon,
+    icon: HusHomeIcon,
     description: "نظرة شاملة — من القيد إلى القرار",
   };
   const aboutItem = COMPANY_CLUSTER.find(c => c.path === "/about")!;
@@ -167,7 +171,7 @@ export function MarketingHeader({ onOpenSettings }: Props) {
   );
 
   const baseBtn =
-    "h-8 px-3 text-[13px] font-medium transition-all gap-1.5 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none rounded-lg";
+    "nav-apex h-8 px-3 text-[13px] transition-all gap-1.5 focus-visible:ring-2 focus-visible:ring-brand/40 focus-visible:outline-none rounded-lg";
   const navClass = (active: boolean, highlight?: boolean) => {
     if (active) return "bg-slate-900 text-white font-bold shadow-sm";
     if (highlight)
@@ -191,16 +195,16 @@ export function MarketingHeader({ onOpenSettings }: Props) {
         <span className="flex items-center gap-3 font-medium">
           <a
             href={`tel:${brand.contact.phone}`}
-            className="flex items-center gap-1.5 hover:text-slate-900 transition-colors"
+            className="nav-apex flex items-center gap-1.5 hover:text-slate-900 transition-colors text-[11px]"
           >
-            <Phone className="w-3 h-3 text-slate-400" />
+            <Phone className="w-3 h-3 text-slate-400 hus-icon-apex" />
             {brand.contact.phone}
           </a>
           <span className="w-px h-3 bg-slate-200" />
           <span className="hidden sm:inline">{brand.contact.address}</span>
         </span>
       </div>
-      <div className="border-b backdrop-blur-xl bg-white/90 border-slate-200 shadow-apex glass-silk texture-silk-v2">
+      <div className="header-apex">
         <div className="max-w-7xl mx-auto px-4 flex items-center justify-between gap-4 h-[56px]">
           <div
             className="flex items-center gap-3 cursor-pointer group/brand shrink-0"
@@ -220,9 +224,9 @@ export function MarketingHeader({ onOpenSettings }: Props) {
               }
               className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] border bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white"
             >
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden xl:inline">بحث</span>
-              <span className="hidden xl:inline-flex text-[10px] font-mono border rounded px-1 bg-white border-slate-200 text-slate-400">
+              <HusSearchIcon size={15} className="text-slate-400" />
+              <span className="hidden xl:inline" style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}>بحث</span>
+              <span className="hidden xl:inline-flex text-[10px] border rounded px-1 bg-white border-slate-200 text-slate-400" style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}>
                 ⌘K
               </span>
             </button>

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -13,11 +13,14 @@ import {
 import { toast } from "sonner";
 
 export type DataGridColumn<T> = {
-  key: keyof T;
+  key: keyof T | (string & {});
   header: string;
   sortable?: boolean;
   filterType?: "text" | "select" | "date" | "number";
   options?: string[];
+  numeric?: boolean;
+  align?: "left" | "right" | "center";
+  accessor?: (row: T) => any;
   render?: (value: any, row: T) => React.ReactNode;
 };
 
@@ -26,6 +29,22 @@ interface DataGridProps<T extends Record<string, any>> {
   columns: DataGridColumn<T>[];
   permissions?: { canPrint?: boolean; canExport?: boolean };
   pageSize?: number;
+  idKey?: string;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
+  onRowClick?: (row: T) => void;
+  ariaLabel?: string;
+  emptyTitle?: string;
+  emptyHint?: string;
+  emptyAction?: React.ReactNode;
+  density?: "compact" | "normal" | "comfortable";
+  initialSort?: { key: string; dir: "asc" | "desc" };
+  footer?: React.ReactNode;
+  selectedId?: number | string | null;
+  toolbar?: React.ReactNode;
+  selectable?: boolean;
+  onSelectionChange?: (rows: T[]) => void;
 }
 
 export function DataGrid<T extends Record<string, any>>({
@@ -33,14 +52,41 @@ export function DataGrid<T extends Record<string, any>>({
   columns,
   permissions = { canPrint: true, canExport: true },
   pageSize = 50,
+  loading,
+  error,
+  onRetry,
+  onRowClick,
+  ariaLabel,
+  emptyTitle,
+  emptyHint,
+  emptyAction,
+  density,
+  initialSort,
+  footer,
+  selectedId,
+  toolbar,
+  idKey: _idKey,
+  selectable = false,
+  onSelectionChange,
 }: DataGridProps<T>) {
   const [globalFilter, setGlobalFilter] = useState("");
   const [columnFilters, setColumnFilters] = useState<Record<string, string>>(
     {}
   );
-  const [sortKey, setSortKey] = useState<string | null>(null);
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [sortKey, setSortKey] = useState<string | null>(
+    initialSort?.key ?? null
+  );
+  const [sortDir, setSortDir] = useState<"asc" | "desc">(
+    initialSort?.dir ?? "asc"
+  );
   const [page, setPage] = useState(0);
+  const [selected, setSelected] = useState<Set<number>>(new Set());
+
+  const getValue = useCallback(
+    (row: T, col: DataGridColumn<T>) =>
+      col.accessor ? col.accessor(row) : row[(col.key as keyof T)],
+    []
+  );
 
   const filtered = useMemo(() => {
     let out = [...data];
@@ -48,7 +94,7 @@ export function DataGrid<T extends Record<string, any>>({
       const g = globalFilter.toLowerCase();
       out = out.filter(row =>
         columns.some(col =>
-          String(row[col.key] ?? "")
+          String(getValue(row, col) ?? "")
             .toLowerCase()
             .includes(g)
         )
@@ -59,13 +105,13 @@ export function DataGrid<T extends Record<string, any>>({
       const col = columns.find(c => String(c.key) === k);
       if (!col) continue;
       if (col.filterType === "select") {
-        out = out.filter(row => String(row[col.key]) === v);
+        out = out.filter(row => String(getValue(row, col)) === v);
       } else if (col.filterType === "date") {
-        out = out.filter(row => String(row[col.key] ?? "").includes(v));
+        out = out.filter(row => String(getValue(row, col) ?? "").includes(v));
       } else if (col.filterType === "number") {
         const [min, max] = v.split("-").map(Number);
         out = out.filter(row => {
-          const n = Number(row[col.key]);
+          const n = Number(getValue(row, col));
           if (!isNaN(min) && n < min) return false;
           if (!isNaN(max) && n > max) return false;
           return true;
@@ -79,16 +125,43 @@ export function DataGrid<T extends Record<string, any>>({
       }
     }
     if (sortKey) {
+      const col = columns.find(c => String(c.key) === sortKey);
       out.sort((a, b) => {
-        const av = a[sortKey];
-        const bv = b[sortKey];
+        const av = col ? getValue(a, col) : a[sortKey];
+        const bv = col ? getValue(b, col) : b[sortKey];
+        if (typeof av === "number" && typeof bv === "number") {
+          const cmp = av - bv;
+          return sortDir === "asc" ? cmp : -cmp;
+        }
         if (av === bv) return 0;
-        const cmp = String(av).localeCompare(String(bv), "ar");
+        const cmp = String(av ?? "").localeCompare(String(bv ?? ""), "ar");
         return sortDir === "asc" ? cmp : -cmp;
       });
     }
     return out;
-  }, [data, globalFilter, columnFilters, sortKey, sortDir, columns]);
+  }, [data, globalFilter, columnFilters, sortKey, sortDir, columns, getValue]);
+
+  const allPageSelected =
+    selectable && filtered.length > 0 && selected.size === filtered.length;
+
+  const toggleSelectAll = () => {
+    const next = new Set(selected);
+    if (allPageSelected) {
+      filtered.forEach((_, i) => next.delete(i));
+    } else {
+      filtered.forEach((_, i) => next.add(i));
+    }
+    setSelected(next);
+    onSelectionChange?.(filtered.filter((_, i) => next.has(i)));
+  };
+
+  const toggleRow = (idx: number) => {
+    const next = new Set(selected);
+    if (next.has(idx)) next.delete(idx);
+    else next.add(idx);
+    setSelected(next);
+    onSelectionChange?.(filtered.filter((_, i) => next.has(i)));
+  };
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const paged = filtered.slice(page * pageSize, (page + 1) * pageSize);
@@ -147,7 +220,7 @@ export function DataGrid<T extends Record<string, any>>({
               setGlobalFilter(e.target.value);
               setPage(0);
             }}
-            placeholder="بحث شامل — اكتمال تلقائي"
+            placeholder="بحث شامل في الجدول"
             className="pr-8 h-8 text-xs"
           />
         </div>
@@ -225,13 +298,33 @@ export function DataGrid<T extends Record<string, any>>({
       {/* Table — big data via pagination (50/100) */}
       <div className="rounded-xl border bg-white overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-xs" aria-label={ariaLabel}>
             <thead className="bg-muted/50 border-b">
               <tr>
+                <th className="p-2 w-8">
+                  {selectable && (
+                    <label className="flex items-center justify-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={allPageSelected}
+                        onChange={toggleSelectAll}
+                        className="w-3.5 h-3.5 rounded border-muted-foreground"
+                        aria-label="تحديد كل صفوف الصفحة"
+                      />
+                    </label>
+                  )}
+                </th>
                 {columns.map(col => (
                   <th
                     key={String(col.key)}
-                    className={`text-right p-2 font-bold whitespace-nowrap ${col.sortable ? "cursor-pointer hover:text-brand" : ""}`}
+                    aria-sort={
+                      sortKey === String(col.key)
+                        ? sortDir === "asc"
+                          ? "ascending"
+                          : "descending"
+                        : undefined
+                    }
+                    className={`p-2 font-bold whitespace-nowrap ${col.align === "center" ? "text-center" : col.align === "left" ? "text-left" : "text-right"} ${col.sortable ? "cursor-pointer hover:text-brand" : ""}`}
                     onClick={() => {
                       if (!col.sortable) return;
                       if (sortKey === String(col.key))
@@ -250,26 +343,76 @@ export function DataGrid<T extends Record<string, any>>({
               </tr>
             </thead>
             <tbody>
-              {paged.length === 0 ? (
+              {loading ? (
                 <tr>
                   <td
-                    colSpan={columns.length}
+                    colSpan={columns.length + (selectable ? 1 : 0)}
+                    className="text-center py-10 text-muted-foreground"
+                  >
+                    <span className="skeleton-heritage inline-block animate-pulse">
+                      جاري التحميل…
+                    </span>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={columns.length} className="text-center py-8">
+                    <span className="text-destructive">{error}</span>
+                    {onRetry && (
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="ms-2 h-7 text-xs"
+                        onClick={onRetry}
+                      >
+                        إعادة المحاولة
+                      </Button>
+                    )}
+                  </td>
+                </tr>
+              ) : paged.length === 0 ? (
+                <tr>
+                  <td
+                    colSpan={columns.length + (selectable ? 1 : 0)}
                     className="text-center py-8 text-muted-foreground"
                   >
-                    لا توجد بيانات — طبّق فلتراً آخر
+                    {emptyTitle ?? "لا توجد بيانات"}
+                    {emptyHint ? (
+                      <div className="text-[11px] mt-1">{emptyHint}</div>
+                    ) : null}
+                    {emptyAction ? (
+                      <div className="mt-3 flex justify-center">{emptyAction}</div>
+                    ) : null}
                   </td>
                 </tr>
               ) : (
                 paged.map((row, i) => (
-                  <tr key={i} className="border-b hover:bg-muted/20">
+                  <tr
+                    key={i}
+                    className={`border-b hover:bg-muted/20 ${selectedId != null && Number(row.id) === Number(selectedId) ? "bg-brand/5" : ""} ${onRowClick ? "cursor-pointer" : ""}`}
+                    onClick={() => onRowClick?.(row)}
+                  >
+                    {selectable && (
+                      <td className="p-2 text-center">
+                        <label className="flex items-center justify-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={selected.has(i)}
+                            onChange={() => toggleRow(i)}
+                            className="w-3.5 h-3.5 rounded border-muted-foreground"
+                            aria-label={`تحديد الصف ${i + 1}`}
+                          />
+                        </label>
+                      </td>
+                    )}
                     {columns.map(col => (
                       <td
                         key={String(col.key)}
-                        className="p-2 whitespace-nowrap"
+                        className={`p-2 whitespace-nowrap ${col.align === "center" ? "text-center" : col.align === "left" ? "text-left" : "text-right"}`}
                       >
                         {col.render
-                          ? col.render(row[col.key], row)
-                          : String(row[col.key] ?? "")}
+                          ? col.render(getValue(row, col), row)
+                          : String(getValue(row, col) ?? "")}
                       </td>
                     ))}
                   </tr>
@@ -278,11 +421,15 @@ export function DataGrid<T extends Record<string, any>>({
             </tbody>
           </table>
         </div>
-        {/* Pagination — big data */}
+        {/* Footer / Pagination — big data */}
         <div className="flex items-center justify-between p-2 border-t bg-muted/20 text-xs">
           <span className="text-muted-foreground">
-            {filtered.length} صف — صفحة {page + 1} من {totalPages} — معروض{" "}
-            {paged.length}
+            {footer ?? (
+              <>
+                {filtered.length} صف — صفحة {page + 1} من {totalPages} — معروض{" "}
+                {paged.length}
+              </>
+            )}
           </span>
           <div className="flex items-center gap-1">
             <Button

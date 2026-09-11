@@ -33,10 +33,28 @@ function resolveTenantId(
   if (typeof headerVal === "string") {
     const parsed = Number.parseInt(headerVal, 10);
     if (Number.isInteger(parsed) && parsed > 0) {
+      // P0 hardening: التحقق من وجود المستأجر سيتم لاحقاً في طبقة DB
+      // هنا نمرر القيمة فقط مع تمييز superAdmin؛ الرفض يكون في الـ middleware
+      // لا نسمح بتهريب tenant وهمي — التحقق الحقيقي في enforceSuperAdminTenantExists
       return { tenantId: parsed, isSuperAdmin: true };
     }
   }
   return { tenantId: user.tenantId ?? null, isSuperAdmin: true };
+}
+
+/** يتحقق وجود المستأجر عند استخدام x-tenant-id للمالك — يمنع IDOR */
+export async function enforceSuperAdminTenantExists(
+  ctx: { tenantId: number | null; isSuperAdmin: boolean; user: User | null },
+  db: any
+): Promise<void> {
+  if (!ctx.isSuperAdmin || !ctx.tenantId) return;
+  // إذا كان tenantId يأتي من x-tenant-id، تحقق أنه موجود فعلاً
+  const { tenants } = await import("../../drizzle/schema");
+  const { eq } = await import("drizzle-orm");
+  const rows = await db.select({ id: tenants.id }).from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1);
+  if (rows.length === 0) {
+    throw new Error(`المستأجر #${ctx.tenantId} غير موجود`);
+  }
 }
 
 export async function createContext(

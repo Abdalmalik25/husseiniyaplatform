@@ -29,11 +29,11 @@ export const ENV = {
   smtpUser: process.env.SMTP_USER ?? "",
   smtpPass: process.env.SMTP_PASS ?? "",
   emailFrom: process.env.EMAIL_FROM ?? "no-reply@alhusainia.local",
-  /** Master secret for encrypted backups (AES-256-GCM). Required in production. */
+  /** Master secret for encrypted backups (AES-256-GCM). Required in production — 16+ chars. */
   backupEncryptionKey: requireEnv(
     "BACKUP_ENCRYPTION_KEY",
     process.env.BACKUP_ENCRYPTION_KEY,
-    0
+    16
   ),
   /** Local directory for backup blobs when S3 is not configured. */
   backupDir: process.env.BACKUP_DIR ?? "",

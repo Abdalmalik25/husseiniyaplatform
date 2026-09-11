@@ -1,4 +1,7 @@
 import { trpc } from "@/lib/trpc";
+import { PERMISSIONS } from "../../../shared/permissions";
+
+export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 /**
  * Client-side permission gate. The server remains the source of truth
@@ -12,5 +15,18 @@ export function usePermissions() {
   });
   const role = data?.role;
   const isAdmin = role === "owner" || role === "admin";
-  return { role, isAdmin, ready: data !== undefined };
+
+  const can = (permission: PermissionKey | string) => {
+    // Admins/owners bypass granular checks on the client (server enforces too).
+    if (isAdmin) return true;
+    return false;
+  };
+
+  const canAll = (permissions: PermissionKey[] | string[]) =>
+    permissions.every(p => can(p));
+
+  const canAny = (permissions: PermissionKey[] | string[]) =>
+    permissions.some(p => can(p));
+
+  return { role, isAdmin, ready: data !== undefined, can, canAll, canAny };
 }

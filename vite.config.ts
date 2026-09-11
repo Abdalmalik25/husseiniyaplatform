@@ -194,6 +194,7 @@ export default defineConfig({
     emptyOutDir: true,
     target: "es2022",
     cssCodeSplit: true,
+    chunkSizeWarningLimit: 300,
     // Hidden sourcemaps: available to Sentry via CI upload, not exposed in devtools.
     sourcemap: "hidden",
     rollupOptions: {

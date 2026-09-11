@@ -54,6 +54,24 @@ export const subscriptionStatusEnum = pgEnum("subscription_status", [
   "suspended",
 ]);
 
+export const drugScheduleEnum = pgEnum("drug_schedule", [
+  "OTC",
+  "PRESCRIPTION",
+  "CONTROLLED",
+  "PSYCHOTROPIC",
+  "THERAPEUTIC",
+]);
+export const prescriptionStatusEnum = pgEnum("prescription_status", [
+  "pending",
+  "verified",
+  "dispensed",
+  "cancelled",
+  "expired",
+]);
+export const drugInteractionSeverityEnum = pgEnum(
+  "drug_interaction_severity",
+  ["MAJOR", "MODERATE", "MINOR"]
+);
 // ─── Users table for multi-tenant SaaS ────────────────────────────
 
 export const users = pgTable(
@@ -504,6 +522,8 @@ export const settings = pgTable(
     postingRules: text("postingRules"),
     // ─── ZATCA (Saudi e-invoicing) configuration ────────────────────
     zatcaConfig: text("zatcaConfig"),
+// ─── Document template (invoices/quotations/statements) ────────
+    documentTemplate: text("documentTemplate"),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
     // Sync columns
     serverVersion: integer("serverVersion").default(1).notNull(),
@@ -707,6 +727,21 @@ export const products = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
+// ─── Pharmacy fields (FDA/WHO aligned) ──────────────────────────
+    drugSchedule: drugScheduleEnum("drug_schedule").default("OTC"),
+    requiresPrescription: boolean("requires_prescription")
+      .default(false)
+      .notNull(),
+    scientificName: varchar("scientific_name", { length: 255 }),
+    ndcCode: varchar("ndc_code", { length: 50 }),
+    activeIngredients: text("active_ingredients"),
+    contraindications: text("contraindications"),
+    sideEffects: text("side_effects"),
+    storageConditions: varchar("storage_conditions", { length: 255 }),
+    dosageForm: varchar("dosage_form", { length: 50 }),
+    strength: varchar("strength", { length: 50 }),
+    maxQuantityPerSale: integer("max_quantity_per_sale").default(999).notNull(),
+    manufacturer: varchar("manufacturer", { length: 255 }),
     currencyId: integer("currencyId").references(() => currencies.id),
   },
   t => [
@@ -1657,14 +1692,29 @@ export const customers = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
+    // ─── Regional compliance (YE/SA/GCC) ───────────────────────────
+    country: varchar("country", { length: 100 }).default("اليمن"),
+    countryCode: varchar("countryCode", { length: 2 }).default("YE"),
+    taxIdType: varchar("taxIdType", { length: 20 }).default("none"),
+    isVatRegistered: boolean("isVatRegistered").default(false).notNull(),
+    commercialReg: varchar("commercialReg", { length: 100 }),
+    idNumber: varchar("idNumber", { length: 100 }),
+    postalCode: varchar("postalCode", { length: 20 }),
+    buyerType: varchar("buyerType", { length: 10 }).default("b2b"),
+    paymentTermsDays: integer("paymentTermsDays").default(0).notNull(),
   },
   t => [
     index("idx_customers_tenant").on(t.tenantId),
     index("idx_customers_tenant_deleted").on(t.tenantId, t.deletedAt),
     index("idx_customers_currency").on(t.currencyId),
+    index("idx_customers_country").on(t.countryCode),
     unique("customers_code_tenant_unique").on(t.code, t.tenantId),
     check("chk_customer_credit_limit_not_negative", sql`${t.creditLimit} >= 0`),
     check("chk_customer_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
+    check(
+      "chk_customer_payment_terms_not_negative",
+      sql`${t.paymentTermsDays} >= 0`
+    ),
   ]
 );
 
@@ -1698,11 +1748,22 @@ export const suppliers = pgTable(
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
     currencyId: integer("currencyId").references(() => currencies.id),
+    // ─── Regional compliance (YE/SA/GCC) ───────────────────────────
+    country: varchar("country", { length: 100 }).default("اليمن"),
+    countryCode: varchar("countryCode", { length: 2 }).default("YE"),
+    taxIdType: varchar("taxIdType", { length: 20 }).default("none"),
+    isVatRegistered: boolean("isVatRegistered").default(false).notNull(),
+    commercialReg: varchar("commercialReg", { length: 100 }),
+    idNumber: varchar("idNumber", { length: 100 }),
+    postalCode: varchar("postalCode", { length: 20 }),
+    buyerType: varchar("buyerType", { length: 10 }).default("b2b"),
+    paymentTermsDays: integer("paymentTermsDays").default(0).notNull(),
   },
   t => [
     index("idx_suppliers_tenant").on(t.tenantId),
     index("idx_suppliers_tenant_deleted").on(t.tenantId, t.deletedAt),
     index("idx_suppliers_currency").on(t.currencyId),
+    index("idx_suppliers_country").on(t.countryCode),
     unique("suppliers_code_tenant_unique").on(t.code, t.tenantId),
     check("chk_supplier_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
@@ -4491,6 +4552,9 @@ export const budgetLines = pgTable(
     amount: decimal("amount", { precision: 15, scale: 2 })
       .default("0")
       .notNull(),
+spentAmount: decimal("spentAmount", { precision: 15, scale: 2 })
+      .default("0")
+      .notNull(),
     quantity: decimal("quantity", { precision: 15, scale: 4 }), // for driver-based budgets
     unitPrice: decimal("unitPrice", { precision: 15, scale: 4 }),
     notes: text("notes"),
@@ -4906,3 +4970,1290 @@ export type ConsolidationAdjustment =
   typeof consolidationAdjustments.$inferSelect;
 export type InsertConsolidationAdjustment =
   typeof consolidationAdjustments.$inferInsert;
+// ═══════════════════════════════════════════════════════════════════════
+// ─── PHARMACY MODULE (FDA/WHO/JCAHO aligned) ───────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+export const prescriptions = pgTable(
+  "prescriptions",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    customerId: varchar("customer_id", { length: 255 }).notNull(),
+    customerName: varchar("customer_name", { length: 255 }).notNull(),
+    doctorName: varchar("doctor_name", { length: 255 }).notNull(),
+    doctorLicense: varchar("doctor_license", { length: 100 }).notNull(),
+    issueDate: timestamp("issue_date").notNull(),
+    expiryDate: timestamp("expiry_date").notNull(),
+    status: prescriptionStatusEnum("status").default("pending").notNull(),
+    notes: text("notes"),
+    prescriptionNumber: varchar("prescription_number", { length: 50 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_prescriptions_tenant").on(t.tenantId),
+    index("idx_prescriptions_customer").on(t.customerId),
+    index("idx_prescriptions_status").on(t.status),
+    index("idx_prescriptions_expiry").on(t.expiryDate),
+  ]
+);
+
+export const prescriptionItems = pgTable(
+  "prescription_items",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    prescriptionId: integer("prescription_id").notNull(),
+    productId: integer("product_id").notNull(),
+    quantity: integer("quantity").notNull(),
+    dosage: varchar("dosage", { length: 100 }),
+    frequency: varchar("frequency", { length: 100 }),
+    duration: varchar("duration", { length: 100 }),
+    instructions: text("instructions"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+  },
+  t => [
+    index("idx_prescription_items_prescription").on(t.prescriptionId),
+    index("idx_prescription_items_product").on(t.productId),
+  ]
+);
+
+export const controlledSubstancesLog = pgTable(
+  "controlled_substances_log",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    productId: integer("product_id").notNull(),
+    operation: varchar("operation", { length: 20 }).notNull(),
+    quantity: integer("quantity").notNull(),
+    reason: text("reason").notNull(),
+    referenceNumber: varchar("reference_number", { length: 100 }),
+    userId: integer("user_id").notNull(),
+    customerId: varchar("customer_id", { length: 255 }),
+    prescriptionId: integer("prescription_id"),
+    timestamp: timestamp("timestamp").defaultNow().notNull(),
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+  },
+  t => [
+    index("idx_controlled_log_product").on(t.productId),
+    index("idx_controlled_log_tenant").on(t.tenantId),
+    index("idx_controlled_log_timestamp").on(t.timestamp),
+  ]
+);
+
+export const drugInteractions = pgTable(
+  "drug_interactions",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId"),
+    drugA: varchar("drug_a", { length: 200 }).notNull(),
+    drugB: varchar("drug_b", { length: 200 }).notNull(),
+    severity: drugInteractionSeverityEnum("severity").notNull(),
+    description: text("description").notNull(),
+    mechanism: text("mechanism"),
+    clinicalEffect: text("clinical_effect"),
+    recommendation: text("recommendation"),
+    evidenceLevel: varchar("evidence_level", { length: 20 }),
+    source: varchar("source", { length: 100 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_drug_interactions_a").on(t.drugA),
+    index("idx_drug_interactions_b").on(t.drugB),
+    index("idx_drug_interactions_tenant").on(t.tenantId),
+  ]
+);
+
+export const patientAllergies = pgTable(
+  "patient_allergies",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    customerId: varchar("customer_id", { length: 255 }).notNull(),
+    customerName: varchar("customer_name", { length: 255 }).notNull(),
+    allergen: varchar("allergen", { length: 200 }).notNull(),
+    allergenType: varchar("allergen_type", { length: 50 }).notNull(),
+    severity: varchar("severity", { length: 20 }).notNull(),
+    reaction: text("reaction"),
+    diagnosedBy: varchar("diagnosed_by", { length: 255 }),
+    diagnosedAt: varchar("diagnosed_at", { length: 20 }),
+    notes: text("notes"),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_patient_allergies_customer").on(t.customerId),
+    index("idx_patient_allergies_tenant").on(t.tenantId),
+  ]
+);
+export const insuranceClaims = pgTable(
+  "insurance_claims",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    claimNumber: varchar("claim_number", { length: 50 }).notNull(),
+    prescriptionId: integer("prescription_id"),
+    customerId: varchar("customer_id", { length: 255 }).notNull(),
+    customerName: varchar("customer_name", { length: 255 }).notNull(),
+    insuranceProvider: varchar("insurance_provider", { length: 200 }).notNull(),
+    policyNumber: varchar("policy_number", { length: 100 }).notNull(),
+    totalAmount: decimal("total_amount", { precision: 14, scale: 2 }).notNull(),
+    coveredAmount: decimal("covered_amount", { precision: 14, scale: 2 })
+      .default("0"),
+    copayAmount: decimal("copay_amount", { precision: 14, scale: 2 })
+      .default("0"),
+    status: varchar("status", { length: 20 }).default("DRAFT").notNull(),
+    submittedAt: timestamp("submitted_at"),
+    responseAt: timestamp("response_at"),
+    rejectionReason: text("rejection_reason"),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_insurance_claims_tenant").on(t.tenantId),
+    index("idx_insurance_claims_prescription").on(t.prescriptionId),
+    index("idx_insurance_claims_customer").on(t.customerId),
+  ]
+);
+
+export const drugRecalls = pgTable(
+  "drug_recalls",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId"),
+    productId: integer("product_id"),
+    batchId: integer("batch_id"),
+    drugName: varchar("drug_name", { length: 200 }).notNull(),
+    recallClass: varchar("recall_class", { length: 20 }).notNull(),
+    reason: text("reason").notNull(),
+    manufacturer: varchar("manufacturer", { length: 200 }),
+    recallDate: varchar("recall_date", { length: 20 }).notNull(),
+    initiatedBy: varchar("initiated_by", { length: 200 }),
+    affectedQuantity: integer("affected_quantity"),
+    action: varchar("action", { length: 50 }).notNull(),
+    status: varchar("status", { length: 20 }).default("OPEN").notNull(),
+    resolvedAt: timestamp("resolved_at"),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_drug_recalls_tenant").on(t.tenantId),
+    index("idx_drug_recalls_status").on(t.status),
+    index("idx_drug_recalls_class").on(t.recallClass),
+  ]
+);
+// ═══════════════════════════════════════════════════════════════════════
+// ─── QUOTATION ENGINE (industry-agnostic, configuration-driven) ────────
+// ═══════════════════════════════════════════════════════════════════════
+
+export const quotationDirectionEnum = pgEnum("quotation_direction", [
+  "sale",
+  "purchase",
+]);
+export const quotationStatusEnum = pgEnum("quotation_status", [
+  "draft",
+  "in_review",
+  "approved",
+  "sent",
+  "negotiating",
+  "accepted",
+  "rejected",
+  "expired",
+  "converted",
+  "closed",
+  "cancelled",
+]);
+export const quotationItemKindEnum = pgEnum("quotation_item_kind", [
+  "product",
+  "service",
+  "project",
+  "subscription",
+  "production",
+  "distribution",
+  "other",
+]);
+export const quotationApprovalStatusEnum = pgEnum("quotation_approval_status", [
+  "pending",
+  "approved",
+  "rejected",
+]);
+export const quotationNegotiationSideEnum = pgEnum(
+  "quotation_negotiation_side",
+  ["us", "counterparty"]
+);
+export const quotationPartyRoleEnum = pgEnum("quotation_party_role", [
+  "customer",
+  "supplier",
+  "broker",
+  "sales_rep",
+  "approver",
+  "contact",
+]);
+export const quotationLinkTypeEnum = pgEnum("quotation_link_type", [
+  "crm_customer",
+  "crm_supplier",
+  "inventory_product",
+  "procurement",
+  "sales_order",
+  "sales_invoice",
+  "purchase_order",
+  "purchase_invoice",
+  "project",
+  "service",
+  "production_order",
+  "accounting_entry",
+]);
+export const quotationTypes = pgTable(
+  "quotation_types",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    code: varchar("code", { length: 50 }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    nameAr: varchar("nameAr", { length: 255 }),
+    direction: quotationDirectionEnum("direction").default("sale").notNull(),
+    itemKinds: jsonb("itemKinds").default(["product", "service"]).notNull(),
+    defaultValidityDays: integer("defaultValidityDays").default(30).notNull(),
+    defaultTerms: jsonb("defaultTerms").default([]),
+    pricingConfig: jsonb("pricingConfig").default({}),
+    approvalPolicy: jsonb("approvalPolicy").default({}),
+    numberingPrefix: varchar("numberingPrefix", { length: 20 }).default("QT"),
+    isActive: boolean("isActive").default(true).notNull(),
+    isSystem: boolean("isSystem").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_quotation_types_tenant").on(t.tenantId),
+    unique("quotation_types_code_tenant_unique").on(t.code, t.tenantId),
+  ]
+);
+
+export const quotations = pgTable(
+  "quotations",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    country: varchar("country", { length: 100 }).default("اليمن"),
+    workSiteId: integer("workSiteId"),
+    deviceId: integer("deviceId"),
+    lat: decimal("lat", { precision: 10, scale: 7 }),
+    lng: decimal("lng", { precision: 10, scale: 7 }),
+    globalCode: varchar("globalCode", { length: 160 }),
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+    quotationNumber: varchar("quotationNumber", { length: 50 }).notNull().unique(),
+    typeId: integer("typeId"),
+    direction: quotationDirectionEnum("direction").default("sale").notNull(),
+    status: quotationStatusEnum("status").default("draft").notNull(),
+    version: integer("version").default(1).notNull(),
+    customerId: integer("customerId"),
+    supplierId: integer("supplierId"),
+    counterpartyName: varchar("counterpartyName", { length: 255 }),
+    branchId: integer("branchId"),
+    costCenterId: integer("costCenterId"),
+    warehouseId: integer("warehouseId"),
+    projectId: integer("projectId"),
+    currency: varchar("currency", { length: 10 }).default("YER").notNull(),
+    currencyRate: decimal("currencyRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
+    subtotal: decimal("subtotal", { precision: 18, scale: 2 }).default("0"),
+    discountTotal: decimal("discountTotal", { precision: 18, scale: 2 }).default("0"),
+    taxTotal: decimal("taxTotal", { precision: 18, scale: 2 }).default("0"),
+    commissionTotal: decimal("commissionTotal", { precision: 18, scale: 2 }).default("0"),
+    grandTotal: decimal("grandTotal", { precision: 18, scale: 2 }).default("0"),
+    costTotal: decimal("costTotal", { precision: 18, scale: 2 }).default("0"),
+    marginTotal: decimal("marginTotal", { precision: 18, scale: 2 }).default("0"),
+    marginPct: decimal("marginPct", { precision: 10, scale: 4 }).default("0"),
+    paymentTerms: text("paymentTerms"),
+    deliveryTerms: text("deliveryTerms"),
+    validityDate: timestamp("validityDate"),
+    notes: text("notes"),
+    convertedRefType: varchar("convertedRefType", { length: 50 }),
+    convertedRefId: integer("convertedRefId"),
+    createdById: integer("createdById"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_quotations_tenant").on(t.tenantId),
+    index("idx_quotations_type").on(t.typeId),
+    index("idx_quotations_status").on(t.status),
+    index("idx_quotations_direction").on(t.direction),
+    index("idx_quotations_customer").on(t.customerId),
+    index("idx_quotations_supplier").on(t.supplierId),
+    index("idx_quotations_updated").on(t.updatedAt),
+  ]
+);
+export const quotationItems = pgTable(
+  "quotation_items",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    kind: quotationItemKindEnum("kind").default("product").notNull(),
+    refId: integer("refId"),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    quantity: decimal("quantity", { precision: 15, scale: 4 }).default("1"),
+    unit: varchar("unit", { length: 50 }),
+    unitPrice: decimal("unitPrice", { precision: 18, scale: 4 }).default("0"),
+    costPrice: decimal("costPrice", { precision: 18, scale: 4 }).default("0"),
+    discountPct: decimal("discountPct", { precision: 10, scale: 4 }).default("0"),
+    discountAmount: decimal("discountAmount", { precision: 18, scale: 2 }).default("0"),
+    taxPct: decimal("taxPct", { precision: 10, scale: 4 }).default("0"),
+    taxAmount: decimal("taxAmount", { precision: 18, scale: 2 }).default("0"),
+    lineTotal: decimal("lineTotal", { precision: 18, scale: 2 }).default("0"),
+    lineCost: decimal("lineCost", { precision: 18, scale: 2 }).default("0"),
+    lineMargin: decimal("lineMargin", { precision: 18, scale: 2 }).default("0"),
+    sortOrder: integer("sortOrder").default(0),
+    config: jsonb("config").default({}),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_quotation_items_quotation").on(t.quotationId),
+    index("idx_quotation_items_ref").on(t.kind, t.refId),
+  ]
+);
+
+export const quotationVersions = pgTable(
+  "quotation_versions",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    versionNo: integer("versionNo").default(1).notNull(),
+    snapshot: jsonb("snapshot").notNull(),
+    changeSummary: text("changeSummary"),
+    createdById: integer("createdById"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_quotation_versions_quotation").on(t.quotationId),
+    unique("quotation_versions_quotation_version_unique").on(
+      t.quotationId,
+      t.versionNo
+    ),
+  ]
+);
+
+export const quotationAlternatives = pgTable(
+  "quotation_alternatives",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    itemsJson: jsonb("itemsJson").default([]),
+    totalsJson: jsonb("totalsJson").default({}),
+    isSelected: boolean("isSelected").default(false),
+    createdById: integer("createdById"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_quotation_alternatives_quotation").on(t.quotationId),
+  ]
+);
+
+export const quotationTerms = pgTable(
+  "quotation_terms",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    category: varchar("category", { length: 50 }),
+    title: varchar("title", { length: 255 }),
+    body: text("body"),
+    sortOrder: integer("sortOrder").default(0),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [index("idx_quotation_terms_quotation").on(t.quotationId)]
+);
+
+export const quotationParties = pgTable(
+  "quotation_parties",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    role: quotationPartyRoleEnum("role").notNull(),
+    entityType: varchar("entityType", { length: 50 }),
+    entityId: integer("entityId"),
+    name: varchar("name", { length: 255 }).notNull(),
+    commissionPct: decimal("commissionPct", { precision: 10, scale: 4 }).default("0"),
+    commissionAmount: decimal("commissionAmount", { precision: 18, scale: 2 }).default("0"),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_quotation_parties_quotation").on(t.quotationId),
+    index("idx_quotation_parties_entity").on(t.entityType, t.entityId),
+  ]
+);
+export const quotationApprovals = pgTable(
+  "quotation_approvals",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    approverId: integer("approverId"),
+    approverName: varchar("approverName", { length: 255 }),
+    level: integer("level").default(1),
+    status: quotationApprovalStatusEnum("status").default("pending").notNull(),
+    comment: text("comment"),
+    decidedAt: timestamp("decidedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_quotation_approvals_quotation").on(t.quotationId),
+    index("idx_quotation_approvals_approver").on(t.approverId),
+  ]
+);
+
+export const quotationNegotiations = pgTable(
+  "quotation_negotiations",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    round: integer("round").default(1).notNull(),
+    side: quotationNegotiationSideEnum("side").notNull(),
+    message: text("message").notNull(),
+    proposedTotal: decimal("proposedTotal", { precision: 18, scale: 2 }),
+    proposedChanges: jsonb("proposedChanges").default({}),
+    createdById: integer("createdById"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [index("idx_quotation_negotiations_quotation").on(t.quotationId)]
+);
+
+export const quotationAttachments = pgTable(
+  "quotation_attachments",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    fileName: varchar("fileName", { length: 255 }).notNull(),
+    fileUrl: text("fileUrl").notNull(),
+    fileType: varchar("fileType", { length: 100 }),
+    fileSize: integer("fileSize"),
+    uploadedById: integer("uploadedById"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [index("idx_quotation_attachments_quotation").on(t.quotationId)]
+);
+
+export const quotationLinks = pgTable(
+  "quotation_links",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    linkType: quotationLinkTypeEnum("linkType").notNull(),
+    entityType: varchar("entityType", { length: 50 }).notNull(),
+    entityId: integer("entityId").notNull(),
+    notes: text("notes"),
+    createdById: integer("createdById"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_quotation_links_quotation").on(t.quotationId),
+    index("idx_quotation_links_entity").on(t.entityType, t.entityId),
+  ]
+);
+
+export const quotationAnalyses = pgTable(
+  "quotation_analyses",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId").notNull(),
+    versionNo: integer("versionNo").default(1).notNull(),
+    inputHash: varchar("inputHash", { length: 64 }).notNull(),
+    scores: jsonb("scores").notNull(),
+    ranking: jsonb("ranking"),
+    benchmarks: jsonb("benchmarks"),
+    anomalies: jsonb("anomalies").default([]),
+    forecast: jsonb("forecast"),
+    recommendations: jsonb("recommendations").default([]),
+    whatIf: jsonb("whatIf").default([]),
+    generatedBy: varchar("generatedBy", { length: 30 }).default("engine").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_quotation_analyses_quotation").on(t.quotationId),
+    index("idx_quotation_analyses_created").on(t.createdAt),
+  ]
+);
+
+export const quotationAlerts = pgTable(
+  "quotation_alerts",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    quotationId: integer("quotationId"),
+    alertType: varchar("alertType", { length: 40 }).notNull(),
+    severity: varchar("severity", { length: 20 }).default("info").notNull(),
+    message: text("message").notNull(),
+    evidence: jsonb("evidence").default({}),
+    isRead: boolean("isRead").default(false).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_quotation_alerts_tenant").on(t.tenantId),
+    index("idx_quotation_alerts_quotation").on(t.quotationId),
+    index("idx_quotation_alerts_unread").on(t.tenantId, t.isRead),
+  ]
+);
+// ═══════════════════════════════════════════════════════════════════════
+// ─── VOUCHERS SYSTEM (GAAP/IFRS aligned) ───────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+export const voucherTypeEnum = pgEnum("voucher_type", [
+  "payment",
+  "receipt",
+  "journal",
+  "adjustment",
+]);
+export const voucherStatusEnum = pgEnum("voucher_status", [
+  "draft",
+  "pending",
+  "approved",
+  "rejected",
+  "posted",
+  "cancelled",
+]);
+export const voucherApprovalLevelEnum = pgEnum("voucher_approval_level", [
+  "none",
+  "level1",
+  "level2",
+  "level3",
+  "final",
+]);
+export const vouchers = pgTable(
+  "vouchers",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    voucherNumber: varchar("voucherNumber", { length: 50 }).notNull(),
+    voucherPrefix: varchar("voucherPrefix", { length: 10 }).default("VCH").notNull(),
+    voucherType: voucherTypeEnum("voucherType").notNull(),
+    status: voucherStatusEnum("status").default("draft").notNull(),
+    voucherDate: timestamp("voucherDate").notNull(),
+    dueDate: timestamp("dueDate"),
+    postingDate: timestamp("postingDate"),
+    amount: decimal("amount", { precision: 18, scale: 4 }).notNull(),
+    baseAmount: decimal("baseAmount", { precision: 18, scale: 4 }).default("0").notNull(),
+    currencyId: integer("currencyId"),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
+    counterpartyType: varchar("counterpartyType", { length: 20 }),
+    counterpartyId: integer("counterpartyId"),
+    counterpartyName: varchar("counterpartyName", { length: 255 }),
+    bankAccountId: integer("bankAccountId"),
+    bankAccountCode: varchar("bankAccountCode", { length: 20 }),
+    referenceNo: varchar("referenceNo", { length: 100 }),
+    referenceType: varchar("referenceType", { length: 50 }),
+    referenceId: integer("referenceId"),
+    linkedVoucherId: integer("linkedVoucherId"),
+    departmentId: integer("departmentId"),
+    projectId: integer("projectId"),
+    costCenterId: integer("costCenterId"),
+    businessUnit: varchar("businessUnit", { length: 100 }),
+    budgetId: integer("budgetId"),
+    budgetLineId: integer("budgetLineId"),
+    budgetValidated: boolean("budgetValidated").default(false),
+    budgetVariance: decimal("budgetVariance", { precision: 18, scale: 4 }).default("0"),
+    approvalLevel: voucherApprovalLevelEnum("approvalLevel").default("none"),
+    approvedById: integer("approvedById"),
+    approvedAt: timestamp("approvedAt"),
+    rejectedById: integer("rejectedById"),
+    rejectedAt: timestamp("rejectedAt"),
+    rejectionReason: text("rejectionReason"),
+    requiresLevel1Approval: boolean("requiresLevel1Approval").default(false),
+    requiresLevel2Approval: boolean("requiresLevel2Approval").default(false),
+    requiresLevel3Approval: boolean("requiresLevel3Approval").default(false),
+    postedById: integer("postedById"),
+    journalEntryId: integer("journalEntryId"),
+    reversalOfId: integer("reversalOfId"),
+    description: text("description"),
+    notes: text("notes"),
+    internalMemo: text("internalMemo"),
+    attachmentsCount: integer("attachmentsCount").default(0),
+    branchId: integer("branchId"),
+    createdById: integer("createdById"),
+    updatedById: integer("updatedById"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+    aggregateId: uuid("aggregateId"),
+  },
+  t => [
+    index("idx_vouchers_tenant").on(t.tenantId),
+    index("idx_vouchers_number").on(t.tenantId, t.voucherNumber),
+    index("idx_vouchers_type").on(t.tenantId, t.voucherType),
+    index("idx_vouchers_status").on(t.tenantId, t.status),
+    index("idx_vouchers_date").on(t.voucherDate),
+    index("idx_vouchers_counterparty").on(t.counterpartyType, t.counterpartyId),
+    index("idx_vouchers_cost_center").on(t.costCenterId),
+    index("idx_vouchers_department").on(t.departmentId),
+    index("idx_vouchers_project").on(t.projectId),
+    index("idx_vouchers_journal").on(t.journalEntryId),
+    unique("vouchers_gc_tenant_unique").on(t.tenantId, t.GlobalId),
+    check("chk_voucher_amount_positive", sql`${t.amount} > 0`),
+    check("chk_voucher_base_amount_positive", sql`${t.baseAmount} >= 0`),
+    check("chk_voucher_exchange_rate_positive", sql`${t.exchangeRate} > 0`),
+  ]
+);
+export const voucherLines = pgTable(
+  "voucher_lines",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    voucherId: integer("voucherId").notNull(),
+    accountId: integer("accountId").notNull(),
+    accountCode: varchar("accountCode", { length: 20 }),
+    accountName: varchar("accountName", { length: 255 }),
+    debitAmount: decimal("debitAmount", { precision: 18, scale: 4 }).default("0"),
+    creditAmount: decimal("creditAmount", { precision: 18, scale: 4 }).default("0"),
+    costCenterId: integer("costCenterId"),
+    departmentId: integer("departmentId"),
+    projectId: integer("projectId"),
+    allocationPercentage: decimal("allocationPercentage", { precision: 8, scale: 4 }).default("100"),
+    allocatedAmount: decimal("allocatedAmount", { precision: 18, scale: 4 }).default("0"),
+    description: text("description"),
+    reference: varchar("reference", { length: 100 }),
+    lineOrder: integer("lineOrder").default(0),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    serverVersion: integer("serverVersion").default(1).notNull(),
+    lastSyncAt: timestamp("lastSyncAt"),
+    conflictState: varchar("conflictState", { length: 20 }).default("none"),
+  },
+  t => [
+    index("idx_voucher_lines_voucher").on(t.voucherId),
+    index("idx_voucher_lines_account").on(t.accountId),
+    index("idx_voucher_lines_cost_center").on(t.costCenterId),
+    check(
+      "chk_voucher_line_allocation",
+      sql`${t.allocationPercentage} >= 0 AND ${t.allocationPercentage} <= 100`
+    ),
+  ]
+);
+
+export const voucherApprovals = pgTable(
+  "voucher_approvals",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId"),
+    voucherId: integer("voucherId").notNull(),
+    approverId: integer("approverId"),
+    approvalLevel: voucherApprovalLevelEnum("approvalLevel").default("level1"),
+    status: quotationApprovalStatusEnum("status").default("pending").notNull(),
+    comment: text("comment"),
+    decidedAt: timestamp("decidedAt"),
+    ipAddress: varchar("ipAddress", { length: 45 }),
+    userAgent: text("userAgent"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_voucher_approvals_voucher").on(t.voucherId),
+    index("idx_voucher_approvals_approver").on(t.approverId),
+    index("idx_voucher_approvals_level").on(t.approvalLevel),
+  ]
+);
+
+export const voucherSequences = pgTable(
+  "voucher_sequences",
+  {
+    id: serial("id").primaryKey(),
+    tenantId: integer("tenantId").notNull(),
+    voucherType: voucherTypeEnum("voucherType").notNull(),
+    prefix: varchar("prefix", { length: 10 }).notNull(),
+    currentNumber: integer("currentNumber").default(0).notNull(),
+    format: varchar("format", { length: 50 }).default("{PREFIX}/{YYYY}/{NNNNNN}").notNull(),
+    resetPeriod: varchar("resetPeriod", { length: 20 }).default("yearly"),
+    lastResetDate: timestamp("lastResetDate"),
+    numberPadding: integer("numberPadding").default(6),
+    isActive: boolean("isActive").default(true),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_voucher_sequences_tenant").on(t.tenantId),
+    unique("voucher_sequences_tenant_type_unique").on(t.tenantId, t.voucherType),
+  ]
+);
+// ═══════════════════════════════════════════════════════════════════════
+// ─── HEALTHCARE & PATIENT MANAGEMENT (HIPAA/HL7 FHIR/ICD-10) ────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+export const genderEnum = pgEnum("gender", ["male", "female", "other", "unknown"]);
+export const bloodTypeEnum = pgEnum("blood_type", [
+  "A+",
+  "A-",
+  "B+",
+  "B-",
+  "AB+",
+  "AB-",
+  "O+",
+  "O-",
+  "unknown",
+]);
+export const appointmentStatusEnum = pgEnum("appointment_status", [
+  "scheduled",
+  "confirmed",
+  "checked_in",
+  "in_progress",
+  "completed",
+  "cancelled",
+  "no_show",
+  "rescheduled",
+]);
+export const appointmentTypeEnum = pgEnum("appointment_type", [
+  "new_patient",
+  "follow_up",
+  "consultation",
+  "procedure",
+  "emergency",
+  "routine",
+  "telemedicine",
+]);
+export const visitTypeEnum = pgEnum("visit_type", [
+  "outpatient",
+  "inpatient",
+  "emergency",
+  "telemedicine",
+  "home_visit",
+]);
+export const recordEntryTypeEnum = pgEnum("record_entry_type", [
+  "diagnosis",
+  "procedure",
+  "medication",
+  "allergy",
+  "vital_signs",
+  "lab_result",
+  "imaging",
+  "note",
+  "referral",
+  "instruction",
+]);
+export const healthcareFacilities = pgTable(
+  "healthcare_facilities",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    branchId: integer("branch_id"),
+    name: varchar("name", { length: 200 }).notNull(),
+    code: varchar("code", { length: 50 }).notNull(),
+    type: varchar("type", { length: 50 }).notNull(),
+    specialty: varchar("specialty", { length: 100 }),
+    department: varchar("department", { length: 100 }),
+    floor: varchar("floor", { length: 20 }),
+    building: varchar("building", { length: 100 }),
+    isActive: boolean("is_active").default(true).notNull(),
+    acceptsInsurance: boolean("accepts_insurance").default(false).notNull(),
+    insuranceProviders: jsonb("insurance_providers").default([]),
+    operatingHours: jsonb("operating_hours").default({}),
+    contactPhone: varchar("contact_phone", { length: 50 }),
+    contactEmail: varchar("contact_email", { length: 255 }),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_healthcare_facilities_tenant").on(t.tenantId),
+    index("idx_healthcare_facilities_branch").on(t.branchId),
+    index("idx_healthcare_facilities_type").on(t.type),
+    unique("uq_healthcare_facility_code").on(t.tenantId, t.code),
+  ]
+);
+
+export const healthcareProviders = pgTable(
+  "healthcare_providers",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    employeeId: integer("employee_id"),
+    userId: uuid("user_id"),
+    facilityId: integer("facility_id"),
+    licenseNumber: varchar("license_number", { length: 100 }),
+    specialization: varchar("specialization", { length: 100 }).notNull(),
+    title: varchar("title", { length: 50 }),
+    qualifications: jsonb("qualifications").default([]),
+    yearsExperience: integer("years_experience"),
+    consultationFee: decimal("consultation_fee", { precision: 14, scale: 2 }),
+    followUpFee: decimal("follow_up_fee", { precision: 14, scale: 2 }),
+    isActive: boolean("is_active").default(true).notNull(),
+    isAcceptingPatients: boolean("is_accepting_patients").default(true).notNull(),
+    scheduleTemplate: jsonb("schedule_template").default({}),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_healthcare_providers_tenant").on(t.tenantId),
+    index("idx_healthcare_providers_employee").on(t.employeeId),
+    index("idx_healthcare_providers_facility").on(t.facilityId),
+  ]
+);
+
+export const patients = pgTable(
+  "patients",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    patientNumber: varchar("patient_number", { length: 50 }).notNull(),
+    fullName: varchar("full_name", { length: 255 }).notNull(),
+    firstName: varchar("first_name", { length: 100 }).notNull(),
+    lastName: varchar("last_name", { length: 100 }).notNull(),
+    localFirstName: varchar("local_first_name", { length: 100 }),
+    localLastName: varchar("local_last_name", { length: 100 }),
+    gender: genderEnum("gender"),
+    dateOfBirth: timestamp("date_of_birth"),
+    age: integer("age"),
+    bloodType: bloodTypeEnum("blood_type"),
+    nationality: varchar("nationality", { length: 100 }),
+    nationalId: varchar("national_id", { length: 100 }),
+    passportNumber: varchar("passport_number", { length: 100 }),
+    maritalStatus: varchar("marital_status", { length: 50 }),
+    occupation: varchar("occupation", { length: 100 }),
+    email: varchar("email", { length: 255 }),
+    phone: varchar("phone", { length: 50 }),
+    mobile: varchar("mobile", { length: 50 }),
+    address: text("address"),
+    city: varchar("city", { length: 100 }),
+    region: varchar("region", { length: 100 }),
+    postalCode: varchar("postal_code", { length: 20 }),
+    country: varchar("country", { length: 100 }),
+    emergencyContactName: varchar("emergency_contact_name", { length: 255 }),
+    emergencyContactPhone: varchar("emergency_contact_phone", { length: 50 }),
+    emergencyContactRelation: varchar("emergency_contact_relation", { length: 50 }),
+    insuranceProvider: varchar("insurance_provider", { length: 200 }),
+    insurancePolicyNumber: varchar("insurance_policy_number", { length: 100 }),
+    insuranceCardNumber: varchar("insurance_card_number", { length: 100 }),
+    insuranceExpiry: varchar("insurance_expiry", { length: 20 }),
+    primaryProviderId: integer("primary_provider_id"),
+    primaryFacilityId: integer("primary_facility_id"),
+    allergies: jsonb("allergies").default([]),
+    chronicConditions: jsonb("chronic_conditions").default([]),
+    notes: text("notes"),
+    isVIP: boolean("is_vip").default(false),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_patients_tenant").on(t.tenantId),
+    index("idx_patients_number").on(t.patientNumber),
+    index("idx_patients_name").on(t.fullName),
+    index("idx_patients_phone").on(t.phone),
+    index("idx_patients_national_id").on(t.nationalId),
+    unique("uq_patients_number_tenant").on(t.tenantId, t.patientNumber),
+  ]
+);
+export const appointments = pgTable(
+  "appointments",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    appointmentNumber: varchar("appointment_number", { length: 50 }).notNull(),
+    patientId: integer("patient_id").notNull(),
+    providerId: integer("provider_id"),
+    facilityId: integer("facility_id"),
+    appointmentType: appointmentTypeEnum("appointment_type").default("new_patient"),
+    status: appointmentStatusEnum("status").default("scheduled").notNull(),
+    scheduledDate: timestamp("scheduled_date"),
+    scheduledTime: varchar("scheduled_time", { length: 20 }),
+    scheduledEndTime: varchar("scheduled_end_time", { length: 20 }),
+    duration: integer("duration"),
+    chiefComplaint: text("chief_complaint"),
+    notes: text("notes"),
+    reason: text("reason"),
+    isFirstVisit: boolean("is_first_visit").default(false),
+    isTelemedicine: boolean("is_telemedicine").default(false),
+    consultationFee: decimal("consultation_fee", { precision: 14, scale: 2 }),
+    visitType: visitTypeEnum("visit_type").default("outpatient"),
+    checkedInAt: timestamp("checked_in_at"),
+    startedAt: timestamp("started_at"),
+    completedAt: timestamp("completed_at"),
+    cancelledAt: timestamp("cancelled_at"),
+    noShowAt: timestamp("no_show_at"),
+    rescheduledFromId: integer("rescheduled_from_id"),
+    createdById: integer("created_by_id"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_appointments_tenant").on(t.tenantId),
+    index("idx_appointments_patient").on(t.patientId),
+    index("idx_appointments_provider").on(t.providerId),
+    index("idx_appointments_facility").on(t.facilityId),
+    index("idx_appointments_status").on(t.status),
+    index("idx_appointments_date").on(t.scheduledDate),
+    unique("uq_appointments_number_tenant").on(t.tenantId, t.appointmentNumber),
+  ]
+);
+
+export const medicalRecords = pgTable(
+  "medical_records",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    recordNumber: varchar("record_number", { length: 50 }).notNull(),
+    patientId: integer("patient_id").notNull(),
+    appointmentId: integer("appointment_id"),
+    visitType: visitTypeEnum("visit_type").default("outpatient"),
+    providerId: integer("provider_id"),
+    facilityId: integer("facility_id"),
+    visitDate: timestamp("visit_date"),
+    admissionDate: timestamp("admission_date"),
+    dischargeDate: timestamp("discharge_date"),
+    chiefComplaint: text("chief_complaint"),
+    historyOfPresentIllness: text("history_of_present_illness"),
+    physicalExamination: text("physical_examination"),
+    assessment: text("assessment"),
+    plan: text("plan"),
+    createdById: integer("created_by_id"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_medical_records_tenant").on(t.tenantId),
+    index("idx_medical_records_patient").on(t.patientId),
+    index("idx_medical_records_visit_date").on(t.visitDate),
+    index("idx_medical_records_provider").on(t.providerId),
+    unique("uq_medical_records_number_tenant").on(t.tenantId, t.recordNumber),
+  ]
+);
+
+export const diagnosisTypeEnum = pgEnum("diagnosis_type", [
+  "primary",
+  "secondary",
+  "complication",
+  "cause_of_death",
+]);
+export const icdCodeSystemEnum = pgEnum("icd_code_system", [
+  "ICD10",
+  "ICD9",
+  "ICPC2",
+  "SNOMED_CT",
+]);
+
+export const medicalRecordEntries = pgTable(
+  "medical_record_entries",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    recordId: integer("record_id").notNull(),
+    patientId: integer("patient_id").notNull(),
+    entryType: recordEntryTypeEnum("entry_type").notNull(),
+    diagnosisType: diagnosisTypeEnum("diagnosis_type"),
+    icdCode: varchar("icd_code", { length: 20 }),
+    icdCodeSystem: icdCodeSystemEnum("icd_code_system"),
+    diagnosisDescription: text("diagnosis_description"),
+    isConfirmed: boolean("is_confirmed").default(false),
+    severity: varchar("severity", { length: 20 }),
+    notes: text("notes"),
+    createdById: integer("created_by_id"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_medical_record_entries_record").on(t.recordId),
+    index("idx_medical_record_entries_patient").on(t.patientId),
+    index("idx_medical_record_entries_type").on(t.entryType),
+  ]
+);
+export const vitalSignRecords = pgTable(
+  "vital_sign_records",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    patientId: integer("patient_id").notNull(),
+    recordId: integer("record_id"),
+    appointmentId: integer("appointment_id"),
+    recordedAt: timestamp("recorded_at").notNull(),
+    recordedBy: integer("recorded_by").notNull(),
+    temperature: decimal("temperature", { precision: 5, scale: 2 }),
+    temperatureUnit: varchar("temperature_unit", { length: 10 }).default("C"),
+    heartRate: integer("heart_rate"),
+    respiratoryRate: integer("respiratory_rate"),
+    bloodPressureSystolic: integer("blood_pressure_systolic"),
+    bloodPressureDiastolic: integer("blood_pressure_diastolic"),
+    oxygenSaturation: decimal("oxygen_saturation", { precision: 5, scale: 2 }),
+    weight: decimal("weight", { precision: 6, scale: 2 }),
+    height: decimal("height", { precision: 6, scale: 2 }),
+    bmi: decimal("bmi", { precision: 5, scale: 2 }),
+    waistCircumference: decimal("waist_circumference", { precision: 6, scale: 2 }),
+    headCircumference: decimal("head_circumference", { precision: 5, scale: 2 }),
+    painLevel: integer("pain_level"),
+    glasgowComaScale: integer("glasgow_coma_scale"),
+    pupilResponse: varchar("pupil_response", { length: 50 }),
+    notes: text("notes"),
+    isAbnormal: boolean("is_abnormal").default(false).notNull(),
+    abnormalFlags: jsonb("abnormal_flags").default([]),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_vital_signs_patient").on(t.patientId),
+    index("idx_vital_signs_record").on(t.recordId),
+    index("idx_vital_signs_appointment").on(t.appointmentId),
+    index("idx_vital_signs_recorded_at").on(t.recordedAt),
+  ]
+);
+
+export const patientConsents = pgTable(
+  "patient_consents",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    patientId: integer("patient_id").notNull(),
+    consentType: varchar("consent_type", { length: 100 }).notNull(),
+    description: text("description").notNull(),
+    version: varchar("version", { length: 50 }),
+    isGranted: boolean("is_granted").default(false).notNull(),
+    grantedAt: timestamp("granted_at"),
+    grantedBy: varchar("granted_by", { length: 255 }),
+    revokedAt: timestamp("revoked_at"),
+    revokedBy: varchar("revoked_by", { length: 255 }),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_patient_consents_patient").on(t.patientId),
+    index("idx_patient_consents_tenant").on(t.tenantId),
+  ]
+);
+
+export const icdCodes = pgTable(
+  "icd_codes",
+  {
+    id: serial("id").primaryKey(),
+    code: varchar("code", { length: 20 }).notNull(),
+    system: icdCodeSystemEnum("system").notNull(),
+    description: text("description").notNull(),
+    descriptionAr: text("description_ar"),
+    category: varchar("category", { length: 200 }),
+    subCategory: varchar("sub_category", { length: 200 }),
+    isActive: boolean("is_active").default(true).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_icd_codes_code").on(t.code),
+    index("idx_icd_codes_system").on(t.system),
+    unique("uq_icd_code_system").on(t.code, t.system),
+  ]
+);
+
+// ═══════════════════════════════════════════════════════════════════════
+// ─── SECURITY OPERATIONS (NIST CSF 2.0 / MITRE ATT&CK) ─────────────────
+// ═══════════════════════════════════════════════════════════════════════
+
+export const securityEvents = pgTable(
+  "security_events",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    eventType: varchar("eventType", { length: 100 }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    rawData: jsonb("rawData"),
+    severity: varchar("severity", { length: 20 }).default("medium").notNull(),
+    status: varchar("status", { length: 30 }).default("detected").notNull(),
+    actorType: varchar("actorType", { length: 20 }).default("system"),
+    actorId: varchar("actorId", { length: 255 }),
+    actorName: varchar("actorName", { length: 255 }),
+    actorIp: varchar("actorIp", { length: 45 }),
+    actorUserAgent: text("actorUserAgent"),
+    incidentId: integer("incidentId"),
+    iocType: varchar("iocType", { length: 50 }),
+    iocValue: varchar("iocValue", { length: 255 }),
+    targetType: varchar("targetType", { length: 50 }),
+    targetId: varchar("targetId", { length: 255 }),
+    targetName: varchar("targetName", { length: 255 }),
+    riskScore: decimal("riskScore", { precision: 8, scale: 2 }).default("0"),
+    mitreTechniqueId: varchar("mitreTechniqueId", { length: 20 }),
+    mitreTacticId: varchar("mitreTacticId", { length: 20 }),
+    attackPattern: text("attackPattern"),
+    sessionId: varchar("sessionId", { length: 255 }),
+    eventTimestamp: timestamp("eventTimestamp").defaultNow().notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_security_events_tenant").on(t.tenantId),
+    index("idx_security_events_timestamp").on(t.eventTimestamp),
+    index("idx_security_events_severity").on(t.severity),
+    index("idx_security_events_type").on(t.eventType),
+    index("idx_security_events_status").on(t.status),
+    index("idx_security_events_actor").on(t.actorId),
+  ]
+);
+
+export const securityIncidents = pgTable(
+  "security_incidents",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    incidentNumber: varchar("incidentNumber", { length: 50 }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    description: text("description"),
+    severity: varchar("severity", { length: 20 }).default("medium").notNull(),
+    category: varchar("category", { length: 50 }),
+    status: varchar("status", { length: 30 }).default("identified").notNull(),
+    affectedUsers: integer("affectedUsers"),
+    affectedSystems: integer("affectedSystems"),
+    dataBreach: boolean("dataBreach").default(false),
+    detectedAt: timestamp("detectedAt").defaultNow().notNull(),
+    containedAt: timestamp("containedAt"),
+    eradicatedAt: timestamp("eradicatedAt"),
+    recoveredAt: timestamp("recoveredAt"),
+    closedAt: timestamp("closedAt"),
+    createdBy: integer("createdBy"),
+    assignedTo: integer("assignedTo"),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_security_incidents_tenant").on(t.tenantId),
+    index("idx_security_incidents_status").on(t.status),
+    index("idx_security_incidents_severity").on(t.severity),
+    index("idx_security_incidents_number").on(t.incidentNumber),
+  ]
+);
+export const vulnerabilities = pgTable(
+  "vulnerabilities",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    description: text("description"),
+    severity: varchar("severity", { length: 20 }).default("medium").notNull(),
+    status: varchar("status", { length: 30 }).default("open").notNull(),
+    cveId: varchar("cveId", { length: 50 }),
+    cvssScore: decimal("cvssScore", { precision: 5, scale: 2 }),
+    affectedAsset: varchar("affectedAsset", { length: 255 }),
+    discoveredAt: timestamp("discoveredAt").defaultNow().notNull(),
+    patchedAt: timestamp("patchedAt"),
+    remediation: text("remediation"),
+    discoveredBy: varchar("discoveredBy", { length: 255 }),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_vulnerabilities_tenant").on(t.tenantId),
+    index("idx_vulnerabilities_severity").on(t.severity),
+    index("idx_vulnerabilities_status").on(t.status),
+  ]
+);
+
+export const complianceControls = pgTable(
+  "compliance_controls",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId").notNull(),
+    framework: varchar("framework", { length: 50 }).notNull(),
+    controlId: varchar("controlId", { length: 50 }).notNull(),
+    controlName: varchar("controlName", { length: 255 }).notNull(),
+    description: text("description"),
+    status: varchar("status", { length: 30 }).default("not_implemented").notNull(),
+    evidence: jsonb("evidence").default([]),
+    owner: varchar("owner", { length: 255 }),
+    dueDate: timestamp("dueDate"),
+    lastAssessedAt: timestamp("lastAssessedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_compliance_controls_tenant").on(t.tenantId),
+    index("idx_compliance_controls_framework").on(t.framework),
+    index("idx_compliance_controls_status").on(t.status),
+    unique("compliance_controls_framework_id_tenant_unique").on(
+      t.tenantId,
+      t.framework,
+      t.controlId
+    ),
+  ]
+);
+
+export const threatIntelSources = pgTable(
+  "threat_intel_sources",
+  {
+    id: serial("id").primaryKey(),
+    GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
+    tenantId: integer("tenantId"),
+    sourceName: varchar("sourceName", { length: 255 }).notNull(),
+    sourceType: varchar("sourceType", { length: 50 }),
+    url: text("url"),
+    apiKeyRef: varchar("apiKeyRef", { length: 255 }),
+    lastFetchAt: timestamp("lastFetchAt"),
+    fetchIntervalMin: integer("fetchIntervalMin").default(1440),
+    isActive: boolean("isActive").default(true).notNull(),
+    notes: text("notes"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().notNull(),
+  },
+  t => [
+    index("idx_threat_intel_tenant").on(t.tenantId),
+    index("idx_threat_intel_active").on(t.isActive),
+  ]
+);

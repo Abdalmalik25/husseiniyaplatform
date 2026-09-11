@@ -64,7 +64,7 @@ export function BrandMark({
       {/* ── Foundation tile ── */}
       <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#alhTile)" />
 
-      {/* Precise gold keyline */}
+      {/* Apex double keyline — خارجي رفيع + داخلي وهّاج */}
       <rect
         x="3.5"
         y="3.5"
@@ -73,9 +73,26 @@ export function BrandMark({
         rx="12.5"
         fill="none"
         stroke="#b87945"
-        strokeOpacity="0.4"
+        strokeOpacity="0.38"
         strokeWidth="1.2"
       />
+      <rect
+        x="5.2"
+        y="5.2"
+        width="53.6"
+        height="53.6"
+        rx="11"
+        fill="none"
+        stroke="#e7c9a6"
+        strokeOpacity="0.14"
+        strokeWidth="0.7"
+      />
+      {/* Apex inner highlight */}
+      <radialGradient id="alhHighlight" cx="0.35" cy="0.25" r="0.8">
+        <stop offset="0%" stopColor="#ffffff" stopOpacity="0.09" />
+        <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
+      </radialGradient>
+      <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#alhHighlight)" />
 
       {/* ── The Open Book (two symmetric pages) ── */}
       {/* Left page */}
@@ -97,26 +114,27 @@ export function BrandMark({
         strokeLinecap="round"
       />
 
-      {/* ── Rising ledger line (growth & accounting) ── */}
+      {/* ── Rising ledger line (growth & accounting) — Apex gold tip ── */}
       <path
         d="M18 33 L25 29 L31 31.5 L38 26.5 L46 22.5"
         fill="none"
         stroke="#0a1f20"
-        strokeOpacity="0.55"
-        strokeWidth="1.8"
+        strokeOpacity="0.58"
+        strokeWidth="1.9"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      {/* Ledger arrow head */}
+      {/* Ledger arrow head — ذهبي */}
       <path
-        d="M42.5 22 L46.5 22 L46.5 26"
+        d="M42.8 22 L46.5 22 L46.5 25.7"
         fill="none"
-        stroke="#0a1f20"
-        strokeOpacity="0.7"
-        strokeWidth="1.8"
+        stroke="#e7c9a6"
+        strokeOpacity="0.95"
+        strokeWidth="1.7"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      <circle cx="46.5" cy="22" r="1.1" fill="#e7c9a6" opacity={0.95} />
     </svg>
   );
 }
@@ -139,14 +157,16 @@ export function BrandLogo({
       {withWordmark && (
         <span className="flex flex-col leading-none">
           <span
-            className={`font-display font-black tracking-tight text-[13px] leading-tight ${wordColor}`}
+            className={`font-display font-black tracking-tight text-[13.5px] leading-none ${wordColor}`}
+            style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 800, letterSpacing: '-0.02em' }}
           >
             الحسينية لخدمات الأعمال
           </span>
           <span
-            className={`font-mono font-bold tracking-[0.2em] text-[8px] mt-0.5 ${
+            className={`font-display font-bold tracking-[0.18em] text-[8.5px] mt-0.5 ${
               onDark ? "text-brand-300" : "text-brand"
             }`}
+            style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}
           >
             ALHUSAINIA BUSINESS SERVICES
           </span>

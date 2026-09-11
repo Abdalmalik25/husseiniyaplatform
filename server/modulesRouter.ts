@@ -18,6 +18,7 @@ import { TRPCError } from "@trpc/server";
 import { router, tenantProcedure } from "./_core/trpc";
 import { getDb } from "./db";
 import { reportsRouter } from "./reportsRouter";
+import { posIntelligenceRouter } from "./posIntelligenceRouter";
 import {
   currencies,
   offers,
@@ -2526,5 +2527,6 @@ export const modulesRouter = router({
   }),
 
   // ─── Reports ─────────────────────────────────────────────────────
+  posIntelligence: posIntelligenceRouter,
   reports: reportsRouter,
 });

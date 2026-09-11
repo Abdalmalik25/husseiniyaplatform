@@ -7,15 +7,19 @@ import {
   RefreshCw,
   ShieldCheck,
   Settings,
-  Search,
   Menu,
   X,
   Globe,
   ChevronDown,
-  Layers,
-  Compass,
   Phone,
 } from "lucide-react";
+import {
+  HusLayersIcon,
+  HusCompassIcon,
+  HusSearchIcon,
+  HusGridIcon,
+  HusShieldIcon,
+} from "@/components/icons/HusIcons";
 import { useOffline } from "@/lib/offline/OfflineContext";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { useI18n } from "@/lib/i18n";
@@ -52,9 +56,9 @@ const DOMAIN_CLUSTERS: ReadonlyArray<{
   icon: React.ComponentType<{ className?: string }>;
   items: NavItem[];
 }> = [
-  { key: "solutions", label: "الحلول", icon: Layers, items: SOLUTIONS_CLUSTER },
-  { key: "platform", label: "المنصة", icon: Compass, items: PLATFORM_CLUSTER },
-  { key: "resources", label: "الموارد", icon: Globe, items: TOOLS_CLUSTER },
+  { key: "solutions", label: "الحلول", icon: HusLayersIcon, items: SOLUTIONS_CLUSTER },
+  { key: "platform", label: "المنصة", icon: HusCompassIcon, items: PLATFORM_CLUSTER },
+  { key: "resources", label: "الموارد", icon: HusGridIcon, items: TOOLS_CLUSTER },
 ];
 /** رابط تحويلي واحد مباشر — التسعير فقط (أعلى نية) */
 const DIRECT_NAV_PATHS = ["/pricing"];
@@ -237,9 +241,9 @@ export function HeaderNavbar({
               className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 text-[11px] transition-colors"
               title="بحث شامل (Ctrl+K)"
             >
-              <Search className="w-3.5 h-3.5 text-brand-300" />
-              بحث
-              <span className="hidden xl:inline-flex text-[10px] font-mono bg-white/10 border border-white/10 rounded px-1">
+              <HusSearchIcon size={15} className="text-brand-300" />
+              <span style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}>بحث</span>
+              <span className="hidden xl:inline-flex text-[10px] bg-white/10 border border-white/10 rounded px-1" style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}>
                 ⌘K
               </span>
             </button>
@@ -345,9 +349,9 @@ export function HeaderNavbar({
               aria-label="بحث شامل"
               title="بحث شامل (Ctrl+K)"
             >
-              <Search className="w-3.5 h-3.5 text-slate-400" />
-              <span className="hidden xl:inline">بحث</span>
-              <span className="hidden xl:inline-flex items-center gap-0.5 text-[10px] font-mono border rounded px-1 py-0 bg-white border-slate-200 text-slate-400">
+              <HusSearchIcon size={15} className="text-slate-400" />
+              <span className="hidden xl:inline" style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}>بحث</span>
+              <span className="hidden xl:inline-flex items-center gap-0.5 text-[10px] border rounded px-1 py-0 bg-white border-slate-200 text-slate-400" style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}>
                 ⌘K
               </span>
             </button>

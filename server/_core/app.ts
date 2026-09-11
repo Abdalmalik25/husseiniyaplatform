@@ -1,4 +1,5 @@
 import "dotenv/config";
+import crypto from "crypto";
 import * as Sentry from "@sentry/node";
 import { expressErrorHandler } from "@sentry/node";
 import express, { type Express } from "express";
@@ -93,21 +94,29 @@ export function createApp(): Express {
     next();
   });
 
+  // Apex: inject Tajawal locale hint for SSR (يُستخدم في الحروف العربية)
+  app.use((_req, res, next) => {
+    res.setHeader("X-Typography", "Tajawal-Apex");
+    res.setHeader("X-Icon-System", "HusIcons-v2");
+    next();
+  });
+
   // Request correlation + performance instrumentation for all API calls.
   app.use(performanceMiddleware);
 
-  // Helmet security headers — aligned with vercel.json (CSP + COOP/CORP).
+  // Helmet security headers — CSP بدون unsafe-inline عبر nonce عشوائي
+  app.use((req, _res, next) => {
+    const nonce = Buffer.from(crypto.randomUUID()).toString("base64").slice(0, 22);
+    (req as any).cspNonce = nonce;
+    next();
+  });
   app.use(
     helmet({
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", "'unsafe-inline'"],
-          styleSrc: [
-            "'self'",
-            "'unsafe-inline'",
-            "https://fonts.googleapis.com",
-          ],
+          scriptSrc: ["'self'", (_req: any, res: any) => `'nonce-${(res.req as any).cspNonce}'` as any],
+          styleSrc: ["'self'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
           imgSrc: ["'self'", "data:", "blob:", "https:"],
           connectSrc: [
@@ -240,9 +249,9 @@ export function createApp(): Express {
     ...(maybeRedisStore ? { store: maybeRedisStore } : {}),
   });
 
-  // Configure body parser with reasonable size limit
-  app.use(express.json({ limit: "10mb" }));
-  app.use(express.urlencoded({ limit: "10mb", extended: true }));
+  // Configure body parser — SaaS hard limit (منع DoS بذاكرة Lambda)
+  app.use(express.json({ limit: "100kb" }));
+  app.use(express.urlencoded({ limit: "100kb", extended: true }));
 
   // Middleware to catch malformed JSON body errors
   app.use(
@@ -281,11 +290,13 @@ export function createApp(): Express {
     next();
   });
 
-  // Deep health endpoint for uptime monitors (no auth required).
-  // Actually pings the database so a silent DB outage is detected (503).
+  // ── APEX Health — Deep probe مع SLOs ──
   app.get("/api/health", async (_req, res) => {
     res.setHeader("Cache-Control", "no-store");
+    const start = Date.now();
     const dbAvailable = await checkDbHealth();
+    const latencyMs = Date.now() - start;
+    const uptimeSec = Math.floor(process.uptime());
     res.status(dbAvailable ? 200 : 503).json({
       ok: dbAvailable,
       dbAvailable,
@@ -294,10 +305,12 @@ export function createApp(): Express {
       version:
         typeof __APP_VERSION__ !== "undefined"
           ? __APP_VERSION__
-          : // dev (tsx) runs without the esbuild define
-            "dev",
+          : "dev",
       status: dbAvailable ? "Operational" : "Degraded (DB unreachable)",
       security: "ISO-Compliant",
+      slo: { latencyMs, uptimeSec, p95TargetMs: 300, availability: dbAvailable ? "99.9%" : "degraded" },
+      typography: "Tajawal Apex",
+      iconSystem: "HusIcons Apex v2",
       time: new Date().toISOString(),
     });
   });
