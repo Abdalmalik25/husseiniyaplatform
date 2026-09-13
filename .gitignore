@@ -33,8 +33,11 @@ coverage/
 # Wrong lockfile for a pnpm workspace (pnpm-lock.yaml is canonical)
 package-lock.json
 
-# Vercel project link (machine-specific)
-.vercel/
+# Vercel project link (machine-specific). The non-secret project ID/org ID is
+# committed so CI can `vercel pull`/`vercel deploy --prebuilt --prod`.
+.vercel/*
+!.vercel/project.json
+client/.vercel/
 
 # Manus auto-generated version file
 client/public/__manus__/version.json
@@ -87,7 +90,6 @@ b.txt
 c.txt
 t.txt
 
-.vercel
 # Playwright artifacts
 test-results/
 playwright-report/

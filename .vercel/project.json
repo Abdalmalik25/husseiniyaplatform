@@ -1,0 +1,16 @@
+{
+  "projectId": "prj_tjC9h0RPXdzXhrWA3CXMx0SWpYuO",
+  "orgId": "team_DEsJjcVNxC1DxGghA9Ptnpdv",
+  "projectName": "alhusainia",
+  "settings": {
+    "createdAt": 1786965398481,
+    "framework": "vite",
+    "devCommand": null,
+    "installCommand": "pnpm install --no-frozen-lockfile",
+    "buildCommand": "pnpm run build",
+    "outputDirectory": "dist/public",
+    "rootDirectory": null,
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}
