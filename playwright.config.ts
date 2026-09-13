@@ -20,7 +20,9 @@ export default defineConfig({
   retries: 1,
   reporter: [["list"]],
   use: {
-    baseURL: "http://localhost:3100",
+    // CI sets E2E_BASE_URL to the already-running preview server (port 3000);
+    // locally default to 3100 with the auto-started dev server below.
+    baseURL: process.env.E2E_BASE_URL || "http://localhost:3100",
     // Use the system Chrome — no browser download needed (CI/offline-safe)
     channel: "chrome",
     trace: "retain-on-failure",

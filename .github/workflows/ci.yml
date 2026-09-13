@@ -223,11 +223,15 @@ jobs:
           OAUTH_SERVER_URL: ${{ secrets.OAUTH_SERVER_URL }}
           VITE_OAUTH_PORTAL_URL: ${{ secrets.VITE_OAUTH_PORTAL_URL }}
 
+      - name: Install k6 binary
+        run: |
+          curl -fsSL https://github.com/grafana/k6/releases/download/v2.2.0/k6-v2.2.0-linux-amd64.tar.gz -o k6.tar.gz
+          tar -xzf k6.tar.gz
+          sudo cp "$(find . -maxdepth 2 -name k6 -type f)" /usr/local/bin/k6
+          k6 version
+
       - name: Run k6 smoke load test
-        uses: grafana/k6-action@v0.3.1
-        with:
-          filename: scripts/load-test.js
-          flags: --out json=loadtest-smoke.json
+        run: k6 run scripts/load-test.js --out json=loadtest-smoke.json
         env:
           BASE_URL: http://localhost:3000
           K6_SCENARIO: smoke
