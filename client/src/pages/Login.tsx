@@ -151,6 +151,7 @@ export default function Login() {
     setLoginError(null);
     if (!username.trim() || !password) {
       toast.error("الرجاء إدخال اسم المستخدم وكلمة المرور");
+      setLoginError("الرجاء إدخال اسم المستخدم وكلمة المرور");
       return;
     }
     login.mutate({ username: username.trim(), password });
@@ -437,7 +438,11 @@ export default function Login() {
                       )}
 
                       {!mfaRequired && (
-                        <form onSubmit={handleLogin} className="space-y-4">
+                        <form
+                          onSubmit={handleLogin}
+                          className="space-y-4"
+                          noValidate
+                        >
                           <div className="space-y-1.5">
                             <Label className="text-xs font-bold text-slate-300 flex items-center gap-1">
                               <KeyRound className="w-3.5 h-3.5 text-brand-300" />{" "}

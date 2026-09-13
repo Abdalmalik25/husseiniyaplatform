@@ -155,6 +155,7 @@ jobs:
           BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
           OAUTH_SERVER_URL: ${{ secrets.OAUTH_SERVER_URL }}
           VITE_OAUTH_PORTAL_URL: ${{ secrets.VITE_OAUTH_PORTAL_URL }}
+          TRPC_LIMIT_MAX: "12000"
 
       - name: Seed E2E runner user
         run: node scripts/seed-e2e-user.mjs

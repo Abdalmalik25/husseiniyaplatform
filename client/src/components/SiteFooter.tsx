@@ -114,21 +114,21 @@ export function SiteFooter() {
             <div className="space-y-2.5 text-xs">
               <a
                 href={`tel:${brand.contact.phone.replace(/\s/g, "")}`}
-                className="flex items-center gap-2.5 text-white/60 hover:text-brand-300 transition-colors"
+                className="flex items-center gap-2.5 text-white/60 hover:text-brand-300 transition-colors min-h-[24px]"
               >
                 <Phone className="w-4 h-4 text-brand shrink-0" />
                 <span className="font-mono">{brand.contact.phone}</span>
               </a>
               <a
                 href={`tel:${brand.contact.phone2.replace(/\s/g, "")}`}
-                className="flex items-center gap-2.5 text-white/60 hover:text-brand-300 transition-colors"
+                className="flex items-center gap-2.5 text-white/60 hover:text-brand-300 transition-colors min-h-[24px]"
               >
                 <Phone className="w-4 h-4 text-brand/60 shrink-0" />
                 <span className="font-mono">{brand.contact.phone2}</span>
               </a>
               <a
                 href={`mailto:${brand.contact.email}`}
-                className="flex items-center gap-2.5 text-white/60 hover:text-brand-300 transition-colors"
+                className="flex items-center gap-2.5 text-white/60 hover:text-brand-300 transition-colors min-h-[24px]"
               >
                 <Mail className="w-4 h-4 text-brand shrink-0" />
                 <span>{brand.contact.email}</span>
@@ -183,7 +183,7 @@ export function SiteFooter() {
                 <li key={mod.key}>
                   <button
                     onClick={() => navScroll("uamex")}
-                    className="text-xs text-white/50 hover:text-brand-300 transition-colors text-right flex items-center gap-1.5"
+                    className="text-xs text-white/50 hover:text-brand-300 transition-colors text-right flex items-center gap-1.5 min-h-[24px]"
                   >
                     <span className="w-1 h-1 rounded-full bg-brand/50 shrink-0" />
                     {mod.name}
@@ -193,7 +193,7 @@ export function SiteFooter() {
               <li>
                 <button
                   onClick={() => setLocation("/pricing")}
-                  className="text-xs text-brand-300 hover:text-brand transition-colors font-bold"
+                  className="text-xs text-brand-300 hover:text-brand transition-colors font-bold min-h-[24px]"
                 >
                   عرض الأسعار ←
                 </button>
@@ -223,7 +223,7 @@ export function SiteFooter() {
                     onClick={() =>
                       l.id ? navScroll(l.id) : setLocation(l.path!)
                     }
-                    className="text-xs text-white/50 hover:text-brand-300 transition-colors text-right flex items-center gap-1.5"
+                    className="text-xs text-white/50 hover:text-brand-300 transition-colors text-right flex items-center gap-1.5 min-h-[24px]"
                   >
                     <span className="w-1 h-1 rounded-full bg-brand/50 shrink-0" />
                     {l.label}
@@ -299,7 +299,7 @@ export function SiteFooter() {
             <span className="text-brand/60">·</span>
             <button
               onClick={() => setLocation("/contact")}
-              className="text-white/45 hover:text-brand-300 transition-colors"
+              className="text-white/45 hover:text-brand-300 transition-colors min-h-[24px]"
             >
               سياسة الخصوصية
             </button>

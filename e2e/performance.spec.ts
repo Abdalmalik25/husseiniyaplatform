@@ -211,9 +211,11 @@ test.describe("Security Compliance E2E", () => {
 
   test("no eval or unsafe-inline in production CSP", async ({ page }) => {
     // NOTE: run this suite against the production build (`pnpm start`),
-    // where script-src is hash-locked. style-src intentionally keeps
-    // 'unsafe-inline' — the print subsystem renders documents via
-    // document.write with inline styles (see server/_core/app.ts).
+    // where script-src is nonce-locked. Per-request 'nonce-' sources are
+    // equal-or-stricter than static 'sha256-' hashes (a fresh nonce is
+    // minted per response, so the header can never be replayed); style-src
+    // intentionally keeps 'unsafe-inline' — the print subsystem renders
+    // documents via document.write with inline styles (server/_core/app.ts).
     const response = await page.request.get("/");
     const csp = response.headers()["content-security-policy"] ?? "";
     const scriptSrc =
@@ -223,7 +225,9 @@ test.describe("Security Compliance E2E", () => {
         .find(s => s.startsWith("script-src")) ?? "";
     expect(scriptSrc).not.toContain("'unsafe-eval'");
     expect(scriptSrc).not.toContain("'unsafe-inline'");
-    expect(scriptSrc).toContain("'sha256-");
+    expect(scriptSrc).toMatch(
+      /'nonce-[A-Za-z0-9+/=_-]+'|'sha256-[A-Za-z0-9+/=_-]+'/
+    );
   });
 });
 

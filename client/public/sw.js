@@ -1,8 +1,8 @@
-// ALHUSAINIA service worker (v22) — self-hosted fonts + catalog SWR caching.
+// ALHUSAINIA service worker (v23) — self-hosted fonts + catalog SWR caching.
 // Network-first for navigations (offline → cached app shell), cache-first for
 // static assets, stale-while-revalidate for the public catalog (/api/web/catalog),
 // and NEVER caches tenant-scoped /api/trpc (avoids stale cross-tenant responses).
-const CACHE = "alhusainia-v22";
+const CACHE = "alhusainia-v23";
 const CATALOG_CACHE = "alhusainia-catalog-v1";
 const SHELL = [
   "/",
@@ -13,9 +13,43 @@ const SHELL = [
   "/manifest.webmanifest",
 ];
 
+// Populated at BUILD time by scripts/build-server.cjs (which scans
+// dist/public/assets and injects every emitted JS/CSS chunk here). This makes
+// the ENTIRE app — including React.lazy route chunks like Landing.js and the
+// ar.js locale, which are NOT referenced from index.html — available offline
+// from the very first visit. Without it, a page is served offline but any
+// uncached dynamic import() rejects, blowing up the app shell.
+const PRECACHE_ASSETS = /*__ASSET_MANIFEST__*/ [];
+
+// Discover the Vite-built entry assets referenced by index.html so the whole
+// app shell (HTML + JS/CSS) is precached at install time. Without this, a
+// freshly-installed worker only caches the .html and the first offline
+// navigation shell-loads but the script chunks fail → blank/unresponsive page
+// instead of the app + OfflineBanner.
+async function precacheEntryAssets(cache) {
+  try {
+    const res = await fetch("/index.html");
+    if (!res.ok) return;
+    const html = await res.text();
+    const assetUrls = Array.from(
+      html.matchAll(/(?:href|src)="(\/assets\/[^"]+)"/g),
+      m => m[1]
+    );
+    if (assetUrls.length > 0) {
+      await cache.addAll(assetUrls).catch(() => {});
+    }
+  } catch {
+    // index.html unreachable at install — assets get cached on first fetch.
+  }
+}
+
 self.addEventListener("install", event => {
   event.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(SHELL).catch(() => {}))
+    caches
+      .open(CACHE)
+      .then(c => c.addAll([...SHELL, ...PRECACHE_ASSETS]).catch(() => {}))
+      .then(() => caches.open(CACHE))
+      .then(precacheEntryAssets)
     // NOTE: we deliberately do NOT call self.skipWaiting() here. Letting a new
     // worker wait gives the app a chance to notify the user (SWUpdateToast) and
     // apply the update when *they* choose — instead of silently switching to a
@@ -125,9 +159,22 @@ self.addEventListener("fetch", event => {
 
   if (url.pathname.startsWith("/api/")) return; // never cache tenant API responses
 
-  // SPA navigations: try network, fall back to cached shell when offline.
+  // SPA navigations: try network, fall back to cached app shell when offline;
+  // if even the shell is missing, serve the static /offline.html last resort.
   if (req.mode === "navigate") {
-    event.respondWith(fetch(req).catch(() => caches.match("/index.html")));
+    event.respondWith(
+      fetch(req)
+        .then(res => {
+          const copy = res.clone();
+          caches.open(CACHE).then(c => c.put(req, copy));
+          return res;
+        })
+        .catch(() =>
+          caches
+            .match("/index.html", { ignoreSearch: true })
+            .then(shell => shell || caches.match("/offline.html"))
+        )
+    );
     return;
   }
 

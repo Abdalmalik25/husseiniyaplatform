@@ -69,11 +69,40 @@ const jobs = [
   ],
 ];
 
+/**
+ * Inject the Vite asset manifest into the service worker so the ENTIRE app
+ * shell (incl. React.lazy route chunks + locale, none of which index.html
+ * references) is precached offline from the very first visit.
+ * Reads the `/*__ASSET_MANIFEST__*\/` token inside client/public/sw.js and
+ * replaces it with the real list of emitted chunks in dist/public/sw.js.
+ */
+function injectSWAssetManifest() {
+  const publicDir = path.join(projectRoot, "dist", "public");
+  const swTemplate = path.join(publicDir, "sw.js");
+  const assetsDir = path.join(publicDir, "assets");
+  if (!fs.existsSync(swTemplate) || !fs.existsSync(assetsDir)) return;
+
+  const assets = fs
+    .readdirSync(assetsDir)
+    .filter(f => /\.(js|css)$/.test(f))
+    .sort()
+    .map(f => `/assets/${f}`);
+
+  const sw = fs.readFileSync(swTemplate, "utf8");
+  const injected = sw.replace(
+    "/*__ASSET_MANIFEST__*/ []",
+    JSON.stringify(assets)
+  );
+  fs.writeFileSync(swTemplate, injected);
+  console.log(`✓ Service worker manifest injected (${assets.length} chunks)`);
+}
+
 Promise.all(jobs.map(([, opts]) => build(opts)))
   .then(() => {
     jobs.forEach(([label]) =>
       console.log(`✓ Serverless bundle built: ${label}`)
     );
+    injectSWAssetManifest();
     process.exit(0);
   })
   .catch(err => {

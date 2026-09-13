@@ -218,37 +218,41 @@ export function createApp(): Express {
   // tRPC-shaped 429s: the tRPC client deserializes EVERY response with superjson,
   // so a plain-JSON rate-limit body (express-rate-limit default) made whole
   // batches explode client-side as "Unable to transform response from server"
-  // instead of a readable error. This handler mirrors tRPC's wire error format
-  // for both single GET queries and index-keyed batch POST requests.
+  // instead of a readable error. This handler mirrors tRPC's wire error format.
+  // NOTE (v11): httpBatchLink treats a NON-array body as a single unbatched
+  // response and duplicates it for every op — an index-keyed object therefore
+  // hits transformResult's success path and throws TransformResultError. Batching
+  // responses MUST be an ARRAY, one element per operation, in input order.
   // max is raised vs apiLimiter: one authenticated workspace journey (11 pages ×
   // several tRPC queries each, per user, per 15 min) legitimately exceeds 100.
+  // TRPC_LIMIT_MAX lets CI/synthetic-load runs raise the cap without touching
+  // the production default.
   const trpcRateLimitHandler: express.RequestHandler = (req, res) => {
     const json = {
       message: "تم تجاوز الحد المسموح من الطلبات. حاول بعد قليل.",
       code: -32029,
       data: { code: "TOO_MANY_REQUESTS", httpStatus: 429, path: req.path },
     };
-    let indices: string[] | null = null;
+    let count = 1;
     try {
       if (req.method === "POST" && req.body && typeof req.body === "object") {
-        indices = Object.keys(req.body);
+        count = Math.max(1, Object.keys(req.body).length);
       } else if (req.method === "GET" && typeof req.query.input === "string") {
         const parsed = JSON.parse(req.query.input as string);
-        if (parsed && typeof parsed === "object") indices = Object.keys(parsed);
+        if (parsed && typeof parsed === "object") {
+          count = Math.max(1, Object.keys(parsed).length);
+        }
       }
     } catch {
-      indices = null;
+      count = 1;
     }
-    const body =
-      indices && indices.length > 0
-        ? Object.fromEntries(indices.map(i => [i, { error: { json } }]))
-        : { error: { json } };
+    const body = Array.from({ length: count }, () => ({ error: { json } }));
     res.status(429).json(body);
   };
 
   const trpcLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
-    max: 600,
+    max: Number(process.env.TRPC_LIMIT_MAX) || 600,
     standardHeaders: true,
     legacyHeaders: false,
     validate: false,

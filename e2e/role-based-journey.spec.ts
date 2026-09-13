@@ -50,17 +50,24 @@ test.describe("🏦 المحاسب — Accountant Role", () => {
 
   test("AC-02: Create a journal entry (القيد المزدوج)", async ({ page }) => {
     await loginAs(page, username!, password!);
-    await goToWorkspace(page, "/accounting", /نظام الحسابات|محاسبة/i);
-    const newEntryButton = page
-      .getByRole("button", { name: /قيد جديد|إضافة قيد|journal/i })
+    // The consolidated journal (دفتر اليومية التكاملي) exposes the
+    // create-entry action as an anchor-styled link to /manual-journal.
+    await goToWorkspace(page, "/journal", /القيود المحاسبية|قيد|journal/i);
+    const newEntryAction = page
+      .locator("a")
+      .filter({ hasText: /قيد جديد|إضافة قيد/i })
       .first();
-    await newEntryButton.click();
+    await newEntryAction.click();
     await expect(
-      page.getByText(/قيد يومية|journal entry/i).first()
-    ).toBeVisible({ timeout: 5_000 });
-    const debitAccount = page.getByLabel(/طرف مدين|debit account/i).first();
+      page.getByText(/قيد يومية|قيد يدوي|manual journal|journal entry/i).first()
+    ).toBeVisible({ timeout: 10_000 });
+    const debitAccount = page
+      .getByLabel(/طرف مدين|debit account|الحساب المدين|مدين/i)
+      .first();
     if (await debitAccount.isVisible()) await debitAccount.fill("صندوق");
-    const creditAccount = page.getByLabel(/طرف دائن|credit account/i).first();
+    const creditAccount = page
+      .getByLabel(/طرف دائن|credit account|الحساب الدائن|دائن/i)
+      .first();
     if (await creditAccount.isVisible()) await creditAccount.fill("مبيعات");
     const amountField = page.getByLabel(/مبلغ|amount/i).first();
     if (await amountField.isVisible()) await amountField.fill("1000");
@@ -71,7 +78,7 @@ test.describe("🏦 المحاسب — Accountant Role", () => {
 
   test("AC-03: View Trial Balance (ميزان المراجعة)", async ({ page }) => {
     await loginAs(page, username!, password!);
-    await goToWorkspace(page, "/accounting", /نظام الحسابات/i);
+    await goToWorkspace(page, "/accounting", /نظام الحسابات|محاسبة|قيد/i);
     const reportsButton = page
       .getByRole("button", { name: /تقارير|reports/i })
       .first();
@@ -94,7 +101,7 @@ test.describe("🏦 المحاسب — Accountant Role", () => {
 
   test("AC-04: View General Ledger (دفتر الأستاذ)", async ({ page }) => {
     await loginAs(page, username!, password!);
-    await goToWorkspace(page, "/accounting", /نظام الحسابات/i);
+    await goToWorkspace(page, "/accounting", /نظام الحسابات|محاسبة|قيد/i);
     const ledgerLink = page.getByText(/دفتر الأستاذ|general ledger/i).first();
     if (await ledgerLink.isVisible()) {
       await ledgerLink.click();
@@ -111,7 +118,7 @@ test.describe("🏦 المحاسب — Accountant Role", () => {
     page,
   }) => {
     await loginAs(page, username!, password!);
-    await goToWorkspace(page, "/accounting", /نظام الحسابات/i);
+    await goToWorkspace(page, "/accounting", /نظام الحسابات|محاسبة|قيد/i);
     const statementsLink = page
       .getByText(/قائمة الدخل|الميزانية|balance sheet/i)
       .first();

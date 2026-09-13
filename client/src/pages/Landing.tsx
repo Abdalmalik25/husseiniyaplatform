@@ -51,12 +51,18 @@ export default function Landing() {
             </p>
             <div className="flex flex-wrap gap-3">
               <Button
+                onClick={() => setLocation("/login")}
+                className="bg-brand hover:bg-brand-deep text-ink-deep font-black h-11 px-7"
+              >
+                ابدأ تجربة مجاناً
+              </Button>
+              <Button
                 onClick={() =>
                   document
                     .getElementById("solutions")
                     ?.scrollIntoView({ behavior: "smooth" })
                 }
-                className="bg-brand hover:bg-brand-deep text-ink-deep font-black h-11 px-7"
+                className="bg-white/10 hover:bg-white/20 text-white font-black h-11 px-7"
               >
                 استكشف حلولنا
               </Button>
@@ -250,6 +256,53 @@ export default function Landing() {
               <p className="text-[11px] text-white/50">يعمل ويزامن لاحقا</p>
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* 4.5 قصص تحوّل — رحلة العميل قبل/بعد */}
+      <section className="max-w-7xl mx-auto px-4 py-12">
+        <div className="text-center space-y-2 mb-8">
+          <Badge variant="outline" className="border-slate-200">
+            قصص تحوّل
+          </Badge>
+          <h2 className="text-2xl lg:text-3xl font-black">
+            من الارتجالية إلى قيادة الرقم
+          </h2>
+          <p className="text-sm text-slate-600 max-w-2xl mx-auto">
+            كيف انتقلت مؤسسات حقيقية من ملفات مبعثرة إلى قرار يبنى على بيان.
+          </p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-4">
+          {[
+            {
+              name: "مقاول وفّر أسبوعاً كاملاً",
+              before: "قبل: إغلاق شهري يدوي يستغرق 9 أيام وكشوف متفرقة.",
+              after: "بعد: ميزان مراجعة لحظي وتدفق نقدي يُعرف يومياً.",
+            },
+            {
+              name: "تاجر أطفأ عجز المخزون",
+              before: "قبل: جرد مخزون نهاية الجولة وتناقض في الأرقام.",
+              after: "بعد: رصيد مباشر مع كل فاتورة وتنبيه إعادة طلب تلقائي.",
+            },
+            {
+              name: "شركة خدمات وثّقت المساءلة",
+              before: "قبل: اعتماد بالورق وغياب مسار تدقيق واضح.",
+              after: "بعد: صلاحيات متدرجة وسجل تدقيق كامل لكل إجراء.",
+            },
+          ].map((s, i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-slate-200 bg-slate-50 p-5 flex flex-col gap-3"
+            >
+              <p className="font-black text-sm">{s.name}</p>
+              <p className="text-xs text-slate-500 bg-white border border-rose-200 rounded-lg px-3 py-2">
+                {s.before}
+              </p>
+              <p className="text-xs text-emerald-700 bg-white border border-emerald-200 rounded-lg px-3 py-2">
+                {s.after}
+              </p>
+            </div>
+          ))}
         </div>
       </section>
 

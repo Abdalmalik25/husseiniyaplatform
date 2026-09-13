@@ -89,6 +89,7 @@ export function CookieConsent() {
       aria-modal="true"
       aria-labelledby="cookie-consent-title"
       aria-describedby="cookie-consent-desc"
+      data-testid="cookie-consent"
       className="fixed bottom-3 right-3 left-3 sm:left-auto sm:bottom-4 sm:right-4 z-[60] max-w-md animate-in slide-in-from-bottom-4 fade-in duration-500"
       dir="rtl"
     >

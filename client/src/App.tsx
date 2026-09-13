@@ -14,6 +14,7 @@ import { SWUpdateToast } from "@/components/SWUpdateToast";
 import { ScrollManager } from "@/components/ScrollManager";
 import { PageTitle } from "@/components/PageTitle";
 import { OfflineBanner } from "@/components/OfflineBanner";
+import { CookieConsent } from "@/components/CookieConsent";
 import { RequireAuth } from "@/components/RequireAuth";
 import { I18nProvider } from "@/lib/i18n";
 import { useWebVitals } from "@/lib/use-web-vitals";
@@ -53,7 +54,7 @@ const SupplierAnalytics = lazy(() => import("@/pages/SupplierAnalytics"));
 const Projects = lazy(() => import("@/pages/Projects"));
 const HRPage = lazy(() => import("@/pages/HR"));
 const SupportQuality = lazy(() => import("@/pages/SupportQuality"));
-const POSPage = lazy(() => import("@/pages/POS"));
+const POSPage = lazy(() => import("@/modules/pos/POSPage"));
 const Permissions = lazy(() => import("@/pages/Permissions"));
 const BasicData = lazy(() => import("@/pages/BasicData"));
 const Journal = lazy(() => import("@/pages/Journal"));
@@ -235,6 +236,7 @@ function App() {
             <WishlistProvider>
               <OfflineProvider>
                 <OfflineBanner />
+                <CookieConsent />
                 <TooltipProvider>
                   <Toaster />
                   <Router />

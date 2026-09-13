@@ -84,6 +84,70 @@ export function OfflineProvider({ children }: { children: React.ReactNode }) {
     };
   }, [isAuthenticated]);
 
+  // Connectivity heartbeat for unauthenticated visitors. Relying solely on the
+  // `offline` DOM event is NOT enough — under an emulated/blackout link
+  // (Playwright setOffline, Wi-Fi without internet) navigator.onLine stays true
+  // while every request fails, so the app would wrongly render "online". Probe
+  // /api/health (never SW-cached) on mount and periodically while the tab is
+  // visible; the first failed probe flips the banner within seconds.
+  useEffect(() => {
+    if (isAuthenticated) return; // authenticated sessions get the sync loop above
+    let timer: ReturnType<typeof setInterval> | undefined;
+    let stopped = false;
+
+    // XHR (not fetch): a fetch issued here has a Chrome/Playwright quirk where
+    // the request never emits its finish lifecycle event (breaks the
+    // networkidle state used by perf benchmarks). XHR completes normally.
+    const probe = () => {
+      const xhr = new XMLHttpRequest();
+      xhr.open("GET", "/api/health");
+      let done = false;
+      const timeout = setTimeout(() => {
+        if (done) return;
+        done = true;
+        xhr.abort();
+        if (!stopped) setIsOnline(false);
+      }, 2500);
+      xhr.onload = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timeout);
+        if (!stopped) setIsOnline(xhr.status >= 200 && xhr.status < 300);
+      };
+      xhr.onerror = () => {
+        if (done) return;
+        done = true;
+        clearTimeout(timeout);
+        if (!stopped) setIsOnline(false);
+      };
+      xhr.send();
+    };
+
+    let starter: ReturnType<typeof setTimeout> | undefined;
+    starter = setTimeout(probe, 1500);
+    timer = setInterval(probe, 15_000);
+
+    const onVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        if (starter) clearTimeout(starter);
+        if (timer) clearInterval(timer);
+        timer = undefined;
+        starter = undefined;
+      } else if (!timer) {
+        starter = setTimeout(probe, 500);
+        timer = setInterval(probe, 15_000);
+      }
+    };
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      stopped = true;
+      if (starter) clearTimeout(starter);
+      if (timer) clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [isAuthenticated]);
+
   const syncNow = useCallback(async (): Promise<SyncResult | null> => {
     const result = await syncManager.syncNow();
     if (result) setLastSyncResult(result);
