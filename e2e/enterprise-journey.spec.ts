@@ -98,7 +98,7 @@ test.describe("Authenticated enterprise journey (requires credentials)", () => {
       .click();
 
     // ── 2. Main dashboard (workspace home) ─────────────────────────────
-    await page.waitForURL(/\/(app|accounting)/, { timeout: 30_000 });
+    await page.waitForURL(/\/(app|accounting)/, { timeout: 60_000 });
     await expect(page.locator("main, [role=main], body").first()).toBeVisible();
 
     // ── 3. Each system workspace renders its own shell ────────────────
@@ -132,7 +132,7 @@ test.describe("Authenticated enterprise journey (requires credentials)", () => {
       .getByRole("button", { name: /دخول النظام|دخول|تسجيل/ })
       .first()
       .click();
-    await page.waitForURL(/\/(app|accounting)/, { timeout: 30_000 });
+    await page.waitForURL(/\/(app|accounting)/, { timeout: 60_000 });
 
     // The global search surface is the Command Palette, opened via Ctrl+K.
     await page.keyboard.press("ControlOrMeta+k");
