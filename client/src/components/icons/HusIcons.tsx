@@ -13,7 +13,12 @@ import * as React from "react";
 
 type IconProps = React.SVGProps<SVGSVGElement> & { size?: number };
 
-function Svg({ size = 20, children, className, ...props }: IconProps & { children: React.ReactNode }) {
+function Svg({
+  size = 20,
+  children,
+  className,
+  ...props
+}: IconProps & { children: React.ReactNode }) {
   const cls = ["hus-icon-apex", className].filter(Boolean).join(" ");
   return (
     <svg
@@ -41,7 +46,14 @@ export function HusLinkIcon(props: IconProps) {
       <path d="M10.5 13.5L13.5 10.5" />
       <path d="M9 10.5A3.5 3.5 0 0 1 13.9 8.6L15.4 7.1A3.5 3.5 0 0 1 20.3 12L18.8 13.5" />
       <path d="M15 13.5A3.5 3.5 0 0 1 10.1 15.4L8.6 16.9A3.5 3.5 0 0 1 3.7 12L5.2 10.5" />
-      <circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none" opacity={0.9} />
+      <circle
+        cx="12"
+        cy="12"
+        r="1.2"
+        fill="currentColor"
+        stroke="none"
+        opacity={0.9}
+      />
       <circle cx="12" cy="12" r="3.2" strokeOpacity={0.12} strokeWidth={0.9} />
     </Svg>
   );
@@ -53,7 +65,16 @@ export function HusHomeIcon(props: IconProps) {
     <Svg {...props}>
       <path d="M3.5 10.8L12 4L20.5 10.8V19.5A1.5 1.5 0 0 1 19 21H15.2V14.2H8.8V21H5A1.5 1.5 0 0 1 3.5 19.5V10.8Z" />
       <path d="M12 7.2V14.2" strokeOpacity={0.5} />
-      <rect x="10.7" y="15.5" width="2.6" height="2.6" rx="0.6" fill="currentColor" stroke="none" opacity={0.12} />
+      <rect
+        x="10.7"
+        y="15.5"
+        width="2.6"
+        height="2.6"
+        rx="0.6"
+        fill="currentColor"
+        stroke="none"
+        opacity={0.12}
+      />
     </Svg>
   );
 }
@@ -73,12 +94,29 @@ export function HusLayersIcon(props: IconProps) {
 export function HusPlatformIcon(props: IconProps) {
   return (
     <Svg {...props}>
-      <path d="M4 7.5C6.4 6 8.8 6 11 8V18C8.8 16 6.4 16 4 18V7.5Z" fill="currentColor" opacity={0.14} strokeWidth={1.5} />
-      <path d="M20 7.5C17.6 6 15.2 6 13 8V18C15.2 16 17.6 16 20 18V7.5Z" fill="currentColor" opacity={0.14} strokeWidth={1.5} />
+      <path
+        d="M4 7.5C6.4 6 8.8 6 11 8V18C8.8 16 6.4 16 4 18V7.5Z"
+        fill="currentColor"
+        opacity={0.14}
+        strokeWidth={1.5}
+      />
+      <path
+        d="M20 7.5C17.6 6 15.2 6 13 8V18C15.2 16 17.6 16 20 18V7.5Z"
+        fill="currentColor"
+        opacity={0.14}
+        strokeWidth={1.5}
+      />
       <path d="M12 8V18" strokeWidth={2} />
       <path d="M6 13.2L9.2 11.5L12 12.6L15.2 10.8L18 9.5" strokeWidth={1.6} />
       <path d="M16.2 9.5H18V11.3" strokeWidth={1.6} />
-      <circle cx="18" cy="9.5" r="1" fill="currentColor" opacity={0.85} stroke="none" />
+      <circle
+        cx="18"
+        cy="9.5"
+        r="1"
+        fill="currentColor"
+        opacity={0.85}
+        stroke="none"
+      />
     </Svg>
   );
 }
@@ -88,7 +126,11 @@ export function HusCompassIcon(props: IconProps) {
   return (
     <Svg {...props}>
       <circle cx="12" cy="12" r="8" />
-      <path d="M15.2 8.8L11 13L8.8 15.2L13 11L15.2 8.8Z" fill="currentColor" stroke="none" />
+      <path
+        d="M15.2 8.8L11 13L8.8 15.2L13 11L15.2 8.8Z"
+        fill="currentColor"
+        stroke="none"
+      />
       <path d="M12 8V4.5" opacity={0.35} />
       <path d="M12 19.5V16" opacity={0.35} />
       <circle cx="12" cy="12" r="1.8" fill="currentColor" stroke="none" />
@@ -103,7 +145,14 @@ export function HusGridIcon(props: IconProps) {
       <rect x="4" y="4" width="5.2" height="5.2" rx="1.3" />
       <rect x="14.8" y="4" width="5.2" height="5.2" rx="1.3" />
       <rect x="4" y="14.8" width="5.2" height="5.2" rx="1.3" />
-      <rect x="14.8" y="14.8" width="5.2" height="5.2" rx="1.3" opacity={0.45} />
+      <rect
+        x="14.8"
+        y="14.8"
+        width="5.2"
+        height="5.2"
+        rx="1.3"
+        opacity={0.45}
+      />
       <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
     </Svg>
   );
@@ -167,9 +216,24 @@ export function HusDiamondIcon(props: IconProps) {
 export function HusSparkIcon(props: IconProps) {
   return (
     <Svg {...props}>
-      <path d="M12 2.5L13.4 8.6L19.5 10L13.4 11.4L12 17.5L10.6 11.4L4.5 10L10.6 8.6L12 2.5Z" fill="currentColor" stroke="none" opacity={0.95} />
-      <path d="M18.5 14.5L19.2 16.2L20.9 16.9L19.2 17.6L18.5 19.3L17.8 17.6L16.1 16.9L17.8 16.2L18.5 14.5Z" fill="currentColor" stroke="none" opacity={0.6} />
-      <path d="M5.5 13.5L6 14.7L7.2 15.2L6 15.7L5.5 16.9L5 15.7L3.8 15.2L5 14.7L5.5 13.5Z" fill="currentColor" stroke="none" opacity={0.45} />
+      <path
+        d="M12 2.5L13.4 8.6L19.5 10L13.4 11.4L12 17.5L10.6 11.4L4.5 10L10.6 8.6L12 2.5Z"
+        fill="currentColor"
+        stroke="none"
+        opacity={0.95}
+      />
+      <path
+        d="M18.5 14.5L19.2 16.2L20.9 16.9L19.2 17.6L18.5 19.3L17.8 17.6L16.1 16.9L17.8 16.2L18.5 14.5Z"
+        fill="currentColor"
+        stroke="none"
+        opacity={0.6}
+      />
+      <path
+        d="M5.5 13.5L6 14.7L7.2 15.2L6 15.7L5.5 16.9L5 15.7L3.8 15.2L5 14.7L5.5 13.5Z"
+        fill="currentColor"
+        stroke="none"
+        opacity={0.45}
+      />
     </Svg>
   );
 }

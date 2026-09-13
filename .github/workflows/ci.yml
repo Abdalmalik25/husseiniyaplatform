@@ -62,10 +62,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Run unit tests
-        run: pnpm test
+      - name: Run unit tests (with coverage gate)
+        run: pnpm test -- --coverage
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
 
   build:
     name: Build
@@ -149,10 +156,21 @@ jobs:
           OAUTH_SERVER_URL: ${{ secrets.OAUTH_SERVER_URL }}
           VITE_OAUTH_PORTAL_URL: ${{ secrets.VITE_OAUTH_PORTAL_URL }}
 
+      - name: Seed E2E runner user
+        run: node scripts/seed-e2e-user.mjs
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_TENANT_ID: ${{ secrets.E2E_TENANT_ID }}
+
       - name: Run E2E tests
         run: pnpm test:e2e
         env:
           E2E_BASE_URL: http://localhost:3000
+          E2E_USERNAME: ${{ secrets.E2E_USERNAME }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+          E2E_TENANT_ID: ${{ secrets.E2E_TENANT_ID }}
 
       - name: Upload Playwright traces
         if: failure()
@@ -160,6 +178,67 @@ jobs:
         with:
           name: playwright-traces
           path: test-results/
+          retention-days: 7
+
+  load-test-smoke:
+    name: Smoke Load Test (k6)
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "pnpm"
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: .
+
+      - name: Start preview server
+        run: |
+          pnpm start &
+          sleep 10
+        env:
+          NODE_ENV: production
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          AGENT_SECRET: ${{ secrets.AGENT_SECRET }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          OAUTH_SERVER_URL: ${{ secrets.OAUTH_SERVER_URL }}
+          VITE_OAUTH_PORTAL_URL: ${{ secrets.VITE_OAUTH_PORTAL_URL }}
+
+      - name: Run k6 smoke load test
+        uses: grafana/k6-action@v0.3.1
+        with:
+          filename: scripts/load-test.js
+          flags: --out json=loadtest-smoke.json
+        env:
+          BASE_URL: http://localhost:3000
+          K6_SCENARIO: smoke
+
+      - name: Upload k6 results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: loadtest-smoke
+          path: loadtest-smoke.json
+          if-no-files-found: ignore
           retention-days: 7
 
   lighthouse:
@@ -219,7 +298,7 @@ jobs:
     name: Deploy Preview (Vercel)
     runs-on: ubuntu-latest
     needs: [build, e2e-tests, lighthouse]
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && !cancelled() && !failure()
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -252,8 +331,8 @@ jobs:
   deploy-production:
     name: Deploy Production (Vercel)
     runs-on: ubuntu-latest
-    needs: [build, e2e-tests, lighthouse]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [build, e2e-tests]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && !cancelled() && !failure()
     environment: production
     steps:
       - name: Checkout

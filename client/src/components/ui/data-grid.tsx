@@ -84,7 +84,7 @@ export function DataGrid<T extends Record<string, any>>({
 
   const getValue = useCallback(
     (row: T, col: DataGridColumn<T>) =>
-      col.accessor ? col.accessor(row) : row[(col.key as keyof T)],
+      col.accessor ? col.accessor(row) : row[col.key as keyof T],
     []
   );
 
@@ -381,7 +381,9 @@ export function DataGrid<T extends Record<string, any>>({
                       <div className="text-[11px] mt-1">{emptyHint}</div>
                     ) : null}
                     {emptyAction ? (
-                      <div className="mt-3 flex justify-center">{emptyAction}</div>
+                      <div className="mt-3 flex justify-center">
+                        {emptyAction}
+                      </div>
                     ) : null}
                   </td>
                 </tr>

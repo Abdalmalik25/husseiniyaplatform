@@ -24,10 +24,7 @@ export function AppHeader({
   );
 
   return (
-    <header
-      className="header-apex-dark sticky top-0 z-30"
-      dir="rtl"
-    >
+    <header className="header-apex-dark sticky top-0 z-30" dir="rtl">
       <div className="max-w-[1600px] mx-auto px-3 lg:px-4 flex items-center justify-between gap-3 h-[48px]">
         <div className="flex items-center gap-3 min-w-0">
           {onToggleSidebar && (
@@ -67,11 +64,17 @@ export function AppHeader({
           <button
             onClick={() => window.dispatchEvent(new Event("alh:open-command"))}
             className="hidden sm:flex items-center gap-1.5 h-7 px-2.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-white hover:bg-white/10 text-[11px]"
-            style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}
+            style={{
+              fontFamily: '"Tajawal", system-ui, sans-serif',
+              fontWeight: 700,
+            }}
           >
             <HusSearchIcon size={13} className="text-brand-300" />
             بحث
-            <span className="hidden xl:inline-flex text-[10px] bg-white/10 border border-white/10 rounded px-1" style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}>
+            <span
+              className="hidden xl:inline-flex text-[10px] bg-white/10 border border-white/10 rounded px-1"
+              style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}
+            >
               ⌘K
             </span>
           </button>

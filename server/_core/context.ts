@@ -51,7 +51,11 @@ export async function enforceSuperAdminTenantExists(
   // إذا كان tenantId يأتي من x-tenant-id، تحقق أنه موجود فعلاً
   const { tenants } = await import("../../drizzle/schema");
   const { eq } = await import("drizzle-orm");
-  const rows = await db.select({ id: tenants.id }).from(tenants).where(eq(tenants.id, ctx.tenantId)).limit(1);
+  const rows = await db
+    .select({ id: tenants.id })
+    .from(tenants)
+    .where(eq(tenants.id, ctx.tenantId))
+    .limit(1);
   if (rows.length === 0) {
     throw new Error(`المستأجر #${ctx.tenantId} غير موجود`);
   }
@@ -62,7 +66,7 @@ export async function createContext(
 ): Promise<TrpcContext> {
   let user: User | null;
   try {
-    user = await sdk.authenticateRequest(opts.req);
+    user = await sdk.authenticateRequest(opts.req, opts.res);
   } catch {
     user = null;
   }

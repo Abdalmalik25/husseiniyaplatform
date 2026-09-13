@@ -28,7 +28,12 @@ export interface ScreenErrorProps {
   debug?: boolean;
   title?: string;
   message?: string;
-  actions?: Array<{ label: string; onClick: () => void; variant?: "default" | "secondary" | "ghost"; icon?: React.ReactNode }>;
+  actions?: Array<{
+    label: string;
+    onClick: () => void;
+    variant?: "default" | "secondary" | "ghost";
+    icon?: React.ReactNode;
+  }>;
   icon?: React.ReactNode;
   className?: string;
   dismissible?: boolean;
@@ -128,15 +133,15 @@ export function ScreenError({
           <AlertTriangle className={cn("mt-0.5 flex-shrink-0", cfg.icon)} />
         )}
         <div className="flex-1">
-          <h3 className={cn("font-semibold", compact ? "text-sm" : "text-base")}>
+          <h3
+            className={cn("font-semibold", compact ? "text-sm" : "text-base")}
+          >
             {title}
           </h3>
           <p className="mt-1 text-sm">{message}</p>
           {debug && Boolean(error) && (
             <pre className="mt-2 w-full overflow-x-auto rounded bg-black/10 p-2 text-xs whitespace-pre-wrap break-all">
-              {error instanceof Error
-                ? error.message
-                : String(error)}
+              {error instanceof Error ? error.message : String(error)}
             </pre>
           )}
           {actions && actions.length > 0 && (

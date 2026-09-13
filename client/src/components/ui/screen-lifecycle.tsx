@@ -16,7 +16,13 @@
 import React from "react";
 import { trpc } from "@/lib/trpc";
 
-export type ScreenPhase = "idle" | "loading" | "ready" | "error" | "empty" | "stale";
+export type ScreenPhase =
+  | "idle"
+  | "loading"
+  | "ready"
+  | "error"
+  | "empty"
+  | "stale";
 
 export interface ScreenLifecycleProps<TData> {
   /** Query result from trpc */
@@ -53,20 +59,21 @@ export function useScreenLifecycle<TData>({
 }) {
   const phase: ScreenPhase =
     forcedPhase ??
-    ((() => {
+    (() => {
       if (isInitial) return "loading";
       if (query.isError) return "error";
       if (query.isPending) return "loading";
       if (!query.data) return "empty";
       return "ready";
-    })());
+    })();
 
   const retry = React.useCallback(() => {
     query.refetch();
   }, [query]);
 
   const mapErrorResult = React.useMemo(() => {
-    if (!mapError) return { isBusinessError: false, message: "حدث خطأ غير متوقع" };
+    if (!mapError)
+      return { isBusinessError: false, message: "حدث خطأ غير متوقع" };
     try {
       return mapError(query.error);
     } catch {

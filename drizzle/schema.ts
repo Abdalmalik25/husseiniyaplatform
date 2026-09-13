@@ -68,10 +68,11 @@ export const prescriptionStatusEnum = pgEnum("prescription_status", [
   "cancelled",
   "expired",
 ]);
-export const drugInteractionSeverityEnum = pgEnum(
-  "drug_interaction_severity",
-  ["MAJOR", "MODERATE", "MINOR"]
-);
+export const drugInteractionSeverityEnum = pgEnum("drug_interaction_severity", [
+  "MAJOR",
+  "MODERATE",
+  "MINOR",
+]);
 // ─── Users table for multi-tenant SaaS ────────────────────────────
 
 export const users = pgTable(
@@ -522,7 +523,7 @@ export const settings = pgTable(
     postingRules: text("postingRules"),
     // ─── ZATCA (Saudi e-invoicing) configuration ────────────────────
     zatcaConfig: text("zatcaConfig"),
-// ─── Document template (invoices/quotations/statements) ────────
+    // ─── Document template (invoices/quotations/statements) ────────
     documentTemplate: text("documentTemplate"),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
     // Sync columns
@@ -727,7 +728,7 @@ export const products = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-// ─── Pharmacy fields (FDA/WHO aligned) ──────────────────────────
+    // ─── Pharmacy fields (FDA/WHO aligned) ──────────────────────────
     drugSchedule: drugScheduleEnum("drug_schedule").default("OTC"),
     requiresPrescription: boolean("requires_prescription")
       .default(false)
@@ -1818,7 +1819,7 @@ export const salesInvoices = pgTable(
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId").notNull(),
     ...govColumns(),
-    invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
+    invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull(),
     orderId: integer("orderId"),
     customerId: integer("customerId"),
     branchId: integer("branchId"),
@@ -1895,6 +1896,10 @@ export const salesInvoices = pgTable(
       t.invoiceDate
     ),
     unique("salesInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
+    uniqueIndex("uq_salesInvoices_tenant_number").on(
+      t.tenantId,
+      t.invoiceNumber
+    ),
     check("chk_sales_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
     check("chk_sales_invoice_tax_rate_not_negative", sql`${t.taxRate} >= 0`),
     check(
@@ -1953,7 +1958,7 @@ export const purchaseInvoices = pgTable(
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId").notNull(),
     ...govColumns(),
-    invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
+    invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull(),
     supplierId: integer("supplierId"),
     branchId: integer("branchId"),
     costCenterId: integer("costCenterId"),
@@ -2011,8 +2016,15 @@ export const purchaseInvoices = pgTable(
     index("idx_purchaseInvoices_costCenter").on(t.costCenterId),
     index("idx_purchaseInvoices_warehouse").on(t.warehouseId),
     index("idx_purchaseInvoices_project").on(t.projectId),
-    index("idx_purchaseInvoices_branch_costCenter").on(t.branchId, t.costCenterId),
+    index("idx_purchaseInvoices_branch_costCenter").on(
+      t.branchId,
+      t.costCenterId
+    ),
     unique("purchaseInvoices_gc_tenant_unique").on(t.tenantId, t.globalCode),
+    uniqueIndex("uq_purchaseInvoices_tenant_number").on(
+      t.tenantId,
+      t.invoiceNumber
+    ),
     check(
       "chk_purchase_invoice_subtotal_not_negative",
       sql`${t.subtotal} >= 0`
@@ -2077,7 +2089,7 @@ export const orders = pgTable(
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId").notNull(),
     ...govColumns(),
-    orderNumber: varchar("orderNumber", { length: 50 }).notNull().unique(),
+    orderNumber: varchar("orderNumber", { length: 50 }).notNull(),
     customerId: integer("customerId"),
     status: orderStatusEnum("status").default("pending").notNull(),
     total: decimal("total", { precision: 15, scale: 2 }).default("0").notNull(),
@@ -2101,6 +2113,7 @@ export const orders = pgTable(
     index("idx_orders_status").on(t.status),
     index("idx_orders_currency").on(t.currencyId),
     unique("orders_gc_tenant_unique").on(t.tenantId, t.globalCode),
+    uniqueIndex("uq_orders_tenant_number").on(t.tenantId, t.orderNumber),
     check("chk_order_total_not_negative", sql`${t.total} >= 0`),
     check("chk_order_tenant_not_null", sql`${t.tenantId} IS NOT NULL`),
   ]
@@ -2430,7 +2443,7 @@ export const billingInvoices = pgTable(
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId").notNull(),
     subscriptionId: integer("subscriptionId"),
-    invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull().unique(),
+    invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull(),
     status: varchar("status", { length: 20 }).notNull(),
     subtotal: decimal("subtotal", { precision: 10, scale: 2 }).notNull(),
     taxAmount: decimal("taxAmount", { precision: 10, scale: 2 })
@@ -2456,6 +2469,10 @@ export const billingInvoices = pgTable(
     index("idx_billing_invoice_tenant").on(t.tenantId),
     index("idx_billing_invoice_status").on(t.status),
     index("idx_billing_invoice_currency").on(t.currencyId),
+    uniqueIndex("uq_billingInvoices_tenant_number").on(
+      t.tenantId,
+      t.invoiceNumber
+    ),
     check("chk_billing_invoice_subtotal_not_negative", sql`${t.subtotal} >= 0`),
     check("chk_billing_invoice_tax_not_negative", sql`${t.taxAmount} >= 0`),
     check("chk_billing_invoice_total_not_negative", sql`${t.total} >= 0`),
@@ -4552,7 +4569,7 @@ export const budgetLines = pgTable(
     amount: decimal("amount", { precision: 15, scale: 2 })
       .default("0")
       .notNull(),
-spentAmount: decimal("spentAmount", { precision: 15, scale: 2 })
+    spentAmount: decimal("spentAmount", { precision: 15, scale: 2 })
       .default("0")
       .notNull(),
     quantity: decimal("quantity", { precision: 15, scale: 4 }), // for driver-based budgets
@@ -5115,10 +5132,13 @@ export const insuranceClaims = pgTable(
     insuranceProvider: varchar("insurance_provider", { length: 200 }).notNull(),
     policyNumber: varchar("policy_number", { length: 100 }).notNull(),
     totalAmount: decimal("total_amount", { precision: 14, scale: 2 }).notNull(),
-    coveredAmount: decimal("covered_amount", { precision: 14, scale: 2 })
-      .default("0"),
-    copayAmount: decimal("copay_amount", { precision: 14, scale: 2 })
-      .default("0"),
+    coveredAmount: decimal("covered_amount", {
+      precision: 14,
+      scale: 2,
+    }).default("0"),
+    copayAmount: decimal("copay_amount", { precision: 14, scale: 2 }).default(
+      "0"
+    ),
     status: varchar("status", { length: 20 }).default("DRAFT").notNull(),
     submittedAt: timestamp("submitted_at"),
     responseAt: timestamp("response_at"),
@@ -5270,7 +5290,7 @@ export const quotations = pgTable(
     lastSyncAt: timestamp("lastSyncAt"),
     conflictState: varchar("conflictState", { length: 20 }).default("none"),
     aggregateId: uuid("aggregateId"),
-    quotationNumber: varchar("quotationNumber", { length: 50 }).notNull().unique(),
+    quotationNumber: varchar("quotationNumber", { length: 50 }).notNull(),
     typeId: integer("typeId"),
     direction: quotationDirectionEnum("direction").default("sale").notNull(),
     status: quotationStatusEnum("status").default("draft").notNull(),
@@ -5287,12 +5307,20 @@ export const quotations = pgTable(
       .default("1")
       .notNull(),
     subtotal: decimal("subtotal", { precision: 18, scale: 2 }).default("0"),
-    discountTotal: decimal("discountTotal", { precision: 18, scale: 2 }).default("0"),
+    discountTotal: decimal("discountTotal", {
+      precision: 18,
+      scale: 2,
+    }).default("0"),
     taxTotal: decimal("taxTotal", { precision: 18, scale: 2 }).default("0"),
-    commissionTotal: decimal("commissionTotal", { precision: 18, scale: 2 }).default("0"),
+    commissionTotal: decimal("commissionTotal", {
+      precision: 18,
+      scale: 2,
+    }).default("0"),
     grandTotal: decimal("grandTotal", { precision: 18, scale: 2 }).default("0"),
     costTotal: decimal("costTotal", { precision: 18, scale: 2 }).default("0"),
-    marginTotal: decimal("marginTotal", { precision: 18, scale: 2 }).default("0"),
+    marginTotal: decimal("marginTotal", { precision: 18, scale: 2 }).default(
+      "0"
+    ),
     marginPct: decimal("marginPct", { precision: 10, scale: 4 }).default("0"),
     paymentTerms: text("paymentTerms"),
     deliveryTerms: text("deliveryTerms"),
@@ -5312,6 +5340,10 @@ export const quotations = pgTable(
     index("idx_quotations_customer").on(t.customerId),
     index("idx_quotations_supplier").on(t.supplierId),
     index("idx_quotations_updated").on(t.updatedAt),
+    uniqueIndex("uq_quotations_tenant_number").on(
+      t.tenantId,
+      t.quotationNumber
+    ),
   ]
 );
 export const quotationItems = pgTable(
@@ -5329,8 +5361,13 @@ export const quotationItems = pgTable(
     unit: varchar("unit", { length: 50 }),
     unitPrice: decimal("unitPrice", { precision: 18, scale: 4 }).default("0"),
     costPrice: decimal("costPrice", { precision: 18, scale: 4 }).default("0"),
-    discountPct: decimal("discountPct", { precision: 10, scale: 4 }).default("0"),
-    discountAmount: decimal("discountAmount", { precision: 18, scale: 2 }).default("0"),
+    discountPct: decimal("discountPct", { precision: 10, scale: 4 }).default(
+      "0"
+    ),
+    discountAmount: decimal("discountAmount", {
+      precision: 18,
+      scale: 2,
+    }).default("0"),
     taxPct: decimal("taxPct", { precision: 10, scale: 4 }).default("0"),
     taxAmount: decimal("taxAmount", { precision: 18, scale: 2 }).default("0"),
     lineTotal: decimal("lineTotal", { precision: 18, scale: 2 }).default("0"),
@@ -5384,9 +5421,7 @@ export const quotationAlternatives = pgTable(
     createdById: integer("createdById"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
-  t => [
-    index("idx_quotation_alternatives_quotation").on(t.quotationId),
-  ]
+  t => [index("idx_quotation_alternatives_quotation").on(t.quotationId)]
 );
 
 export const quotationTerms = pgTable(
@@ -5416,8 +5451,14 @@ export const quotationParties = pgTable(
     entityType: varchar("entityType", { length: 50 }),
     entityId: integer("entityId"),
     name: varchar("name", { length: 255 }).notNull(),
-    commissionPct: decimal("commissionPct", { precision: 10, scale: 4 }).default("0"),
-    commissionAmount: decimal("commissionAmount", { precision: 18, scale: 2 }).default("0"),
+    commissionPct: decimal("commissionPct", {
+      precision: 10,
+      scale: 4,
+    }).default("0"),
+    commissionAmount: decimal("commissionAmount", {
+      precision: 18,
+      scale: 2,
+    }).default("0"),
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
@@ -5518,7 +5559,9 @@ export const quotationAnalyses = pgTable(
     forecast: jsonb("forecast"),
     recommendations: jsonb("recommendations").default([]),
     whatIf: jsonb("whatIf").default([]),
-    generatedBy: varchar("generatedBy", { length: 30 }).default("engine").notNull(),
+    generatedBy: varchar("generatedBy", { length: 30 })
+      .default("engine")
+      .notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
   },
   t => [
@@ -5579,16 +5622,22 @@ export const vouchers = pgTable(
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId").notNull(),
     voucherNumber: varchar("voucherNumber", { length: 50 }).notNull(),
-    voucherPrefix: varchar("voucherPrefix", { length: 10 }).default("VCH").notNull(),
+    voucherPrefix: varchar("voucherPrefix", { length: 10 })
+      .default("VCH")
+      .notNull(),
     voucherType: voucherTypeEnum("voucherType").notNull(),
     status: voucherStatusEnum("status").default("draft").notNull(),
     voucherDate: timestamp("voucherDate").notNull(),
     dueDate: timestamp("dueDate"),
     postingDate: timestamp("postingDate"),
     amount: decimal("amount", { precision: 18, scale: 4 }).notNull(),
-    baseAmount: decimal("baseAmount", { precision: 18, scale: 4 }).default("0").notNull(),
+    baseAmount: decimal("baseAmount", { precision: 18, scale: 4 })
+      .default("0")
+      .notNull(),
     currencyId: integer("currencyId"),
-    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default("1").notNull(),
+    exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
+      .default("1")
+      .notNull(),
     counterpartyType: varchar("counterpartyType", { length: 20 }),
     counterpartyId: integer("counterpartyId"),
     counterpartyName: varchar("counterpartyName", { length: 255 }),
@@ -5605,7 +5654,10 @@ export const vouchers = pgTable(
     budgetId: integer("budgetId"),
     budgetLineId: integer("budgetLineId"),
     budgetValidated: boolean("budgetValidated").default(false),
-    budgetVariance: decimal("budgetVariance", { precision: 18, scale: 4 }).default("0"),
+    budgetVariance: decimal("budgetVariance", {
+      precision: 18,
+      scale: 4,
+    }).default("0"),
     approvalLevel: voucherApprovalLevelEnum("approvalLevel").default("none"),
     approvedById: integer("approvedById"),
     approvedAt: timestamp("approvedAt"),
@@ -5659,13 +5711,23 @@ export const voucherLines = pgTable(
     accountId: integer("accountId").notNull(),
     accountCode: varchar("accountCode", { length: 20 }),
     accountName: varchar("accountName", { length: 255 }),
-    debitAmount: decimal("debitAmount", { precision: 18, scale: 4 }).default("0"),
-    creditAmount: decimal("creditAmount", { precision: 18, scale: 4 }).default("0"),
+    debitAmount: decimal("debitAmount", { precision: 18, scale: 4 }).default(
+      "0"
+    ),
+    creditAmount: decimal("creditAmount", { precision: 18, scale: 4 }).default(
+      "0"
+    ),
     costCenterId: integer("costCenterId"),
     departmentId: integer("departmentId"),
     projectId: integer("projectId"),
-    allocationPercentage: decimal("allocationPercentage", { precision: 8, scale: 4 }).default("100"),
-    allocatedAmount: decimal("allocatedAmount", { precision: 18, scale: 4 }).default("0"),
+    allocationPercentage: decimal("allocationPercentage", {
+      precision: 8,
+      scale: 4,
+    }).default("100"),
+    allocatedAmount: decimal("allocatedAmount", {
+      precision: 18,
+      scale: 4,
+    }).default("0"),
     description: text("description"),
     reference: varchar("reference", { length: 100 }),
     lineOrder: integer("lineOrder").default(0),
@@ -5716,7 +5778,9 @@ export const voucherSequences = pgTable(
     voucherType: voucherTypeEnum("voucherType").notNull(),
     prefix: varchar("prefix", { length: 10 }).notNull(),
     currentNumber: integer("currentNumber").default(0).notNull(),
-    format: varchar("format", { length: 50 }).default("{PREFIX}/{YYYY}/{NNNNNN}").notNull(),
+    format: varchar("format", { length: 50 })
+      .default("{PREFIX}/{YYYY}/{NNNNNN}")
+      .notNull(),
     resetPeriod: varchar("resetPeriod", { length: 20 }).default("yearly"),
     lastResetDate: timestamp("lastResetDate"),
     numberPadding: integer("numberPadding").default(6),
@@ -5726,14 +5790,22 @@ export const voucherSequences = pgTable(
   },
   t => [
     index("idx_voucher_sequences_tenant").on(t.tenantId),
-    unique("voucher_sequences_tenant_type_unique").on(t.tenantId, t.voucherType),
+    unique("voucher_sequences_tenant_type_unique").on(
+      t.tenantId,
+      t.voucherType
+    ),
   ]
 );
 // ═══════════════════════════════════════════════════════════════════════
 // ─── HEALTHCARE & PATIENT MANAGEMENT (HIPAA/HL7 FHIR/ICD-10) ────────────
 // ═══════════════════════════════════════════════════════════════════════
 
-export const genderEnum = pgEnum("gender", ["male", "female", "other", "unknown"]);
+export const genderEnum = pgEnum("gender", [
+  "male",
+  "female",
+  "other",
+  "unknown",
+]);
 export const bloodTypeEnum = pgEnum("blood_type", [
   "A+",
   "A-",
@@ -5832,7 +5904,9 @@ export const healthcareProviders = pgTable(
     consultationFee: decimal("consultation_fee", { precision: 14, scale: 2 }),
     followUpFee: decimal("follow_up_fee", { precision: 14, scale: 2 }),
     isActive: boolean("is_active").default(true).notNull(),
-    isAcceptingPatients: boolean("is_accepting_patients").default(true).notNull(),
+    isAcceptingPatients: boolean("is_accepting_patients")
+      .default(true)
+      .notNull(),
     scheduleTemplate: jsonb("schedule_template").default({}),
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -5876,7 +5950,9 @@ export const patients = pgTable(
     country: varchar("country", { length: 100 }),
     emergencyContactName: varchar("emergency_contact_name", { length: 255 }),
     emergencyContactPhone: varchar("emergency_contact_phone", { length: 50 }),
-    emergencyContactRelation: varchar("emergency_contact_relation", { length: 50 }),
+    emergencyContactRelation: varchar("emergency_contact_relation", {
+      length: 50,
+    }),
     insuranceProvider: varchar("insurance_provider", { length: 200 }),
     insurancePolicyNumber: varchar("insurance_policy_number", { length: 100 }),
     insuranceCardNumber: varchar("insurance_card_number", { length: 100 }),
@@ -5910,7 +5986,8 @@ export const appointments = pgTable(
     patientId: integer("patient_id").notNull(),
     providerId: integer("provider_id"),
     facilityId: integer("facility_id"),
-    appointmentType: appointmentTypeEnum("appointment_type").default("new_patient"),
+    appointmentType:
+      appointmentTypeEnum("appointment_type").default("new_patient"),
     status: appointmentStatusEnum("status").default("scheduled").notNull(),
     scheduledDate: timestamp("scheduled_date"),
     scheduledTime: varchar("scheduled_time", { length: 20 }),
@@ -6036,8 +6113,14 @@ export const vitalSignRecords = pgTable(
     weight: decimal("weight", { precision: 6, scale: 2 }),
     height: decimal("height", { precision: 6, scale: 2 }),
     bmi: decimal("bmi", { precision: 5, scale: 2 }),
-    waistCircumference: decimal("waist_circumference", { precision: 6, scale: 2 }),
-    headCircumference: decimal("head_circumference", { precision: 5, scale: 2 }),
+    waistCircumference: decimal("waist_circumference", {
+      precision: 6,
+      scale: 2,
+    }),
+    headCircumference: decimal("head_circumference", {
+      precision: 5,
+      scale: 2,
+    }),
     painLevel: integer("pain_level"),
     glasgowComaScale: integer("glasgow_coma_scale"),
     pupilResponse: varchar("pupil_response", { length: 50 }),
@@ -6215,7 +6298,9 @@ export const complianceControls = pgTable(
     controlId: varchar("controlId", { length: 50 }).notNull(),
     controlName: varchar("controlName", { length: 255 }).notNull(),
     description: text("description"),
-    status: varchar("status", { length: 30 }).default("not_implemented").notNull(),
+    status: varchar("status", { length: 30 })
+      .default("not_implemented")
+      .notNull(),
     evidence: jsonb("evidence").default([]),
     owner: varchar("owner", { length: 255 }),
     dueDate: timestamp("dueDate"),

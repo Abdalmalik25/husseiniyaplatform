@@ -62,11 +62,7 @@ export function SkeletonCard({
 
 // ─── KPI Card Skeleton ────────────────────────────────────────────────────────
 
-export function SkeletonKPI({
-  className,
-}: {
-  className?: string;
-}) {
+export function SkeletonKPI({ className }: { className?: string }) {
   const shapes: SkeletonShape[] = [
     { id: "kpi-label", variant: "text", width: "40%", height: 12 },
     { id: "kpi-icon", variant: "circular", width: 32, height: 32 },
@@ -150,11 +146,7 @@ export function SkeletonList({
 
 // ─── Dashboard Hero Skeleton ──────────────────────────────────────────────────
 
-export function SkeletonHero({
-  className,
-}: {
-  className?: string;
-}) {
+export function SkeletonHero({ className }: { className?: string }) {
   const shapes: SkeletonShape[] = [
     // KPI row
     { id: "hero-kpi-1", variant: "text", width: "40%", height: 12 },
@@ -166,7 +158,13 @@ export function SkeletonHero({
     { id: "hero-desc", variant: "text", width: "80%", height: 14 },
     { id: "hero-desc-2", variant: "text", width: "50%", height: 14 },
     // Chart placeholder
-    { id: "hero-chart", variant: "rounded", width: "100%", height: 200, borderRadius: "12px" },
+    {
+      id: "hero-chart",
+      variant: "rounded",
+      width: "100%",
+      height: 200,
+      borderRadius: "12px",
+    },
   ];
 
   return <SkeletonLoader shapes={shapes} className={className} />;
@@ -200,16 +198,18 @@ export function SkeletonGrid({
 
 // ─── Module Card Skeleton ─────────────────────────────────────────────────────
 
-export function SkeletonModuleCard({
-  className,
-}: {
-  className?: string;
-}) {
+export function SkeletonModuleCard({ className }: { className?: string }) {
   const shapes: SkeletonShape[] = [
     { id: "module-icon", variant: "circular", width: 40, height: 40 },
     { id: "module-title", variant: "text", width: "70%", height: 14 },
     { id: "module-desc", variant: "text", width: "50%", height: 10 },
-    { id: "module-action", variant: "rounded", width: "80%", height: 28, borderRadius: "6px" },
+    {
+      id: "module-action",
+      variant: "rounded",
+      width: "80%",
+      height: 28,
+      borderRadius: "6px",
+    },
   ];
 
   return <SkeletonLoader shapes={shapes} className={className} />;

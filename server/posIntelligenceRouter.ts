@@ -17,7 +17,13 @@ function escapeIlike(s: string): string {
   return s.replace(/[%_\\]/g, "\\$&");
 }
 function escapeHtml(s: string): string {
-  return s.replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
+  return s.replace(
+    /[&<>"']/g,
+    c =>
+      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[
+        c
+      ]!
+  );
 }
 
 export const posIntelligenceRouter = router({
@@ -150,7 +156,10 @@ export const posIntelligenceRouter = router({
           .select()
           .from(documents)
           .where(
-            and(eq(documents.tenantId, ctx.tenantId), ilike(documents.title, safeQ))
+            and(
+              eq(documents.tenantId, ctx.tenantId),
+              ilike(documents.title, safeQ)
+            )
           )
           .limit(input.limit);
         results.knowledge = docRows.map((d: any) => ({

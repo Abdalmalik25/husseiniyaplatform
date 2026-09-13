@@ -225,8 +225,19 @@ export function MarketingHeader({ onOpenSettings }: Props) {
               className="flex items-center gap-1.5 h-7 px-2.5 rounded-lg text-[11px] border bg-slate-50 border-slate-200 text-slate-500 hover:text-slate-900 hover:bg-white"
             >
               <HusSearchIcon size={15} className="text-slate-400" />
-              <span className="hidden xl:inline" style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}>بحث</span>
-              <span className="hidden xl:inline-flex text-[10px] border rounded px-1 bg-white border-slate-200 text-slate-400" style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}>
+              <span
+                className="hidden xl:inline"
+                style={{
+                  fontFamily: '"Tajawal", system-ui, sans-serif',
+                  fontWeight: 700,
+                }}
+              >
+                بحث
+              </span>
+              <span
+                className="hidden xl:inline-flex text-[10px] border rounded px-1 bg-white border-slate-200 text-slate-400"
+                style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}
+              >
                 ⌘K
               </span>
             </button>

@@ -436,4 +436,6 @@ function dedupeByPath(items: NavItem[]): NavItem[] {
   }
   return out;
 }
-export const APP_NAV: NavItem[] = dedupeByPath(APP_GROUPS.flatMap(g => g.items));
+export const APP_NAV: NavItem[] = dedupeByPath(
+  APP_GROUPS.flatMap(g => g.items)
+);

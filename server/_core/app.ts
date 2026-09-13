@@ -16,6 +16,7 @@ import { getDb, warmDatabase } from "../db";
 import { sql } from "drizzle-orm";
 import { ENV } from "./env";
 import { logger } from "./logger";
+import { getJwks } from "./jwt";
 import {
   performanceMiddleware,
   getPerformanceStats,
@@ -106,7 +107,9 @@ export function createApp(): Express {
 
   // Helmet security headers — CSP بدون unsafe-inline عبر nonce عشوائي
   app.use((req, _res, next) => {
-    const nonce = Buffer.from(crypto.randomUUID()).toString("base64").slice(0, 22);
+    const nonce = Buffer.from(crypto.randomUUID())
+      .toString("base64")
+      .slice(0, 22);
     (req as any).cspNonce = nonce;
     next();
   });
@@ -115,7 +118,11 @@ export function createApp(): Express {
       contentSecurityPolicy: {
         directives: {
           defaultSrc: ["'self'"],
-          scriptSrc: ["'self'", (_req: any, res: any) => `'nonce-${(res.req as any).cspNonce}'` as any],
+          scriptSrc: [
+            "'self'",
+            (_req: any, res: any) =>
+              `'nonce-${(res.req as any).cspNonce}'` as any,
+          ],
           styleSrc: ["'self'", "https://fonts.googleapis.com"],
           fontSrc: ["'self'", "https://fonts.gstatic.com"],
           imgSrc: ["'self'", "data:", "blob:", "https:"],
@@ -302,13 +309,15 @@ export function createApp(): Express {
       dbAvailable,
       service: "alhusainia-platform",
       institution: "الحسينية لخدمات الأعمال",
-      version:
-        typeof __APP_VERSION__ !== "undefined"
-          ? __APP_VERSION__
-          : "dev",
+      version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev",
       status: dbAvailable ? "Operational" : "Degraded (DB unreachable)",
       security: "ISO-Compliant",
-      slo: { latencyMs, uptimeSec, p95TargetMs: 300, availability: dbAvailable ? "99.9%" : "degraded" },
+      slo: {
+        latencyMs,
+        uptimeSec,
+        p95TargetMs: 300,
+        availability: dbAvailable ? "99.9%" : "degraded",
+      },
       typography: "Tajawal Apex",
       iconSystem: "HusIcons Apex v2",
       time: new Date().toISOString(),
@@ -326,6 +335,12 @@ export function createApp(): Express {
         (res.getHeader("X-Request-ID") as string | undefined) ?? "unknown",
       status: "Operational",
     });
+  });
+
+  // ── JWKS — public ES256 verification keys (rotation-aware) ──
+  app.get("/api/auth/jwks", (_req, res) => {
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    res.status(200).json(getJwks());
   });
 
   registerStorageProxy(app);

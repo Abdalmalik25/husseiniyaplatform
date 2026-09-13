@@ -61,10 +61,12 @@ import {
   protectedProcedure,
   tenantProcedure,
   adminProcedure,
+  ownerProcedure,
   router,
 } from "./_core/trpc";
 import { requireTenantId } from "./_core/tenant";
 import { getDb, upsertUser } from "./db";
+import { getJwks, rotateKeys } from "./_core/jwt";
 import { timingSafeEqual, randomUUID } from "crypto";
 import {
   getCatalog,
@@ -648,7 +650,12 @@ async function postInvoiceGlEntries(
   };
 
   // IFRS: منع الترحيل في فترة مغلقة
-  await assertPeriodOpen(tx, opts.tenantId, new Date(), `فاتورة ${opts.invoiceNumber}`);
+  await assertPeriodOpen(
+    tx,
+    opts.tenantId,
+    new Date(),
+    `فاتورة ${opts.invoiceNumber}`
+  );
 
   const pending: Array<Record<string, any>> = [];
   const entry = (
@@ -1040,16 +1047,16 @@ export const appRouter = router({
   modules: modulesRouter,
   aliasAi: aliasAiRouter,
   backup: backupRouter,
-    pharmacy: pharmacyRouter,
-    quotations: quotationRouter,
-    vouchers: vouchersRouter,
-    healthcare: healthcareRouter,
-    security: securityRouter,
-    documentTemplate: documentTemplateRouter,
-    debtReports: debtReportsRouter,
-    invoiceEnhancements: invoiceEnhancementsRouter,
-    procurementReports: procurementReportsRouter,
-    posIntelligence: posIntelligenceRouter,
+  pharmacy: pharmacyRouter,
+  quotations: quotationRouter,
+  vouchers: vouchersRouter,
+  healthcare: healthcareRouter,
+  security: securityRouter,
+  documentTemplate: documentTemplateRouter,
+  debtReports: debtReportsRouter,
+  invoiceEnhancements: invoiceEnhancementsRouter,
+  procurementReports: procurementReportsRouter,
+  posIntelligence: posIntelligenceRouter,
   auth: router({
     // SECURITY: strip credential material before it ever reaches the client.
     // `passwordHash` and session-tracking columns must never be serialized
@@ -1668,6 +1675,17 @@ export const appRouter = router({
 
         return { tenantId: tenant.id, branchId: branch.id };
       }),
+
+    // Rotate ES256 session-signing keys (platform owner only). The previous
+    // key stays active for verification so in-flight sessions survive.
+    rotateSessionKeys: ownerProcedure.mutation(() => {
+      const rotated = rotateKeys();
+      return {
+        kid: rotated.kid,
+        jwks: getJwks(),
+        rotatedAt: new Date().toISOString(),
+      } as const;
+    }),
   }),
 
   // Warehouses management

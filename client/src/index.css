@@ -338,7 +338,7 @@
   --ink-700: #16393b;
   --ink-800: #162e30;
   --sand: #fbf8f2;
-   /* Semantic status palette */
+  /* Semantic status palette */
   --success: #15803d;
   --warning: #b45309;
   --info: #1d6f8f;
@@ -636,7 +636,12 @@ html[data-theme="ocean"] {
   body {
     @apply bg-background text-foreground;
     font-family: "Tajawal", system-ui, sans-serif;
-    font-feature-settings: "ss01", "cv01", "kern" 1, "liga" 1, "calt" 1;
+    font-feature-settings:
+      "ss01",
+      "cv01",
+      "kern" 1,
+      "liga" 1,
+      "calt" 1;
     font-variant-ligatures: common-ligatures contextual;
     font-kerning: normal;
     font-optical-sizing: auto;
@@ -647,9 +652,17 @@ html[data-theme="ocean"] {
     line-height: 1.65;
   }
   /* ── APEX Tajawal — النظام الرسمي الحديث ── */
-  h1, h2, h3, h4, h5, h6, [data-tajawal="display"] {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  [data-tajawal="display"] {
     font-family: "Tajawal", system-ui, sans-serif;
-    font-feature-settings: "ss01", "kern" 1;
+    font-feature-settings:
+      "ss01",
+      "kern" 1;
     font-variant-ligatures: common-ligatures;
     letter-spacing: -0.025em;
     text-wrap: balance;
@@ -833,12 +846,17 @@ html[data-theme="ocean"] {
   }
   /* ── APEX hus-icon — حركة راقية غير مستهلكة ── */
   .hus-icon-apex {
-    transition: transform 0.22s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s ease, filter 0.2s ease;
+    transition:
+      transform 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+      color 0.2s ease,
+      filter 0.2s ease;
   }
   .group:hover .hus-icon-apex,
   .hus-icon-apex:hover {
     transform: translateY(-1px) scale(1.04);
-    filter: drop-shadow(0 2px 8px color-mix(in srgb, var(--brand) 30%, transparent));
+    filter: drop-shadow(
+      0 2px 8px color-mix(in srgb, var(--brand) 30%, transparent)
+    );
   }
   .hus-icon-apex-filled {
     transition: all 0.22s cubic-bezier(0.22, 1, 0.36, 1);
@@ -849,13 +867,15 @@ html[data-theme="ocean"] {
     -webkit-backdrop-filter: blur(20px) saturate(1.35);
     background: color-mix(in srgb, var(--card) 88%, transparent);
     border-bottom: 1px solid color-mix(in srgb, var(--border) 80%, transparent);
-    box-shadow: 0 1px 0 rgba(255,255,255,0.6) inset, 0 8px 32px -16px rgba(14,42,43,0.12);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.6) inset,
+      0 8px 32px -16px rgba(14, 42, 43, 0.12);
   }
   .header-apex-dark {
     backdrop-filter: blur(20px) saturate(1.2);
     -webkit-backdrop-filter: blur(20px) saturate(1.2);
     background: color-mix(in srgb, var(--ink) 92%, transparent);
-    border-bottom: 1px solid rgba(255,255,255,0.08);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   /* Modern elevated surface with subtle border. */

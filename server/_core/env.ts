@@ -41,6 +41,10 @@ export const ENV = {
   sentryDsn: process.env.SENTRY_DSN ?? "",
   /** Vite-defined app version for health endpoint. */
   appVersion: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev",
+  /** ES256 session keys (JWT_PRIVATE_KEY/JWT_PUBLIC_KEY) defined for this process. */
+  hasJwtKeys: !!process.env.JWT_PRIVATE_KEY && !!process.env.JWT_PUBLIC_KEY,
+  /** Opt-in: reject sessions whose device fingerprint no longer matches. */
+  enforceDeviceBinding: process.env.JWT_ENFORCE_DEVICE_BINDING === "true",
 };
 
 // Fail-closed warnings for non-blocking but critical secrets
@@ -58,6 +62,11 @@ if (ENV.isProduction) {
   if (!ENV.backupEncryptionKey || ENV.backupEncryptionKey.length < 16) {
     console.warn(
       "[ENV] BACKUP_ENCRYPTION_KEY is missing or <16 chars — encrypted backups are disabled (fail-closed)"
+    );
+  }
+  if (!ENV.hasJwtKeys) {
+    console.warn(
+      "[ENV] JWT_PRIVATE_KEY/JWT_PUBLIC_KEY are not set — session keys are persisted to .keys/jwt-keys.json only. On serverless cold-start the key is lost and all sessions are invalidated. Generate a durable pair with `node scripts/generate-jwt-keys.mjs`."
     );
   }
   if (!ENV.sentryDsn) {

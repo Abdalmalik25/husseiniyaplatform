@@ -158,7 +158,11 @@ export async function placePublicOrder(
 
   const now = new Date();
   const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
-  const uuidPart = crypto.randomUUID().slice(0, 6).toUpperCase().replace(/-/g, "");
+  const uuidPart = crypto
+    .randomUUID()
+    .slice(0, 6)
+    .toUpperCase()
+    .replace(/-/g, "");
   const orderNumber = `WEB-${datePart}-${uuidPart}`;
 
   let customerId: number | null = null;

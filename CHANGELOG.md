@@ -4,6 +4,38 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [7.0.0] — 2026-09-13 · Production Final Release — الإصدار الإنتاجي النهائي
+
+### Security — تحصين الجلسات ES256 + مفاتيح دائمة
+
+- `server/_core/jwt.ts` إعادة كتابة جذرية: مفاتيح توقيع الجلسات ES256 تُحمَّل من `JWT_PRIVATE_KEY/JWT_PUBLIC_KEY` (بداية) → `.keys/jwt-keys.json` (قرص) → توليد مؤقت، مع حفظ زوج المفاتيح السابق أثناء نافذة التدوير.
+- `/api/auth/jwks` يعيد الآن إحداثيات `x/y` حقيقية (كانت فارغة) مع تضمين المفتاح السابق خلال فترة السماح — `server/_core/app.ts:332`.
+- تدوير المفاتيح محصور على المالك: `auth.rotateSessionKeys` عبر `ownerProcedure` + اختبارات `auth.security.test.ts` (أقل امتياز).
+- `VERCEL: JWT_PRIVATE_KEY + JWT_PUBLIC_KEY` مضبوطان في بيئة الإنتاج (كان النقص سيعيد تصفير الجلسات عند كل cold start).
+- Hermetic device binding اختياري `JWT_ENFORCE_DEVICE_BINDING=true` مع إعادة إصدار الكوكي تلقائياً عند القرب من النصف عمر الجلسة.
+
+### CI/CD — نشر الإنتاج كان ميتاً، أُصلح
+
+- السبب الجذري: `format:check` أحمر تاريخياً (~~167~~ → 0 ملف) أجّج كل `build/e2e/lighthouse/deploy`. **لا نشر إنتاجيا منذ أسابيع** — الآن أخضر ويُفرض محلياً وCI.
+- رابط ميت في `deploy-production`: كان يعتمد على `lighthouse` المخطي (يُشغَّل على الـ PR فقط) فكان النشر **يُلغى تلقائيا** على كل push إلى main. أُصلح إلى `needs: [build, e2e-tests]`.
+- `deploy-preview` صار `!cancelled() && !failure()` صراحة لتجنب سلاسل الإلغاء الغامضة.
+- اختبارات E2E تُزرع مستخدم `seed-e2e-user.mjs` + تمرير متغيرات E2E.
+- `unit-tests` تشغّل التغطية مع عتبات (statements≥35 / branches≥70 / functions≥30 / lines≥35) وعرض تقرير كعمل فني.
+
+### Audits & Fixes
+
+- إعادة قولبة الريبو كاملاً حسب `prettier 3.6.2` (`format:check` 0).
+- `App.tsx` جداول مسارات موحدة (`MARKETING_ROUTES/GUEST_ROUTES/APP_ROUTES`) — إضافة/حذف صفحة بسطر واحد.
+- `LiveExecutiveCockpit.tsx` / `WorkspaceDashboard.tsx` / إشعارات ورسائل (`NotificationBell`, `MessagesButton`).
+- `vitest.config.ts` تغطية v8 مع عتبات قاعدية موثقة.
+- `server/routers.ts` + `23` روتين مصادقة/حسابات متوسطة.
+
+### Verified
+
+- `pnpm check` 0 · `pnpm lint` 0 · `pnpm format:check` ✅ · `pnpm test` 342 (1 skipped DB-gated) · `pnpm build` ✅ · migrations 22/22 applied · CI Services → Deployment
+
+---
+
 ## [6.0.0] — 2026-09-06 · Final — الإصدار النهائي: شركة واضحة ومنتج منفصل بلا سطحية
 
 ### Company vs Product — فصل هوية حقيقي

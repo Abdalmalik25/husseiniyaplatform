@@ -173,10 +173,7 @@ test.describe("WCAG 2.2 AA — Error Identification", () => {
     await submit.click();
     // Scoped to the form: the global Toaster also renders aria-live
     // regions that are visually hidden until a toast appears.
-    const errorMessage = page
-      .locator("form")
-      .locator('[role="alert"]')
-      .first();
+    const errorMessage = page.locator("form").locator('[role="alert"]').first();
     await expect(errorMessage).toBeVisible({ timeout: 5_000 });
   });
 

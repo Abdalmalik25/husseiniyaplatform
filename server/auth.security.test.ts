@@ -67,6 +67,25 @@ vi.mock("./_core/env", () => ({
     isProduction: false,
   },
 }));
+vi.mock("./_core/jwt", () => ({
+  rotateKeys: vi.fn(() => ({
+    kid: "rotated-kid-001",
+    publicKey: "pk",
+    privateKey: "sk",
+  })),
+  getJwks: vi.fn(() => ({
+    keys: [
+      {
+        kty: "EC",
+        crv: "P-256",
+        x: "xx",
+        y: "yy",
+        kid: "rotated-kid-001",
+        use: "sig",
+      },
+    ],
+  })),
+}));
 
 import { hashPassword } from "./_core/password";
 import { appRouter } from "./routers";
@@ -74,6 +93,7 @@ import { getClientIp, geolocate, parseDevice } from "./_core/geo";
 import { sdk } from "./_core/sdk";
 import { ENV } from "./_core/env";
 import { provisionGenericTenant } from "./_core/systemRouter";
+import { rotateKeys, getJwks } from "./_core/jwt";
 
 function createCtx(overrides: Partial<TrpcContext> = {}): TrpcContext {
   return {
@@ -162,6 +182,47 @@ describe("auth.ownerLogin", () => {
   it("rejects empty password via Zod validation", async () => {
     const caller = appRouter.createCaller(createCtx());
     await expect(caller.auth.ownerLogin({ password: "" })).rejects.toThrow();
+  });
+});
+
+// ── auth.rotateSessionKeys (ES256 key rotation) ────────
+describe("auth.rotateSessionKeys", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("rotates keys for the platform owner and returns kid + jwks", async () => {
+    const owner = createAuthUser({ openId: ENV.ownerOpenId });
+    const ctx = createCtx({ user: owner, tenantId: null });
+    const caller = appRouter.createCaller(ctx);
+
+    const result = await caller.auth.rotateSessionKeys();
+    expect(result.kid).toBe("rotated-kid-001");
+    expect(result.jwks.keys[0]).toMatchObject({
+      kid: "rotated-kid-001",
+      kty: "EC",
+      crv: "P-256",
+      use: "sig",
+    });
+    expect(rotateKeys).toHaveBeenCalledTimes(1);
+    expect(getJwks).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects a logged-in non-owner (least privilege)", async () => {
+    const ctx = createCtx({
+      user: createAuthUser({ openId: "regular-admin" }),
+      tenantId: 2,
+    });
+    const caller = appRouter.createCaller(ctx);
+
+    await expect(caller.auth.rotateSessionKeys()).rejects.toThrow(TRPCError);
+    expect(rotateKeys).not.toHaveBeenCalled();
+  });
+
+  it("rejects an unauthenticated caller", async () => {
+    const caller = appRouter.createCaller(createCtx());
+    await expect(caller.auth.rotateSessionKeys()).rejects.toThrow(TRPCError);
+    expect(rotateKeys).not.toHaveBeenCalled();
   });
 });
 

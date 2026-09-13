@@ -71,16 +71,14 @@ function SkeletonShapeBase({
   };
 
   if (width) baseStyle.width = typeof width === "number" ? width : undefined;
-  if (height) baseStyle.height = typeof height === "number" ? height : undefined;
+  if (height)
+    baseStyle.height = typeof height === "number" ? height : undefined;
 
   const radius = borderRadius ?? (variant === "circular" ? "9999px" : "4px");
 
   return (
     <span
-      className={cn(
-        "block bg-muted/60",
-        className
-      )}
+      className={cn("block bg-muted/60", className)}
       style={{
         ...baseStyle,
         width: width ? (typeof width === "number" ? width : undefined) : "100%",

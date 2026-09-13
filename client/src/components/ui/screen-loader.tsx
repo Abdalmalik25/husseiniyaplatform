@@ -5,27 +5,74 @@
 import React from "react";
 import { cn } from "@/lib/utils";
 
-export function SkeletonBlock({ className, style }: { className?: string; style?: React.CSSProperties }) {
-  return <div className={cn("animate-pulse bg-muted/60 rounded", className)} style={style} />;
+export function SkeletonBlock({
+  className,
+  style,
+}: {
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return (
+    <div
+      className={cn("animate-pulse bg-muted/60 rounded", className)}
+      style={style}
+    />
+  );
 }
 
-export function SkeletonText({ lines = 3, lastLineWidth = "60%", className }: { lines?: number; lastLineWidth?: string; className?: string }) {
+export function SkeletonText({
+  lines = 3,
+  lastLineWidth = "60%",
+  className,
+}: {
+  lines?: number;
+  lastLineWidth?: string;
+  className?: string;
+}) {
   return (
     <div className={cn("space-y-2", className)}>
       {Array.from({ length: lines }).map((_, i) => (
-        <SkeletonBlock key={i} className="h-3" style={{ width: i === lines - 1 ? lastLineWidth : "100%" }} />
+        <SkeletonBlock
+          key={i}
+          className="h-3"
+          style={{ width: i === lines - 1 ? lastLineWidth : "100%" }}
+        />
       ))}
     </div>
   );
 }
 
-export function SkeletonAvatar({ size = 40, className }: { size?: number; className?: string }) {
-  return <SkeletonBlock className={cn("rounded-full", className)} style={{ width: size, height: size }} />;
+export function SkeletonAvatar({
+  size = 40,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <SkeletonBlock
+      className={cn("rounded-full", className)}
+      style={{ width: size, height: size }}
+    />
+  );
 }
 
-export function SkeletonCard({ lines = 3, hasHeader = false, className }: { lines?: number; hasHeader?: boolean; className?: string }) {
+export function SkeletonCard({
+  lines = 3,
+  hasHeader = false,
+  className,
+}: {
+  lines?: number;
+  hasHeader?: boolean;
+  className?: string;
+}) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card p-4 space-y-3", className)}>
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card p-4 space-y-3",
+        className
+      )}
+    >
       {hasHeader && (
         <div className="flex items-center gap-3">
           <SkeletonAvatar size={36} className="shrink-0" />
@@ -36,7 +83,11 @@ export function SkeletonCard({ lines = 3, hasHeader = false, className }: { line
         </div>
       )}
       {Array.from({ length: lines }).map((_, i) => (
-        <SkeletonBlock key={i} className="h-[10px]" style={{ width: i === 0 ? "100%" : i === 1 ? "80%" : "60%" }} />
+        <SkeletonBlock
+          key={i}
+          className="h-[10px]"
+          style={{ width: i === 0 ? "100%" : i === 1 ? "80%" : "60%" }}
+        />
       ))}
     </div>
   );
@@ -44,7 +95,12 @@ export function SkeletonCard({ lines = 3, hasHeader = false, className }: { line
 
 export function SkeletonKPI({ className }: { className?: string }) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card p-4 space-y-3", className)}>
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card p-4 space-y-3",
+        className
+      )}
+    >
       <SkeletonBlock className="h-2 w-1/3" />
       <SkeletonBlock className="h-7 w-2/3" />
       <div className="flex items-center gap-2">
@@ -55,18 +111,41 @@ export function SkeletonKPI({ className }: { className?: string }) {
   );
 }
 
-export function SkeletonTable({ rows = 5, cols = 4, className }: { rows?: number; cols?: number; className?: string }) {
+export function SkeletonTable({
+  rows = 5,
+  cols = 4,
+  className,
+}: {
+  rows?: number;
+  cols?: number;
+  className?: string;
+}) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card overflow-hidden", className)}>
+    <div
+      className={cn(
+        "rounded-xl border border-border bg-card overflow-hidden",
+        className
+      )}
+    >
       <div className="flex border-b border-border bg-muted/30 px-4">
         {Array.from({ length: cols }).map((_, i) => (
-          <SkeletonBlock key={i} className="h-8 flex-1" style={{ width: i === cols - 1 ? "80px" : undefined }} />
+          <SkeletonBlock
+            key={i}
+            className="h-8 flex-1"
+            style={{ width: i === cols - 1 ? "80px" : undefined }}
+          />
         ))}
       </div>
       {Array.from({ length: rows }).map((_, r) => (
         <div key={r} className="flex border-b border-border/50 px-4">
           {Array.from({ length: cols }).map((_, c) => (
-            <SkeletonBlock key={c} className="h-8 flex-1" style={{ width: c === 0 ? "100px" : c === cols - 1 ? "90px" : undefined }} />
+            <SkeletonBlock
+              key={c}
+              className="h-8 flex-1"
+              style={{
+                width: c === 0 ? "100px" : c === cols - 1 ? "90px" : undefined,
+              }}
+            />
           ))}
         </div>
       ))}
@@ -76,18 +155,30 @@ export function SkeletonTable({ rows = 5, cols = 4, className }: { rows?: number
 
 export function SkeletonChart({ className }: { className?: string }) {
   return (
-    <div className={cn("rounded-xl border border-border bg-card p-4", className)}>
+    <div
+      className={cn("rounded-xl border border-border bg-card p-4", className)}
+    >
       <SkeletonBlock className="h-4 w-1/3 mb-4" />
       <div className="flex items-end gap-2 h-40">
         {[60, 80, 45, 90, 70, 55, 85, 75, 65, 95].map((h, i) => (
-          <SkeletonBlock key={i} className="flex-1 rounded-t-md" style={{ height: `${h}%` }} />
+          <SkeletonBlock
+            key={i}
+            className="flex-1 rounded-t-md"
+            style={{ height: `${h}%` }}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-export function SkeletonActivityFeed({ items = 5, className }: { items?: number; className?: string }) {
+export function SkeletonActivityFeed({
+  items = 5,
+  className,
+}: {
+  items?: number;
+  className?: string;
+}) {
   return (
     <div className={cn("space-y-3", className)}>
       {Array.from({ length: items }).map((_, i) => (

@@ -62,11 +62,11 @@
         },
         {
           "key": "Cache-Tag",
-          "value": "alhusainia-v5.1-apex"
+          "value": "alhusainia-v7-prod-final"
         },
         {
           "key": "X-Vercel-Cache-Tag",
-          "value": "apex-v5.1"
+          "value": "prod-final-v7"
         },
         {
           "key": "Nel",

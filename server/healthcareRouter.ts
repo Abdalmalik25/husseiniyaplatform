@@ -593,8 +593,7 @@ export const healthcareRouter = router({
       if (providerId) conditions.push(eq(appointments.providerId, providerId));
       if (facilityId) conditions.push(eq(appointments.facilityId, facilityId));
       if (status) conditions.push(eq(appointments.status, status));
-      if (date)
-        conditions.push(eq(appointments.scheduledDate, new Date(date)));
+      if (date) conditions.push(eq(appointments.scheduledDate, new Date(date)));
       if (startDate)
         conditions.push(gte(appointments.scheduledDate, new Date(startDate)));
       if (endDate)
@@ -1246,7 +1245,9 @@ export const healthcareRouter = router({
       const todayAppts = await db
         .select()
         .from(appointments)
-        .where(and(...conditions, eq(appointments.scheduledDate, new Date(today))));
+        .where(
+          and(...conditions, eq(appointments.scheduledDate, new Date(today)))
+        );
 
       const statusCounts: Record<string, number> = todayAppts.reduce(
         (acc, appt) => {

@@ -56,9 +56,24 @@ const DOMAIN_CLUSTERS: ReadonlyArray<{
   icon: React.ComponentType<{ className?: string }>;
   items: NavItem[];
 }> = [
-  { key: "solutions", label: "الحلول", icon: HusLayersIcon, items: SOLUTIONS_CLUSTER },
-  { key: "platform", label: "المنصة", icon: HusCompassIcon, items: PLATFORM_CLUSTER },
-  { key: "resources", label: "الموارد", icon: HusGridIcon, items: TOOLS_CLUSTER },
+  {
+    key: "solutions",
+    label: "الحلول",
+    icon: HusLayersIcon,
+    items: SOLUTIONS_CLUSTER,
+  },
+  {
+    key: "platform",
+    label: "المنصة",
+    icon: HusCompassIcon,
+    items: PLATFORM_CLUSTER,
+  },
+  {
+    key: "resources",
+    label: "الموارد",
+    icon: HusGridIcon,
+    items: TOOLS_CLUSTER,
+  },
 ];
 /** رابط تحويلي واحد مباشر — التسعير فقط (أعلى نية) */
 const DIRECT_NAV_PATHS = ["/pricing"];
@@ -242,8 +257,18 @@ export function HeaderNavbar({
               title="بحث شامل (Ctrl+K)"
             >
               <HusSearchIcon size={15} className="text-brand-300" />
-              <span style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}>بحث</span>
-              <span className="hidden xl:inline-flex text-[10px] bg-white/10 border border-white/10 rounded px-1" style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}>
+              <span
+                style={{
+                  fontFamily: '"Tajawal", system-ui, sans-serif',
+                  fontWeight: 700,
+                }}
+              >
+                بحث
+              </span>
+              <span
+                className="hidden xl:inline-flex text-[10px] bg-white/10 border border-white/10 rounded px-1"
+                style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}
+              >
                 ⌘K
               </span>
             </button>
@@ -350,8 +375,19 @@ export function HeaderNavbar({
               title="بحث شامل (Ctrl+K)"
             >
               <HusSearchIcon size={15} className="text-slate-400" />
-              <span className="hidden xl:inline" style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}>بحث</span>
-              <span className="hidden xl:inline-flex items-center gap-0.5 text-[10px] border rounded px-1 py-0 bg-white border-slate-200 text-slate-400" style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}>
+              <span
+                className="hidden xl:inline"
+                style={{
+                  fontFamily: '"Tajawal", system-ui, sans-serif',
+                  fontWeight: 700,
+                }}
+              >
+                بحث
+              </span>
+              <span
+                className="hidden xl:inline-flex items-center gap-0.5 text-[10px] border rounded px-1 py-0 bg-white border-slate-200 text-slate-400"
+                style={{ fontFamily: '"Tajawal", system-ui, sans-serif' }}
+              >
                 ⌘K
               </span>
             </button>

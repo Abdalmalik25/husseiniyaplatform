@@ -15,7 +15,9 @@ const swPath = path.join(dist, "sw.js");
 const assetsDir = path.join(dist, "assets");
 
 if (!fs.existsSync(swPath)) {
-  console.error("⛔ precache: dist/public/sw.js غير موجود — هل فشل vite build؟");
+  console.error(
+    "⛔ precache: dist/public/sw.js غير موجود — هل فشل vite build؟"
+  );
   process.exit(1);
 }
 

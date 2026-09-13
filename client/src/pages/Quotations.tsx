@@ -315,7 +315,9 @@ export default function Quotations() {
             loading={listQ.isPending}
             error={listQ.error ? listQ.error.message : null}
             onRetry={() => listQ.refetch()}
-                        onRowClick={(q: Record<string, unknown>) => setSelectedId(num(q.id))}
+            onRowClick={(q: Record<string, unknown>) =>
+              setSelectedId(num(q.id))
+            }
             pageSize={100}
             ariaLabel="جدول عروض الأسعار"
             emptyTitle="لا توجد عروض مطابقة"

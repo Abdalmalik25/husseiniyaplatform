@@ -125,7 +125,7 @@ export function NexoraMicroProgress({
         >
           <span
             className="text-[10px] font-mono font-bold text-white px-2 bg-black/60"
-            style={{ marginTop: `${(height / 2) - 7}px` }}
+            style={{ marginTop: `${height / 2 - 7}px` }}
             aria-hidden="true"
           >
             {Math.round(progress)}%
@@ -179,7 +179,9 @@ export function useFetchProgress() {
         onProgress(cb: (p: { value: number; total: number }) => void) {
           this.listeners.progress.push(cb);
           return () => {
-            this.listeners.progress = this.listeners.progress.filter(f => f !== cb);
+            this.listeners.progress = this.listeners.progress.filter(
+              f => f !== cb
+            );
           };
         },
         onDone(cb: () => void) {
@@ -210,13 +212,13 @@ export function useFetchProgress() {
   }, []);
 
   return {
-    getProgress: () => ((window as any).__fetchProgress?.getProgress?.() ?? 0),
+    getProgress: () => (window as any).__fetchProgress?.getProgress?.() ?? 0,
     onProgress: (cb: (p: { value: number; total: number }) => void) =>
-      ((window as any).__fetchProgress?.onProgress?.(cb) ?? (() => {})),
+      (window as any).__fetchProgress?.onProgress?.(cb) ?? (() => {}),
     onDone: (cb: () => void) =>
-      ((window as any).__fetchProgress?.onDone?.(cb) ?? (() => {})),
+      (window as any).__fetchProgress?.onDone?.(cb) ?? (() => {}),
     onError: (cb: () => void) =>
-      ((window as any).__fetchProgress?.onError?.(cb) ?? (() => {})),
+      (window as any).__fetchProgress?.onError?.(cb) ?? (() => {}),
   };
 }
 

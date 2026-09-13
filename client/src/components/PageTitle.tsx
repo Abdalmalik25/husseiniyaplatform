@@ -44,9 +44,7 @@ type MetaAttribute = "name" | "property";
 /* Constants                                                                  */
 /* -------------------------------------------------------------------------- */
 
-const MANAGED_META: ReadonlyArray<
-  readonly [MetaAttribute, string]
-> = [
+const MANAGED_META: ReadonlyArray<readonly [MetaAttribute, string]> = [
   ["name", "description"],
   ["name", "robots"],
 
@@ -66,10 +64,7 @@ const MANAGED_META: ReadonlyArray<
 /**
  * Returns an existing meta element or creates it if missing.
  */
-function ensureMeta(
-  attribute: MetaAttribute,
-  key: string
-): HTMLMetaElement {
+function ensureMeta(attribute: MetaAttribute, key: string): HTMLMetaElement {
   const elements = document.head.querySelectorAll<HTMLMetaElement>(
     `meta[${attribute}]`
   );
@@ -92,21 +87,14 @@ function ensureMeta(
 /**
  * Sets meta content.
  */
-function setMeta(
-  attribute: MetaAttribute,
-  key: string,
-  content: string
-): void {
+function setMeta(attribute: MetaAttribute, key: string, content: string): void {
   ensureMeta(attribute, key).setAttribute("content", content);
 }
 
 /**
  * Removes a specific meta element.
  */
-function removeMeta(
-  attribute: MetaAttribute,
-  key: string
-): void {
+function removeMeta(attribute: MetaAttribute, key: string): void {
   const elements = document.head.querySelectorAll<HTMLMetaElement>(
     `meta[${attribute}]`
   );
@@ -138,9 +126,7 @@ function clearManagedMeta(): void {
  * Returns the canonical link element if present.
  */
 function getCanonical(): HTMLLinkElement | null {
-  return document.head.querySelector<HTMLLinkElement>(
-    'link[rel="canonical"]'
-  );
+  return document.head.querySelector<HTMLLinkElement>('link[rel="canonical"]');
 }
 
 /**
@@ -237,11 +223,7 @@ export function PageTitle() {
      * Description is useful for both public and operational pages,
      * but operational pages are explicitly blocked from indexing.
      */
-    setMeta(
-      "name",
-      "description",
-      meta.description
-    );
+    setMeta("name", "description", meta.description);
 
     /**
      * ------------------------------------------------------------------------
@@ -260,11 +242,7 @@ export function PageTitle() {
      * - no Twitter metadata
      */
     if (!meta.canonical) {
-      setMeta(
-        "name",
-        "robots",
-        "noindex, nofollow"
-      );
+      setMeta("name", "robots", "noindex, nofollow");
 
       return;
     }
@@ -285,40 +263,20 @@ export function PageTitle() {
     /**
      * Robots
      */
-    setMeta(
-      "name",
-      "robots",
-      "index, follow"
-    );
+    setMeta("name", "robots", "index, follow");
 
     /**
      * ------------------------------------------------------------------------
      * Open Graph
      * ------------------------------------------------------------------------
      */
-    setMeta(
-      "property",
-      "og:title",
-      meta.title
-    );
+    setMeta("property", "og:title", meta.title);
 
-    setMeta(
-      "property",
-      "og:description",
-      meta.description
-    );
+    setMeta("property", "og:description", meta.description);
 
-    setMeta(
-      "property",
-      "og:url",
-      canonical
-    );
+    setMeta("property", "og:url", canonical);
 
-    setMeta(
-      "property",
-      "og:type",
-      "website"
-    );
+    setMeta("property", "og:type", "website");
 
     /**
      * ------------------------------------------------------------------------
@@ -327,17 +285,9 @@ export function PageTitle() {
      *
      * Keep these aligned with the public page metadata.
      */
-    setMeta(
-      "name",
-      "twitter:title",
-      meta.title
-    );
+    setMeta("name", "twitter:title", meta.title);
 
-    setMeta(
-      "name",
-      "twitter:description",
-      meta.description
-    );
+    setMeta("name", "twitter:description", meta.description);
   }, [location]);
 
   return null;

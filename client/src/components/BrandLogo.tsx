@@ -92,7 +92,14 @@ export function BrandMark({
         <stop offset="0%" stopColor="#ffffff" stopOpacity="0.09" />
         <stop offset="100%" stopColor="#ffffff" stopOpacity="0" />
       </radialGradient>
-      <rect x="2" y="2" width="60" height="60" rx="14" fill="url(#alhHighlight)" />
+      <rect
+        x="2"
+        y="2"
+        width="60"
+        height="60"
+        rx="14"
+        fill="url(#alhHighlight)"
+      />
 
       {/* ── The Open Book (two symmetric pages) ── */}
       {/* Left page */}
@@ -158,7 +165,11 @@ export function BrandLogo({
         <span className="flex flex-col leading-none">
           <span
             className={`font-display font-black tracking-tight text-[13.5px] leading-none ${wordColor}`}
-            style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 800, letterSpacing: '-0.02em' }}
+            style={{
+              fontFamily: '"Tajawal", system-ui, sans-serif',
+              fontWeight: 800,
+              letterSpacing: "-0.02em",
+            }}
           >
             الحسينية لخدمات الأعمال
           </span>
@@ -166,7 +177,10 @@ export function BrandLogo({
             className={`font-display font-bold tracking-[0.18em] text-[8.5px] mt-0.5 ${
               onDark ? "text-brand-300" : "text-brand"
             }`}
-            style={{ fontFamily: '"Tajawal", system-ui, sans-serif', fontWeight: 700 }}
+            style={{
+              fontFamily: '"Tajawal", system-ui, sans-serif',
+              fontWeight: 700,
+            }}
           >
             ALHUSAINIA BUSINESS SERVICES
           </span>

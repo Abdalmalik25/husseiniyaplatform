@@ -27,6 +27,9 @@ lint-output.txt
 build-output.txt
 temp/
 
+# Test coverage output
+coverage/
+
 # Wrong lockfile for a pnpm workspace (pnpm-lock.yaml is canonical)
 package-lock.json
 
@@ -46,6 +49,9 @@ Thumbs.db
 # Secrets & local copies
 BACKUP_ENCRYPTION_KEY_LOCAL_COPY.txt
 .git-commit-msg.txt
+
+# JWT ES256 key material (auto-generated; set env vars in prod)
+.keys/
 
 # Transient diagnostic outputs (db probes / migration tests)
 addcols.txt

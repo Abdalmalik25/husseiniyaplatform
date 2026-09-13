@@ -40,7 +40,10 @@ const requireTenant = t.middleware(async opts => {
     throw new TRPCError({ code: "UNAUTHORIZED", message: UNAUTHED_ERR_MSG });
   }
   if (!ctx.tenantId) {
-    throw new TRPCError({ code: "FORBIDDEN", message: "يجب ربط المستخدم بمؤسسة (tenant) قبل تنفيذ العملية" });
+    throw new TRPCError({
+      code: "FORBIDDEN",
+      message: "يجب ربط المستخدم بمؤسسة (tenant) قبل تنفيذ العملية",
+    });
   }
   const user = ctx.user;
 
@@ -109,10 +112,7 @@ export const ownerProcedure = t.procedure.use(
  *   .use(requirePermissions({ any: [A, B] }))
  */
 export function requirePermissions(
-  required:
-    | PermissionKey
-    | { all: PermissionKey[] }
-    | { any: PermissionKey[] }
+  required: PermissionKey | { all: PermissionKey[] } | { any: PermissionKey[] }
 ) {
   const keys: PermissionKey[] =
     typeof required === "string"
@@ -120,7 +120,8 @@ export function requirePermissions(
       : "all" in required
         ? required.all
         : required.any;
-  const mode = typeof required === "object" && "any" in required ? "any" : "all";
+  const mode =
+    typeof required === "object" && "any" in required ? "any" : "all";
 
   return t.middleware(async opts => {
     const { ctx, next } = opts;
@@ -143,7 +144,10 @@ export function requirePermissions(
         : keys.every(k => userPerms.includes(k));
 
     if (!ok) {
-      throw new TRPCError({ code: "FORBIDDEN", message: PERMISSION_DENIED_MSG });
+      throw new TRPCError({
+        code: "FORBIDDEN",
+        message: PERMISSION_DENIED_MSG,
+      });
     }
 
     // Re-assert the narrowed `user` so downstream handlers keep the

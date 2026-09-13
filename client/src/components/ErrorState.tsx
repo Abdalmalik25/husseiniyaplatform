@@ -75,11 +75,14 @@ export function ErrorState({
   if (!isError && !children) return null;
 
   return (
-    <div role="alert" className={cn(
-      "relative rounded-2xl border p-5 text-center",
-      colors.border,
-      className
-    )}>
+    <div
+      role="alert"
+      className={cn(
+        "relative rounded-2xl border p-5 text-center",
+        colors.border,
+        className
+      )}
+    >
       <div className="flex justify-center mb-3">
         <Icon className={cn("w-[32px] h-[32px]", colors.icon)} />
       </div>

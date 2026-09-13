@@ -442,13 +442,7 @@ export default function WorkspaceDashboard() {
                         </div>
                       </div>
 
-                      <LiveExecutiveCockpit
-                        summaryData={summaryData}
-                        dailyData={daily}
-                        commercialStats={commercialStats}
-                        valuationData={valuation}
-                        lowStockCount={lowStockCount}
-                      />
+                      <LiveExecutiveCockpit loading={isLoading} />
                     </div>
 
                     <div className="space-y-4">

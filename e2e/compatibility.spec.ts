@@ -60,9 +60,7 @@ test.describe("Device Compatibility", () => {
 test.describe("Touch Support", () => {
   // WCAG 2.2 AA norm (2.5.8) is 24x24 CSS px — 44x44 is AAA. The suite
   // enforces the AA floor; anything smaller is a genuine defect.
-  test("touch targets meet minimum 24x24px (WCAG 2.2 AA)", async ({
-    page,
-  }) => {
+  test("touch targets meet minimum 24x24px (WCAG 2.2 AA)", async ({ page }) => {
     await page.setViewportSize({ width: 375, height: 667 });
     await page.goto("/");
     await expect(page.locator("h1").first()).toBeVisible({
@@ -86,13 +84,11 @@ test.describe("Touch Support", () => {
       });
       if (exempt) continue;
       const boundingBox = await el.boundingBox();
-      if (
-        boundingBox &&
-        (boundingBox.width < 24 || boundingBox.height < 24)
-      ) {
+      if (boundingBox && (boundingBox.width < 24 || boundingBox.height < 24)) {
         const label =
           (await el.getAttribute("aria-label")) ??
-          ((await el.textContent())?.slice(0, 30) ?? `#${i}`);
+          (await el.textContent())?.slice(0, 30) ??
+          `#${i}`;
         undersized.push(
           `${label} (${Math.round(boundingBox.width)}x${Math.round(boundingBox.height)})`
         );
