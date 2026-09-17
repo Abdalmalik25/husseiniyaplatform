@@ -12,7 +12,6 @@ import path from "path";
 import { promises as fs } from "fs";
 import type { AddressInfo } from "net";
 import type { Express } from "express";
-import * as Sentry from "@sentry/node";
 import {
   SLO_TARGETS,
   classifyTrpcRoute,
@@ -31,6 +30,14 @@ import {
   recordBackupSuccess,
 } from "./backup";
 import { createApp } from "./app";
+
+// NOTE: @sentry/node ships a frozen ESM namespace — vi.spyOn() on it throws
+// "Cannot redefine property". Mock the module instead (implementation logic
+// is still fully asserted via return values + health file).
+vi.mock("@sentry/node", async (importOriginal) => {
+  const mod = await importOriginal<typeof import("@sentry/node")>();
+  return { ...mod, captureMessage: vi.fn(() => "evt-test") };
+});
 
 beforeEach(() => {
   resetObservability();
@@ -137,7 +144,7 @@ describe("backup paging (Sentry on 2nd consecutive failure)", () => {
   beforeEach(async () => {
     tmp = await fs.mkdtemp(path.join(os.tmpdir(), "obsslo-test-"));
     ENV.backupDir = tmp;
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   afterAll(async () => {
@@ -147,7 +154,10 @@ describe("backup paging (Sentry on 2nd consecutive failure)", () => {
   });
 
   it("captures a Sentry error on the 2nd failure and resets on success", async () => {
-    const spy = vi.spyOn(Sentry, "captureMessage").mockReturnValue("evt-test");
+    const SentryMock = await import("@sentry/node");
+    const spy = vi.mocked(SentryMock.captureMessage);
+    spy.mockClear();
+    spy.mockReturnValue("evt-test");
     const h1 = await recordBackupFailure(new Error("obs probe 1"));
     expect(h1.consecutiveFailures).toBe(1);
     expect(h1.needsAlert).toBe(false);

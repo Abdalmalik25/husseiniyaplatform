@@ -236,7 +236,7 @@ export const userBranchPermissions = pgTable(
         .notNull()
         .references(() => tenants.id),
     userId: integer("userId").notNull().references(() => users.id),
-    branchId: integer("branch_id").notNull(),
+    branchId: integer("branchId").notNull(),
     canView: boolean("canView").default(true).notNull(),
     canInsert: boolean("canInsert").default(true).notNull(),
     canApprove: boolean("canApprove").default(false).notNull(),
@@ -314,8 +314,8 @@ export const transactions = pgTable(
     accountId: integer("accountId")
         .notNull()
         .references(() => accounts.id),
-    branchId: integer("branch_id").references(() => branches.id),
-    costCenterId: integer("cost_center_id").references(() => costCenters.id),
+    branchId: integer("branchId").references(() => branches.id),
+    costCenterId: integer("costCenterId").references(() => costCenters.id),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     type: transactionTypeEnum("type").default("debit").notNull(),
     transactionDate: timestamp("transactionDate").notNull(),
@@ -328,7 +328,7 @@ export const transactions = pgTable(
     reversalReason: varchar("reversalReason", { length: 255 }),
     referenceType: varchar("referenceType", { length: 50 }),
     referenceId: integer("referenceId"),
-    journalEntryId: integer("journal_entry_id").references(() => journalEntries.id),
+    journalEntryId: integer("journalEntryId").references(() => journalEntries.id),
     sourceModule: varchar("sourceModule", { length: 50 }),
     userId: integer("userId").references(() => users.id),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -1940,8 +1940,8 @@ export const salesInvoices = pgTable(
     invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull(),
     orderId: integer("orderId").references(() => orders.id),
     customerId: integer("customerId").references(() => customers.id),
-    branchId: integer("branch_id").references(() => branches.id),
-    costCenterId: integer("cost_center_id").references(() => costCenters.id),
+    branchId: integer("branchId").references(() => branches.id),
+    costCenterId: integer("costCenterId").references(() => costCenters.id),
     warehouseId: integer("warehouseId").references(() => warehouses.id),
     projectId: integer("projectId"),
     status: salesInvoiceStatusEnum("status").default("draft").notNull(),
@@ -2084,8 +2084,8 @@ export const purchaseInvoices = pgTable(
     ...govColumns(),
     invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull(),
     supplierId: integer("supplierId").references(() => suppliers.id),
-    branchId: integer("branch_id").references(() => branches.id),
-    costCenterId: integer("cost_center_id").references(() => costCenters.id),
+    branchId: integer("branchId").references(() => branches.id),
+    costCenterId: integer("costCenterId").references(() => costCenters.id),
     warehouseId: integer("warehouseId").references(() => warehouses.id),
     projectId: integer("projectId"),
     status: purchaseInvoiceStatusEnum("status").default("draft").notNull(),
@@ -3642,7 +3642,7 @@ export const journalEntries = pgTable(
     tenantId: integer("tenantId")
         .notNull()
         .references(() => tenants.id),
-    branchId: integer("branch_id").references(() => branches.id),
+    branchId: integer("branchId").references(() => branches.id),
     sourceModule: varchar("sourceModule", { length: 50 }),
     sourceRefType: varchar("sourceRefType", { length: 50 }),
     sourceRefId: integer("sourceRefId"),
@@ -3694,7 +3694,7 @@ export const scheduledJournalEntries = pgTable(
         .references(() => tenants.id),
     name: varchar("name", { length: 200 }).notNull(),
     description: text("description"),
-    branchId: integer("branch_id").references(() => branches.id),
+    branchId: integer("branchId").references(() => branches.id),
     frequency: varchar("frequency", { length: 20 })
       .default("monthly")
       .notNull(),
@@ -3771,7 +3771,7 @@ export const recurringExpenses = pgTable(
     accountId: integer("accountId")
       .references(() => accounts.id)
       .notNull(),
-    branchId: integer("branch_id").references(() => branches.id),
+    branchId: integer("branchId").references(() => branches.id),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 10 }).default("YER").notNull(),
     exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
@@ -3883,7 +3883,7 @@ export const recurringExpenseRuns = pgTable(
     exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 })
       .default("1")
       .notNull(),
-    journalEntryId: integer("journal_entry_id").references(
+    journalEntryId: integer("journalEntryId").references(
       () => journalEntries.id
     ),
     purchaseInvoiceId: integer("purchaseInvoiceId").references(
@@ -4208,7 +4208,7 @@ export const posSessions = pgTable(
     variance: decimal("variance", { precision: 15, scale: 2 }),
     status: varchar("status", { length: 20 }).default("open").notNull(),
     notes: text("notes"),
-    branchId: integer("branch_id").references(() => branches.id),
+    branchId: integer("branchId").references(() => branches.id),
     deviceId: integer("deviceId"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -4317,7 +4317,7 @@ export const posReturns = pgTable(
     originalInvoiceId: integer("originalInvoiceId").notNull(),
     originalInvoiceNumber: varchar("originalInvoiceNumber", { length: 50 }),
     customerId: integer("customerId").references(() => customers.id),
-    branchId: integer("branch_id").references(() => branches.id),
+    branchId: integer("branchId").references(() => branches.id),
     sessionId: integer("sessionId").references(() => posSessions.id),
     refundMethod: paymentMethodEnum("refundMethod").default("cash"),
     refundReference: varchar("refundReference", { length: 100 }),
@@ -4400,7 +4400,7 @@ export const posHeldCarts = pgTable(
         .references(() => tenants.id),
     code: varchar("code", { length: 40 }).notNull(),
     heldById: integer("heldById").notNull().references(() => users.id),
-    branchId: integer("branch_id").references(() => branches.id),
+    branchId: integer("branchId").references(() => branches.id),
     sessionId: integer("sessionId"),
     customerId: integer("customerId").references(() => customers.id),
     snapshot: text("snapshot").notNull(),
@@ -4931,7 +4931,7 @@ export const budgetScenarios = pgTable(
     description: text("description"),
     version: budgetVersionEnum("version").default("draft").notNull(),
     periodName: varchar("periodName", { length: 50 }).notNull(),
-    costCenterId: integer("cost_center_id").references(() => costCenters.id),
+    costCenterId: integer("costCenterId").references(() => costCenters.id),
     // Scenario assumptions
     assumptions: jsonb("assumptions"), // { growthRate, inflationRate, fxRate, ... }
     // Status
@@ -4977,7 +4977,7 @@ export const budgetLines = pgTable(
     accountId: integer("accountId")
         .notNull()
         .references(() => accounts.id),
-    costCenterId: integer("cost_center_id").references(() => costCenters.id),
+    costCenterId: integer("costCenterId").references(() => costCenters.id),
     periodName: varchar("periodName", { length: 50 }).notNull(), // monthly breakdown
     amount: decimal("amount", { precision: 15, scale: 2 })
       .default("0")
@@ -5028,7 +5028,7 @@ export const varianceAnalyses = pgTable(
     accountId: integer("accountId")
         .notNull()
         .references(() => accounts.id),
-    costCenterId: integer("cost_center_id").references(() => costCenters.id),
+    costCenterId: integer("costCenterId").references(() => costCenters.id),
     budgetAmount: decimal("budgetAmount", { precision: 15, scale: 2 })
       .default("0")
       .notNull(),
@@ -5175,7 +5175,7 @@ export const kpiMeasurements = pgTable(
         .references(() => tenants.id),
     kpiId: integer("kpiId").notNull(),
     periodName: varchar("periodName", { length: 50 }).notNull(),
-    costCenterId: integer("cost_center_id").references(() => costCenters.id),
+    costCenterId: integer("costCenterId").references(() => costCenters.id),
     value: decimal("value", { precision: 15, scale: 4 }).notNull(),
     targetValue: decimal("targetValue", { precision: 15, scale: 4 }),
     variance: decimal("variance", { precision: 15, scale: 4 }),
@@ -5743,8 +5743,8 @@ export const quotations = pgTable(
     customerId: integer("customerId").references(() => customers.id),
     supplierId: integer("supplierId").references(() => suppliers.id),
     counterpartyName: varchar("counterpartyName", { length: 255 }),
-    branchId: integer("branch_id").references(() => branches.id),
-    costCenterId: integer("cost_center_id").references(() => costCenters.id),
+    branchId: integer("branchId").references(() => branches.id),
+    costCenterId: integer("costCenterId").references(() => costCenters.id),
     warehouseId: integer("warehouseId").references(() => warehouses.id),
     projectId: integer("projectId"),
     currency: varchar("currency", { length: 10 }).default("YER").notNull(),

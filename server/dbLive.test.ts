@@ -55,6 +55,9 @@ describe("dbLive: real serverless transaction engine + tenant isolation + atomic
       const client = await pool.connect();
       try {
         await client.query("BEGIN");
+        // Idempotent probe: pooled sessions can be reused, and TEMP tables
+        // survive COMMIT until session end — never assume a clean session.
+        await client.query("DROP TABLE IF EXISTS pg_temp._tx_probe_live");
         await client.query("CREATE TEMP TABLE _tx_probe_live (v int)");
         await client.query("INSERT INTO _tx_probe_live VALUES (1)");
         await client.query("SAVEPOINT inner_live");
@@ -66,6 +69,11 @@ describe("dbLive: real serverless transaction engine + tenant isolation + atomic
         expect(inner.rows[0].n).toBe(1); // inner write was rolled back
         await client.query("COMMIT");
       } finally {
+        try {
+          await client.query("DROP TABLE IF EXISTS pg_temp._tx_probe_live");
+        } catch {
+          /* probe cleanup best-effort */
+        }
         try {
           await client.query("ROLLBACK");
         } catch {

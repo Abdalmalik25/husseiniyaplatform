@@ -51,7 +51,7 @@ export const projectsRouter = router({
     .input(
       z.object({
         name: z.string().min(2).max(150),
-        code: z.string().min(1).max(30),
+        code: z.string().min(1).max(30).optional(),
         description: z.string().optional(),
         budget: z.number().optional(),
         startDate: z.string().optional(),
@@ -68,7 +68,7 @@ export const projectsRouter = router({
         .values({
           tenantId: ctx.tenantId,
           name: input.name,
-          code: input.code,
+          code: input.code ?? `PRJ-${Date.now().toString(36).toUpperCase()}`,
           description: input.description,
           budget: input.budget !== undefined ? String(input.budget) : undefined,
           startDate: input.startDate ? new Date(input.startDate) : undefined,

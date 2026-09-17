@@ -108,6 +108,32 @@ export async function upsertUser(user: InsertUser): Promise<void> {
       values.role = "admin";
       updateSet.role = "admin";
     }
+    // Session & security tracking: must persist (sdk session-limit + activity).
+    // Previously silently dropped — sessionCount never incremented.
+    if (user.lastActivity !== undefined) {
+      values.lastActivity = user.lastActivity;
+      updateSet.lastActivity = user.lastActivity;
+    }
+    if (user.sessionCount !== undefined) {
+      values.sessionCount = user.sessionCount;
+      updateSet.sessionCount = user.sessionCount;
+    }
+    if (user.currentSessionId !== undefined) {
+      values.currentSessionId = user.currentSessionId;
+      updateSet.currentSessionId = user.currentSessionId;
+    }
+    if (user.passwordChangedAt !== undefined) {
+      values.passwordChangedAt = user.passwordChangedAt;
+      updateSet.passwordChangedAt = user.passwordChangedAt;
+    }
+    if (user.failedLoginAttempts !== undefined) {
+      values.failedLoginAttempts = user.failedLoginAttempts;
+      updateSet.failedLoginAttempts = user.failedLoginAttempts;
+    }
+    if (user.lockedUntil !== undefined) {
+      values.lockedUntil = user.lockedUntil;
+      updateSet.lockedUntil = user.lockedUntil;
+    }
 
     if (!values.lastSignedIn) {
       values.lastSignedIn = new Date();
