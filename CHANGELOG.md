@@ -4,6 +4,28 @@ All notable changes are documented here. Format follows [Keep a Changelog](https
 
 ---
 
+## [7.1.0] — 2026-09-18 · Merchant Release — إصدار التاجر
+
+### للمشتركين والعملاء — What you will notice
+
+- صفحتا **سياسة الخصوصية** (`/privacy-policy`) و**الشروط والأحكام** (`/terms-of-service`) تعملان الآن من الفوتر (كانت الأزرار تذهب لصفحة التواصل) ومن بانر الكوكيز — وفحص E2E للامتثال أخضر 17/17.
+- لغة التاجر في كل الواجهات: "منشأة" بدل "مستأجر"، وبلا اختصارات معيارية (IFRS/COSO) في قوائم التنقل — مع إبقاء الدقة المهنية في مركز المعرفة.
+- رسائل خطأ مفهومة دائماً: لا رموز إنجليزية بعد اليوم — مترجم `friendlyErrors` في 10 شاشات تشغيلية (نقاط البيع، التجارة، الفوترة…) + ترجمة أخطاء التحقق في الخادم.
+- تحميل أخف: حذف 69 ملفاً ميتاً (~130KB مصدر) بلا أي تغيير وظيفي — كل البوابات خضراء بعده.
+- تحديثات أمان وصيانة للحزم (zod، axios، date-fns، dotenv، compression، sonner) ضمن نفس الإصدارات الرئيسية.
+
+### تقني — Technical
+
+- تكامل المسارات: `App.tsx` (مساران عامان جديدان) + `pageTitles` + `sitemap.xml` (14 رابطاً) + إصلاح روابط الفوتر والكوكيز.
+- `server/_core/trpc.ts`: `errorFormatter` يترجم أخطاء Zod للعربية؛ `shared/const.ts`: رمزا 10001/10002 بالعربية (المقارنة بالثابت المشترك — آمنة).
+- `client/src/lib/friendlyErrors.ts` جديد + 3 اختبارات؛ موصول في POSPage/Commercial/Billing/BasicData/Branches/Vouchers/Inventory/CostCenters/Customization/Beneficiaries.
+- توحيد schema-vs-live: 15 جدولاً إلى camelCase (الحقيقة الحية من `information_schema`) — أصلح فشل `42703` في كتابات المحاسبة الحية؛ `0023_nuclear_fortress` متسامح مع الانحراف.
+- `e2e.preview.config.ts` جديد يعكس CI محلياً (بناء الإنتاج على :3100) — كشف أن عطل dev (`preamble`) خاص ببيئة التطوير فقط.
+- إصلاحات اختبارات: `vi.mock` لـ Sentry المجمدة، مسبار TX idempotent، استمرارية حقول الجلسة في `upsertUser`، `projects.code` اختياري مولّد.
+- توحيد الإصدار المعروض `brand.names.version` مع `package.json` (7.1.0).
+
+---
+
 ## [7.0.0] — 2026-09-13 · Production Final Release — الإصدار الإنتاجي النهائي
 
 ### Security — تحصين الجلسات ES256 + مفاتيح دائمة

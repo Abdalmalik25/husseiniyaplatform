@@ -26,6 +26,8 @@ const ROUTES = [
   ["/solutions", "0.7", "monthly"],
   ["/governance", "0.6", "monthly"],
   ["/integrate", "0.6", "monthly"],
+  ["/privacy-policy", "0.3", "yearly"],
+  ["/terms-of-service", "0.3", "yearly"],
 ];
 
 const url = route => `${BASE}${route}`;
