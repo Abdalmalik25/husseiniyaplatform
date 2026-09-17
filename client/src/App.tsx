@@ -76,6 +76,8 @@ const FinancialStatements = lazy(() => import("@/pages/FinancialStatements"));
 const FiscalPeriods = lazy(() => import("@/pages/FiscalPeriods"));
 const ResetPassword = lazy(() => import("@/pages/ResetPassword"));
 const VerifyEmail = lazy(() => import("@/pages/VerifyEmail"));
+const PrivacyPolicy = lazy(() => import("@/pages/PrivacyPolicy"));
+const TermsOfService = lazy(() => import("@/pages/TermsOfService"));
 
 /**
  * Route tables — single source of truth for every page. Keeping the paths
@@ -97,6 +99,8 @@ const MARKETING_ROUTES: RouteDef[] = [
   { path: "/solutions", page: TechSolutions },
   { path: "/governance", page: ProjectGovernance },
   { path: "/integrate", page: Integrate },
+  { path: "/privacy-policy", page: PrivacyPolicy },
+  { path: "/terms-of-service", page: TermsOfService },
 ];
 
 /** Standalone public auth pages (no chrome — full-screen gates). */

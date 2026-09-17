@@ -298,10 +298,17 @@ export function SiteFooter() {
             <span>نظام Uamex_erp مبني ومستضاف على بنية سحابية</span>
             <span className="text-brand/60">·</span>
             <button
-              onClick={() => setLocation("/contact")}
+              onClick={() => setLocation("/privacy-policy")}
               className="text-white/45 hover:text-brand-300 transition-colors min-h-[24px]"
             >
               سياسة الخصوصية
+            </button>
+            <span className="text-brand/60">·</span>
+            <button
+              onClick={() => setLocation("/terms-of-service")}
+              className="text-white/45 hover:text-brand-300 transition-colors min-h-[24px]"
+            >
+              الشروط والأحكام
             </button>
           </div>
         </div>

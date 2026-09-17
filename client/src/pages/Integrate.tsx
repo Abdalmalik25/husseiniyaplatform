@@ -85,7 +85,7 @@ header("Content-Type: text/html; charset=UTF-8");
 <script>
   SyncJav.init({
     storeUrl: "${PLATFORM_URL}/store",
-    // اختياري: العملة والفرع للمؤسسة (تعدد المستأجرين)
+    // اختياري: العملة والفرع لمنشأتك (دعم تعدد المنشآت والفروع)
     currency: "YER",
     branchCode: "MAIN"
   });
@@ -300,11 +300,11 @@ ORDER_WEBHOOK_URL=https://your-site.com/api/alhusainia/orders
         {/* Multi-tenant note */}
         <section className="bg-ink-800 text-white rounded-3xl p-6 md:p-8 border border-ink-600 space-y-4">
           <h3 className="text-lg font-bold font-display flex items-center gap-2">
-            <Layers className="w-5 h-5 text-brand-300" /> تعدد المستأجرين في
+            <Layers className="w-5 h-5 text-brand-300" /> تعدد المنشآت في
             التكامل
           </h3>
           <p className="text-xs text-slate-300 leading-relaxed">
-            كل طلب ومصدر بيانات مرتبط بمؤسسة (tenant) وفرع (branch) وعملة
+            كل طلب ومصدر بيانات مرتبط بمنشأتك (tenant) وفرع (branch) وعملة
             (currency) ووحدة قياس. مرّر هذه الحقول في الـ payload لربط الطلب
             بالفرع الصحيح ومحاسبته آلياً ضمن دليل الحسابات المركزي.
           </p>

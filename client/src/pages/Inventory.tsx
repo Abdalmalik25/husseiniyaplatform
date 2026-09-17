@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { friendlyError } from "@/lib/friendlyErrors";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -100,7 +101,7 @@ export default function Inventory() {
       toast.success("تم إنشاء طلب التوريد");
       utils.erp.listReorderSuggestions.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر الإنشاء"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الإنشاء")),
   });
   const generateAuto = trpc.erp.generateProcurementsFromReorder.useMutation({
     onSuccess: (r: any) => {
@@ -108,7 +109,7 @@ export default function Inventory() {
       utils.erp.listReorderSuggestions.invalidate();
       utils.erp.listProcurements.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر التوليد"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر التوليد")),
   });
 
   // operations local state

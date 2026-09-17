@@ -1,5 +1,6 @@
 import { useState, useMemo, useRef, useCallback } from "react";
 import { trpc } from "@/lib/trpc";
+import { friendlyError } from "@/lib/friendlyErrors";
 import { useDebounce } from "@/hooks/useDebounce";
 import { ProductPicker } from "@/components/ProductPicker";
 import { BarcodeScanner } from "@/components/BarcodeScanner";
@@ -180,7 +181,7 @@ export default function Commercial() {
         inventoryAccountId: undefined,
       });
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const isCreatingProduct = createProduct.isPending;
 
@@ -217,7 +218,7 @@ export default function Commercial() {
       setEditProduct(null);
       refetchProducts();
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
 
   const [adjustProduct, setAdjustProduct] = useState<any>(null);
@@ -232,7 +233,7 @@ export default function Commercial() {
       setAdjustProduct(null);
       refetchProducts();
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
 
   const customerNameOf = (id: number | null | undefined) => {
@@ -310,7 +311,7 @@ export default function Commercial() {
         city: "",
       });
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const isCreatingCustomer = createCustomer.isPending;
 
@@ -355,7 +356,7 @@ export default function Commercial() {
         city: "",
       });
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const isCreatingSupplier = createSupplier.isPending;
 
@@ -407,7 +408,7 @@ export default function Commercial() {
         setShowSaleDialog(false);
       }
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const isCreatingSale = createSale.isPending;
 
@@ -501,7 +502,7 @@ export default function Commercial() {
       setShowPurchaseDialog(false);
       setPurchaseItems([]);
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const isCreatingPurchase = createPurchase.isPending;
 
@@ -534,7 +535,7 @@ export default function Commercial() {
       setShowOrderDialog(false);
       setOrderItems([]);
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const isCreatingOrder = createOrder.isPending;
 
@@ -568,7 +569,7 @@ export default function Commercial() {
       });
       utils.modules.offers.list.invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(friendlyError(e)),
   });
   const updateOffer = trpc.modules.offers.update.useMutation({
     onSuccess: () => {
@@ -576,14 +577,14 @@ export default function Commercial() {
       setEditOffer(null);
       utils.modules.offers.list.invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(friendlyError(e)),
   });
   const deleteOffer = trpc.modules.offers.delete.useMutation({
     onSuccess: () => {
       toast.success("تم الحذف");
       utils.modules.offers.list.invalidate();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(friendlyError(e)),
   });
   const [showOfferDialog, setShowOfferDialog] = useState(false);
   const [offerForm, setOfferForm] = useState<any>({
@@ -652,7 +653,7 @@ export default function Commercial() {
       toast.success("تم تحديث حالة الطلب");
       refetchOrders();
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const updateSaleStatus = trpc.sales.updateStatus.useMutation({
     onSuccess: () => {
@@ -660,7 +661,7 @@ export default function Commercial() {
       refetchSales();
       refetchProducts();
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const updatePurchaseStatus = trpc.purchases.updateStatus.useMutation({
     onSuccess: () => {
@@ -668,7 +669,7 @@ export default function Commercial() {
       refetchPurchases();
       refetchProducts();
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
 
   const utils = trpc.useUtils();
@@ -702,7 +703,7 @@ export default function Commercial() {
         });
       }
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const [payTarget, setPayTarget] = useState<{
     invoice: any;

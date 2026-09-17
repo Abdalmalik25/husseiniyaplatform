@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
+import { friendlyError } from "@/lib/friendlyErrors";
 import { toast } from "sonner";
 import { MapPin, Plus, Trash2, Building2, Layers } from "lucide-react";
 
@@ -18,7 +19,7 @@ export default function CostCenters() {
       setCode("");
       setName("");
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(friendlyError(e)),
   });
   const remove = trpc.costCenters.remove.useMutation({
     onSuccess: () => {

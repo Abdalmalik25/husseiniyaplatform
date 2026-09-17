@@ -196,7 +196,7 @@ export function CookieConsent() {
           <p className="text-[10px] text-white/35 mt-3 leading-relaxed">
             للتفاصيل الكاملة، اطلع على{" "}
             <a
-              href="/privacy"
+              href="/privacy-policy"
               className="text-brand-300 hover:text-brand underline-offset-2 hover:underline"
             >
               سياسة الخصوصية

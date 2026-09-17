@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { friendlyError } from "@/lib/friendlyErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DeniedScreen } from "@/components/DeniedScreen";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -46,7 +47,7 @@ export default function Branches() {
       setCity("");
       utils.modules.branches.list.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر الإضافة"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الإضافة")),
   });
   const updateBranch = trpc.modules.branches.update.useMutation({
     onSuccess: () => {
@@ -54,10 +55,10 @@ export default function Branches() {
       setEditing(null);
       utils.modules.branches.list.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر التحديث"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر التحديث")),
   });
   const assign = trpc.modules.branches.assignUserPermission.useMutation({
-    onError: (e: any) => toast.error(e?.message || "تعذر الحفظ"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الحفظ")),
   });
 
   const [selUser, setSelUser] = useState<number | "">("");

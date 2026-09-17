@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { brand } from "@/lib/brand";
+import { friendlyError } from "@/lib/friendlyErrors";
 import { toast } from "sonner";
 import { AppSidebar } from "@/components/AppSidebar";
 import {
@@ -271,7 +272,7 @@ export default function POSModule() {
   const cart = usePOSCart({
     salesPolicy,
     config,
-    onError: msg => toast.error(msg),
+    onError: msg => toast.error(friendlyError(msg)),
     getApplicableOffers: async (productId, quantity) => {
       try {
         const data = await utils.modules.offers.applicable.fetch({
@@ -689,7 +690,7 @@ export default function POSModule() {
       }
     },
     onError: (e: any) => {
-      toast.error(e?.message || "تعذر إتمام البيع");
+      toast.error(friendlyError(e, "تعذر إتمام البيع"));
       if (config.enableOffline) {
         const submission = cart.getCartForSubmission();
         offlineQueue.addToQueue({
@@ -834,7 +835,7 @@ export default function POSModule() {
       cart.clearCart();
       toast.success(`تم تعليق الفاتورة: ${held.code}`);
     } catch (e: any) {
-      toast.error(e?.message || "فشل تعليق الفاتورة");
+      toast.error(friendlyError(e, "فشل تعليق الفاتورة"));
     }
   }, [cart, session]);
 
@@ -861,7 +862,7 @@ export default function POSModule() {
         setShowHolds(false);
         toast.success(`تم استعادة الفاتورة المعلقة: ${held.code}`);
       } catch (e: any) {
-        toast.error(e?.message || "فشل استعادة الفاتورة المعلقة");
+        toast.error(friendlyError(e, "فشل استعادة الفاتورة المعلقة"));
       }
     },
     [utils, cart, session]

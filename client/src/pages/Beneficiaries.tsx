@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { trpc } from "@/lib/trpc";
+import { friendlyError } from "@/lib/friendlyErrors";
 import { toast } from "sonner";
 import {
   Users,
@@ -53,7 +54,7 @@ export default function Beneficiaries() {
       });
       search.refetch();
     },
-    onError: (e: any) => toast.error(e.message),
+    onError: (e: any) => toast.error(friendlyError(e)),
   });
 
   const unified = search.data ?? [];

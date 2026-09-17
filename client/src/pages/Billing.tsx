@@ -14,6 +14,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { trpc } from "@/lib/trpc";
+import { friendlyError } from "@/lib/friendlyErrors";
 import { toast } from "sonner";
 import { whatsappLink } from "@/lib/brand";
 import {
@@ -143,7 +144,7 @@ export default function Billing() {
       }
       toast.success("تم إنشاء الفاتورة بنجاح");
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
 
   const access = overview.data?.access;
@@ -730,14 +731,14 @@ function OwnerAdminPanel() {
       toast.success("تم حفظ سياسة الاشتراك");
       overview.refetch();
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const upsertGateway = trpc.billing.upsertGateway.useMutation({
     onSuccess: () => {
       toast.success("تم حفظ البوابة");
       adminGateways.refetch();
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
 
   // ── أكواد التفعيل: إنشاء + قائمة + إرسال (بريد/واتساب/SMS) ──────────
@@ -753,7 +754,7 @@ function OwnerAdminPanel() {
       toast.success(`تم إنشاء ${res.created.length} كود تفعيل`);
       adminCodes.refetch();
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const sendCode = trpc.billing.sendSubscriptionCode.useMutation({
     onSuccess: res => {
@@ -765,7 +766,7 @@ function OwnerAdminPanel() {
       setSendResult(res);
       adminCodes.refetch();
     },
-    onError: e => toast.error(e.message),
+    onError: e => toast.error(friendlyError(e)),
   });
   const [codeForm, setCodeForm] = useState({
     planId: 0,

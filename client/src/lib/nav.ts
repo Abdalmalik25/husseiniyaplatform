@@ -76,19 +76,19 @@ export const MARKETING_NAV: NavItem[] = [
     path: "/#uamex",
     label: "المنصة الموحدة",
     icon: HusPlatformIcon,
-    description: "Uamex_erp — مصدر حقيقة واحد بمعايير IFRS/COSO",
+    description: "Uamex_erp — كل حساباتك وفروعك في شاشة واحدة",
   },
   {
     path: "/#corporate",
     label: "الاستشارات المؤسسية",
     icon: HusLayersIcon,
-    description: "حوكمة بمعايير COSO — من التشخيص إلى القياس",
+    description: "نظام عمل واضح — من التشخيص إلى النتيجة",
   },
   {
     path: "/#engineering",
     label: "الهندسة والمساحة",
     icon: HusCompassIcon,
-    description: "تقدير NRM/POMI يُحتَج به أمام الممول",
+    description: "تقديرات هندسية موثقة يقبلها الممولون",
   },
   {
     path: "/#library",
@@ -125,7 +125,7 @@ export const MARKETING_NAV: NavItem[] = [
     path: "/insights",
     label: "مركز المعرفة",
     icon: HusPlatformIcon,
-    description: "أدلة IFRS/COSO/PMBOK وتشخيصات عملية",
+    description: "أدلة عملية مبسطة وتشخيصات مالية",
   },
 ];
 
@@ -135,7 +135,7 @@ export const MARKETING_NAV: NavItem[] = [
  * ────────────────────────────────────────────────────────────────────────
  * 4 مجالات فقط — كل مجال يجيب عن سؤال واحد واضح:
  * الحلول: ماذا تحل لي؟ (JTBD) · المنصة: كيف تعمل؟ (How) · الموارد: كيف أتعلم وأدمج؟ · الشركة: من أنتم؟
- * HeaderNavbar يستهلك هذه العناقيد مباشرة — لا عشوائية، لا خلط تسويق/نظام.
+ * MarketingHeader يستهلك هذه العناقيد مباشرة — لا عشوائية، لا خلط تسويق/نظام.
  */
 
 // المنصة: كيف تعمل — مصدر الحقيقة الموحد فقط (لا يخلط بالخدمات)
@@ -145,19 +145,19 @@ export const PLATFORM_CLUSTER: NavItem[] = [
     label: "Uamex_erp — المنصة الموحدة",
     icon: HusPlatformIcon,
     highlight: true,
-    description: "قيد مزدوج + تدقيق غير قابل للتعديل + صلاحيات COSO",
+    description: "قيود محمية من التعديل + صلاحية لكل موظف",
   },
   {
     path: "/#methodology",
     label: "المنهجية المعتمدة",
     icon: HusScaleIcon,
-    description: "IFRS / COSO / PMBOK / ISO — أثر قابل للتدقيق",
+    description: "منهجية معتمدة — كل رقم قابل للمراجعة",
   },
   {
     path: "/#trust-center",
     label: "الأمن والامتثال",
     icon: HusShieldIcon,
-    description: "AES-256-GCM + عزل مستأجرين + نسخ مشفّر",
+    description: "تشفير كامل + عزل بيانات كل منشأة + نسخ احتياطي مشفّر",
   },
 ];
 
@@ -167,13 +167,13 @@ export const SOLUTIONS_CLUSTER: NavItem[] = [
     path: "/#corporate",
     label: "الاستشارات المؤسسية",
     icon: HusLayersIcon,
-    description: "حوكمة COSO — تشخيص الانحراف وتصميم KPI",
+    description: "نتابع الانحرافات ونصمم مؤشرات تقيس شغلك",
   },
   {
     path: "/#engineering",
     label: "الهندسة والمساحة",
     icon: HusCompassIcon,
-    description: "BOQ بـ NRM2/POMI بدقة ±5% — GPS/Drone بدقة ±2 سم",
+    description: "جداول كميات دقيقة — مساحة GPS ودرون معتمدة",
   },
   {
     path: "/#library",
@@ -238,7 +238,7 @@ export const TOOLS_CLUSTER: NavItem[] = [
     path: "/insights",
     label: "مركز المعرفة",
     icon: HusPlatformIcon,
-    description: "أدلة IFRS/COSO/PMBOK وتشخيصات عملية",
+    description: "أدلة عملية مبسطة وتشخيصات مالية",
   },
   {
     path: "/integrate",

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { friendlyError } from "@/lib/friendlyErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DeniedScreen } from "@/components/DeniedScreen";
 import { toast } from "sonner";
@@ -34,7 +35,7 @@ export default function BasicData() {
       setCur({ code: "", name: "", symbol: "", rate: "1", isDefault: false });
       utils.modules.currencies.list.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر الإضافة"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الإضافة")),
   });
   const updateCur = trpc.modules.currencies.update.useMutation({
     onSuccess: () => {
@@ -42,7 +43,7 @@ export default function BasicData() {
       setEditCur(null);
       utils.modules.currencies.list.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر التحديث"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر التحديث")),
   });
   const setDefaultCur = trpc.modules.currencies.setDefault.useMutation({
     onSuccess: () => utils.modules.currencies.list.invalidate(),
@@ -80,7 +81,7 @@ export default function BasicData() {
       utils.modules.salesReps.list.invalidate();
       utils.modules.salesReps.commissionReport.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر الإضافة"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الإضافة")),
   });
   const updateRep = trpc.modules.salesReps.update.useMutation({
     onSuccess: () => {
@@ -89,7 +90,7 @@ export default function BasicData() {
       utils.modules.salesReps.list.invalidate();
       utils.modules.salesReps.commissionReport.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر التحديث"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر التحديث")),
   });
   const deleteRep = trpc.modules.salesReps.delete.useMutation({
     onSuccess: () => {
@@ -97,7 +98,7 @@ export default function BasicData() {
       utils.modules.salesReps.list.invalidate();
       utils.modules.salesReps.commissionReport.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر الحذف"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الحذف")),
   });
   const [showRep, setShowRep] = useState(false);
   const [rep, setRep] = useState({
@@ -126,7 +127,7 @@ export default function BasicData() {
       setUnit({ code: "", name: "", symbol: "" });
       utils.modules.masterData.listUnits.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر الإضافة"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الإضافة")),
   });
   const createCat = trpc.modules.masterData.createCategory.useMutation({
     onSuccess: () => {
@@ -134,7 +135,7 @@ export default function BasicData() {
       setCat({ code: "", name: "", type: "product" });
       utils.modules.masterData.listCategories.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر الإضافة"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الإضافة")),
   });
 
   if (!isAdmin) return <DeniedScreen />;

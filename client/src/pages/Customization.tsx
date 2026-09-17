@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { trpc } from "@/lib/trpc";
+import { friendlyError } from "@/lib/friendlyErrors";
 import { usePermissions } from "@/hooks/usePermissions";
 import { DeniedScreen } from "@/components/DeniedScreen";
 import { RequireAuth } from "@/components/RequireAuth";
@@ -52,14 +53,14 @@ export default function Customization() {
       setOptions("");
       utils.modules.customFields.listDefs.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر الإضافة"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الإضافة")),
   });
   const deleteDef = trpc.modules.customFields.deleteDef.useMutation({
     onSuccess: () => {
       toast.success("تم حذف الحقل");
       utils.modules.customFields.listDefs.invalidate();
     },
-    onError: (e: any) => toast.error(e?.message || "تعذر الحذف"),
+    onError: (e: any) => toast.error(friendlyError(e, "تعذر الحذف")),
   });
 
   const addField = () => {

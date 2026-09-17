@@ -26,6 +26,8 @@ export const PAGE_TITLES: Record<string, string> = {
   "/solutions": `الحلول البرمجية | ${BRAND}`,
   "/governance": `حوكمة المشاريع | ${BRAND}`,
   "/integrate": `مركز التكامل | ${BRAND}`,
+  "/privacy-policy": `سياسة الخصوصية | ${BRAND}`,
+  "/terms-of-service": `الشروط والأحكام | ${BRAND}`,
 
   // ── الصفحات التشغيلية (المشترك) ──
   "/app": `لوحة التحكم | ${BRAND}`,

@@ -322,7 +322,7 @@ export default function Settings() {
             <CardHeader className="bg-amber-50/60 border-b border-amber-100 p-4">
               <CardTitle className="text-base font-bold text-slate-900 flex items-center gap-2 font-display">
                 <Globe className="w-5 h-5 text-brand" />
-                البنية متعددة المستأجرين (مؤسسات · دول · فروع · عملات)
+                البنية متعددة المنشآت (منشآت · دول · فروع · عملات)
               </CardTitle>
               <CardDescription className="text-xs text-slate-600">
                 منظومة الحسينية مبنية لتخدم مؤسسات وفروعاً متعددة تحت نفس

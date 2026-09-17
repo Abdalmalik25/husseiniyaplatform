@@ -17,6 +17,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import { trpc } from "../lib/trpc";
+import { friendlyError } from "../lib/friendlyErrors";
 import { useDebounce } from "../hooks/useDebounce";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -228,7 +229,7 @@ function VouchersBody() {
       resetForm();
     },
     onError: error => {
-      toast.error(error.message);
+      toast.error(friendlyError(error));
     },
   });
 
@@ -237,7 +238,7 @@ function VouchersBody() {
       vouchersQuery.refetch();
     },
     onError: error => {
-      toast.error(error.message);
+      toast.error(friendlyError(error));
     },
   });
 
@@ -247,7 +248,7 @@ function VouchersBody() {
       setShowViewDialog(false);
     },
     onError: error => {
-      toast.error(error.message);
+      toast.error(friendlyError(error));
     },
   });
 
@@ -257,7 +258,7 @@ function VouchersBody() {
       setShowViewDialog(false);
     },
     onError: error => {
-      toast.error(error.message);
+      toast.error(friendlyError(error));
     },
   });
 
@@ -267,7 +268,7 @@ function VouchersBody() {
       setShowViewDialog(false);
     },
     onError: error => {
-      toast.error(error.message);
+      toast.error(friendlyError(error));
     },
   });
 
@@ -277,7 +278,7 @@ function VouchersBody() {
       setShowViewDialog(false);
     },
     onError: error => {
-      toast.error(error.message);
+      toast.error(friendlyError(error));
     },
   });
 

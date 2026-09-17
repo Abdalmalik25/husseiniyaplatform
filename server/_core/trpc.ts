@@ -19,6 +19,25 @@ import {
 
 const t = initTRPC.context<TrpcContext>().create({
   transformer: superjson,
+  errorFormatter({ shape, error }) {
+    // لغة التاجر: أخطاء التحقق من المدخلات (Zod) تصل الإنجليزية افتراضياً —
+    // نترجمها لعربية ودية مع إبقاء الرمز الأصلي للدعم الفني.
+    const cause = (error as { cause?: unknown }).cause;
+    const isInputError =
+      error.code === "BAD_REQUEST" &&
+      (cause instanceof Error
+        ? /validation|invalid|required|expected|Zod/i.test(
+            `${cause.name} ${cause.message}`
+          )
+        : /validation|invalid|expected/i.test(error.message));
+    if (isInputError) {
+      return {
+        ...shape,
+        message: "تحقق من البيانات المدخلة — بعض الحقول ناقصة أو غير صحيحة",
+      };
+    }
+    return shape;
+  },
 });
 
 export const router = t.router;
