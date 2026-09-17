@@ -10,7 +10,7 @@
  */
 import { z } from "zod";
 import { eq, and, gte, lte, desc, lt, gt } from "drizzle-orm";
-import { router, tenantProcedure, adminProcedure } from "./_core/trpc";
+import { router, tenantProcedure, adminProcedure, requirePermissions } from "./_core/trpc";
 import { requireTenantId } from "./_core/tenant";
 import { getDb } from "./db";
 import {
@@ -27,6 +27,7 @@ import {
   salesInvoices,
   purchaseInvoices,
 } from "../drizzle/schema";
+import { PERMISSIONS } from "../shared/permissions";
 
 type Db = any;
 
@@ -376,7 +377,12 @@ export const fiscalPeriodClosingRouter = router({
           closedById: ctx.user.id,
           notes: input.notes,
         })
-        .where(eq(fiscalPeriods.id, input.periodId));
+        .where(
+          and(
+            eq(fiscalPeriods.id, input.periodId),
+            eq(fiscalPeriods.tenantId, tid)
+          )
+        );
 
       await db.insert(activityLogs).values({
         tenantId: tid,
@@ -418,7 +424,12 @@ export const fiscalPeriodClosingRouter = router({
           reopenedById: ctx.user.id,
           reopenReason: input.reason,
         })
-        .where(eq(fiscalPeriods.id, input.periodId));
+        .where(
+          and(
+            eq(fiscalPeriods.id, input.periodId),
+            eq(fiscalPeriods.tenantId, tid)
+          )
+        );
 
       return { success: true, period: periods[0].name };
     }),
@@ -430,6 +441,7 @@ export const fiscalPeriodClosingRouter = router({
 
 export const accountingReportsRouter = router({
   trialBalance: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.REPORTS_VIEW))
     .input(
       z
         .object({
@@ -752,6 +764,7 @@ export const accountingReportsRouter = router({
 
 export const inventoryReportsRouter = router({
   inventoryBalance: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.REPORTS_VIEW))
     .input(z.object({ warehouseId: z.number().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const db = await getDb();

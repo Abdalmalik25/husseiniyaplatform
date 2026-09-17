@@ -12,12 +12,17 @@
  */
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { router, adminProcedure } from "./_core/trpc";
+import { requireTenantId } from "./_core/tenant";
 import {
   runBackup,
   listBackups,
   verifyBackup,
   restoreBackup,
+  getBackupHealth,
+  recordBackupSuccess,
+  recordBackupFailure,
 } from "./_core/backup";
 
 export const backupRouter = router({
@@ -27,17 +32,48 @@ export const backupRouter = router({
         tenantId: z.number().int().positive().nullable().default(null),
       })
     )
-    .mutation(async ({ input }) => {
-      const manifest = await runBackup(input.tenantId);
-      return {
-        id: manifest.id,
-        scope: manifest.scope,
-        totalRows: manifest.totalRows,
-        sha256: manifest.sha256,
-        storage: manifest.storage,
-        createdAt: manifest.createdAt,
-      };
+    .mutation(async ({ input, ctx }) => {
+      const tid = requireTenantId(ctx);
+      // Tenant admins are scoped to their own tenant; only the platform
+      // owner (isSuperAdmin) may back up another tenant or the whole estate.
+      if (!ctx.isSuperAdmin && input.tenantId !== null && input.tenantId !== tid) {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "CROSS_TENANT_DENIED: النسخ الاحتياطي متاح لنطاق مؤسستك فقط",
+        });
+      }
+      const scope = ctx.isSuperAdmin ? input.tenantId : tid;
+      try {
+        const manifest = await runBackup(scope);
+        await recordBackupSuccess();
+        return {
+          id: manifest.id,
+          scope: manifest.scope,
+          totalRows: manifest.totalRows,
+          sha256: manifest.sha256,
+          storage: manifest.storage,
+          createdAt: manifest.createdAt,
+        };
+      } catch (e) {
+        await recordBackupFailure(e);
+        throw e;
+      }
     }),
+
+  /** Program health: consecutive failures + paging flag (alert on ≥2). */
+  status: adminProcedure.query(async () => {
+    const health = await getBackupHealth();
+    const recent = (await listBackups()).slice(0, 5).map(m => ({
+      id: m.id,
+      createdAt: m.createdAt,
+      scope: m.scope,
+      totalRows: m.totalRows,
+      encryptedSize: m.encryptedSize,
+      sha256: m.sha256,
+      hasRemote: Boolean(m.storage.remoteKey),
+    }));
+    return { ...health, recent };
+  }),
 
   list: adminProcedure.query(async () => {
     const manifests = await listBackups();

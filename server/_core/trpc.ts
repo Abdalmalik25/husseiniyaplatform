@@ -1,9 +1,16 @@
 import { NOT_ADMIN_ERR_MSG, UNAUTHED_ERR_MSG } from "../../shared/const";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
+import * as Sentry from "@sentry/node";
 import type { TrpcContext } from "./context";
 import { enforceSubscription } from "./subscription";
 import { requireOwner } from "./tenant";
+import { logger } from "./logger";
+import {
+  classifyTrpcRoute,
+  deriveTraceId,
+  recordTrpcRequest,
+} from "./observability";
 import {
   resolveUserPermissions,
   PERMISSION_DENIED_MSG,
@@ -15,7 +22,65 @@ const t = initTRPC.context<TrpcContext>().create({
 });
 
 export const router = t.router;
-export const publicProcedure = t.procedure;
+
+/**
+ * observabilityMiddleware — runs FIRST on every procedure (see the exported
+ * procedure builders below). Emits one structured JSON log per tRPC call via
+ * the SINGLE logger/redact() entrypoint:
+ *   { requestId, traceId, tenantId, route, type, kind, durationMs, ok }
+ * and records the sample in the in-memory SLI store that feeds GET /api/slo.
+ * The traceId extends x-request-id (or honours W3C `traceparent`).
+ */
+const observabilityMiddleware = t.middleware(async opts => {
+  const { ctx, next, path, type } = opts;
+  const start = Date.now();
+  const traceId = deriveTraceId(
+    ctx.requestId,
+    (ctx.req.headers as Record<string, unknown>)?.["traceparent"]
+  );
+  try {
+    Sentry.getCurrentScope?.().setTag("trace_id", traceId);
+  } catch {
+    /* Sentry optional */
+  }
+  const route = path ?? "unknown";
+  try {
+    const result = await next();
+    const durationMs = Date.now() - start;
+    const kind = classifyTrpcRoute(route, type);
+    recordTrpcRequest({ route, kind, durationMs, ok: true });
+    logger.info("trpc", {
+      requestId: ctx.requestId,
+      traceId,
+      tenantId: ctx.tenantId ?? undefined,
+      route,
+      type,
+      kind,
+      durationMs,
+      ok: true,
+    });
+    return result;
+  } catch (err) {
+    const durationMs = Date.now() - start;
+    const kind = classifyTrpcRoute(route, type);
+    recordTrpcRequest({ route, kind, durationMs, ok: false });
+    logger.error("trpc_error", {
+      requestId: ctx.requestId,
+      traceId,
+      tenantId: ctx.tenantId ?? undefined,
+      route,
+      type,
+      kind,
+      durationMs,
+      ok: false,
+      code: (err as { code?: unknown })?.code,
+      message: err instanceof Error ? err.message : String(err),
+    });
+    throw err;
+  }
+});
+
+export const publicProcedure = t.procedure.use(observabilityMiddleware);
 
 const requireUser = t.middleware(async opts => {
   const { ctx, next } = opts;
@@ -60,10 +125,17 @@ const requireTenant = t.middleware(async opts => {
   });
 });
 
-export const protectedProcedure = t.procedure.use(requireUser);
-export const tenantProcedure = t.procedure.use(requireTenant);
+export const protectedProcedure = t.procedure
+  .use(observabilityMiddleware)
+  .use(requireUser);
+export const tenantProcedure = t.procedure
+  .use(observabilityMiddleware)
+  .use(requireTenant);
 
-export const adminProcedure = t.procedure.use(requireTenant).use(
+export const adminProcedure = t.procedure
+  .use(observabilityMiddleware)
+  .use(requireTenant)
+  .use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
 
@@ -87,7 +159,9 @@ export const adminProcedure = t.procedure.use(requireTenant).use(
  * سياسات الاشتراك، إدارة المستأجرين). يعتمد `requireOwner` من tenant.ts
  * والذي يقارن `openId` مع `OWNER_OPEN_ID`.
  */
-export const ownerProcedure = t.procedure.use(
+export const ownerProcedure = t.procedure
+  .use(observabilityMiddleware)
+  .use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
     if (!ctx.user) {

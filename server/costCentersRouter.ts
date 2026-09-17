@@ -1,8 +1,9 @@
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
-import { router, tenantProcedure } from "./_core/trpc";
+import { router, tenantProcedure, requirePermissions } from "./_core/trpc";
 import { getDb } from "./db";
 import { costCenters, transactions } from "../drizzle/schema";
+import { PERMISSIONS } from "../shared/permissions";
 
 export const costCentersRouter = router({
   list: tenantProcedure.query(async ({ ctx }) => {
@@ -15,6 +16,7 @@ export const costCentersRouter = router({
       .orderBy(costCenters.code);
   }),
   create: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.COST_CENTERS_MANAGE))
     .input(
       z.object({
         code: z.string().min(1).max(30),
@@ -39,6 +41,7 @@ export const costCentersRouter = router({
       return row;
     }),
   remove: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.COST_CENTERS_MANAGE))
     .input(z.object({ id: z.number() }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();

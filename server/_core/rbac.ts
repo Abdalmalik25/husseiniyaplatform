@@ -5,17 +5,20 @@
  *  1. Platform owner → all permissions (bypass)
  *  2. user.role enum (admin/owner) → role-based defaults from ROLE_DEFINITIONS
  *  3. roles table (custom roles) → JSON permissions column merged with defaults
+ *  4. Extended permission keys (import.data, export.data, etc.) → added to user permissions if role includes them
  *
  * Every tRPC procedure that needs a specific permission should use
- * `requirePermission(permissionKey)` as a middleware.
+ * `requirePermissions(permissionKey)` as a middleware.
  */
 import { TRPCError } from "@trpc/server";
 import { eq, and } from "drizzle-orm";
 import {
   PERMISSIONS,
+  EXTENDED_PERMISSIONS,
   ROLE_DEFINITIONS,
   permissionsForRole,
   type PermissionKey,
+  type ExtendedPermissionKey,
   type RoleCode,
 } from "../../shared/permissions";
 import { getDb } from "../db";
@@ -25,6 +28,8 @@ import type { TrpcContext } from "./context";
 // Re-export the canonical permission-key type so routers can import it
 // from a single server-side entry point (`./rbac`).
 export type { PermissionKey } from "../../shared/permissions";
+// Re-export extended permission-key type
+export type { ExtendedPermissionKey } from "../../shared/permissions";
 
 // ─── Permission Resolution ──────────────────────────────────────
 
@@ -37,7 +42,7 @@ export async function resolveUserPermissions(
 ): Promise<string[]> {
   // Platform owner gets everything
   if (ctx.isSuperAdmin) {
-    return Object.values(PERMISSIONS) as string[];
+    return [...Object.values(PERMISSIONS), ...Object.values(EXTENDED_PERMISSIONS)] as string[];
   }
 
   if (!ctx.user) return [];
@@ -46,6 +51,58 @@ export async function resolveUserPermissions(
 
   // Start with role-based defaults
   const rolePerms = new Set<string>(permissionsForRole(userRole) as string[]);
+
+  // Merge extended permissions that are implicitly granted by role
+  const extendedByRole: Record<RoleCode, ExtendedPermissionKey[]> = {
+    owner: [
+      "import.data",
+      "export.data",
+      "download.document",
+      "download.report",
+      "approve",
+      "reject",
+      "cancel",
+      "toggle_state",
+      "reopen",
+      "migrate",
+      "share.resource",
+      "batch.operate",
+      "mass.assign.protect",
+    ],
+    admin: [
+      "import.data",
+      "export.data",
+      "download.document",
+      "download.report",
+      "approve",
+      "reject",
+      "cancel",
+      "toggle_state",
+      "reopen",
+      "migrate",
+      "share.resource",
+      "batch.operate",
+      "mass.assign.protect",
+    ],
+    accountant: [
+      "export.data",
+      "download.report",
+      "approve",
+      "toggle_state",
+    ],
+    auditor: [
+      "export.data",
+      "download.report",
+    ],
+    user: [],
+  };
+
+  const implicitlyGranted = new Set(
+    (extendedByRole[userRole] ?? []).map((k) => k as string)
+  );
+  for (const p of implicitlyGranted) {
+    rolePerms.add(p);
+  }
 
   // Merge custom role permissions from the roles table
   if (ctx.tenantId) {
@@ -79,6 +136,10 @@ export async function resolveUserPermissions(
                   : [];
               for (const p of perms) {
                 if (typeof p === "string") rolePerms.add(p);
+                // Also check if it's an extended permission and add implicitly
+                if (p.startsWith("import.") || p.startsWith("export.") || p.startsWith("download.") || p.startsWith("approve") || p.startsWith("reject") || p.startsWith("cancel") || p.startsWith("toggle_state") || p.startsWith("reopen") || p.startsWith("migrate") || p.startsWith("share.") || p.startsWith("batch.") || p.startsWith("mass.")) {
+                  rolePerms.add(p);
+                }
               }
             } catch {
               // malformed JSON — skip

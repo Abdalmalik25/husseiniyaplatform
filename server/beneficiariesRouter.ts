@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { eq, and, or, ilike, asc } from "drizzle-orm";
-import { router, tenantProcedure } from "./_core/trpc";
+import { router, tenantProcedure, requirePermissions } from "./_core/trpc";
 import { getDb } from "./db";
 import { customers, suppliers } from "../drizzle/schema";
 import { buildSearchVariants, likePattern, rankRow } from "./_core/searchUtils";
@@ -11,6 +11,7 @@ import {
   validateName,
 } from "./services/validation";
 import { checkCustomerDuplicate } from "./services/deduplication";
+import { PERMISSIONS } from "../shared/permissions";
 
 /**
  * Unified beneficiary — شخص أو جهة، أي دولة
@@ -21,6 +22,7 @@ import { checkCustomerDuplicate } from "./services/deduplication";
  */
 export const beneficiariesRouter = router({
   search: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.BENEFICIARIES_VIEW))
     .input(
       z.object({
         q: z.string().min(1),
@@ -91,6 +93,7 @@ export const beneficiariesRouter = router({
     }),
 
   upsert: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.BENEFICIARIES_MANAGE))
     .input(
       z.object({
         kind: z.enum(["customer", "supplier"]),

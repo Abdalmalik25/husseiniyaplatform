@@ -5,8 +5,6 @@ import {
   ilike,
   inArray,
   asc,
-  gte,
-  sql,
   isNull,
 } from "drizzle-orm";
 import { z } from "zod";
@@ -15,9 +13,13 @@ import {
   customers,
   orders,
   orderItems,
-  inventoryMovements,
 } from "../drizzle/schema";
 import type { getDb } from "./db";
+import {
+  deductProductStock,
+  isUniqueViolationDatabaseError,
+  recordStockMovement,
+} from "./services/inventoryService";
 
 export type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
 
@@ -34,6 +36,7 @@ export const placeOrderInputSchema = z.object({
   customerPhone: z.string().optional(),
   deliveryAddress: z.string().optional(),
   notes: z.string().optional(),
+  idempotencyKey: z.string().max(255).optional(),
   items: z
     .array(
       z.object({
@@ -111,6 +114,21 @@ export async function placePublicOrder(
   tenantId: number,
   input: PlaceOrderInput
 ) {
+  if (input.idempotencyKey) {
+    const existing = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.idempotencyKey, input.idempotencyKey))
+      .limit(1);
+    if (existing.length > 0) {
+      return {
+        orderId: existing[0].id,
+        orderNumber: existing[0].orderNumber,
+        idempotent: true,
+      };
+    }
+  }
+
   // Merge duplicate cart lines before anything else (same product twice in the basket)
   const mergedMap = new Map<number, number>();
   for (const it of input.items)
@@ -136,10 +154,15 @@ export async function placePublicOrder(
   if (productRows.length !== productIds.length)
     throw new Error("واحد أو أكثر من الأصناف غير متوفر حالياً");
   const productMap = new Map(productRows.map(p => [p.id, p]));
+  // Fast-fail on the requested quantity (the guarded atomic decrement inside
+  // the transaction below is the real concurrency barrier — this is only UX).
   for (const item of effectiveItems) {
     const p = productMap.get(item.productId)!;
     const stock = p.currentStock || 0;
-    if (stock <= 0) throw new Error(`«${p.name}» غير متوفر حالياً`);
+    if (stock < item.quantity)
+      throw new Error(
+        `الكمية المطلوبة من «${p.name}» تجاوزت المتوفر حالياً (المتاح: ${stock})`
+      );
   }
 
   const itemValues = effectiveItems.map(item => {
@@ -196,10 +219,24 @@ export async function placePublicOrder(
     }
   }
 
-  const result = await (db as any).transaction(async (tx: any) => {
-    const [order] = await tx
-      .insert(orders)
-      .values({
+  // Reads the winner row after a lost idempotency race (pre-check missed it or
+  // the INSERT hit the 0022 unique index). No new movement is ever written here.
+  const readExistingByKey = async (key: string) => {
+    const rows = await db
+      .select()
+      .from(orders)
+      .where(eq(orders.idempotencyKey, key))
+      .limit(1);
+    return rows.length > 0 ? rows[0] : null;
+  };
+
+  let result: { orderId: number; orderNumber: string; idempotent?: boolean };
+  try {
+    result = await (db as any).transaction(async (tx: any) => {
+      // Idempotent insert: a concurrent retry with the same key collapses to
+      // zero inserted rows instead of a duplicate order + duplicate movement.
+      // (orders.idempotency_key_unique comes from drizzle/0022_idempotency_keys.sql)
+      const insertQuery = tx.insert(orders).values({
         tenantId,
         orderNumber,
         customerId,
@@ -208,41 +245,71 @@ export async function placePublicOrder(
         deliveryNotes: input.notes || "طلب من المتجر الإلكتروني",
         assignedTo: "المتجر الإلكتروني",
         status: "pending",
-      })
-      .returning();
-
-    await tx
-      .insert(orderItems)
-      .values(itemValues.map(it => ({ ...it, orderId: order.id })));
-
-    for (const it of itemValues) {
-      // Atomic guarded decrement — fails safely under concurrent orders (no oversell)
-      const updated = await tx
-        .update(products)
-        .set({ currentStock: sql`${products.currentStock} - ${it.quantity}` })
-        .where(
-          and(
-            eq(products.id, it.productId),
-            gte(products.currentStock, it.quantity)
-          )
-        )
-        .returning({ id: products.id });
-      if (updated.length === 0)
-        throw new Error(
-          `الكمية المطلوبة من «${it.productName}» تجاوزت المتوفر عند تأكيد الطلب`
-        );
-      await tx.insert(inventoryMovements).values({
-        tenantId,
-        productId: it.productId,
-        type: "out",
-        quantity: it.quantity,
-        referenceId: order.id,
-        referenceType: "order",
-        notes: `طلب متجر إلكتروني ${orderNumber}`,
+        idempotencyKey: input.idempotencyKey ?? null,
       });
+      const inserted = input.idempotencyKey
+        ? await insertQuery
+            .onConflictDoNothing({ target: orders.idempotencyKey })
+            .returning()
+        : await insertQuery.returning();
+      if (inserted.length === 0) {
+        const winner = await tx
+          .select()
+          .from(orders)
+          .where(eq(orders.idempotencyKey, input.idempotencyKey!))
+          .limit(1);
+        return {
+          orderId: winner[0].id,
+          orderNumber: winner[0].orderNumber,
+          idempotent: true,
+        };
+      }
+      const [order] = inserted;
+
+      await tx
+        .insert(orderItems)
+        .values(itemValues.map(it => ({ ...it, orderId: order.id })));
+
+      for (const it of itemValues) {
+        // Atomic guarded decrement via the CENTRAL STOCK GUARD —
+        // a single `UPDATE … WHERE currentStock >= qty`; exactly one of two
+        // concurrent buyers of the last unit gets a row back (no oversell,
+        // balance never goes negative).
+        const deducted = await deductProductStock(tx, {
+          productId: it.productId,
+          quantity: it.quantity,
+        });
+        if (!deducted.success)
+          throw new Error(
+            `الكمية المطلوبة من «${it.productName}» تجاوزت المتوفر عند تأكيد الطلب`
+          );
+        // Every movement is linked to its source order (no orphans).
+        await recordStockMovement(tx, {
+          tenantId,
+          productId: it.productId,
+          type: "out",
+          quantity: it.quantity,
+          referenceId: order.id,
+          referenceType: "order",
+          notes: `طلب متجر إلكتروني ${orderNumber}`,
+        });
+      }
+      return { orderId: order.id, orderNumber };
+    });
+  } catch (e) {
+    // Lost the race between pre-check and INSERT (or inside the tx):
+    // return the winner instead of failing / double-deducting.
+    if (input.idempotencyKey && isUniqueViolationDatabaseError(e)) {
+      const winner = await readExistingByKey(input.idempotencyKey);
+      if (winner)
+        return {
+          orderId: winner.id,
+          orderNumber: winner.orderNumber,
+          idempotent: true,
+        };
     }
-    return { orderId: order.id, orderNumber };
-  });
+    throw e;
+  }
 
   if (process.env.ORDER_WEBHOOK_URL) {
     const payload = {

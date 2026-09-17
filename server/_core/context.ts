@@ -1,4 +1,6 @@
 import type { CreateExpressContextOptions } from "@trpc/server/adapters/express";
+import { randomUUID } from "crypto";
+import * as Sentry from "@sentry/node";
 import type { User } from "../../drizzle/schema";
 import { sdk } from "./sdk";
 import { ENV } from "./env";
@@ -10,6 +12,8 @@ export type TrpcContext = {
   tenantId: number | null;
   /** True only for the platform owner (super-admin / مالك المنصة). */
   isSuperAdmin: boolean;
+  /** Unified x-request-id — same value as the HTTP access/error logs. */
+  requestId: string;
 };
 
 /**
@@ -73,11 +77,32 @@ export async function createContext(
 
   const { tenantId, isSuperAdmin } = resolveTenantId(user, opts.req);
 
+  // Unified correlation: reuse the edge-assigned ID, never fork a new one.
+  const incoming =
+    (opts.req as unknown as Record<string, unknown>).requestId ??
+    opts.req.headers["x-request-id"];
+  const requestId =
+    typeof incoming === "string" && incoming.length > 0
+      ? incoming
+      : randomUUID();
+  (opts.req as unknown as Record<string, unknown>).requestId = requestId;
+  try {
+    opts.res.setHeader("x-request-id", requestId);
+  } catch {
+    /* headers already sent — keep correlation in body/logs only */
+  }
+  try {
+    Sentry.getCurrentScope?.().setTag("request_id", requestId);
+  } catch {
+    /* Sentry optional */
+  }
+
   return {
     req: opts.req,
     res: opts.res,
     user,
     tenantId,
     isSuperAdmin,
+    requestId,
   };
 }

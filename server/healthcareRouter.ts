@@ -1,4 +1,4 @@
-/**
+﻿/**
  * Healthcare & Patient Management Router
  * HIPAA-compliant patient registry, appointments, medical records
  * Features: Patient registry, Appointments, Medical records, Vitals, ICD codes
@@ -6,7 +6,8 @@
  */
 
 import { z } from "zod";
-import { router, tenantProcedure } from "./_core/trpc";
+import { router, tenantProcedure, requirePermissions } from "./_core/trpc";
+import { PERMISSIONS } from "../shared/permissions";
 import { dbOrThrow } from "./db";
 import { eq, and, gte, lte, desc, asc, or, sql } from "drizzle-orm";
 import {
@@ -22,7 +23,7 @@ import {
 } from "../drizzle/schema";
 import { auditLog } from "./_core/auditLog";
 
-// ─── Input Schemas ──────────────────────────────────────────────────────────────
+// â”€â”€â”€ Input Schemas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const patientSchema = z.object({
   firstName: z.string().min(1).max(100),
@@ -175,16 +176,18 @@ function genNumber(prefix: string, tenantId: number, sequence: number): string {
   return `${prefix}-${tenantId}-${String(Date.now()).slice(-6)}-${String(sequence).padStart(3, "0")}`;
 }
 
-// ─── Router ─────────────────────────────────────────────────────────────────────
+// â”€â”€â”€ Router â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export const healthcareRouter = router({
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // FACILITIES
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   listFacilities: tenantProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
+    // PAGINATION: hard cap 200 — facilities per tenant are few, but the
+    // mandatory-limit audit requires every list to be bounded.
     return db
       .select()
       .from(healthcareFacilities)
@@ -194,7 +197,8 @@ export const healthcareRouter = router({
           eq(healthcareFacilities.isActive, true)
         )
       )
-      .orderBy(asc(healthcareFacilities.name));
+      .orderBy(asc(healthcareFacilities.name))
+      .limit(200);
   }),
 
   getFacility: tenantProcedure
@@ -252,9 +256,9 @@ export const healthcareRouter = router({
       return facility;
     }),
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // PROVIDERS
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   listProviders: tenantProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) return [];
@@ -345,9 +349,9 @@ export const healthcareRouter = router({
       return provider;
     }),
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // PATIENTS
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   listPatients: tenantProcedure
     .input(
@@ -438,6 +442,7 @@ export const healthcareRouter = router({
     }),
 
   createPatient: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.HEALTHCARE_PATIENTS_MANAGE))
     .input(patientSchema)
     .mutation(async ({ ctx, input }) => {
       if (!ctx.tenantId) throw new Error("Tenant required");
@@ -542,9 +547,9 @@ export const healthcareRouter = router({
       return patient;
     }),
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // APPOINTMENTS
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   listAppointments: tenantProcedure
     .input(
@@ -678,14 +683,22 @@ export const healthcareRouter = router({
       const patientResult = await db
         .select()
         .from(patients)
-        .where(eq(patients.id, appt.patientId))
+        .where(
+          and(
+            eq(patients.id, appt.patientId),
+            eq(patients.tenantId, ctx.tenantId)
+          )
+        )
         .limit(1);
       const providerResult = await db
         .select()
         .from(healthcareProviders)
         .where(
           appt.providerId != null
-            ? eq(healthcareProviders.id, appt.providerId)
+            ? and(
+                eq(healthcareProviders.id, appt.providerId),
+                eq(healthcareProviders.tenantId, ctx.tenantId)
+              )
             : sql`false`
         )
         .limit(1);
@@ -698,10 +711,18 @@ export const healthcareRouter = router({
     }),
 
   createAppointment: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.HEALTHCARE_APPOINTMENTS_MANAGE))
     .input(appointmentSchema)
     .mutation(async ({ ctx, input }) => {
       if (!ctx.tenantId) throw new Error("Tenant required");
       const db = await dbOrThrow();
+      // Composite FK ownership: patient/provider/facility must share the tenant.
+      const { assertRefsInTenant } = await import("./_core/tenantGuard");
+      await assertRefsInTenant(db, ctx.tenantId, [
+        { table: patients, id: input.patientId, label: "المريض" },
+        { table: healthcareProviders, id: input.providerId, label: "مقدم الرعاية" },
+        { table: healthcareFacilities, id: input.facilityId, label: "المنشأة" },
+      ]);
 
       const seq = Math.floor(Math.random() * 999);
       const appointmentNumber = genNumber("APT", ctx.tenantId, seq);
@@ -710,7 +731,7 @@ export const healthcareRouter = router({
         tenantId: ctx.tenantId,
         appointmentNumber,
         status: "scheduled" as const,
-        createdById: ctx.user?.id ?? 0,
+        createdById: ctx.user?.id ?? null,
         patientId: input.patientId,
         providerId: input.providerId,
         facilityId: input.facilityId,
@@ -845,9 +866,9 @@ export const healthcareRouter = router({
       return { appointments: appts, statusCounts };
     }),
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // MEDICAL RECORDS
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   listMedicalRecords: tenantProcedure
     .input(
@@ -938,7 +959,7 @@ export const healthcareRouter = router({
       const recordData = {
         tenantId: ctx.tenantId,
         recordNumber,
-        createdBy: ctx.user?.id ?? 0,
+        createdBy: ctx.user?.id ?? null,
         patientId: input.patientId,
         appointmentId: input.appointmentId ?? null,
         visitType: input.visitType,
@@ -973,9 +994,9 @@ export const healthcareRouter = router({
       return record;
     }),
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // DIAGNOSES
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   addDiagnosis: tenantProcedure
     .input(diagnosisSchema)
@@ -986,7 +1007,7 @@ export const healthcareRouter = router({
       const entryData = {
         tenantId: ctx.tenantId,
         entryType: "diagnosis" as const,
-        createdBy: ctx.user?.id ?? 0,
+        createdBy: ctx.user?.id ?? null,
         recordId: input.recordId,
         patientId: input.patientId,
         diagnosisType: input.diagnosisType,
@@ -1036,9 +1057,9 @@ export const healthcareRouter = router({
         .orderBy(desc(medicalRecordEntries.createdAt));
     }),
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // VITAL SIGNS
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   recordVitalSigns: tenantProcedure
     .input(vitalSignsSchema)
@@ -1074,7 +1095,7 @@ export const healthcareRouter = router({
 
       const insertValues: any = {
         tenantId: ctx.tenantId,
-        recordedBy: ctx.user?.id ?? 0,
+        recordedBy: ctx.user?.id ?? null,
         recordedAt: new Date(),
         isAbnormal: abnormalFlags.length > 0,
         abnormalFlags,
@@ -1146,9 +1167,9 @@ export const healthcareRouter = router({
         .limit(input.limit);
     }),
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // CONSENTS (HIPAA)
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   listPatientConsents: tenantProcedure
     .input(z.object({ patientId: z.number() }))
@@ -1169,6 +1190,7 @@ export const healthcareRouter = router({
     }),
 
   recordConsent: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.HEALTHCARE_CONSENT_MANAGE))
     .input(consentSchema)
     .mutation(async ({ ctx, input }) => {
       if (!ctx.tenantId) throw new Error("Tenant required");
@@ -1198,9 +1220,9 @@ export const healthcareRouter = router({
       return consent;
     }),
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // ICD CODES
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   searchIcdCodes: tenantProcedure
     .input(
@@ -1227,9 +1249,9 @@ export const healthcareRouter = router({
         .limit(limit);
     }),
 
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   // STATISTICS & ANALYTICS
-  // ═══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
   getDashboardStats: tenantProcedure
     .input(z.object({ facilityId: z.number().optional() }))

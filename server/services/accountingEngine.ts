@@ -128,17 +128,16 @@ export async function findLockedPeriodForDate(
   return null;
 }
 
-/** True when the date falls inside a locked (closing/closed) fiscal period. */
+/** True when the date falls inside a locked (closing/closed) fiscal period.
+ * Fail-closed: a DB error propagates (never returns false) so callers that
+ * gate postings via assertPeriodOpen-style checks cannot treat an
+ * unverifiable period as open. */
 export async function isPeriodLockedForDate(
   db: Db,
   tenantId: number,
   date: Date
 ): Promise<boolean> {
-  try {
-    return (await findLockedPeriodForDate(db, tenantId, date)) != null;
-  } catch {
-    return false;
-  }
+  return (await findLockedPeriodForDate(db, tenantId, date)) != null;
 }
 
 /**
@@ -161,8 +160,12 @@ export async function assertPeriodOpen(
     }
   } catch (e) {
     if (e instanceof Error && /مغلقة/.test(e.message)) throw e;
-    // DB/transient errors must not block legitimate postings.
-    return;
+    // Fail-closed: a DB error during period verification must NOT permit
+    // posting into a possibly locked period. Block the posting instead.
+    throw new Error(
+      `تعذر التحقق من حالة الفترة المالية ${context ? `(${context})` : ""} — تم إيقاف الترحيل للسلامة، حاول مرة أخرى`,
+      { cause: e }
+    );
   }
 }
 
@@ -266,46 +269,50 @@ export async function postBalancedJournal(
   );
   const total = opts.legs.reduce((s, l) => s + parseFloat(String(l.amount)), 0);
 
-  const [je] = await db
-    .insert(journalEntries)
-    .values({
-      tenantId: opts.tenantId,
-      branchId: effectiveBranchId,
-      sourceModule: opts.sourceModule || opts.sourceRefType || "manual",
-      sourceRefType: opts.sourceRefType || null,
-      sourceRefId: opts.sourceRefId ?? null,
-      referenceNo: opts.referenceNo || null,
-      status: finalStatus,
-      totalAmount: total.toFixed(2),
-      memo: opts.narration,
-      createdById: opts.createdById ?? null,
-      postedAt: postImmediately ? new Date() : null,
-      isImmutable: postImmediately,
-    })
-    .returning();
+  const je = await db.transaction(async (tx: Db) => {
+    const [entry] = await tx
+      .insert(journalEntries)
+      .values({
+        tenantId: opts.tenantId,
+        branchId: effectiveBranchId,
+        sourceModule: opts.sourceModule || opts.sourceRefType || "manual",
+        sourceRefType: opts.sourceRefType || null,
+        sourceRefId: opts.sourceRefId ?? null,
+        referenceNo: opts.referenceNo || null,
+        status: finalStatus,
+        totalAmount: total.toFixed(2),
+        memo: opts.narration,
+        createdById: opts.createdById ?? null,
+        postedAt: postImmediately ? new Date() : null,
+        isImmutable: postImmediately,
+      })
+      .returning();
 
-  for (const l of opts.legs) {
-    await db.insert(transactions).values({
-      tenantId: opts.tenantId,
-      accountId: l.accountId,
-      branchId: effectiveBranchId,
-      amount: l.amount,
-      type: l.type,
-      transactionDate: opts.date,
-      narration: l.narration || opts.narration,
-      lifecycleStatus: finalStatus,
-      isReversed: false,
-      referenceType: opts.sourceRefType || null,
-      referenceId: opts.sourceRefId ?? null,
-      sourceModule: opts.sourceModule || opts.sourceRefType || "manual",
-      userId: opts.createdById ?? null,
-      journalEntryId: je.id,
-      costCenterId: l.costCenterId ?? opts.costCenterId ?? null,
-      currencyId: l.currencyId ?? null,
-      exchangeRate: l.exchangeRate != null ? l.exchangeRate : undefined,
-      baseAmount: l.baseAmount != null ? l.baseAmount : undefined,
-    });
-  }
+    for (const l of opts.legs) {
+      await tx.insert(transactions).values({
+        tenantId: opts.tenantId,
+        accountId: l.accountId,
+        branchId: effectiveBranchId,
+        amount: l.amount,
+        type: l.type,
+        transactionDate: opts.date,
+        narration: l.narration || opts.narration,
+        lifecycleStatus: finalStatus,
+        isReversed: false,
+        referenceType: opts.sourceRefType || null,
+        referenceId: opts.sourceRefId ?? null,
+        sourceModule: opts.sourceModule || opts.sourceRefType || "manual",
+        userId: opts.createdById ?? null,
+        journalEntryId: entry.id,
+        costCenterId: l.costCenterId ?? opts.costCenterId ?? null,
+        currencyId: l.currencyId ?? null,
+        exchangeRate: l.exchangeRate != null ? l.exchangeRate : undefined,
+        baseAmount: l.baseAmount != null ? l.baseAmount : undefined,
+      });
+    }
+
+    return entry;
+  });
 
   return { journalId: je.id, total, count: opts.legs.length };
 }
@@ -377,21 +384,20 @@ export async function reverseJournal(
   }));
 
   const reason = opts.reason.slice(0, MAX_REVERSE_NARRATION);
-  const result = await postBalancedJournal(db, {
-    tenantId: opts.tenantId,
-    date: opts.reversalDate || new Date(),
-    legs: reverseLegs,
-    narration: `عكس القيد #${opts.journalId} — ${reason}`,
-    branchId: opts.branchId ?? je.branchId ?? null,
-    sourceModule: "reversal",
-    sourceRefType: "reversal",
-    sourceRefId: opts.journalId,
-    createdById: opts.createdById ?? null,
-  });
+  const result = await db.transaction(async (tx: Db) => {
+    const created = await postBalancedJournal(tx, {
+      tenantId: opts.tenantId,
+      date: opts.reversalDate || new Date(),
+      legs: reverseLegs,
+      narration: `عكس القيد #${opts.journalId} — ${reason}`,
+      branchId: opts.branchId ?? je.branchId ?? null,
+      sourceModule: "reversal",
+      sourceRefType: "reversal",
+      sourceRefId: opts.journalId,
+      createdById: opts.createdById ?? null,
+    });
 
-  // Mark the original as reversed (audit flag — the actual netting is the new entry).
-  try {
-    await db
+    await tx
       .update(transactions)
       .set({ isReversed: true, reversalReason: reason })
       .where(
@@ -400,9 +406,9 @@ export async function reverseJournal(
           eq(transactions.tenantId, opts.tenantId)
         )
       );
-  } catch {
-    // Best-effort; the mirrored entry already zeroes the balance.
-  }
+
+    return created;
+  });
 
   return { journalId: result.journalId, reversedLegs: legs.length };
 }

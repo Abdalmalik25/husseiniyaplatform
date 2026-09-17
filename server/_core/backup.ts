@@ -503,6 +503,113 @@ export interface NightlyBackupResult {
   ok?: boolean;
   id?: string;
   error?: string;
+  /** Consecutive failures AFTER this tick (0 on success/skip). */
+  consecutiveFailures?: number;
+  /** True when ops must be paged (≥2 consecutive failures). */
+  alert?: boolean;
+}
+
+export interface BackupHealth {
+  consecutiveFailures: number;
+  lastFailureAt: string | null;
+  lastSuccessAt: string | null;
+  lastError: string | null;
+  /** Page ops when true (≥2 consecutive failures). */
+  needsAlert: boolean;
+}
+
+const BACKUP_ALERT_THRESHOLD = 2;
+
+function backupHealthFile(): string {
+  return path.join(backupDir(), "backup-health.json");
+}
+
+export async function getBackupHealth(): Promise<BackupHealth> {
+  try {
+    const raw = await fs.readFile(backupHealthFile(), "utf8");
+    const parsed = JSON.parse(raw) as Partial<BackupHealth>;
+    const consecutiveFailures =
+      typeof parsed.consecutiveFailures === "number"
+        ? parsed.consecutiveFailures
+        : 0;
+    return {
+      consecutiveFailures,
+      lastFailureAt: parsed.lastFailureAt ?? null,
+      lastSuccessAt: parsed.lastSuccessAt ?? null,
+      lastError: parsed.lastError ?? null,
+      needsAlert: consecutiveFailures >= BACKUP_ALERT_THRESHOLD,
+    };
+  } catch {
+    return {
+      consecutiveFailures: 0,
+      lastFailureAt: null,
+      lastSuccessAt: null,
+      lastError: null,
+      needsAlert: false,
+    };
+  }
+}
+
+async function writeBackupHealth(h: Omit<BackupHealth, "needsAlert">): Promise<void> {
+  try {
+    await ensureDir(backupDir());
+    const full: BackupHealth = {
+      ...h,
+      needsAlert: h.consecutiveFailures >= BACKUP_ALERT_THRESHOLD,
+    };
+    await fs.writeFile(backupHealthFile(), JSON.stringify(full, null, 2), "utf8");
+  } catch {
+    /* health tracking must never break the backup itself */
+  }
+}
+
+export async function recordBackupSuccess(): Promise<BackupHealth> {
+  const prev = await getBackupHealth();
+  const next = {
+    consecutiveFailures: 0,
+    lastFailureAt: prev.lastFailureAt,
+    lastSuccessAt: new Date().toISOString(),
+    lastError: null as string | null,
+  };
+  await writeBackupHealth(next);
+  return { ...next, needsAlert: false };
+}
+
+export async function recordBackupFailure(err: unknown): Promise<BackupHealth> {
+  const prev = await getBackupHealth();
+  const message =
+    err instanceof Error ? err.message : String(err ?? "unknown error");
+  const next = {
+    consecutiveFailures: prev.consecutiveFailures + 1,
+    lastFailureAt: new Date().toISOString(),
+    lastSuccessAt: prev.lastSuccessAt,
+    lastError: message.slice(0, 500),
+  };
+  await writeBackupHealth(next);
+  const health: BackupHealth = {
+    ...next,
+    needsAlert: next.consecutiveFailures >= BACKUP_ALERT_THRESHOLD,
+  };
+  console.error(
+    `[backup] failure #${next.consecutiveFailures}: ${message}` +
+      (health.needsAlert
+        ? " — ALERT: 2+ consecutive backup failures, paging ops (see docs/OPERATIONS_RUNBOOK.md)"
+        : "")
+  );
+  if (health.needsAlert) {
+    try {
+      // Paging signal: 2+ consecutive failures. Same captureContext shape as
+      // server/serverless/cron.ts so both alerts join in Sentry on one issue.
+      const Sentry = await import("@sentry/node");
+      Sentry.captureMessage(
+        `backup failures x${next.consecutiveFailures}: ${message}`,
+        { level: "error", tags: { alert: "backup", consecutive_failures: String(next.consecutiveFailures) } }
+      );
+    } catch {
+      /* Sentry optional */
+    }
+  }
+  return health;
 }
 
 /**
@@ -512,9 +619,25 @@ export interface NightlyBackupResult {
 export async function runNightlyBackupIfDue(): Promise<NightlyBackupResult> {
   try {
     if (!resolveBackupSecret()) {
+      // Fail-closed: no key → no backup. In production this is a paging
+      // condition, not a silent skip — surface it so the 2-failure alert
+      // and the runbook catch it.
+      if (ENV.isProduction) {
+        const health = await recordBackupFailure(
+          new Error("BACKUP_ENCRYPTION_KEY missing in production (fail-closed)")
+        );
+        return {
+          attempted: false,
+          skippedReason: "encryption key not configured (fail-closed)",
+          consecutiveFailures: health.consecutiveFailures,
+          alert: health.needsAlert,
+        };
+      }
       return {
         attempted: false,
         skippedReason: "encryption key not configured",
+        consecutiveFailures: 0,
+        alert: false,
       };
     }
     const today = new Date().toISOString().slice(0, 10);
@@ -526,12 +649,19 @@ export async function runNightlyBackupIfDue(): Promise<NightlyBackupResult> {
       /* first run */
     }
     if (lastRun === today) {
-      return { attempted: false, skippedReason: "already ran today" };
+      const health = await getBackupHealth();
+      return {
+        attempted: false,
+        skippedReason: "already ran today",
+        consecutiveFailures: health.consecutiveFailures,
+        alert: health.needsAlert,
+      };
     }
 
     const manifest = await runBackup(null);
     await ensureDir(backupDir());
     await fs.writeFile(markerPath, today, "utf8");
+    await recordBackupSuccess();
 
     // Retention: keep the 30 most recent entries; prune local blobs beyond it.
     const index = await readIndex();
@@ -547,14 +677,17 @@ export async function runNightlyBackupIfDue(): Promise<NightlyBackupResult> {
         }
       }
     }
-    return { attempted: true, ok: true, id: manifest.id };
+    return { attempted: true, ok: true, id: manifest.id, consecutiveFailures: 0, alert: false };
   } catch (e) {
     // NEVER let the backup break the cron tick.
     console.error("[backup] nightly backup failed:", e);
+    const health = await recordBackupFailure(e);
     return {
       attempted: true,
       ok: false,
       error: e instanceof Error ? e.message : String(e),
+      consecutiveFailures: health.consecutiveFailures,
+      alert: health.needsAlert,
     };
   }
 }

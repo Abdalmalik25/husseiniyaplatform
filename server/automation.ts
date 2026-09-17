@@ -230,39 +230,43 @@ export async function runScheduledJournalEntries(
       .limit(1);
     const effectiveBranchId = s.branchId ?? bRows[0]?.id ?? null;
 
-    const [je] = await db
-      .insert(journalEntries)
-      .values({
-        tenantId,
-        branchId: effectiveBranchId,
-        sourceModule: "scheduled",
-        sourceRefType: "scheduled",
-        sourceRefId: s.id,
-        referenceNo: `SCH-${s.id}-${Date.now().toString().slice(-6)}`,
-        status: "posted",
-        totalAmount: totalDebit.toFixed(2),
-        createdById: userId,
-        postedAt: now,
-      })
-      .returning();
+    // Atomic: journal header + legs commit together (no orphan entries).
+    const [je] = await db.transaction(async (tx: any) => {
+      const [entry] = await tx
+        .insert(journalEntries)
+        .values({
+          tenantId,
+          branchId: effectiveBranchId,
+          sourceModule: "scheduled",
+          sourceRefType: "scheduled",
+          sourceRefId: s.id,
+          referenceNo: `SCH-${s.id}-${Date.now().toString().slice(-6)}`,
+          status: "posted",
+          totalAmount: totalDebit.toFixed(2),
+          createdById: userId,
+          postedAt: now,
+        })
+        .returning();
 
-    for (const l of lines) {
-      await db.insert(transactions).values({
-        tenantId,
-        accountId: l.accountId,
-        branchId: effectiveBranchId,
-        amount: l.amount,
-        type: l.type,
-        transactionDate: now,
-        narration: l.narration,
-        lifecycleStatus: "posted",
-        referenceType: "scheduled",
-        referenceId: s.id,
-        sourceModule: "scheduled",
-        userId,
-        journalEntryId: je.id,
-      });
-    }
+      for (const l of lines) {
+        await tx.insert(transactions).values({
+          tenantId,
+          accountId: l.accountId,
+          branchId: effectiveBranchId,
+          amount: l.amount,
+          type: l.type,
+          transactionDate: now,
+          narration: l.narration,
+          lifecycleStatus: "posted",
+          referenceType: "scheduled",
+          referenceId: s.id,
+          sourceModule: "scheduled",
+          userId,
+          journalEntryId: entry.id,
+        });
+      }
+      return [entry];
+    });
 
     // Advance schedule.
     let nextRunAt: Date | null;
@@ -598,27 +602,33 @@ export async function processRecurringExpenseRun(
         throw new Error("القيد غير متوازن");
       }
 
-      const [je] = await db
-        .insert(journalEntries)
-        .values({
-          tenantId: rec.tenantId,
-          branchId: effectiveBranchId,
-          sourceModule: "recurring_expenses",
-          sourceRefType: "recurring_expense",
-          sourceRefId: rec.id,
-          referenceNo: `REC-${rec.id}-${run.runNumber}`,
-          status: "posted",
-          totalAmount: totalDebit.toFixed(2),
-          createdById: userId,
-          postedAt: new Date(),
-        })
-        .returning();
+      // Atomic: journal header + legs commit together (no orphan entries).
+      const [je] = await db.transaction(async (tx: any) => {
+        const [entry] = await tx
+          .insert(journalEntries)
+          .values({
+            tenantId: rec.tenantId,
+            branchId: effectiveBranchId,
+            sourceModule: "recurring_expenses",
+            sourceRefType: "recurring_expense",
+            sourceRefId: rec.id,
+            referenceNo: `REC-${rec.id}-${run.runNumber}`,
+            status: "posted",
+            totalAmount: totalDebit.toFixed(2),
+            createdById: userId,
+            postedAt: new Date(),
+          })
+          .returning();
 
-      journalEntryId = je.id;
+        journalEntryId = entry.id;
 
-      for (const l of lines) {
-        await db.insert(transactions).values({ ...l, journalEntryId: je.id });
-      }
+        for (const l of lines) {
+          await tx
+            .insert(transactions)
+            .values({ ...l, journalEntryId: entry.id });
+        }
+        return [entry];
+      });
 
       // If autoPay is enabled, create payment transaction
       if (rec.autoPay && rec.paymentAccountId) {
@@ -653,27 +663,31 @@ export async function processRecurringExpenseRun(
           },
         ];
 
-        const [payJe] = await db
-          .insert(journalEntries)
-          .values({
-            tenantId: rec.tenantId,
-            branchId: effectiveBranchId,
-            sourceModule: "recurring_expenses",
-            sourceRefType: "recurring_expense_payment",
-            sourceRefId: rec.id,
-            referenceNo: `REC-PAY-${rec.id}-${run.runNumber}`,
-            status: "posted",
-            totalAmount: totalAmount.toFixed(2),
-            createdById: userId,
-            postedAt: new Date(),
-          })
-          .returning();
+        // Atomic: journal header + legs commit together (no orphan entries).
+        const [payJe] = await db.transaction(async (tx: any) => {
+          const [payEntry] = await tx
+            .insert(journalEntries)
+            .values({
+              tenantId: rec.tenantId,
+              branchId: effectiveBranchId,
+              sourceModule: "recurring_expenses",
+              sourceRefType: "recurring_expense_payment",
+              sourceRefId: rec.id,
+              referenceNo: `REC-PAY-${rec.id}-${run.runNumber}`,
+              status: "posted",
+              totalAmount: totalAmount.toFixed(2),
+              createdById: userId,
+              postedAt: new Date(),
+            })
+            .returning();
 
-        for (const l of paymentLines) {
-          await db
-            .insert(transactions)
-            .values({ ...l, journalEntryId: payJe.id });
-        }
+          for (const l of paymentLines) {
+            await tx
+              .insert(transactions)
+              .values({ ...l, journalEntryId: payEntry.id });
+          }
+          return [payEntry];
+        });
 
         paymentTransactionId = payJe.id;
       }
@@ -825,27 +839,31 @@ export async function processRecurringExpenseRun(
             .reduce((s, l) => s + parseFloat(l.amount), 0);
 
           if (Math.abs(totalDebit - totalCredit) <= 0.01) {
-            const [je] = await db
-              .insert(journalEntries)
-              .values({
-                tenantId: rec.tenantId,
-                branchId: effectiveBranchId,
-                sourceModule: "purchases",
-                sourceRefType: "purchase_invoice",
-                sourceRefId: pi.id,
-                referenceNo: `PI-${pi.id}`,
-                status: "posted",
-                totalAmount: totalDebit.toFixed(2),
-                createdById: userId,
-                postedAt: new Date(),
-              })
-              .returning();
+            // Atomic: journal header + legs commit together (no orphan entries).
+            const [je] = await db.transaction(async (tx: any) => {
+              const [entry] = await tx
+                .insert(journalEntries)
+                .values({
+                  tenantId: rec.tenantId,
+                  branchId: effectiveBranchId,
+                  sourceModule: "purchases",
+                  sourceRefType: "purchase_invoice",
+                  sourceRefId: pi.id,
+                  referenceNo: `PI-${pi.id}`,
+                  status: "posted",
+                  totalAmount: totalDebit.toFixed(2),
+                  createdById: userId,
+                  postedAt: new Date(),
+                })
+                .returning();
 
-            for (const l of lines) {
-              await db
-                .insert(transactions)
-                .values({ ...l, journalEntryId: je.id });
-            }
+              for (const l of lines) {
+                await tx
+                  .insert(transactions)
+                  .values({ ...l, journalEntryId: entry.id });
+              }
+              return [entry];
+            });
           }
         }
 
@@ -882,27 +900,31 @@ export async function processRecurringExpenseRun(
             },
           ];
 
-          const [payJe] = await db
-            .insert(journalEntries)
-            .values({
-              tenantId: rec.tenantId,
-              branchId: effectiveBranchId,
-              sourceModule: "recurring_expenses",
-              sourceRefType: "recurring_expense_payment",
-              sourceRefId: rec.id,
-              referenceNo: `REC-PAY-${rec.id}-${run.runNumber}`,
-              status: "posted",
-              totalAmount: totalAmount.toFixed(2),
-              createdById: userId,
-              postedAt: new Date(),
-            })
-            .returning();
+          // Atomic: journal header + legs commit together (no orphan entries).
+          const [payJe] = await db.transaction(async (tx: any) => {
+            const [payEntry] = await tx
+              .insert(journalEntries)
+              .values({
+                tenantId: rec.tenantId,
+                branchId: effectiveBranchId,
+                sourceModule: "recurring_expenses",
+                sourceRefType: "recurring_expense_payment",
+                sourceRefId: rec.id,
+                referenceNo: `REC-PAY-${rec.id}-${run.runNumber}`,
+                status: "posted",
+                totalAmount: totalAmount.toFixed(2),
+                createdById: userId,
+                postedAt: new Date(),
+              })
+              .returning();
 
-          for (const l of paymentLines) {
-            await db
-              .insert(transactions)
-              .values({ ...l, journalEntryId: payJe.id });
-          }
+            for (const l of paymentLines) {
+              await tx
+                .insert(transactions)
+                .values({ ...l, journalEntryId: payEntry.id });
+            }
+            return [payEntry];
+          });
 
           paymentTransactionId = payJe.id;
         }

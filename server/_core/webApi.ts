@@ -38,7 +38,10 @@ export function registerWebApi(app: Express) {
       res.setHeader("Access-Control-Allow-Origin", origin || "*");
     }
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader(
+      "Access-Control-Allow-Headers",
+      "Content-Type, x-tenant-id, x-idempotency-key"
+    );
     if (req.method === "OPTIONS") {
       res.sendStatus(204);
       return;
@@ -90,7 +93,14 @@ export function registerWebApi(app: Express) {
       }
       const tid =
         Number.parseInt((req.headers["x-tenant-id"] as string) || "", 10) || 1;
-      const result = await placePublicOrder(db, tid, parsed.data);
+      // Webhook/double-submit retries send the key as x-idempotency-key;
+      // the JSON body field wins when both are present.
+      const headerKey =
+        (req.headers["x-idempotency-key"] as string) || undefined;
+      const result = await placePublicOrder(db, tid, {
+        ...parsed.data,
+        idempotencyKey: parsed.data.idempotencyKey ?? headerKey,
+      });
       res.status(200).json({ ok: true, ...result });
     } catch (e: any) {
       res.status(400).json({ ok: false, error: String(e?.message || e) });

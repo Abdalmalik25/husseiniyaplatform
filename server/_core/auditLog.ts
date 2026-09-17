@@ -10,10 +10,13 @@
  *
  * Every mutation is logged with: who, what, when, where, outcome, risk level.
  * The audit_logs table is append-only — no UPDATE or DELETE is permitted.
+ * Hash-chained for tamper evidence: each entry's currentHash = SHA256(prevHash + action + data + timestamp),
+ * and previousHash of next entry links back, forming a cryptographic chain.
  */
 
 import { getDb } from "../db";
 import { sql } from "drizzle-orm";
+import { createHash } from "crypto";
 import type { Request } from "express";
 
 export type AuditAction =
@@ -130,6 +133,10 @@ function computeRiskScore(entry: AuditLogEntry): number {
 /**
  * Log an audit event. This function is fire-and-forget — it never throws
  * to avoid breaking the request flow. All errors are caught and logged.
+ * Implements hash-chained immutable audit trail for tamper evidence.
+ * Chain structure: each entry stores (previousHash, currentHash, chainSequence).
+ * previousHash of entry N+1 = currentHash of entry N.
+ * Genesis entry has previousHash = "0".repeat(64).
  */
 export async function auditLog(entry: AuditLogEntry): Promise<void> {
   try {
@@ -146,11 +153,36 @@ export async function auditLog(entry: AuditLogEntry): Promise<void> {
     const ipAddress = entry.ipAddress ?? extractIp(entry.request);
     const userAgent = entry.userAgent ?? extractUserAgent(entry.request);
 
+    // ─── Hash-chained immutable audit trail ──────────────────────────
+    // Retrieve the last entry for this tenant to build the chain
+    const lastEntryResult = await db
+      .select({ previousHash: sql`MAX(currentHash)`, chainSequence: sql`MAX(chainSequence)` })
+      .from(sql`audit_logs`)
+      .where(sql`tenant_id = ${entry.tenantId ?? 0}`);
+
+    const lastEntry = lastEntryResult[0];
+    const prevHash = lastEntry?.previousHash as string ?? "0".repeat(64); // genesis
+    const newChainSeq = (lastEntry?.chainSequence as number ?? 0) + 1;
+
+    // Compute currentHash: SHA-256(previousHash + action + canonical data + timestamp)
+    const timestamp = new Date().toISOString();
+    const hashInput =
+      prevHash +
+      entry.action +
+      (entry.userId ?? "") +
+      (entry.tenantId?.toString() ?? "") +
+      timestamp +
+      (entry.resource ?? "") +
+      (entry.resourceId != null ? String(entry.resourceId) : "");
+    const currentHash = createHash("sha256")
+      .update(hashInput.trim())
+      .digest("hex");
+
     await db.execute(sql`
       INSERT INTO audit_logs (
         tenant_id, user_id, target_user_id, action, severity, outcome,
         resource, resource_id, details, ip_address, user_agent,
-        duration_ms, risk_score, created_at
+        duration_ms, risk_score, created_at, previousHash, currentHash, chainSequence
       ) VALUES (
         ${entry.tenantId ?? null},
         ${entry.userId ?? null},
@@ -165,7 +197,10 @@ export async function auditLog(entry: AuditLogEntry): Promise<void> {
         ${userAgent},
         ${entry.duration ?? null},
         ${riskScore},
-        NOW()
+        NOW(),
+        ${prevHash},
+        ${currentHash},
+        ${newChainSeq}
       )
     `);
   } catch (error) {

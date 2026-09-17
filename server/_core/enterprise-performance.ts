@@ -384,13 +384,31 @@ export const requestContext = new AsyncLocalStorage<{
 // ====================================================================
 
 import type { Request, Response, NextFunction } from "express";
+import { logger } from "./logger";
+import {
+  classifyHttpRoute,
+  deriveTraceId,
+  recordHttpRequest,
+} from "./observability";
 
 export function performanceMiddleware(
   req: Request,
   res: Response,
   next: NextFunction
 ) {
-  const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  // UNIFIED correlation: reuse the x-request-id assigned at the edge
+  // (app.ts, first middleware). Never fork a second ID per request.
+  // The traceId extends x-request-id (or honours W3C `traceparent`).
+  const incoming =
+    (req as unknown as Record<string, unknown>).requestId ??
+    req.headers["x-request-id"];
+  const requestId =
+    typeof incoming === "string" && incoming.length > 0
+      ? incoming
+      : `req_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+  (req as unknown as Record<string, unknown>).requestId = requestId;
+  const traceId = deriveTraceId(requestId, req.headers["traceparent"]);
+  (req as unknown as Record<string, unknown>).traceId = traceId;
   const startTime = Date.now();
 
   requestContext.run(
@@ -402,26 +420,43 @@ export function performanceMiddleware(
       ip: req.ip,
     },
     () => {
-      // Add request ID to response headers
-      res.setHeader("X-Request-ID", requestId);
+      // Add request ID to response headers (don't overwrite the edge value)
+      if (!res.getHeader("X-Request-ID")) {
+        res.setHeader("X-Request-ID", requestId);
+      }
+      if (!res.getHeader("X-Trace-ID")) {
+        res.setHeader("X-Trace-ID", traceId);
+      }
 
-      // Log on response finish
+      // Log on response finish — structured JSON via the SINGLE
+      // logger/redact() entrypoint, plus the in-memory SLI sample that
+      // feeds GET /api/slo (p50/p95 windows).
       res.on("finish", () => {
         const ctx = requestContext.getStore();
-        if (ctx) {
-          const duration = Date.now() - startTime;
-          console.log(
-            JSON.stringify({
-              requestId,
-              method: req.method,
-              path: req.path,
-              status: res.statusCode,
-              durationMs: duration,
-              tenantId: ctx.tenantId,
-              userId: ctx.userId,
-            })
-          );
-        }
+        const durationMs = Date.now() - startTime;
+        const kind = classifyHttpRoute(req.method);
+        const tenantId =
+          ctx?.tenantId ??
+          (typeof req.headers["x-tenant-id"] === "string"
+            ? req.headers["x-tenant-id"]
+            : undefined);
+        recordHttpRequest({
+          route: req.path,
+          kind,
+          durationMs,
+          ok: res.statusCode < 500,
+        });
+        logger.info("http", {
+          requestId,
+          traceId,
+          method: req.method,
+          route: req.path,
+          path: req.path,
+          status: res.statusCode,
+          durationMs,
+          tenantId,
+          userId: ctx?.userId,
+        });
       });
 
       next();

@@ -665,13 +665,17 @@ export default function POSModule() {
         printInvoice(res.invoiceNumber);
       }
 
-      // Open cash drawer for cash payments
+      // Open cash drawer when a cash-family payment is involved (single or split)
       const submission = cart.getCartForSubmission();
-      if (
+      const hasCashPayment =
         submission.paymentMethod === "cash" ||
         submission.paymentMethod === "cash_yer" ||
-        submission.paymentMethod === "cash_sar"
-      ) {
+        submission.paymentMethod === "cash_sar" ||
+        (Array.isArray(submission.payments) &&
+          submission.payments.some(p =>
+            ["cash", "cash_yer", "cash_sar"].includes(p.method as string)
+          ));
+      if (hasCashPayment) {
         openCashDrawer("إتمام عملية بيع نقدي");
       }
 
@@ -698,24 +702,19 @@ export default function POSModule() {
     },
   });
 
-  // Use sessions query as a proxy for "holds" (basic implementation)
-  const holdsMutation = trpc.modules.pos.listSessions.useQuery(undefined, {
-    staleTime: 30_000,
-  });
-
-  // Adapt holdsMutation to expected interface
+  // Real persisted holds (created via modules.pos.createHold)
   const holdsData = useMemo(
     () => ({
-      items: (holdsMutation.data ?? [])
-        .filter((s: any) => s.status === "suspended")
-        .map((s: any) => ({
-          id: s.id,
-          holdId: s.code,
-          itemCount: 0,
-          total: Number(s.totalSales || 0),
+      items: (session.holds ?? [])
+        .map((h: any) => ({
+          id: h.id,
+          holdId: h.code,
+          itemCount: h.itemCount || 0,
+          total: Number(h.total || 0),
+          _snapshot: h.snapshot,
         })),
     }),
-    [holdsMutation.data]
+    [session.holds]
   );
 
   const daily = trpc.sales.dailySummary.useQuery(undefined, {
@@ -807,11 +806,37 @@ export default function POSModule() {
     config.supportedFormats,
   ]);
 
-  const handleHold = useCallback(() => {
-    const holdId = `HOLD-${Date.now().toString(36).toUpperCase()}`;
-    cart.setHoldId(holdId);
-    toast.success(`تم تعليق الفاتورة: ${holdId}`);
-  }, [cart]);
+  const handleHold = useCallback(async () => {
+    if (cart.cart.length === 0) {
+      toast.warning("السلة فارغة — لا شيء للتعليق");
+      return;
+    }
+    const snap = {
+      cart: cart.cart,
+      selectedCustomer: cart.selectedCustomer,
+      notes: cart.notes,
+      globalDiscount: cart.globalDiscount,
+      globalDiscountPercent: cart.globalDiscountPercent,
+      payments: cart.payments,
+      paidAmount: cart.paidAmount,
+      paymentMethod: cart.paymentMethod,
+      loyaltyPointsRedeemed: cart.loyaltyPointsRedeemed,
+    };
+    try {
+      const held = await session.createHold({
+        snapshot: JSON.stringify(snap),
+        total: cart.summary.total.toString(),
+        itemCount: cart.summary.itemCount,
+        customerId: cart.selectedCustomer?.id,
+        sessionId: session.session?.id,
+        notes: cart.notes,
+      });
+      cart.clearCart();
+      toast.success(`تم تعليق الفاتورة: ${held.code}`);
+    } catch (e: any) {
+      toast.error(e?.message || "فشل تعليق الفاتورة");
+    }
+  }, [cart, session]);
 
   const handleClear = useCallback(() => {
     if (window.confirm("هل تريد مسح السلة بالكامل؟")) {
@@ -819,29 +844,31 @@ export default function POSModule() {
     }
   }, [cart]);
 
-  const loadHold = useCallback((holdId: string) => {
-    toast.success(`تم استعادة الفاتورة المعلقة: ${holdId}`);
-  }, []);
+  const loadHold = useCallback(
+    async (holdRef: string) => {
+      try {
+        const held = await utils.modules.pos.getHold.fetch({ code: holdRef });
+        if (!held) {
+          toast.error("لم يتم العثور على الفاتورة المعلقة");
+          return;
+        }
+        const snap = typeof held.snapshot === "string"
+          ? JSON.parse(held.snapshot)
+          : held.snapshot;
+        cart.restoreSnapshot(snap);
+        cart.setHoldId(String(held.id));
+        await session.resumeHold(held.id);
+        setShowHolds(false);
+        toast.success(`تم استعادة الفاتورة المعلقة: ${held.code}`);
+      } catch (e: any) {
+        toast.error(e?.message || "فشل استعادة الفاتورة المعلقة");
+      }
+    },
+    [utils, cart, session]
+  );
 
   const handleCompleteSale = useCallback(() => {
     const submission = cart.getCartForSubmission();
-    const validPaymentMethods = [
-      "cash",
-      "card",
-      "transfer",
-      "credit",
-      "online",
-    ] as const;
-    const paymentMethod = (validPaymentMethods as readonly string[]).includes(
-      submission.paymentMethod
-    )
-      ? (submission.paymentMethod as
-          | "cash"
-          | "card"
-          | "transfer"
-          | "credit"
-          | "online")
-      : "cash";
 
     // Show total on customer display before payment
     if (selectedDisplayId) {
@@ -857,6 +884,11 @@ export default function POSModule() {
       });
     }
 
+    const splitPayments =
+      Array.isArray(submission.payments) && submission.payments.length > 0
+        ? submission.payments
+        : [];
+
     createSaleMutation.mutate({
       customerId: submission.customerId,
       items: submission.items.map(i => ({
@@ -866,14 +898,20 @@ export default function POSModule() {
         unitPrice: i.unitPrice,
         discount: i.discount,
       })),
-      paymentMethod,
-      paidAmount: String(submission.paidAmount || 0),
+      paymentMethod: submission.paymentMethod as any,
+      paidAmount: String(submission._paidNow ?? submission.paidAmount ?? 0),
+      payments: splitPayments.length > 0 ? splitPayments : undefined,
       discount: String(submission.discount || 0),
+      taxRate: String(submission.taxRate || "0"),
       notes: submission.notes,
+      sessionId: session.session?.id,
+      holdId: cart.holdId ? Number(cart.holdId) || undefined : undefined,
+      loyaltyPointsRedeemed: submission.loyaltyPointsRedeemed || undefined,
     });
   }, [
     cart,
     createSaleMutation,
+    session.session?.id,
     selectedDisplayId,
     updateCustomerDisplay,
     config.currency,
@@ -1126,13 +1164,18 @@ export default function POSModule() {
                 <span className="mx-2">|</span>
                 <span className="font-mono">
                   {formatCurrency(
-                    session.session.totalSales,
+                    session.report?.totalSales ??
+                      session.session.totalSales,
                     config.currency,
                     config.decimals
                   )}
                 </span>
                 <span className="mx-2">|</span>
-                <span>{session.session.invoiceCount} فاتورة</span>
+                <span>
+                  {session.report?.invoiceCount ??
+                    session.session.invoiceCount}{" "}
+                  فاتورة
+                </span>
               </span>
             )}
             {!session.isSessionOpen && !session.isSessionSuspended && (

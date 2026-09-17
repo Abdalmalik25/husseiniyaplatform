@@ -1,25 +1,31 @@
 import { eq, sql } from "drizzle-orm";
-import { neon } from "@neondatabase/serverless";
-import { drizzle } from "drizzle-orm/neon-http";
+import { Pool } from "@neondatabase/serverless";
+import { drizzle } from "drizzle-orm/neon-serverless";
 import { InsertUser, users } from "../drizzle/schema";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
-let _sql: ReturnType<typeof neon> | null = null;
+let _pool: Pool | null = null;
 let _warmed = false;
 
-export function getSql() {
-  if (!_sql && process.env.DATABASE_URL) {
-    _sql = neon(process.env.DATABASE_URL);
+export function getPool(): Pool {
+  if (!_pool && process.env.DATABASE_URL) {
+    _pool = new Pool({
+      connectionString: process.env.DATABASE_URL,
+      max: 10,
+    });
   }
-  return _sql;
+  return _pool as Pool;
+}
+
+export function getSql() {
+  return getPool();
 }
 
 export async function getDb() {
   if (!_db && process.env.DATABASE_URL) {
     try {
-      const sql = neon(process.env.DATABASE_URL);
-      _db = drizzle(sql);
+      _db = drizzle(getPool());
     } catch (error) {
       console.warn("[Database] Failed to connect:", error);
       _db = null;

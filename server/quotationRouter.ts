@@ -69,7 +69,7 @@ async function dbOrThrow(): Promise<any> {
   return d;
 }
 
-const SOD_EXEMPT_ROLES = ["admin", "owner"];
+const SOD_EXEMPT_ROLES = ["owner"];
 
 async function nextQuotationNumber(
   db: any,
@@ -308,6 +308,8 @@ const createSchema = z.object({
 export const quotationRouter = router({
   // ── Types (configuration catalog) ──────────────────────────────────────
   types: router({
+    // PAGINATION (mandatory-limit audit): type catalog per tenant is tiny
+    // (6 system seeds + custom), but every list must still be bounded.
     list: tenantProcedure
       .use(requirePermissions(PERMISSIONS.QUOTATION_VIEW))
       .query(async ({ ctx }) => {
@@ -318,7 +320,8 @@ export const quotationRouter = router({
           .select()
           .from(quotationTypes)
           .where(eq(quotationTypes.tenantId, tid))
-          .orderBy(asc(quotationTypes.code));
+          .orderBy(asc(quotationTypes.code))
+          .limit(500);
       }),
     create: tenantProcedure
       .use(requirePermissions(PERMISSIONS.QUOTATION_CREATE))
@@ -739,7 +742,7 @@ export const quotationRouter = router({
           version: newVersion,
           updatedAt: new Date(),
         })
-        .where(eq(quotations.id, input.id));
+        .where(and(eq(quotations.id, input.id), eq(quotations.tenantId, tid)));
 
       if (input.lines) {
         await db
@@ -847,7 +850,7 @@ export const quotationRouter = router({
       if (input.to === "sent") patch.sentAt = new Date();
       if (["accepted", "rejected", "expired"].includes(input.to))
         patch.decidedAt = new Date();
-      await db.update(quotations).set(patch).where(eq(quotations.id, input.id));
+      await db.update(quotations).set(patch).where(and(eq(quotations.id, input.id), eq(quotations.tenantId, tid)));
 
       // Submitting for review spawns approval levels from the type policy
       if (input.to === "in_review") {
@@ -951,7 +954,9 @@ export const quotationRouter = router({
       const [header] = await db
         .select()
         .from(quotations)
-        .where(eq(quotations.id, appr.quotationId))
+        .where(
+          and(eq(quotations.id, appr.quotationId), eq(quotations.tenantId, tid))
+        )
         .limit(1);
       if (
         header?.createdById === ctx.user.id &&
@@ -981,7 +986,12 @@ export const quotationRouter = router({
             decidedAt: new Date(),
             updatedAt: new Date(),
           })
-          .where(eq(quotations.id, appr.quotationId));
+          .where(
+            and(
+              eq(quotations.id, appr.quotationId),
+              eq(quotations.tenantId, tid)
+            )
+          );
       } else {
         const remaining = await db
           .select()
@@ -1001,7 +1011,12 @@ export const quotationRouter = router({
               approvedAt: new Date(),
               updatedAt: new Date(),
             })
-            .where(eq(quotations.id, appr.quotationId));
+            .where(
+              and(
+                eq(quotations.id, appr.quotationId),
+                eq(quotations.tenantId, tid)
+              )
+            );
         }
       }
       await logActivity(
@@ -1074,7 +1089,9 @@ export const quotationRouter = router({
         await db
           .update(quotations)
           .set({ status: "negotiating", updatedAt: new Date() })
-          .where(eq(quotations.id, input.id));
+          .where(
+            and(eq(quotations.id, input.id), eq(quotations.tenantId, tid))
+          );
       // Proactive alert: stalled negotiation (5+ rounds)
       if (round >= 5) {
         await db
@@ -1601,9 +1618,12 @@ export const quotationRouter = router({
           .returning();
         for (const i of items) {
           const qty = Math.max(1, Math.round(Number(i.quantity)));
+          if (!i.refId) {
+            throw new Error(`المنتج غير محدد للبند «${i.name}»`);
+          }
           await db.insert(orderItems).values({
             orderId: order.id,
-            productId: i.refId ?? 0,
+            productId: i.refId,
             productName: i.name,
             quantity: qty,
             unitPrice: String(
@@ -1629,7 +1649,7 @@ export const quotationRouter = router({
             convertedRefId: order.id,
             updatedAt: new Date(),
           })
-          .where(eq(quotations.id, input.id));
+          .where(and(eq(quotations.id, input.id), eq(quotations.tenantId, tid)));
         await logActivity(
           db,
           tid,
@@ -1686,7 +1706,7 @@ export const quotationRouter = router({
           convertedRefId: firstId,
           updatedAt: new Date(),
         })
-        .where(eq(quotations.id, input.id));
+        .where(and(eq(quotations.id, input.id), eq(quotations.tenantId, tid)));
       await logActivity(
         db,
         tid,

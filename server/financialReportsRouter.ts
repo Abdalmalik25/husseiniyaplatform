@@ -17,24 +17,35 @@
  */
 import { z } from "zod";
 import { eq, and, gte, lte, inArray } from "drizzle-orm";
-import { router, tenantProcedure } from "./_core/trpc";
+import { router, tenantProcedure, requirePermissions } from "./_core/trpc";
 import { requireTenantId } from "./_core/tenant";
 import { getDb } from "./db";
 import {
   accounts,
   transactions,
+  journalEntries,
+  fiscalPeriods,
+  budgets,
+  budgetLines,
+  costCenters,
   openingBalances,
+  salesInvoices,
   customers,
   suppliers,
-  salesInvoices,
-  purchaseInvoices,
   payments,
-  costCenters,
+  posOrders,
+  posReturnItems,
+  purchaseInvoices,
 } from "../drizzle/schema";
+import { PERMISSIONS } from "../shared/permissions";
 
 type Db = any;
 
-const ACTIVE_LIFECYCLE = ["approved", "posted"] as const;
+// Posted-only: approved/saved/sent single-leg drafts are unbalanced by
+// construction and must never leak into statutory reports. This aligns with
+// accountingClosingRouter (trialBalance/generalLedger), which already counts
+// posted legs exclusively.
+const ACTIVE_LIFECYCLE = ["posted"] as const;
 
 function toNum(v: string | number | null | undefined): number {
   if (v == null) return 0;
@@ -50,7 +61,16 @@ function normalSide(type: string): "debit" | "credit" {
   return ["asset", "expense"].includes(type) ? "debit" : "credit";
 }
 
-/** Combine opening balance + all non-reversed posted transactions per account. */
+/** Combine opening balance + all non-reversed posted transactions per account.
+ *
+ * PAGINATION NOTE (mandatory-limit audit): this helper intentionally performs
+ * a tenant-bounded FULL scan (accounts + openingBalances + posted
+ * transactions). Trial balance / income / balance sheet MUST aggregate over
+ * the whole ledger — paginating here would silently corrupt totals. Tenancy
+ * bounds the blast radius (eq tenantId on every leg). If a tenant outgrows
+ * this (10k+ GL legs), the fix is server-side aggregation (SUM … GROUP BY
+ * accountId with a date index), not LIMIT. accountStatement below IS bounded.
+ */
 async function accountBalances(
   db: Db,
   tenantId: number,
@@ -113,6 +133,7 @@ async function accountBalances(
 export const financialReportsRouter = router({
   /** ميزان المراجعة — trial balance (with optional prior-period comparison) */
   trialBalance: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.REPORTS_VIEW))
     .input(
       z
         .object({
@@ -200,6 +221,7 @@ export const financialReportsRouter = router({
 
   /** قائمة الدخل — income statement (with optional prior-period comparison) */
   incomeStatement: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.REPORTS_VIEW))
     .input(
       z
         .object({
@@ -303,6 +325,7 @@ export const financialReportsRouter = router({
 
   /** الميزانية العمومية — balance sheet */
   balanceSheet: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.REPORTS_VIEW))
     .input(z.object({ asOf: z.string().optional() }).optional())
     .query(async ({ ctx, input }) => {
       const db = await getDb();
@@ -389,7 +412,10 @@ export const financialReportsRouter = router({
         .select()
         .from(transactions)
         .where(and(...conditions))
-        .orderBy(transactions.transactionDate, transactions.id);
+        .orderBy(transactions.transactionDate, transactions.id)
+        // PAGINATION: per-account statement, date-filtered — hard cap 2000
+        // lines protects the UI from a runaway account history.
+        .limit(2000);
 
       const side = normalSide(acc.type);
       const opening = obRows.reduce(

@@ -88,10 +88,19 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
     { staleTime: 60_000 }
   );
 
+  const { data: heldCarts, refetch: refetchHolds } =
+    trpc.modules.pos.listHolds.useQuery(undefined, {
+      staleTime: 10_000,
+      refetchOnWindowFocus: false,
+    });
+
+  const [shifts, setShifts] = useState<any[]>([]);
+
   const openSessionMutation = trpc.modules.pos.openSession.useMutation({
     onSuccess: newSession => {
       setSession(mapServerSessionToClient(newSession));
       setError(null);
+      setShifts([]);
       refetchSessions();
       utils.modules.pos.listSessions.invalidate();
     },
@@ -101,14 +110,51 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
   });
 
   const closeSessionMutation = trpc.modules.pos.closeSession.useMutation({
-    onSuccess: () => {
+    onSuccess: res => {
+      // res = { success, report } — store reconciled totals for the UI
       setSession(null);
+      const report = (res as any)?.report;
+      if (report) {
+        setShifts(prev => [
+          {
+            ...(session ?? {}),
+            status: "closed",
+            totalSales: report.totalSales,
+            totalRefunds: report.totalRefunds,
+            totalDiscounts: report.totalDiscounts,
+            totalTax: report.totalTax,
+            invoiceCount: report.invoiceCount,
+            paymentBreakdown: report.paymentBreakdown,
+            expectedCash: report.expectedCash,
+            cashIn: report.cashIn,
+            cashOut: report.cashOut,
+            closedAt: new Date().toISOString(),
+          },
+          ...prev,
+        ]);
+      }
       refetchSessions();
       utils.modules.pos.listSessions.invalidate();
     },
     onError: err => {
       setError(err.message || "فشل إغلاق الوردية");
     },
+  });
+
+  const cashInMutation = trpc.modules.pos.cashIn.useMutation({
+    onError: err => setError(err.message || "فشل إيداع النقد"),
+  });
+  const cashOutMutation = trpc.modules.pos.cashOut.useMutation({
+    onError: err => setError(err.message || "فشل سحب النقد"),
+  });
+  const createHoldMutation = trpc.modules.pos.createHold.useMutation({
+    onError: err => setError(err.message || "فشل تعليق الفاتورة"),
+  });
+  const resumeHoldMutation = trpc.modules.pos.resumeHold.useMutation({
+    onError: err => setError(err.message || "فشل استعادة الفاتورة"),
+  });
+  const deleteHoldMutation = trpc.modules.pos.deleteHold.useMutation({
+    onError: err => setError(err.message || "فشل حذف الفاتورة المعلقة"),
   });
 
   const activeSession = useMemo(() => {
@@ -165,18 +211,24 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
     [openSessionMutation, openingFloat, branchId]
   );
 
-  const closeSession = useCallback(async () => {
-    if (!activeSession) return;
-    setIsLoading(true);
-    setError(null);
-    try {
-      await closeSessionMutation.mutateAsync({ id: activeSession.id });
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "فشل إغلاق الوردية");
-    } finally {
-      setIsLoading(false);
-    }
-  }, [closeSessionMutation, activeSession]);
+  const closeSession = useCallback(
+    async (countedCash?: number) => {
+      if (!activeSession) return;
+      setIsLoading(true);
+      setError(null);
+      try {
+        await closeSessionMutation.mutateAsync({
+          id: activeSession.id,
+          countedCash: countedCash !== undefined ? countedCash.toString() : undefined,
+        });
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "فشل إغلاق الوردية");
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [closeSessionMutation, activeSession]
+  );
 
   const suspendSession = useCallback(async () => {
     if (!activeSession) return;
@@ -209,12 +261,65 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
     }
   }, [openSessionMutation, sessionsData]);
 
-  const updateFloat = useCallback(async () => {
-    // Float adjustments are only valid at session close/reconcile (cash-out).
-    // There is intentionally no server procedure to mutate the float of an
-    // OPEN session — doing so would break the session's running cash invariant.
-    throw new Error("تعديل الرصيد يُسمح به فقط عند إنهاء الوردية");
-  }, []);
+  const updateFloat = useCallback(
+    async (action: "in" | "out", amount: number, reason: string) => {
+      if (!activeSession || activeSession.status !== "open") return;
+      if (action === "in") {
+        await cashInMutation.mutateAsync({
+          sessionId: activeSession.id,
+          amount: amount.toString(),
+          reason,
+        });
+      } else {
+        await cashOutMutation.mutateAsync({
+          sessionId: activeSession.id,
+          amount: amount.toString(),
+          reason,
+        });
+      }
+      utils.modules.pos.sessionReport.invalidate();
+    },
+    [activeSession, cashInMutation, cashOutMutation, utils]
+  );
+
+  const createHold = useCallback(
+    async (payload: {
+      snapshot: string;
+      total: string;
+      itemCount: number;
+      customerId?: number;
+      sessionId?: number;
+      notes?: string;
+    }) => {
+      const held = await createHoldMutation.mutateAsync(payload);
+      refetchHolds();
+      return held;
+    },
+    [createHoldMutation, refetchHolds]
+  );
+
+  const resumeHold = useCallback(
+    async (holdId: number) => {
+      const res = await resumeHoldMutation.mutateAsync({ id: holdId });
+      refetchHolds();
+      return res;
+    },
+    [resumeHoldMutation, refetchHolds]
+  );
+
+  const deleteHold = useCallback(
+    async (holdId: number) => {
+      await deleteHoldMutation.mutateAsync({ id: holdId });
+      refetchHolds();
+    },
+    [deleteHoldMutation, refetchHolds]
+  );
+
+  const sessionReportQuery = trpc.modules.pos.sessionReport.useQuery(
+    { id: activeSession?.id ?? -1 },
+    { enabled: !!activeSession && activeSession.status === "open", staleTime: 15_000 }
+  );
+  const report = sessionReportQuery.data?.report ?? null;
 
   const getSessionSummary = useCallback(() => {
     if (!activeSession) return null;
@@ -222,12 +327,13 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
       session: activeSession,
       duration: Date.now() - new Date(activeSession.openedAt).getTime(),
       expectedFloat:
+        report?.expectedCash ??
         activeSession.openingFloat +
-        activeSession.totalSales -
-        activeSession.totalRefunds,
+          activeSession.totalSales -
+          activeSession.totalRefunds,
       discrepancy: 0,
     };
-  }, [activeSession]);
+  }, [activeSession, report]);
 
   const isSessionOpen = !!activeSession && activeSession.status === "open";
   const isSessionSuspended =
@@ -247,6 +353,11 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
     config,
     salesPolicy,
     paymentMethods,
+    shifts,
+    holds: heldCarts || [],
+    refetchHolds,
+    report,
+    isReportLoading: sessionReportQuery.isLoading,
     isLoading,
     error,
     isSessionOpen,
@@ -256,6 +367,9 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
     suspendSession,
     resumeSession,
     updateFloat,
+    createHold,
+    resumeHold,
+    deleteHold,
     getSessionSummary,
     refetchSessions,
   };

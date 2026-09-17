@@ -21,16 +21,24 @@ import {
   performanceMiddleware,
   getPerformanceStats,
 } from "./enterprise-performance";
+import { deriveTraceId, getSloSnapshot } from "./observability";
+import { getBackupHealth } from "./backup";
+
+export type DbHealth = { available: boolean; latencyMs: number };
 
 const healthCache = {
   lastCheck: 0,
   dbAvailable: false,
-  inFlight: false as Promise<boolean> | false,
+  dbLatencyMs: 0,
+  inFlight: false as Promise<DbHealth> | false,
 };
 
-async function checkDbHealth(): Promise<boolean> {
+async function checkDbHealth(): Promise<DbHealth> {
   if (Date.now() - healthCache.lastCheck < 5000 && !healthCache.inFlight) {
-    return healthCache.dbAvailable;
+    return {
+      available: healthCache.dbAvailable,
+      latencyMs: healthCache.dbLatencyMs,
+    };
   }
 
   if (healthCache.inFlight) {
@@ -38,6 +46,7 @@ async function checkDbHealth(): Promise<boolean> {
   }
 
   const probe = (async () => {
+    const t0 = Date.now();
     let result = false;
     try {
       const db = await getDb();
@@ -48,9 +57,11 @@ async function checkDbHealth(): Promise<boolean> {
     } catch {
       result = false;
     }
+    const latencyMs = Date.now() - t0;
     healthCache.lastCheck = Date.now();
     healthCache.dbAvailable = result;
-    return result;
+    healthCache.dbLatencyMs = latencyMs;
+    return { available: result, latencyMs };
   })();
 
   healthCache.inFlight = probe;
@@ -86,12 +97,27 @@ export function createApp(): Express {
   void warmDatabase();
 
   // 12-factor request correlation — every request gets x-request-id early so
-  // both access logs and error logs can be joined.
-  app.use((req, _res, next) => {
+  // both access logs and error logs can be joined. This is the SINGLE source
+  // of truth: downstream middleware (performance), tRPC context and Sentry
+  // all reuse this value and never generate a second ID. The light traceId
+  // extends x-request-id (or honours W3C `traceparent`) — see observability.ts.
+  app.use((req, res, next) => {
+    const incoming = req.headers["x-request-id"];
     const id =
-      (req.headers["x-request-id"] as string) ||
-      `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+      typeof incoming === "string" && incoming.length > 0 && incoming.length <= 128
+        ? incoming
+        : crypto.randomUUID();
     (req as any).requestId = id;
+    const traceId = deriveTraceId(id, req.headers["traceparent"]);
+    (req as any).traceId = traceId;
+    res.setHeader("x-request-id", id);
+    res.setHeader("x-trace-id", traceId);
+    try {
+      Sentry.getCurrentScope?.().setTag("request_id", id);
+      Sentry.getCurrentScope?.().setTag("trace_id", traceId);
+    } catch {
+      /* Sentry optional */
+    }
     next();
   });
 
@@ -302,28 +328,65 @@ export function createApp(): Express {
   });
 
   // ── APEX Health — Deep probe مع SLOs ──
-  app.get("/api/health", async (_req, res) => {
+  // Honest readiness probe: real `select 1` against Neon with its own
+  // DB latency, plus process uptime + version. Result cached 5s (see
+  // checkDbHealth) so monitors can poll aggressively without hammering DB;
+  // `cached:true` tells callers the dbLatencyMs comes from cache.
+  app.get("/api/health", async (req, res) => {
     res.setHeader("Cache-Control", "no-store");
+    const requestId =
+      ((req as any).requestId as string) ||
+      (req.headers["x-request-id"] as string) ||
+      "unknown";
+    res.setHeader("x-request-id", requestId);
     const start = Date.now();
-    const dbAvailable = await checkDbHealth();
+    const servedFromCache = Date.now() - healthCache.lastCheck < 5000;
+    const db = await checkDbHealth();
     const latencyMs = Date.now() - start;
     const uptimeSec = Math.floor(process.uptime());
-    res.status(dbAvailable ? 200 : 503).json({
-      ok: dbAvailable,
-      dbAvailable,
+    try {
+      Sentry.getCurrentScope?.().setTag("request_id", requestId);
+    } catch {
+      /* noop */
+    }
+    res.status(db.available ? 200 : 503).json({
+      ok: db.available,
+      dbAvailable: db.available,
+      dbLatencyMs: db.latencyMs,
+      cached: servedFromCache,
       service: "alhusainia-platform",
       institution: "الحسينية لخدمات الأعمال",
       version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev",
-      status: dbAvailable ? "Operational" : "Degraded (DB unreachable)",
+      status: db.available ? "Operational" : "Degraded (DB unreachable)",
       security: "ISO-Compliant",
+      requestId,
       slo: {
         latencyMs,
         uptimeSec,
         p95TargetMs: 300,
-        availability: dbAvailable ? "99.9%" : "degraded",
+        availability: db.available ? "99.9%" : "degraded",
       },
       typography: "Tajawal Apex",
       iconSystem: "HusIcons Apex v2",
+      time: new Date().toISOString(),
+    });
+  });
+
+  // Liveness — no DB touch. Tells orchestrators the process itself is alive;
+  // use /api/health for readiness (DB-gated).
+  app.get("/api/live", (req, res) => {
+    res.setHeader("Cache-Control", "no-store");
+    const requestId =
+      ((req as any).requestId as string) ||
+      (req.headers["x-request-id"] as string) ||
+      "unknown";
+    res.setHeader("x-request-id", requestId);
+    res.status(200).json({
+      ok: true,
+      service: "alhusainia-platform",
+      version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev",
+      uptimeSec: Math.floor(process.uptime()),
+      requestId,
       time: new Date().toISOString(),
     });
   });
@@ -338,6 +401,57 @@ export function createApp(): Express {
       requestId:
         (res.getHeader("X-Request-ID") as string | undefined) ?? "unknown",
       status: "Operational",
+    });
+  });
+
+  // ── SLO snapshot — light operational dashboard (no heavy deps) ──
+  // Aggregates only (no PII): in-memory p50/p95 windows (HTTP + tRPC samples
+  // recorded by performanceMiddleware / observabilityMiddleware), backup
+  // program health, and the cached DB latency probe. Each serverless instance
+  // reports its own window honestly via `sampleWindow`.
+  app.get("/api/slo", async (req, res) => {
+    res.setHeader("Cache-Control", "no-store, private");
+    const requestId =
+      ((req as any).requestId as string) ||
+      (req.headers["x-request-id"] as string) ||
+      "unknown";
+    const traceId =
+      ((req as any).traceId as string) || deriveTraceId(requestId);
+    res.setHeader("x-request-id", requestId);
+    res.setHeader("x-trace-id", traceId);
+    const db = await checkDbHealth();
+    const backup = await getBackupHealth();
+    const slo = getSloSnapshot();
+    res.status(200).json({
+      ok: true,
+      service: "alhusainia-platform",
+      version: typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev",
+      requestId,
+      traceId,
+      time: new Date().toISOString(),
+      db: {
+        available: db.available,
+        latencyMs: db.latencyMs,
+        cached: Date.now() - healthCache.lastCheck < 5000,
+      },
+      backup: {
+        consecutiveFailures: backup.consecutiveFailures,
+        needsAlert: backup.needsAlert,
+        lastFailureAt: backup.lastFailureAt,
+        lastSuccessAt: backup.lastSuccessAt,
+      },
+      latency: {
+        read: slo.observed.read,
+        financialWrite: slo.observed.financialWrite,
+        all: slo.observed.all,
+      },
+      errorPctOverall: slo.observed.errorPctOverall,
+      totalRequests: slo.observed.totalRequests,
+      webhook: slo.observed.webhook,
+      targets: slo.targets,
+      verdict: slo.verdict,
+      sampleWindow: slo.sampleWindow,
+      evaluatedAt: slo.evaluatedAt,
     });
   });
 
@@ -396,6 +510,18 @@ export function createApp(): Express {
         (req as any).requestId ||
         (req.headers["x-request-id"] as string) ||
         "unknown";
+      try {
+        Sentry.getCurrentScope?.().setTag("request_id", requestId);
+        // expressErrorHandler() above already captured the exception;
+        // only capture here when Sentry is on but that middleware is off.
+        if (ENV.sentryDsn && typeof (Sentry as any).captureException === "function") {
+          (Sentry as any).captureException(err, {
+            tags: { request_id: requestId },
+          });
+        }
+      } catch {
+        /* Sentry optional — the JSON log below is the durable signal */
+      }
       logger.error("unhandled", {
         requestId,
         path: req.path,

@@ -12,6 +12,7 @@ import { hashPassword, verifyPassword } from "./_core/password";
 import { getClientIp, geolocate, parseDevice } from "./_core/geo";
 import { generateSecret, verifyToken, otpauthUrl } from "./_core/totp";
 import { validateOrThrow } from "./services/doubleEntryValidator";
+import * as inventoryService from "./services/inventoryService";
 import {
   genGlobalCode,
   isSaudiCountry,
@@ -26,6 +27,10 @@ import { backupRouter } from "./backupRouter";
 import { billingRouter } from "./billingRouter";
 import { costCentersRouter } from "./costCentersRouter";
 import { beneficiariesRouter } from "./beneficiariesRouter";
+import { inventoryRouter } from "./inventoryRouter";
+import { procurementRouter } from "./procurementRouter";
+import { projectsRouter } from "./projectsRouter";
+import { posRouter } from "./posRouter";
 import { financialReportsRouter } from "./financialReportsRouter";
 import { fiscalPeriodsRouter } from "./fiscalPeriodsRouter";
 import {
@@ -48,10 +53,10 @@ import { posIntelligenceRouter } from "./posIntelligenceRouter";
 
 /**
  * Separation of Duties (SoD): the creator of a financial transaction must not
- * approve/post it themselves, unless they hold an elevated governance role
- * (admin/owner). Enforced in updateTransactionLifecycle.
+ * approve/post it themselves. Only the platform owner (super-admin) is exempt
+ * from this rule for governance-level actions. Enforced in updateTransactionLifecycle.
  */
-const SOD_EXEMPT_ROLES = ["admin", "owner"] as const;
+const SOD_EXEMPT_ROLES = ["owner"] as const;
 
 function canApproveOwnTransaction(role: string | undefined): boolean {
   return !!role && (SOD_EXEMPT_ROLES as readonly string[]).includes(role);
@@ -63,7 +68,9 @@ import {
   adminProcedure,
   ownerProcedure,
   router,
+  requirePermissions,
 } from "./_core/trpc";
+import { PERMISSIONS } from "../shared/permissions";
 import { requireTenantId } from "./_core/tenant";
 import { getDb, upsertUser } from "./db";
 import { getJwks, rotateKeys } from "./_core/jwt";
@@ -138,6 +145,10 @@ import {
   orders,
   orderItems,
   payments,
+  posOrders,
+  posHeldCarts,
+  posReturns,
+  posReturnItems,
   scheduledJournalEntries,
   recurringExpenses,
   recurringExpenseRuns,
@@ -680,22 +691,38 @@ async function postInvoiceGlEntries(
     });
 
   const cfg = await getTenantConfig(tx, opts.tenantId);
+  // N+1 FIX (perf audit): the per-item loop below previously issued one
+  // SELECT per line (resolveAccount → findAccount/findAccountById). Invoices
+  // routinely carry dozens of lines on the same 3–5 accounts, so results are
+  // memoized per (code|id) within this posting call — N queries collapse to
+  // ≤ distinct-accounts queries. Cross-invoice batching is intentionally out
+  // of scope (one tx per invoice).
+  const accountCache = new Map<string | number, any>();
   const findAccountById = async (id: number) => {
+    if (accountCache.has(id)) return accountCache.get(id);
     const rows = await tx
       .select()
       .from(accounts)
       .where(and(eq(accounts.id, id), eq(accounts.tenantId, opts.tenantId)))
       .limit(1);
+    accountCache.set(id, rows[0]);
     return rows[0];
   };
   const resolveAccount = async (ref?: string | number | null) => {
     if (ref == null) return undefined;
-    if (typeof ref === "number") return findAccountById(ref);
-    const byCode = await findAccount(ref);
-    if (byCode) return byCode;
-    const asNum = Number(ref);
-    if (!isNaN(asNum)) return findAccountById(asNum);
-    return undefined;
+    if (accountCache.has(ref)) return accountCache.get(ref);
+    let resolved: any;
+    if (typeof ref === "number") resolved = await findAccountById(ref);
+    else {
+      const byCode = await findAccount(ref);
+      if (byCode) resolved = byCode;
+      else {
+        const asNum = Number(ref);
+        if (!isNaN(asNum)) resolved = await findAccountById(asNum);
+      }
+    }
+    accountCache.set(ref, resolved);
+    return resolved;
   };
 
   const tax = opts.taxAmount ?? 0;
@@ -1057,6 +1084,10 @@ export const appRouter = router({
   invoiceEnhancements: invoiceEnhancementsRouter,
   procurementReports: procurementReportsRouter,
   posIntelligence: posIntelligenceRouter,
+  inventory: inventoryRouter,
+  procurement: procurementRouter,
+  projects: projectsRouter,
+  pos: posRouter,
   auth: router({
     // SECURITY: strip credential material before it ever reaches the client.
     // `passwordHash` and session-tracking columns must never be serialized
@@ -1074,6 +1105,31 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+
+    // Revoke current session immediately
+    revokeSession: tenantProcedure.mutation(async ({ ctx }) => {
+      const db = await getDb();
+      if (!db) throw new Error("Database not available");
+
+      await db
+        .update(users)
+        .set({
+          passwordChangedAt: new Date(),
+          currentSessionId: null,
+          sessionCount: 0,
+        })
+        .where(eq(users.id, ctx.user.id));
+
+      // Clear the session cookie
+      const cookieOptions = getSessionCookieOptions(ctx.req);
+      ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
+
+      return {
+        success: true,
+        message: "تم إلغاء الجلسة الحالية بنجاح",
+      };
+    }),
+
     forgotPassword: publicProcedure
       .input(z.object({ email: z.string().email() }))
       .mutation(async ({ input }) => authService.requestPasswordReset(input)),
@@ -2492,13 +2548,13 @@ export const appRouter = router({
           .limit(1);
         if (existing.length === 0) throw new Error("الحركة غير موجودة");
 
-        // Prevent editing if already posted (ترحيل)
-        if (
-          existing[0]?.lifecycleStatus === "posted" &&
-          input.lifecycleStatus !== "posted"
-        ) {
+        // Posted entries are immutable: ANY in-place change to a posted leg —
+        // including posted→posted flag flips (isReversed/reversalReason) or
+        // posted→completed — is rejected. Corrections flow ONLY through a
+        // real reversing journal (reverseJournal), preserving the audit trail.
+        if (existing[0]?.lifecycleStatus === "posted") {
           throw new Error(
-            "لا يمكن تعديل أو إلغاء حركة مرحلة نهائياً. التعديل يتم عبر حركة عكسية مستقلة."
+            "لا يمكن تعديل أو إلغاء حركة مرحلة نهائياً. التعديل يتم عبر قيد عكسي مستقل."
           );
         }
 
@@ -2891,47 +2947,50 @@ export const appRouter = router({
           .limit(1);
         const effectiveBranchId = input.branchId ?? bRows[0]?.id ?? null;
 
-        const [je] = await db
-          .insert(journalEntries)
-          .values({
-            tenantId,
-            branchId: effectiveBranchId,
-            sourceModule: "manual",
-            sourceRefType: "manual",
-            sourceRefId: null,
-            referenceNo: ref,
-            status: "posted",
-            totalAmount: totalDebit.toFixed(2),
-            createdById: ctx.user?.id ?? null,
-            postedAt: new Date(),
-            // Posted journals are immutable (chk_journal_immutable_posted);
-            // corrections flow through reverseJournal.
-            isImmutable: true,
-          })
-          .returning();
+        const je = await db.transaction(async (tx: any) => {
+          const [entry] = await tx
+            .insert(journalEntries)
+            .values({
+              tenantId,
+              branchId: effectiveBranchId,
+              sourceModule: "manual",
+              sourceRefType: "manual",
+              sourceRefId: null,
+              referenceNo: ref,
+              status: "posted",
+              totalAmount: totalDebit.toFixed(2),
+              createdById: ctx.user?.id ?? null,
+              postedAt: new Date(),
+              // Posted journals are immutable (chk_journal_immutable_posted);
+              // corrections flow through reverseJournal.
+              isImmutable: true,
+            })
+            .returning();
 
-        for (const l of input.lines) {
-          await db.insert(transactions).values({
-            tenantId,
-            accountId: l.accountId,
-            branchId: effectiveBranchId,
-            amount: l.amount,
-            type: l.type,
-            transactionDate: txDate,
-            narration: l.narration || input.narration,
-            lifecycleStatus: "posted",
-            referenceType: "manual",
-            referenceId: null,
-            sourceModule: "manual",
-            costCenterId: l.costCenterId ?? input.costCenterId ?? null,
+          for (const l of input.lines) {
+            await tx.insert(transactions).values({
+              tenantId,
+              accountId: l.accountId,
+              branchId: effectiveBranchId,
+              amount: l.amount,
+              type: l.type,
+              transactionDate: txDate,
+              narration: l.narration || input.narration,
+              lifecycleStatus: "posted",
+              referenceType: "manual",
+              referenceId: null,
+              sourceModule: "manual",
+              costCenterId: l.costCenterId ?? input.costCenterId ?? null,
+              userId: ctx.user?.id ?? null,
+              journalEntryId: entry.id,
+            });
+          }
+          await tx.insert(activityLogs).values({
             userId: ctx.user?.id ?? null,
-            journalEntryId: je.id,
+            action: `إنشاء قيد يدوي #${entry.id}`,
+            details: `المرجع: ${ref} — المبلغ: ${totalDebit.toFixed(2)}`,
           });
-        }
-        await db.insert(activityLogs).values({
-          userId: ctx.user?.id ?? 0,
-          action: `إنشاء قيد يدوي #${je.id}`,
-          details: `المرجع: ${ref} — المبلغ: ${totalDebit.toFixed(2)}`,
+          return entry;
         });
         return je;
       }),
@@ -3930,8 +3989,19 @@ export const appRouter = router({
             asOfDate: z.string().optional(),
           })
         )
-        .query(async ({ input, ctx }) => {
-          const db = await getDb();
+      .query(async ({ input, ctx }) => {
+        // Public enumeration surface: per-IP burst cap against scrapers.
+        // The global trpcLimiter (600/15min in server/_core/app.ts) stays
+        // the outer bound; this adds per-minute burst protection.
+        const catalogIp = ctx.req.ip || "unknown";
+        const catalogRl = checkRateLimit(`catalog:${catalogIp}`, 120, 60 * 1000);
+        if (!catalogRl.ok) {
+          throw new TRPCError({
+            code: "TOO_MANY_REQUESTS",
+            message: `عدد كبير من الطلبات — أعد المحاولة بعد ${catalogRl.retryAfterSec} ثانية.`,
+          });
+        }
+        const db = await getDb();
           if (!db)
             return { rows: [], revenueTotal: 0, expenseTotal: 0, netProfit: 0 };
           const tid = requireTenantId(ctx);
@@ -5400,6 +5470,23 @@ ${analysisText}
               }
             } else if (mutation.table === "orders") {
               if (mutation.operation === "create") {
+                if (mutation.payload.idempotencyKey) {
+                  const existing = await db
+                    .select()
+                    .from(orders)
+                    .where(
+                      eq(orders.idempotencyKey, mutation.payload.idempotencyKey)
+                    )
+                    .limit(1);
+                  if (existing.length > 0) {
+                    results.push({
+                      recordId: mutation.recordId,
+                      status: "ok",
+                      serverId: existing[0].id,
+                    });
+                    continue;
+                  }
+                }
                 const inserted = await db
                   .insert(orders)
                   .values({ ...mutation.payload, tenantId: ctx.tenantId })
@@ -5433,6 +5520,23 @@ ${analysisText}
               }
             } else if (mutation.table === "payments") {
               if (mutation.operation === "create") {
+                if (mutation.payload.idempotencyKey) {
+                  const existing = await db
+                    .select()
+                    .from(payments)
+                    .where(
+                      eq(payments.idempotencyKey, mutation.payload.idempotencyKey)
+                    )
+                    .limit(1);
+                  if (existing.length > 0) {
+                    results.push({
+                      recordId: mutation.recordId,
+                      status: "ok",
+                      serverId: existing[0].id,
+                    });
+                    continue;
+                  }
+                }
                 await db
                   .insert(payments)
                   .values({ ...mutation.payload, tenantId: ctx.tenantId });
@@ -6161,20 +6265,15 @@ ${analysisText}
                   },
                 });
             } else if (input.type === "out") {
-              await tx
-                .update(warehouseStock)
-                .set({
-                  quantity: sql`${warehouseStock.quantity} - ${input.quantity}`,
-                  availableQty: sql`${warehouseStock.availableQty} - ${input.quantity}`,
-                  lastMovementAt: new Date(),
-                })
-                .where(
-                  and(
-                    eq(warehouseStock.tenantId, ctx.tenantId!),
-                    eq(warehouseStock.productId, input.productId),
-                    eq(warehouseStock.warehouseId, warehouseId),
-                    gte(warehouseStock.availableQty, input.quantity)
-                  )
+              const deducted = await inventoryService.deductWarehouseStock(tx, {
+                tenantId: ctx.tenantId!,
+                productId: input.productId,
+                warehouseId,
+                quantity: input.quantity,
+              });
+              if (!deducted.success)
+                throw new Error(
+                  `المخزون غير كافٍ في المخزن — المتوفر أقل من ${input.quantity}`
                 );
             } else {
               await tx
@@ -6392,24 +6491,6 @@ ${analysisText}
         if (input.fromWarehouseId === input.toWarehouseId)
           throw new Error("يجب اختيار مخزنين مختلفين");
 
-        // Check available stock in source warehouse
-        const [fromStock] = await db
-          .select({ available: warehouseStock.availableQty })
-          .from(warehouseStock)
-          .where(
-            and(
-              eq(warehouseStock.tenantId, ctx.tenantId!),
-              eq(warehouseStock.productId, input.productId),
-              eq(warehouseStock.warehouseId, input.fromWarehouseId)
-            )
-          )
-          .limit(1);
-        if (!fromStock || (fromStock.available || 0) < input.quantity) {
-          throw new Error(
-            `المخزون المتاح في المخزن المصدر غير كافٍ — متاح: ${fromStock?.available || 0}`
-          );
-        }
-
         await (db as any).transaction(async (tx: any) => {
           await tx.insert(warehouseTransfers).values({
             tenantId: ctx.tenantId,
@@ -6421,47 +6502,25 @@ ${analysisText}
             userId: ctx.user.id,
           });
 
-          // Update source warehouse stock
-          await tx
-            .update(warehouseStock)
-            .set({
-              quantity: sql`${warehouseStock.quantity} - ${input.quantity}`,
-              availableQty: sql`${warehouseStock.availableQty} - ${input.quantity}`,
-              lastMovementAt: new Date(),
-            })
-            .where(
-              and(
-                eq(warehouseStock.tenantId, ctx.tenantId!),
-                eq(warehouseStock.productId, input.productId),
-                eq(warehouseStock.warehouseId, input.fromWarehouseId)
-              )
+          // Deduct from source warehouse (atomic guarded decrement)
+          const deducted = await inventoryService.deductWarehouseStock(tx, {
+            tenantId: ctx.tenantId!,
+            productId: input.productId,
+            warehouseId: input.fromWarehouseId,
+            quantity: input.quantity,
+          });
+          if (!deducted.success)
+            throw new Error(
+              `المخزون المتاح في المخزن المصدر غير كافٍ — المطلوب: ${input.quantity}`
             );
 
-          // Update destination warehouse stock
-          await tx
-            .insert(warehouseStock)
-            .values({
-              tenantId: ctx.tenantId,
-              productId: input.productId,
-              warehouseId: input.toWarehouseId,
-              quantity: input.quantity,
-              reservedQty: 0,
-              availableQty: input.quantity,
-              lastMovementAt: new Date(),
-            })
-            .onConflictDoUpdate({
-              target: [
-                warehouseStock.productId,
-                warehouseStock.warehouseId,
-                warehouseStock.tenantId,
-              ],
-              set: {
-                quantity: sql`${warehouseStock.quantity} + ${input.quantity}`,
-                availableQty: sql`${warehouseStock.availableQty} + ${input.quantity}`,
-                lastMovementAt: new Date(),
-                updatedAt: new Date(),
-              },
-            });
+          // Add to destination warehouse (atomic upsert)
+          await inventoryService.addWarehouseStock(tx, {
+            tenantId: ctx.tenantId!,
+            productId: input.productId,
+            warehouseId: input.toWarehouseId,
+            quantity: input.quantity,
+          });
 
           await tx.insert(inventoryMovements).values([
             {
@@ -6934,67 +6993,22 @@ ${analysisText}
         if (!db) throw new Error("Database not available");
         const tid = ctx.tenantId;
 
-        // Check available stock
-        let availableQty: number;
-        if (input.batchId) {
-          const [batch] = await db
-            .select()
-            .from(inventoryBatches)
-            .where(eq(inventoryBatches.id, input.batchId))
-            .limit(1);
-          if (!batch) throw new Error("الدفعة غير موجودة");
-          availableQty = (batch.quantity || 0) - (batch.reservedQty || 0);
-        } else {
-          const whConditions = [
-            eq(warehouseStock.tenantId, tid),
-            eq(warehouseStock.productId, input.productId),
-          ];
-          if (input.warehouseId)
-            whConditions.push(
-              eq(warehouseStock.warehouseId, input.warehouseId)
+        // Atomic reservation: move from available → reserved under a single
+        // guarded UPDATE that prevents oversell under concurrency.
+        const reservationId = await (db as any).transaction(async (tx: any) => {
+          const reserved = await inventoryService.reserveStock(tx, {
+            tenantId: tid,
+            productId: input.productId,
+            warehouseId: input.warehouseId || 0,
+            quantity: input.quantity,
+            batchId: input.batchId,
+          });
+          if (!reserved.success)
+            throw new Error(
+              `المخزون المتاح غير كافٍ — مطلوب: ${input.quantity}`
             );
-          const stockRows = await db
-            .select({ available: warehouseStock.availableQty })
-            .from(warehouseStock)
-            .where(and(...whConditions));
-          availableQty = stockRows.reduce(
-            (sum, s) => sum + (s.available || 0),
-            0
-          );
-        }
 
-        if (availableQty < input.quantity) {
-          throw new Error(
-            `المخزون المتاح غير كافٍ — متاح: ${availableQty}, مطلوب: ${input.quantity}`
-          );
-        }
-
-        // Reserve stock
-        await (db as any).transaction(async (tx: any) => {
-          if (input.batchId) {
-            await tx
-              .update(inventoryBatches)
-              .set({
-                reservedQty: sql`${inventoryBatches.reservedQty} + ${input.quantity}`,
-              })
-              .where(eq(inventoryBatches.id, input.batchId));
-          } else if (input.warehouseId) {
-            await tx
-              .update(warehouseStock)
-              .set({
-                reservedQty: sql`${warehouseStock.reservedQty} + ${input.quantity}`,
-                availableQty: sql`${warehouseStock.availableQty} - ${input.quantity}`,
-              })
-              .where(
-                and(
-                  eq(warehouseStock.tenantId, tid),
-                  eq(warehouseStock.productId, input.productId),
-                  eq(warehouseStock.warehouseId, input.warehouseId)
-                )
-              );
-          }
-
-          await tx.insert(stockReservations).values({
+          const [inserted] = await tx.insert(stockReservations).values({
             tenantId: tid,
             productId: input.productId,
             warehouseId: input.warehouseId || null,
@@ -8049,6 +8063,7 @@ ${analysisText}
 
     // Daily sales summary for the POS "daily report" / end-of-day cash-out.
     dailySummary: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_VIEW))
       .input(z.object({ date: z.string().optional() }).optional())
       .query(async ({ input, ctx }) => {
         const empty = () => ({
@@ -8250,9 +8265,57 @@ ${analysisText}
           discount: z.string().default("0"),
           taxRate: z.string().default("0"),
           paymentMethod: z
-            .enum(["cash", "card", "transfer", "credit", "online"])
+            .enum([
+              "cash",
+              "card",
+              "transfer",
+              "credit",
+              "online",
+              "cash_yer",
+              "cash_sar",
+              "hawala",
+              "shabab",
+              "mobile_money",
+              "bank_transfer",
+            ])
             .default("cash"),
           paidAmount: z.string().default("0"),
+          // ─── Split / multi-method payments (POS) ──────────────────
+          payments: z
+            .array(
+              z.object({
+                method: z
+                  .enum([
+                    "cash",
+                    "card",
+                    "transfer",
+                    "credit",
+                    "online",
+                    "cash_yer",
+                    "cash_sar",
+                    "hawala",
+                    "shabab",
+                    "mobile_money",
+                    "bank_transfer",
+                  ])
+                  .default("cash"),
+                amount: z
+                  .string()
+                  .refine(
+                    v => {
+                      const n = parseFloat(v);
+                      return !isNaN(n) && n >= 0;
+                    },
+                    "المبلغ يجب أن يكون رقماً غير سالب"
+                  ),
+                reference: z.string().optional(),
+              })
+            )
+            .optional(),
+          // ─── Shift (وردية) linkage ────────────────────────────────
+          sessionId: z.number().optional(),
+          holdId: z.number().optional(),
+          loyaltyPointsRedeemed: z.number().int().min(0).optional(),
           notes: z.string().optional(),
           country: z.string().optional(),
           workSiteId: z.number().optional(),
@@ -8263,6 +8326,7 @@ ${analysisText}
           // ─── Multi-currency (Module B) ──────────────────────────────
           currency: z.string().optional(),
           currencyRate: z.string().optional(),
+          idempotencyKey: z.string().max(255).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -8319,7 +8383,42 @@ ${analysisText}
         );
         const taxAmount = ((subtotal - discount) * taxRate) / 100;
         const total = subtotal - discount + taxAmount;
-        const paidAmount = parseFloat(input.paidAmount);
+
+        // ─── Payments: explicit split list OR single legacy payment ──
+        type PosPayLine = {
+          method: NonNullable<typeof input.paymentMethod>;
+          amount: string;
+          reference?: string;
+        };
+        const payIn: PosPayLine[] =
+          input.payments && input.payments.length > 0
+            ? input.payments
+                .filter(p => parseFloat(p.amount) > 0)
+                .map(p => ({
+                  method: p.method as PosPayLine["method"],
+                  amount: p.amount,
+                  reference: p.reference,
+                }))
+            : parseFloat(input.paidAmount) > 0
+              ? [
+                  {
+                    method: input.paymentMethod as PosPayLine["method"],
+                    amount: input.paidAmount,
+                  },
+                ]
+              : [];
+        const paidAmount = payIn.reduce(
+          (sum, p) => sum + parseFloat(p.amount),
+          0
+        );
+        const primaryMethod = payIn[0]?.method ?? input.paymentMethod;
+        if (payIn.length > 0) {
+          for (const p of payIn) {
+            const amt = parseFloat(p.amount);
+            if (isNaN(amt) || amt < 0)
+              throw new Error("المبلغ المدفوع غير صحيح");
+          }
+        }
         if (isNaN(paidAmount) || paidAmount < 0)
           throw new Error("المبلغ المدفوع غير صحيح");
         if (paidAmount > total + 0.01)
@@ -8404,8 +8503,8 @@ ${analysisText}
               taxRate: input.taxRate,
               taxAmount: taxAmount.toString(),
               total: total.toString(),
-              paidAmount: input.paidAmount,
-              paymentMethod: input.paymentMethod,
+              paidAmount: paidAmount.toString(),
+              paymentMethod: primaryMethod,
               notes: input.notes || null,
               userId: ctx.user.id,
               currency: input.currency || "YER",
@@ -8433,13 +8532,23 @@ ${analysisText}
             const prod = productMap.get(item.productId);
             if (prod?.type === "service") continue; // services carry no stock
 
-            // Deduct from global product stock
-            await tx
+            // Deduct from global product stock (guarded — no oversell under concurrency)
+            const globalDone = await tx
               .update(products)
               .set({
                 currentStock: sql`${products.currentStock} - ${item.quantity}`,
               })
-              .where(eq(products.id, item.productId));
+              .where(
+                and(
+                  eq(products.id, item.productId),
+                  gte(products.currentStock, item.quantity)
+                )
+              )
+              .returning({ id: products.id });
+            if (globalDone.length === 0)
+              throw new Error(
+                `الكمية المطلوبة من «${item.productName}» تجاوزت المتوفر`
+              );
 
             // Deduct from warehouse stock (default warehouse)
             const defaultWarehouse = await tx
@@ -8456,7 +8565,7 @@ ${analysisText}
 
             const warehouseId = defaultWarehouse[0]?.id;
             if (warehouseId) {
-              await tx
+              const stockDone = await tx
                 .update(warehouseStock)
                 .set({
                   quantity: sql`${warehouseStock.quantity} - ${item.quantity}`,
@@ -8470,6 +8579,11 @@ ${analysisText}
                     eq(warehouseStock.warehouseId, warehouseId),
                     gte(warehouseStock.availableQty, item.quantity)
                   )
+                )
+                .returning({ id: warehouseStock.id });
+              if (stockDone.length === 0)
+                throw new Error(
+                  `الكمية المطلوبة من «${item.productName}» تجاوزت المتوفر في المستودع`
                 );
 
               // Consume valuation layers (FIFO)
@@ -8539,7 +8653,7 @@ ${analysisText}
             paidAmount,
             taxAmount,
             discount,
-            paymentMethod: input.paymentMethod,
+            paymentMethod: primaryMethod,
             branchId: null,
             userId: ctx.user.id,
             tenantId: ctx.tenantId!,
@@ -8559,11 +8673,110 @@ ${analysisText}
             }),
           });
 
+          // ─── Pay registers: one row per payment method (source sales) ─
+          for (const p of payIn) {
+            await tx.insert(payments).values({
+              tenantId: ctx.tenantId!,
+              source: "sales",
+              invoiceId: invoice.id,
+              amount: p.amount,
+              paymentMethod: p.method,
+              paymentDate: new Date(),
+              notes: p.reference ? `مرجع: ${p.reference}` : null,
+              userId: ctx.user.id,
+              idempotencyKey: input.idempotencyKey
+                ? `${input.idempotencyKey}:${p.method}`
+                : null,
+            });
+          }
+
+          // ─── Shift (وردية) linkage: keep a pos_orders record so the
+          //     session reports (X/Z) can aggregate sales per session.
+          if (input.sessionId) {
+            await tx.insert(posOrders).values({
+              tenantId: ctx.tenantId!,
+              sessionId: input.sessionId,
+              salesInvoiceId: invoice.id,
+              total: total.toString(),
+              paymentMethod: primaryMethod,
+              status: "completed",
+              createdById: ctx.user.id,
+              currencyId: null,
+            });
+          }
+
+          // ─── Released hold (إذا كانت الفاتورة معلقة سابقاً) ──────────
+          if (input.holdId) {
+            await tx
+              .update(posHeldCarts)
+              .set({
+                status: "completed",
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(posHeldCarts.id, input.holdId),
+                  eq(posHeldCarts.tenantId, ctx.tenantId!)
+                )
+              );
+          }
+
+          // ─── Loyalty: redeem points and accrue 1pt per paid unit ─────
+          const redeemPoints = input.loyaltyPointsRedeemed ?? 0;
+          if (input.customerId && redeemPoints > 0) {
+            const [cust] = await tx
+              .select({ loyaltyPoints: customers.loyaltyPoints })
+              .from(customers)
+              .where(
+                and(
+                  eq(customers.id, input.customerId),
+                  eq(customers.tenantId, ctx.tenantId!)
+                )
+              )
+              .limit(1);
+            const current = Number(cust?.loyaltyPoints ?? 0);
+            if (current < redeemPoints)
+              throw new Error("نقاط الولاء غير كافية للعميل");
+            await tx
+              .update(customers)
+              .set({
+                loyaltyPoints: Math.max(
+                  0,
+                  current - redeemPoints + Math.floor(paidAmount)
+                ),
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(customers.id, input.customerId),
+                  eq(customers.tenantId, ctx.tenantId!)
+                )
+              );
+          } else if (input.customerId && paidAmount > 0) {
+            await tx
+              .update(customers)
+              .set({
+                loyaltyPoints: sql`${customers.loyaltyPoints} + ${Math.floor(paidAmount)}`,
+                updatedAt: new Date(),
+              })
+              .where(
+                and(
+                  eq(customers.id, input.customerId),
+                  eq(customers.tenantId, ctx.tenantId!)
+                )
+              );
+          }
+
           // Audit log
           await tx.insert(activityLogs).values({
             userId: ctx.user.id,
             action: `إنشاء فاتورة مبيعات: ${invoiceNumber}`,
-            details: `الإجمالي: ${total} — طريقة الدفع: ${input.paymentMethod}`,
+            details: `الإجمالي: ${total} — طريقة الدفع: ${primaryMethod}${
+              payIn.length > 0
+                ? " — دفعات: " +
+                  payIn.map(p => `${p.method} ${p.amount}`).join(", ")
+                : ""
+            }`,
           });
 
           return {
@@ -8579,6 +8792,11 @@ ${analysisText}
       }),
 
     updateStatus: tenantProcedure
+      .use(
+        requirePermissions({
+          any: [PERMISSIONS.POS_VOID_SALE, PERMISSIONS.POS_EDIT_SALE],
+        })
+      )
       .input(
         z.object({
           id: z.number(),
@@ -8719,6 +8937,322 @@ ${analysisText}
           .from(salesInvoiceItems)
           .where(eq(salesInvoiceItems.invoiceId, input.invoiceId));
       }),
+
+    // ─── POS Returns / Exchanges (مرتجع كامل أو جزئي) ─────────────────
+    returns: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_RETURNS))
+      .input(
+        z
+          .object({
+            invoiceId: z.number().optional(),
+            sessionId: z.number().optional(),
+          })
+          .optional()
+      )
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return [];
+        const db = await getDb();
+        if (!db) return [];
+        const conditions: any[] = [eq(posReturns.tenantId, ctx.tenantId!)];
+        if (input?.invoiceId)
+          conditions.push(eq(posReturns.originalInvoiceId, input.invoiceId));
+        if (input?.sessionId)
+          conditions.push(eq(posReturns.sessionId, input.sessionId));
+        return await db
+          .select()
+          .from(posReturns)
+          .where(and(...conditions))
+          .orderBy(desc(posReturns.createdAt))
+          .limit(100);
+      }),
+
+    return: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_RETURNS))
+      .input(
+        z.object({
+          invoiceId: z.number(),
+          // ─── Lines to return — quantity cannot exceed the invoice line ─
+          items: z
+            .array(
+              z.object({
+                productId: z.number(),
+                quantity: z.number().int().min(1),
+                restock: z.boolean().default(true),
+                condition: z
+                  .enum(["new", "used", "damaged"])
+                  .default("new"),
+                serialNumbers: z.string().optional(),
+              })
+            )
+            .min(1, "أضف صنفاً واحداً على الأقل للاسترجاع"),
+          refundMethod: z
+            .enum([
+              "cash",
+              "card",
+              "transfer",
+              "credit",
+              "online",
+              "cash_yer",
+              "cash_sar",
+              "hawala",
+              "shabab",
+              "mobile_money",
+              "bank_transfer",
+            ])
+            .default("cash"),
+          refundReference: z.string().optional(),
+          reason: z.string().optional(),
+          notes: z.string().optional(),
+          sessionId: z.number().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        if (!ctx.tenantId) throw new Error("يجب إنشاء مؤسسة أولاً");
+        const db = await getDb();
+        if (!db) throw new Error("Database not available");
+
+        const [inv] = await db
+          .select()
+          .from(salesInvoices)
+          .where(
+            and(
+              eq(salesInvoices.id, input.invoiceId),
+              eq(salesInvoices.tenantId, ctx.tenantId!)
+            )
+          )
+          .limit(1);
+        if (!inv) throw new Error("الفاتورة غير موجودة");
+        if (inv.status === "cancelled")
+          throw new Error("لا يمكن استرجاع فاتورة ملغاة");
+
+        const invItems = await db
+          .select()
+          .from(salesInvoiceItems)
+          .where(eq(salesInvoiceItems.invoiceId, inv.id));
+        const itemMap = new Map(invItems.map(it => [it.productId, it]));
+
+        // ─── Validate requested quantities per invoice line ───────────
+        for (const line of input.items) {
+          const orig = itemMap.get(line.productId);
+          if (!orig)
+            throw new Error(`صنف ${line.productId} غير موجود بالفاتورة`);
+          const alreadyReturned = await db
+            .select({
+              qty: sql<number>`coalesce(sum(${posReturnItems.quantity}), 0)::int`,
+            })
+            .from(posReturnItems)
+            .innerJoin(posReturns, eq(posReturns.id, posReturnItems.returnId))
+            .where(
+              and(
+                eq(posReturns.originalInvoiceId, inv.id),
+                eq(posReturns.tenantId, ctx.tenantId!),
+                eq(posReturnItems.productId, line.productId)
+              )
+            );
+          const returnedQty = Number(alreadyReturned[0]?.qty ?? 0);
+          if (returnedQty + line.quantity > orig.quantity)
+            throw new Error(
+              `كمية الاسترجاع للصنف "${orig.productName}" تجاوزت الكمية المباعة (المتبقي ${orig.quantity - returnedQty})`
+            );
+        }
+
+        // ─── Refund math: proportional share of global discount + tax ─
+        const subtotal = parseFloat(inv.subtotal || "0");
+        const invDiscount = parseFloat(inv.discount || "0");
+        const invTax = parseFloat(inv.taxAmount || "0");
+        let returnSubtotal = 0;
+        let returnLineDisc = 0;
+        const lines: {
+          productId: number;
+          productName: string;
+          quantity: number;
+          unitPrice: string;
+          discount: string;
+          taxAmount: string;
+          total: string;
+          restock: boolean;
+          condition: string;
+          serialNumbers: string | null;
+        }[] = [];
+
+        for (const line of input.items) {
+          const orig = itemMap.get(line.productId)!;
+          const unitPrice = parseFloat(orig.unitPrice || "0");
+          const lineDisc = parseFloat(orig.discount || "0");
+          const qtyShare = line.quantity / orig.quantity;
+          const lineUnitDisc = (lineDisc * line.quantity) / orig.quantity;
+          returnSubtotal += unitPrice * line.quantity;
+          returnLineDisc += lineUnitDisc;
+          const netBeforeTax = unitPrice * line.quantity - lineUnitDisc;
+          const taxShare =
+            subtotal - invDiscount > 0
+              ? (netBeforeTax / (subtotal - invDiscount)) * invTax
+              : 0;
+          lines.push({
+            productId: line.productId,
+            productName: orig.productName,
+            quantity: line.quantity,
+            unitPrice: orig.unitPrice,
+            discount: lineUnitDisc.toString(),
+            taxAmount: taxShare.toString(),
+            total: (netBeforeTax + taxShare).toString(),
+            restock: line.restock,
+            condition: line.condition,
+            serialNumbers: line.serialNumbers ?? null,
+          });
+        }
+
+        const globalDiscShare =
+          subtotal > 0 ? invDiscount * (returnSubtotal / subtotal) : 0;
+        const refundAmount = Math.max(
+          0,
+          returnSubtotal - returnLineDisc - globalDiscShare
+        );
+
+        const returnNumber = `RT-${new Date()
+          .getFullYear()}${String(new Date().getMonth() + 1).padStart(
+          2,
+          "0"
+        )}${String(new Date().getDate()).padStart(2, "0")}-${Math.random()
+          .toString(36)
+          .substring(2, 7)
+          .toUpperCase()}`;
+
+        // ─── Products needed for stock updates ────────────────────────
+        const productRows = await db
+          .select()
+          .from(products)
+          .where(
+            and(
+              inArray(
+                products.id,
+                input.items.map(i => i.productId)
+              ),
+              isNull(products.deletedAt)
+            )
+          );
+        const productMap = new Map(productRows.map(p => [p.id, p]));
+        let returnId = 0;
+
+        await (db as any).transaction(async (tx: any) => {
+          const [ret] = await tx
+            .insert(posReturns)
+            .values({
+              tenantId: ctx.tenantId!,
+              returnNumber,
+              originalInvoiceId: inv.id,
+              originalInvoiceNumber: inv.invoiceNumber,
+              customerId: inv.customerId,
+              branchId: null,
+              sessionId: input.sessionId ?? null,
+              refundMethod: input.refundMethod,
+              refundReference: input.refundReference ?? null,
+              reason: input.reason ?? null,
+              status: "completed",
+              refundAmount: refundAmount.toString(),
+              createdById: ctx.user.id,
+              processedById: ctx.user.id,
+              notes: input.notes ?? null,
+              processedAt: new Date(),
+            })
+            .returning();
+
+          await tx
+            .insert(posReturnItems)
+            .values(lines.map(l => ({ ...l, returnId: ret.id })));
+
+          // ─── Restock (unless the item was damaged beyond return) ───
+          for (const line of lines) {
+            const prod = productMap.get(line.productId);
+            if (prod?.type === "service" || !line.restock) continue;
+
+            await tx
+              .update(products)
+              .set({
+                currentStock: sql`${products.currentStock} + ${line.quantity}`,
+              })
+              .where(eq(products.id, line.productId));
+
+            const defaultWarehouse = await tx
+              .select({ id: warehouses.id })
+              .from(warehouses)
+              .where(
+                and(
+                  eq(warehouses.tenantId, ctx.tenantId!),
+                  eq(warehouses.isActive, true)
+                )
+              )
+              .orderBy(asc(warehouses.code))
+              .limit(1);
+            const warehouseId = defaultWarehouse[0]?.id;
+            if (warehouseId) {
+              await tx
+                .update(warehouseStock)
+                .set({
+                  quantity: sql`${warehouseStock.quantity} + ${line.quantity}`,
+                  availableQty: sql`${warehouseStock.availableQty} + ${line.quantity}`,
+                  lastMovementAt: new Date(),
+                })
+                .where(
+                  and(
+                    eq(warehouseStock.tenantId, ctx.tenantId!),
+                    eq(warehouseStock.productId, line.productId),
+                    eq(warehouseStock.warehouseId, warehouseId)
+                  )
+                );
+            }
+
+            await tx.insert(inventoryMovements).values({
+              tenantId: ctx.tenantId,
+              productId: line.productId,
+              warehouseId: warehouseId || null,
+              type: "in",
+              quantity: line.quantity,
+              referenceId: ret.id,
+              referenceType: "sale-return",
+              notes: `استرجاع ${returnNumber} من فاتورة ${inv.invoiceNumber}`,
+            });
+          }
+
+          // ─── Reflect on the customer receivable (credit-sold portion) ─
+          if (inv.customerId) {
+            const unpaidBefore = Math.max(
+              0,
+              parseFloat(inv.total || "0") - parseFloat(inv.paidAmount || "0")
+            );
+            const reduceBy = Math.min(refundAmount, unpaidBefore);
+            if (reduceBy > 0) {
+              await tx
+                .update(customers)
+                .set({
+                  balance: sql`${customers.balance} - ${reduceBy}`,
+                })
+                .where(
+                  and(
+                    eq(customers.id, inv.customerId),
+                    eq(customers.tenantId, ctx.tenantId!)
+                  )
+                );
+            }
+          }
+
+          await tx.insert(activityLogs).values({
+            userId: ctx.user.id,
+            action: `استرجاع من فاتورة مبيعات: ${inv.invoiceNumber}`,
+            details: `قيمة الاسترجاع: ${refundAmount} — الطريقة: ${input.refundMethod}`,
+          });
+
+          returnId = ret.id;
+          return { id: ret.id, returnNumber };
+        });
+
+        return {
+          success: true,
+          returnId,
+          returnNumber,
+          refundAmount: refundAmount.toString(),
+        };
+      }),
   }),
 
   // ─── Purchases ──────────────────────────────────────────────────
@@ -8764,10 +9298,10 @@ ${analysisText}
         return { items, total: countResult?.count ?? 0 };
       }),
 
-    create: tenantProcedure
+create: tenantProcedure
       .input(
         z.object({
-          supplierId: z.number().optional(),
+          customerId: z.number().optional(),
           items: z
             .array(
               z.object({
@@ -8790,6 +9324,7 @@ ${analysisText}
             .enum(["cash", "card", "transfer", "credit", "online"])
             .default("cash"),
           paidAmount: z.string().default("0"),
+          supplierId: z.number().optional(),
           notes: z.string().optional(),
           country: z.string().optional(),
           workSiteId: z.number().optional(),
@@ -9110,12 +9645,22 @@ ${analysisText}
         await (db as any).transaction(async (tx: any) => {
           if (cancelFlow) {
             for (const item of items) {
-              await tx
+              const globalDone = await tx
                 .update(products)
                 .set({
                   currentStock: sql`${products.currentStock} - ${item.quantity}`,
                 })
-                .where(eq(products.id, item.productId));
+                .where(
+                  and(
+                    eq(products.id, item.productId),
+                    gte(products.currentStock, item.quantity)
+                  )
+                )
+                .returning({ id: products.id });
+              if (globalDone.length === 0)
+                throw new Error(
+                  `المخزون غير كافٍ لإلغاء فاتورة الشراء — المنتج ${item.productId}`
+                );
 
               // Update warehouse stock and valuation layers
               const defaultWarehouse = await tx
@@ -9132,7 +9677,7 @@ ${analysisText}
 
               const warehouseId = defaultWarehouse[0]?.id;
               if (warehouseId) {
-                await tx
+                const stockDone = await tx
                   .update(warehouseStock)
                   .set({
                     quantity: sql`${warehouseStock.quantity} - ${item.quantity}`,
@@ -9143,8 +9688,14 @@ ${analysisText}
                     and(
                       eq(warehouseStock.tenantId, ctx.tenantId!),
                       eq(warehouseStock.productId, item.productId),
-                      eq(warehouseStock.warehouseId, warehouseId)
+                      eq(warehouseStock.warehouseId, warehouseId),
+                      gte(warehouseStock.availableQty, item.quantity)
                     )
+                  )
+                  .returning({ id: warehouseStock.id });
+                if (stockDone.length === 0)
+                  throw new Error(
+                    `المخزون غير كافٍ لإلغاء فاتورة الشراء في المستودع` 
                   );
 
                 // Mark valuation layers from this purchase as inactive
@@ -9360,12 +9911,27 @@ ${analysisText}
           deviceId: z.number().optional(),
           lat: z.string().optional(),
           lng: z.string().optional(),
+          idempotencyKey: z.string().max(255).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
         if (!ctx.tenantId) throw new Error("يجب إنشاء مؤسسة أولاً");
         const db = await getDb();
         if (!db) throw new Error("Database not available");
+
+        if (input.idempotencyKey) {
+          const existingOrders = await db
+            .select()
+            .from(orders)
+            .where(eq(orders.idempotencyKey, input.idempotencyKey))
+            .limit(1);
+          if (existingOrders.length > 0) {
+            return {
+              id: existingOrders[0].id,
+              orderNumber: existingOrders[0].orderNumber,
+            };
+          }
+        }
 
         // Merge duplicate cart lines, then validate products exist
         const mergedMap = new Map<number, number>();
@@ -9450,6 +10016,7 @@ ${analysisText}
               deliveryNotes: input.deliveryNotes || null,
               assignedTo: input.assignedTo || null,
               userId: ctx.user.id,
+              idempotencyKey: input.idempotencyKey ?? null,
             })
             .returning();
 
@@ -10022,7 +10589,14 @@ ${analysisText}
             (ctx.req.headers["x-tenant-id"] as string) || "",
             10
           ) || 1;
-        const result = await placePublicOrder(db, tid, input);
+        // Webhook/double-submit retries send the key as a header
+        // (x-idempotency-key); the body field wins when both are present.
+        const headerKey =
+          (ctx.req.headers["x-idempotency-key"] as string) || undefined;
+        const result = await placePublicOrder(db, tid, {
+          ...input,
+          idempotencyKey: input.idempotencyKey ?? headerKey,
+        });
         return result;
       }),
   }),
@@ -10066,6 +10640,7 @@ ${analysisText}
             .default("cash"),
           paymentDate: z.string().optional(),
           notes: z.string().optional(),
+          idempotencyKey: z.string().max(255).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
@@ -10074,6 +10649,17 @@ ${analysisText}
         if (!db) throw new Error("Database not available");
 
         const paymentAmount = parseFloat(input.amount);
+
+        if (input.idempotencyKey) {
+          const existingPayments = await db
+            .select()
+            .from(payments)
+            .where(eq(payments.idempotencyKey, input.idempotencyKey))
+            .limit(1);
+          if (existingPayments.length > 0) {
+            return { paymentId: existingPayments[0].id };
+          }
+        }
 
         if (input.source === "sales") {
           const invoices = await db
@@ -10111,6 +10697,7 @@ ${analysisText}
                   : new Date(),
                 notes: input.notes || null,
                 userId: ctx.user.id,
+                idempotencyKey: input.idempotencyKey ?? null,
               })
               .returning();
 
@@ -10197,6 +10784,7 @@ ${analysisText}
                   : new Date(),
                 notes: input.notes || null,
                 userId: ctx.user.id,
+                idempotencyKey: input.idempotencyKey ?? null,
               })
               .returning();
 

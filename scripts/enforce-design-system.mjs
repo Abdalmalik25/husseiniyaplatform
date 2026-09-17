@@ -15,7 +15,7 @@ const WORK_SCREENS = [
   "client/src/pages/Branches.tsx",
   "client/src/pages/Requisitions.tsx",
   "client/src/pages/Projects.tsx",
-  "client/src/pages/POS.tsx",
+  "client/src/modules/pos/POSPage.tsx",
   "client/src/pages/HR.tsx",
   "client/src/pages/SupportQuality.tsx",
   "client/src/pages/Permissions.tsx",

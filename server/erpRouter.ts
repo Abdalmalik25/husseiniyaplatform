@@ -43,6 +43,7 @@ import {
   isNotNull,
 } from "drizzle-orm";
 import { createNotification } from "./notifications";
+import { assertPeriodOpen } from "./services/accountingEngine";
 
 async function dbOrThrow() {
   const d = await getDb();
@@ -74,6 +75,18 @@ async function postPayrollGlEntries(
     totalNet: number;
   }
 ): Promise<void> {
+  // ATOMICITY CONTRACT: this helper performs NO db.transaction of its own so
+  // it stays composable inside an outer transaction. Every call site MUST
+  // invoke it from within a db.transaction so the journal header + its legs
+  // commit together (no orphan entries). IFRS period lock is fail-closed:
+  // any DB/verification error blocks the posting.
+  await assertPeriodOpen(
+    db,
+    opts.tenantId,
+    new Date(),
+    `رواتب ${opts.periodName}`
+  );
+
   const findAccount = async (code: string) => {
     const rows = await db
       .select()
@@ -165,6 +178,15 @@ async function postProcurementGlEntries(
     amount: string;
   }
 ) {
+  // Same atomicity contract as postPayrollGlEntries: no inner transaction —
+  // the caller MUST wrap this in a db.transaction. Fail-closed period lock.
+  await assertPeriodOpen(
+    db,
+    opts.tenantId,
+    new Date(),
+    `استلام توريد ${opts.requisitionNumber}`
+  );
+
   const findAccount = async (code: string) => {
     const rows = await db
       .select()
@@ -242,6 +264,9 @@ export const erpRouter = router({
   listDepartments: tenantProcedure.query(async ({ ctx }) => {
     if (!ctx.tenantId) return [];
     const db = await dbOrThrow();
+    // PAGINATION: departments per tenant are small, but an unbounded list
+    // breaks the mandatory-limit audit. Hard cap 500 (no offset — HR master
+    // data is rendered as a single directory; paginate if it ever grows).
     return db
       .select()
       .from(departments)
@@ -251,7 +276,8 @@ export const erpRouter = router({
           isNull(departments.deletedAt)
         )
       )
-      .orderBy(asc(departments.name));
+      .orderBy(asc(departments.name))
+      .limit(500);
   }),
 
   createDepartment: tenantProcedure
@@ -550,11 +576,14 @@ export const erpRouter = router({
         0
       );
       if (totalNet > 0) {
-        await postPayrollGlEntries(db, {
-          tenantId,
-          userId: ctx.user.id,
-          periodName: input.periodName,
-          totalNet,
+        // Atomic: journal header + legs commit together (no orphan entries).
+        await db.transaction(async (tx: any) => {
+          await postPayrollGlEntries(tx, {
+            tenantId,
+            userId: ctx.user.id,
+            periodName: input.periodName,
+            totalNet,
+          });
         });
       }
       return run;
@@ -1176,7 +1205,7 @@ export const erpRouter = router({
         });
         await tx.insert(activityLogs).values({
           tenantId,
-          userId: ctx.user?.id ?? 0,
+          userId: ctx.user?.id ?? null,
           action: `استلام توريد #${rec.requisitionNumber}`,
           details: `البند: ${rec.itemName} — المبلغ: ${amount}${input.note ? ` — ${input.note}` : ""}`,
         });

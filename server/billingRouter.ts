@@ -258,22 +258,27 @@ export const billingRouter = router({
   listPlans: publicProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
+    // PAGINATION: global catalog, tiny cardinality — hard cap 100 documents
+    // the mandatory-limit rule for every list endpoint.
     return db
       .select()
       .from(subscriptionPlans)
       .where(eq(subscriptionPlans.isActive, true))
-      .orderBy(subscriptionPlans.sortOrder);
+      .orderBy(subscriptionPlans.sortOrder)
+      .limit(100);
   }),
 
   /** وسائل الدفع المتاحة للعميل (بدون أي بيانات سرية). */
   listGateways: tenantProcedure.query(async () => {
     const db = await getDb();
     if (!db) return [];
+    // PAGINATION: hard cap 100 (see listPlans).
     const rows = await db
       .select()
       .from(paymentGateways)
       .where(eq(paymentGateways.isActive, true))
-      .orderBy(paymentGateways.sortOrder);
+      .orderBy(paymentGateways.sortOrder)
+      .limit(100);
     return rows.map(({ credentials, ...pub }) => {
       void credentials;
       return { ...pub };
@@ -395,6 +400,7 @@ export const billingRouter = router({
       z.object({
         invoiceNumber: z.string().min(1),
         transactionId: z.string().min(1).optional(),
+        idempotencyKey: z.string().max(255).optional(),
         /** سر موقّع — إلزامي عندما لا يكون المتصل هو المالك. */
         webhookSecret: z.string().optional(),
       })
@@ -417,6 +423,21 @@ export const billingRouter = router({
             code: "UNAUTHORIZED",
             message: "توقيع غير صالح",
           });
+        }
+      }
+
+      if (input.idempotencyKey) {
+        const existing = await db
+          .select()
+          .from(paymentHistory)
+          .where(eq(paymentHistory.idempotencyKey, input.idempotencyKey))
+          .limit(1);
+        if (existing.length > 0) {
+          return {
+            success: true,
+            alreadyProcessed: true,
+            idempotent: true,
+          };
         }
       }
 
@@ -455,6 +476,7 @@ export const billingRouter = router({
         status: "paid",
         paymentMethod: invoice.paymentMethod,
         transactionId: input.transactionId ?? null,
+        idempotencyKey: input.idempotencyKey ?? null,
       });
 
       // استخراج الدورة من ملاحظات الفاتورة (شهري/سنوي) وتفعيل الاشتراك.
@@ -886,6 +908,7 @@ export const billingRouter = router({
       z.object({
         code: z.string().min(1).max(40),
         tenantId: z.number().int().positive().optional(),
+        idempotencyKey: z.string().max(255).optional(),
       })
     )
     .mutation(async ({ input }) => {
@@ -902,6 +925,17 @@ export const billingRouter = router({
           code: "INTERNAL_SERVER_ERROR",
           message: "قاعدة البيانات غير متاحة",
         });
+
+      if (input.idempotencyKey) {
+        const existing = await db
+          .select()
+          .from(paymentHistory)
+          .where(eq(paymentHistory.idempotencyKey, input.idempotencyKey))
+          .limit(1);
+        if (existing.length > 0) {
+          return { success: true, alreadyProcessed: true, idempotent: true };
+        }
+      }
 
       // 1) Locate the voucher (case-insensitive) — only "active" ones.
       const [voucher] = await db
@@ -989,6 +1023,7 @@ export const billingRouter = router({
           paidAt: start,
           paymentMethod: "voucher",
           externalPaymentId: voucher.code,
+          idempotencyKey: input.idempotencyKey ?? null,
         })
         .returning();
 
@@ -1001,6 +1036,7 @@ export const billingRouter = router({
         paymentMethod: "voucher",
         transactionId: `${voucher.code}/${start.getTime()}`,
         notes: `دفع عبر رمز تفعيل ${voucher.code}`,
+        idempotencyKey: input.idempotencyKey ?? null,
       });
 
       // 5) Mark the voucher used

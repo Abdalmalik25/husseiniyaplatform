@@ -10,7 +10,8 @@ import { randomUUID } from "crypto";
 import { parse as parseCookieHeader } from "cookie";
 import type { Request, Response } from "express";
 import { jwtVerify } from "jose";
-import type { User } from "../../drizzle/schema";
+import { type User, users, loginAttempts } from "../../drizzle/schema";
+import { eq, and, gte } from "drizzle-orm";
 import * as db from "../db";
 import { ENV } from "./env";
 import { getSessionCookieOptions } from "./cookies";
@@ -446,6 +447,56 @@ class SDKServer {
       await db.upsertUser({
         openId: user.openId,
         lastSignedIn: signedInAt,
+      });
+    }
+
+    // Track session activity and enforce session limits
+    const MAX_SESSIONS = 3;
+    const now = new Date();
+
+    // Update last activity timestamp
+    await db.upsertUser({
+      openId: user.openId,
+      lastActivity: now,
+    });
+
+    // Check session count - need to get current count from user
+    const database = await db.getDb();
+    if (database) {
+      const currentUser = await database.select().from(users).where(eq(users.openId, sessionUserId)).limit(1);
+      const sessionUser = currentUser[0];
+      const currentSessionCount = sessionUser?.sessionCount ?? 0;
+
+      // If this is a new session (no currentSessionId or session changed), increment count
+      const isNewSession = !sessionUser?.currentSessionId || sessionUser.currentSessionId !== session.sessionId;
+
+      if (isNewSession && currentSessionCount >= MAX_SESSIONS && sessionUser) {
+        // Find oldest active session to revoke (loginAttempts as proxy for active sessions)
+        const oldSessions = await database.select()
+          .from(loginAttempts)
+          .where(
+            and(
+              eq(loginAttempts.userId, sessionUser.id),
+              gte(loginAttempts.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000))
+            )
+          )
+          .orderBy(loginAttempts.createdAt);
+
+        if (oldSessions.length > 0) {
+          // Revoke the oldest session by forcing password change
+          await db.upsertUser({
+            openId: user.openId,
+            passwordChangedAt: new Date(),
+          });
+          console.warn("[Auth] Session limit exceeded, revoked oldest session");
+        }
+      }
+
+      // Update session count
+      await db.upsertUser({
+        openId: user.openId,
+        sessionCount: isNewSession ? currentSessionCount + 1 : currentSessionCount,
+        currentSessionId: session.sessionId,
       });
     }
 

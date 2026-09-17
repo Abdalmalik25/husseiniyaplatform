@@ -64,6 +64,14 @@ test-run.err
 *-out.txt
 probe-*.txt
 
+# Nuclear probe leftovers (never commit)
+_*.mjs
+_*.cjs
+_tmp/
+_migration_backup/
+.parity.err
+.parity.out
+
 # Root-level migration/diagnostic scripts (moved to scripts/)
 check-db.mjs
 apply-migration.mjs

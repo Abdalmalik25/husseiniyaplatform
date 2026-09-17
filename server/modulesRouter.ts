@@ -15,10 +15,189 @@ import {
   isNull,
 } from "drizzle-orm";
 import { TRPCError } from "@trpc/server";
-import { router, tenantProcedure } from "./_core/trpc";
+import { router, tenantProcedure, requirePermissions } from "./_core/trpc";
+import { PERMISSIONS } from "../shared/permissions";
 import { getDb } from "./db";
 import { reportsRouter } from "./reportsRouter";
 import { posIntelligenceRouter } from "./posIntelligenceRouter";
+import type { PosSession } from "../drizzle/schema";
+import type { SessionReport } from "./posSessionReport";
+
+// Local DB handle type (same inference pattern as webStore.ts)
+type Db = NonNullable<Awaited<ReturnType<typeof getDb>>>;
+
+// Build the X/Z session report: aggregates invoices + payments + cash events
+// + refunds for a single pos_session row. Mirrored type in posSessionReport.ts.
+async function buildPosSessionReport(
+  db: Db,
+  session: PosSession
+): Promise<SessionReport> {
+  const zero = (): SessionReport => ({
+    invoiceCount: 0,
+    totalSales: 0,
+    totalRefunds: 0,
+    totalDiscounts: 0,
+    totalTax: 0,
+    totalPaid: 0,
+    cashIn: 0,
+    cashOut: 0,
+    expectedCash: parseFloat(session.openingFloat || "0"),
+    paymentBreakdown: {
+      cash: 0,
+      card: 0,
+      transfer: 0,
+      credit: 0,
+      online: 0,
+      cash_yer: 0,
+      cash_sar: 0,
+      hawala: 0,
+      shabab: 0,
+      mobile_money: 0,
+      bank_transfer: 0,
+    },
+    openings: parseFloat(session.openingFloat || "0"),
+    byUser: {},
+  });
+
+  if (!session.tenantId) return zero();
+
+  const orderRows = await db
+    .select({
+      invoiceId: posOrders.salesInvoiceId,
+      createdAt: posOrders.createdAt,
+      createdById: posOrders.createdById,
+    })
+    .from(posOrders)
+    .where(
+      and(
+        eq(posOrders.tenantId, session.tenantId),
+        eq(posOrders.sessionId, session.id)
+      )
+    );
+
+  const invoiceIds = orderRows
+    .map(r => r.invoiceId)
+    .filter((id): id is number => id != null);
+
+  const payRows =
+    invoiceIds.length > 0
+      ? await db
+          .select()
+          .from(payments)
+          .where(
+            and(eq(payments.source, "sales"), inArray(payments.invoiceId, invoiceIds))
+          )
+      : [];
+
+  const returnRows = await db
+    .select()
+    .from(posReturns)
+    .where(
+      and(
+        eq(posReturns.tenantId, session.tenantId),
+        eq(posReturns.sessionId, session.id)
+      )
+    );
+
+  const eventRows = await db
+    .select()
+    .from(posCashEvents)
+    .where(
+      and(
+        eq(posCashEvents.tenantId, session.tenantId),
+        eq(posCashEvents.sessionId, session.id)
+      )
+    );
+
+  const report = zero();
+  report.paymentBreakdown = {
+    cash: 0,
+    card: 0,
+    transfer: 0,
+    credit: 0,
+    online: 0,
+    cash_yer: 0,
+    cash_sar: 0,
+    hawala: 0,
+    shabab: 0,
+    mobile_money: 0,
+    bank_transfer: 0,
+  };
+  const cashMethods = new Set(["cash", "cash_yer", "cash_sar"]);
+  const byUser: Record<string, number> = {};
+
+  for (const o of orderRows) {
+    report.invoiceCount += 1;
+    if (o.createdById) {
+      byUser[o.createdById] = (byUser[o.createdById] || 0) + 1;
+    }
+  }
+  report.byUser = byUser;
+
+  for (const p of payRows) {
+    const amt = parseFloat(p.amount || "0");
+    report.totalPaid += amt;
+    report.totalSales += amt;
+    const m = p.paymentMethod as string;
+    if (cashMethods.has(m)) report.expectedCash += amt;
+    if (m in report.paymentBreakdown) {
+      report.paymentBreakdown[m as keyof typeof report.paymentBreakdown] += amt;
+    } else {
+      report.paymentBreakdown.cash += amt;
+    }
+  }
+
+  // Discounts & tax from the underlying invoices (avoid double-count on splits).
+  if (invoiceIds.length > 0) {
+    const invRows = await db
+      .select({
+        discount: salesInvoices.discount,
+        taxAmount: salesInvoices.taxAmount,
+      })
+      .from(salesInvoices)
+      .where(
+        and(
+          eq(salesInvoices.tenantId, session.tenantId),
+          inArray(salesInvoices.id, invoiceIds),
+          sql`${salesInvoices.status} <> 'cancelled'`
+        )
+      );
+    for (const inv of invRows) {
+      report.totalDiscounts += parseFloat(inv.discount || "0");
+      report.totalTax += parseFloat(inv.taxAmount || "0");
+    }
+  }
+
+  const refundCashMethods = new Set(["cash", "cash_yer", "cash_sar"]);
+  for (const r of returnRows) {
+    const amt = parseFloat(r.refundAmount || "0");
+    report.totalRefunds += amt;
+    if (refundCashMethods.has(r.refundMethod as string)) {
+      report.expectedCash -= amt;
+    }
+    const m = r.refundMethod as string;
+    if (m in report.paymentBreakdown) {
+      report.paymentBreakdown[m as keyof typeof report.paymentBreakdown] -= amt;
+    } else {
+      report.paymentBreakdown.cash -= amt;
+    }
+  }
+
+  report.cashIn = 0;
+  report.cashOut = 0;
+  for (const e of eventRows) {
+    const amt = parseFloat(e.amount || "0");
+    if (e.type === "in") {
+      report.cashIn += amt;
+      report.expectedCash += amt;
+    } else {
+      report.cashOut += amt;
+      report.expectedCash -= amt;
+    }
+  }
+
+  return report;
+}
 import {
   currencies,
   offers,
@@ -53,6 +232,9 @@ import {
   suppliers,
   purchaseInvoiceItems,
   posOrders,
+  posCashEvents,
+  posHeldCarts,
+  posReturns,
   orders,
   orderItems,
   payments,
@@ -330,6 +512,7 @@ export const modulesRouter = router({
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
+      // PAGINATION: hard cap 500 — directory screens page client-side.
       return db
         .select({
           id: users.id,
@@ -339,18 +522,25 @@ export const modulesRouter = router({
           username: users.username,
         })
         .from(users)
-        .where(eq(users.tenantId, ctx.tenantId));
+        .where(eq(users.tenantId, ctx.tenantId))
+        .limit(500);
     }),
     listRoles: tenantProcedure.query(async ({ ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(roles).where(eq(roles.tenantId, ctx.tenantId));
+      // PAGINATION: hard cap 200 (RBAC master data, tiny per tenant).
+      return db
+        .select()
+        .from(roles)
+        .where(eq(roles.tenantId, ctx.tenantId))
+        .limit(200);
     }),
     listPermissions: tenantProcedure.query(async () => {
       const db = await getDb();
       if (!db) return [];
-      return db.select().from(permissions);
+      // PAGINATION: global seed table — hard cap 500.
+      return db.select().from(permissions).limit(500);
     }),
     createRole: tenantProcedure
       .input(
@@ -1274,7 +1464,9 @@ export const modulesRouter = router({
 
   // ─── POS Sessions ────────────────────────────────────────────────
   pos: router({
-    listSessions: tenantProcedure.query(async ({ ctx }) => {
+    listSessions: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_VIEW))
+      .query(async ({ ctx }) => {
       if (!ctx.tenantId) return [];
       const db = await getDb();
       if (!db) return [];
@@ -1286,6 +1478,7 @@ export const modulesRouter = router({
         .limit(20);
     }),
     openSession: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_VIEW))
       .input(
         z.object({
           openingFloat: z.string().default("0"),
@@ -1314,44 +1507,8 @@ export const modulesRouter = router({
           .returning();
         return row;
       }),
-    closeSession: tenantProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input, ctx }) => {
-        const db = await getDb();
-        if (!db || !ctx.tenantId)
-          throw new Error("تعذر الاتصال بقاعدة البيانات");
-        await db
-          .update(posSessions)
-          .set({
-            status: "closed",
-            closedAt: new Date(),
-            updatedAt: new Date(),
-          })
-          .where(
-            and(
-              eq(posSessions.id, input.id),
-              eq(posSessions.tenantId, ctx.tenantId)
-            )
-          );
-        return { success: true };
-      }),
-    listHolds: tenantProcedure.query(async ({ ctx }) => {
-      if (!ctx.tenantId) return [];
-      const db = await getDb();
-      if (!db) return [];
-      return db
-        .select()
-        .from(posSessions)
-        .where(
-          and(
-            eq(posSessions.tenantId, ctx.tenantId),
-            eq(posSessions.status, "suspended")
-          )
-        )
-        .orderBy(desc(posSessions.openedAt))
-        .limit(20);
-    }),
-    getHold: tenantProcedure
+    getSession: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_VIEW))
       .input(z.object({ id: z.number() }))
       .query(async ({ input, ctx }) => {
         if (!ctx.tenantId) return null;
@@ -1363,31 +1520,339 @@ export const modulesRouter = router({
           .where(
             and(
               eq(posSessions.id, input.id),
-              eq(posSessions.tenantId, ctx.tenantId),
-              eq(posSessions.status, "suspended")
+              eq(posSessions.tenantId, ctx.tenantId)
             )
           )
           .limit(1);
+        if (!row) return null;
+        return { ...row, report: await buildPosSessionReport(db, row) };
+      }),
+    // ─── Cash in / out within the open shift ─────────────────────────
+    cashIn: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_VIEW))
+      .input(
+        z.object({
+          sessionId: z.number(),
+          amount: z.string().refine(v => {
+            const n = parseFloat(v);
+            return !isNaN(n) && n > 0;
+          }, "المبلغ يجب أن يكون موجباً"),
+          reason: z.string().min(2),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId || !ctx.user)
+          throw new Error("تعذر إجراء الإيداع النقدي");
+        const [row] = await db
+          .insert(posCashEvents)
+          .values({
+            tenantId: ctx.tenantId,
+            sessionId: input.sessionId,
+            type: "in",
+            amount: input.amount,
+            reason: input.reason,
+            notes: input.notes ?? null,
+            createdById: ctx.user.id,
+          })
+          .returning();
+        return row;
+      }),
+    cashOut: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_VIEW))
+      .input(
+        z.object({
+          sessionId: z.number(),
+          amount: z.string().refine(v => {
+            const n = parseFloat(v);
+            return !isNaN(n) && n > 0;
+          }, "المبلغ يجب أن يكون موجباً"),
+          reason: z.string().min(2),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId || !ctx.user)
+          throw new Error("تعذر إجراء السحب النقدي");
+        const [row] = await db
+          .insert(posCashEvents)
+          .values({
+            tenantId: ctx.tenantId,
+            sessionId: input.sessionId,
+            type: "out",
+            amount: input.amount,
+            reason: input.reason,
+            notes: input.notes ?? null,
+            createdById: ctx.user.id,
+          })
+          .returning();
+        return row;
+      }),
+    cashEvents: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_VIEW))
+      .input(z.object({ sessionId: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return [];
+        const db = await getDb();
+        if (!db) return [];
+        return db
+          .select()
+          .from(posCashEvents)
+          .where(
+            and(
+              eq(posCashEvents.tenantId, ctx.tenantId),
+              eq(posCashEvents.sessionId, input.sessionId)
+            )
+          )
+          .orderBy(asc(posCashEvents.createdAt));
+      }),
+    // ─── X/Z Reports ─────────────────────────────────────────────────
+    sessionReport: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_VIEW))
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const [row] = await db
+          .select()
+          .from(posSessions)
+          .where(
+            and(
+              eq(posSessions.id, input.id),
+              eq(posSessions.tenantId, ctx.tenantId)
+            )
+          )
+          .limit(1);
+        if (!row) return null;
+        return { session: row, report: await buildPosSessionReport(db, row) };
+      }),
+    closeSession: tenantProcedure
+      .use(requirePermissions({ any: [PERMISSIONS.POS_VIEW, PERMISSIONS.POS_EDIT_SALE] }))
+      .input(
+        z.object({
+          id: z.number(),
+          countedCash: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId || !ctx.user)
+          throw new Error("تعذر الاتصال بقاعدة البيانات");
+        const [row] = await db
+          .select()
+          .from(posSessions)
+          .where(
+            and(
+              eq(posSessions.id, input.id),
+              eq(posSessions.tenantId, ctx.tenantId)
+            )
+          )
+          .limit(1);
+        if (!row) throw new Error("الوردية غير موجودة");
+        if (row.status !== "open")
+          throw new Error("الوردية مغلقة بالفعل أو غير صالحة للإقفال");
+
+        const report = await buildPosSessionReport(db, row);
+        const expectedCash = report.expectedCash;
+        const countedCash = input.countedCash
+          ? parseFloat(input.countedCash)
+          : null;
+        const variance = countedCash !== null ? countedCash - expectedCash : null;
+
+        await db
+          .update(posSessions)
+          .set({
+            status: "closed",
+            closedAt: new Date(),
+            closingFloat: expectedCash.toString(),
+            expectedCash: expectedCash.toString(),
+            countedCash: countedCash?.toString() ?? null,
+            variance: variance?.toString() ?? null,
+            notes: `إقفال الوردية ${row.code}`,
+            updatedAt: new Date(),
+          })
+          .where(
+            and(
+              eq(posSessions.id, input.id),
+              eq(posSessions.tenantId, ctx.tenantId)
+            )
+          );
+        await db.insert(activityLogs).values({
+          userId: ctx.user.id,
+          action: `إقفال وردية نقطة البيع ${row.code}`,
+          details: `النقدية المتوقعة: ${report.expectedCash} — الفرق: ${variance ?? "غير مدخل"}`,
+        });
+        return { success: true, report };
+      }),
+    zReport: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_VIEW))
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const [row] = await db
+          .select()
+          .from(posSessions)
+          .where(
+            and(
+              eq(posSessions.id, input.id),
+              eq(posSessions.tenantId, ctx.tenantId)
+            )
+          )
+          .limit(1);
+        if (!row) return null;
+        const report = await buildPosSessionReport(db, row);
+        return {
+          session: row,
+          report: {
+            ...report,
+            countedCash: row.countedCash,
+            variance: row.variance,
+          },
+        };
+      }),
+    // ─── Holds (تعليق واستعادة الفواتير) — real persisted carts ────
+    createHold: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_HOLD_RECALL))
+      .input(
+        z.object({
+          snapshot: z.string().min(1),
+          total: z.string().default("0"),
+          itemCount: z.number().int().min(0).default(0),
+          customerId: z.number().optional(),
+          sessionId: z.number().optional(),
+          notes: z.string().optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId || !ctx.user)
+          throw new Error("تعذر تعليق العملية");
+        const code = `HD-${Date.now().toString(36).toUpperCase()}`;
+        const [row] = await db
+          .insert(posHeldCarts)
+          .values({
+            tenantId: ctx.tenantId,
+            code,
+            heldById: ctx.user.id,
+            branchId: null,
+            sessionId: input.sessionId ?? null,
+            customerId: input.customerId ?? null,
+            snapshot: input.snapshot,
+            total: input.total,
+            itemCount: input.itemCount,
+            status: "active",
+            notes: input.notes ?? null,
+          })
+          .returning();
+        return row;
+      }),
+    listHolds: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_HOLD_RECALL))
+      .input(z.object({ includeCompleted: z.boolean().default(false) }).optional())
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return [];
+        const db = await getDb();
+        if (!db) return [];
+        return db
+          .select()
+          .from(posHeldCarts)
+          .where(
+            and(
+              eq(posHeldCarts.tenantId, ctx.tenantId),
+              input?.includeCompleted
+                ? undefined
+                : eq(posHeldCarts.status, "active")
+            )
+          )
+          .orderBy(desc(posHeldCarts.createdAt))
+          .limit(50);
+      }),
+    getHold: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_HOLD_RECALL))
+      .input(z.object({ id: z.number().optional(), code: z.string().optional() }))
+      .query(async ({ input, ctx }) => {
+        if (!ctx.tenantId) return null;
+        const db = await getDb();
+        if (!db) return null;
+        const conds: any[] = [eq(posHeldCarts.tenantId, ctx.tenantId)];
+        if (input.id) conds.push(eq(posHeldCarts.id, input.id));
+        if (input.code) conds.push(eq(posHeldCarts.code, input.code));
+        const [row] = await db
+          .select()
+          .from(posHeldCarts)
+          .where(and(...conds))
+          .limit(1);
         return row || null;
       }),
+    resumeHold: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_HOLD_RECALL))
+      .input(
+        z.object({
+          id: z.number().optional(),
+          code: z.string().optional(),
+          snapshot: z.string().optional(),
+          total: z.string().optional(),
+          itemCount: z.number().int().min(0).optional(),
+        })
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        if (!db || !ctx.tenantId || !ctx.user)
+          throw new Error("تعذر استعادة العملية المعلقة");
+        const conds: any[] = [
+          eq(posHeldCarts.tenantId, ctx.tenantId),
+          eq(posHeldCarts.status, "active"),
+        ];
+        if (input.id) conds.push(eq(posHeldCarts.id, input.id));
+        if (input.code) conds.push(eq(posHeldCarts.code, input.code));
+        const [row] = await db
+          .select()
+          .from(posHeldCarts)
+          .where(and(...conds))
+          .limit(1);
+        if (!row) throw new Error("العملية المعلقة غير موجودة أو مكتملة");
+        const patch: Record<string, unknown> = {
+          updatedAt: new Date(),
+        };
+        if (input.snapshot !== undefined) patch.snapshot = input.snapshot;
+        if (input.total !== undefined) patch.total = input.total;
+        if (input.itemCount !== undefined) patch.itemCount = input.itemCount;
+        await db
+          .update(posHeldCarts)
+          .set(patch)
+          .where(
+            and(
+              eq(posHeldCarts.id, row.id),
+              eq(posHeldCarts.tenantId, ctx.tenantId)
+            )
+          );
+        return { success: true, hold: row };
+      }),
     deleteHold: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_HOLD_RECALL))
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db || !ctx.tenantId)
           throw new Error("تعذر الاتصال بقاعدة البيانات");
         await db
-          .delete(posSessions)
+          .update(posHeldCarts)
+          .set({ status: "cancelled", updatedAt: new Date() })
           .where(
             and(
-              eq(posSessions.id, input.id),
-              eq(posSessions.tenantId, ctx.tenantId),
-              eq(posSessions.status, "suspended")
+              eq(posHeldCarts.id, input.id),
+              eq(posHeldCarts.tenantId, ctx.tenantId)
             )
           );
         return { success: true };
       }),
     printInvoice: tenantProcedure
+      .use(requirePermissions(PERMISSIONS.POS_PRINT_RECEIPT))
       .input(z.object({ invoiceNumber: z.string() }))
       .query(async ({ input, ctx }) => {
         if (!ctx.tenantId) return null;
@@ -2329,11 +2794,22 @@ export const modulesRouter = router({
             })
           ),
           deliveryDate: z.string().optional(),
+          idempotencyKey: z.string().max(255).optional(),
         })
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
         if (!db || !ctx.tenantId) throw new Error("Database not available");
+        if (input.idempotencyKey) {
+          const existing = await db
+            .select()
+            .from(orders)
+            .where(eq(orders.idempotencyKey, input.idempotencyKey))
+            .limit(1);
+          if (existing.length > 0) {
+            return { success: true, order: existing[0], idempotent: true };
+          }
+        }
         const orderNumber = `ORD-${Date.now().toString(36).toUpperCase()}`;
         const { deliveryDate, ...inputWithoutStatus } = input;
         const [order] = await db

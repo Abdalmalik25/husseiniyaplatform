@@ -14,10 +14,11 @@
  */
 import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
-import { router, tenantProcedure, adminProcedure } from "./_core/trpc";
+import { router, tenantProcedure, adminProcedure, requirePermissions } from "./_core/trpc";
 import { requireTenantId } from "./_core/tenant";
 import { getDb } from "./db";
 import { fiscalPeriods, activityLogs } from "../drizzle/schema";
+import { PERMISSIONS } from "../shared/permissions";
 
 export const fiscalPeriodsRouter = router({
   list: tenantProcedure.query(async ({ ctx }) => {
@@ -31,6 +32,7 @@ export const fiscalPeriodsRouter = router({
   }),
 
   create: adminProcedure
+    .use(requirePermissions(PERMISSIONS.FISCAL_PERIODS_MANAGE))
     .input(
       z.object({
         name: z.string().min(1).max(50),
@@ -88,6 +90,7 @@ export const fiscalPeriodsRouter = router({
 
   /** Mark a period closed (locks posting into its range). */
   close: adminProcedure
+    .use(requirePermissions(PERMISSIONS.PERIOD_CLOSURES_EXECUTE))
     .input(
       z.object({ periodId: z.number(), closingEntryId: z.number().optional() })
     )
@@ -135,6 +138,7 @@ export const fiscalPeriodsRouter = router({
 
   /** Exceptional reopen of a closed period — requires a reason (audited). */
   reopen: adminProcedure
+    .use(requirePermissions(PERMISSIONS.FISCAL_PERIODS_MANAGE))
     .input(z.object({ periodId: z.number(), reason: z.string().min(3) }))
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();

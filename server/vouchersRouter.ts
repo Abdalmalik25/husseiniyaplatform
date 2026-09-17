@@ -17,7 +17,9 @@ import {
   tenantProcedure,
   adminProcedure,
   publicProcedure,
+  requirePermissions,
 } from "./_core/trpc";
+import { PERMISSIONS } from "../shared/permissions";
 import { eq, and, desc, asc, gte, lte, sql, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import {
@@ -277,6 +279,7 @@ export const vouchersRouter = router({
 
   // ─── Create Voucher ────────────────────────────────────────────────
   create: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.VOUCHERS_CREATE))
     .input(
       z.object({
         voucherType: voucherTypeSchema,
@@ -834,6 +837,7 @@ export const vouchersRouter = router({
 
   // ─── Approve Voucher ───────────────────────────────────────────────
   approve: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.VOUCHERS_APPROVE))
     .input(
       z.object({
         id: z.number(),
@@ -910,6 +914,7 @@ export const vouchersRouter = router({
 
   // ─── Reject Voucher ────────────────────────────────────────────────
   reject: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.VOUCHERS_REJECT))
     .input(
       z.object({
         id: z.number(),
@@ -972,6 +977,7 @@ export const vouchersRouter = router({
 
   // ─── Post Voucher (Post to GL) ─────────────────────────────────────
   post: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.VOUCHERS_POST))
     .input(
       z.object({
         id: z.number(),
@@ -1118,6 +1124,7 @@ export const vouchersRouter = router({
 
   // ─── Cancel Voucher ────────────────────────────────────────────────
   cancel: tenantProcedure
+    .use(requirePermissions(PERMISSIONS.VOUCHERS_CANCEL))
     .input(
       z.object({
         id: z.number(),

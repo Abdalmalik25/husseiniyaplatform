@@ -14,6 +14,14 @@
 import type { Request, Response, NextFunction } from "express";
 
 /**
+ * CSP violation-report endpoint (Sentry security reports).
+ * MUST stay in sync with the `Report-To` header and the CSP `report-uri`
+ * directive in vercel.json (edge-served static routes).
+ */
+export const CSP_REPORT_URI =
+  "https://o205754.ingest.sentry.io/api/205754/security/?sentry_key=preview";
+
+/**
  * Enhanced security headers middleware.
  * Adds headers beyond what Helmet provides.
  */
@@ -50,7 +58,22 @@ export function securityHeaders(
       "frame-ancestors 'none'",
       "base-uri 'self'",
       "upgrade-insecure-requests",
+      // CSP Level 2 (report-uri) + Level 3 (report-to) violation reporting
+      // to Sentry. Mirrors the edge CSP in vercel.json.
+      `report-uri ${CSP_REPORT_URI}`,
+      "report-to default",
     ].join("; ")
+  );
+
+  // Reporting endpoint group referenced by the CSP `report-to` directive.
+  // Kept identical to vercel.json so API and static routes report alike.
+  res.setHeader(
+    "Report-To",
+    JSON.stringify({
+      group: "default",
+      max_age: 86400,
+      endpoints: [{ url: CSP_REPORT_URI }],
+    })
   );
 
   // ─── Permissions Policy ──────────────────────────────────────────

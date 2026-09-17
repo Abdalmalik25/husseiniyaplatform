@@ -61,6 +61,15 @@ export const PERMISSIONS = {
   VOUCHERS_EDIT: "vouchers.edit",
   VOUCHERS_POST: "vouchers.post",
   VOUCHERS_PRINT: "vouchers.print",
+  VOUCHERS_APPROVE: "vouchers.approve",
+  VOUCHERS_REJECT: "vouchers.reject",
+  VOUCHERS_CANCEL: "vouchers.cancel",
+  VOUCHERS_TOGGLE_STATE: "vouchers.toggle_state",
+  VOUCHERS_REOPEN: "vouchers.reopen",
+  VOUCHERS_MIGRATE: "vouchers.migrate",
+  VOUCHERS_SHARE_RESOURCE: "vouchers.share_resource",
+  VOUCHERS_BATCH_OPERATE: "vouchers.batch_operate",
+  VOUCHERS_MASS_ASSIGN_PROTECT: "vouchers.mass_assign_protect",
 
   OPENING_BALANCES_VIEW: "opening_balances.view",
   OPENING_BALANCES_EDIT: "opening_balances.edit",
@@ -139,6 +148,7 @@ export const PERMISSIONS = {
 
   // ── Audit ────────────────────────────────────────────────────
   AUDIT_VIEW: "audit.view",
+  AUDIT_EXPORT: "audit.export",
 
   // ── Billing ──────────────────────────────────────────────────
   BILLING_VIEW: "billing.view",
@@ -157,6 +167,33 @@ export const PERMISSIONS = {
   HEALTHCARE_CONSENT_MANAGE: "healthcare.consent.manage",
 } as const;
 
+// ── Extended Permission Keys for Complete Operation Coverage ─────────────────────────────────────────
+export const EXTENDED_PERMISSIONS = {
+  // Import/Download operations (data ingestion, file export/download)
+  IMPORT_DATA: "import.data",
+  EXPORT_DATA: "export.data",
+  DOWNLOAD_DOCUMENT: "download.document",
+  DOWNLOAD_REPORT: "download.report",
+
+  // Approval/Rejection/Cancellation workflows
+  APPROVE: "approve",
+  REJECT: "reject",
+  CANCEL: "cancel",
+  TOGGLE_STATE: "toggle_state",
+  REOPEN: "reopen",
+  MIGRATE: "migrate",
+
+  // Share and batch operations
+  SHARE_RESOURCE: "share.resource",
+  BATCH_OPERATE: "batch.operate",
+
+  // Additional granular controls
+  MASS_ASSIGN_PROTECT: "mass.assign.protect",
+} as const;
+
+export type ExtendedPermissionKey = (typeof EXTENDED_PERMISSIONS)[keyof typeof EXTENDED_PERMISSIONS];
+
+// ─── Canonical Permission Key (derived from PERMISSIONS) ─────────────────────────────────────────
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 // ─── Role Definitions (Defaults) ─────────────────────────────────

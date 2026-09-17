@@ -3,9 +3,17 @@ import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
 // These are integration tests: they need a live DATABASE_URL (and the LLM
-// test additionally needs LLM_API_URL/LLM_API_KEY). Without them they are
-// skipped instead of failing.
+// test additionally needs LLM_API_URL/LLM_API_KEY).
+// QA guard: critical accounting coverage must NEVER be silently skipped in CI.
+// Locally (no CI env) the DB-gated tests skip; in CI a missing DATABASE_URL
+// fails fast with a clear message instead of a green-but-empty run.
 const dbAvailable = () => !!process.env.DATABASE_URL;
+if (process.env.CI && !process.env.DATABASE_URL) {
+  throw new Error(
+    "[accounting.test] CI requires DATABASE_URL — critical accounting tests cannot be skipped. " +
+      "Provide secrets.DATABASE_URL or a Postgres service (see .github/workflows/ci.yml)."
+  );
+}
 const llmAvailable = () =>
   !!process.env.LLM_API_URL && !!process.env.LLM_API_KEY;
 

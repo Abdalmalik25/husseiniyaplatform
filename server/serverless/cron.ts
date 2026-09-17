@@ -29,6 +29,14 @@ import { sql, count } from "drizzle-orm";
 import { runNightlyBackupIfDue } from "../_core/backup";
 
 export default async function handler(req: any, res: any) {
+  const requestId =
+    (req.headers?.["x-request-id"] as string) ||
+    `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  try {
+    res.setHeader("x-request-id", requestId);
+  } catch {
+    /* headers may be immutable in some runtimes */
+  }
   try {
     // SECURITY: fail closed in production — the cron surface must never be
     // callable with a well-known default secret. Vercel Cron automatically
@@ -112,7 +120,33 @@ export default async function handler(req: any, res: any) {
     }
 
     // 7. Nightly encrypted backup — at most once/day, never fails the tick.
+    // Alert on ≥2 consecutive failures (runbook: docs/OPERATIONS_RUNBOOK.md).
     const backup = await runNightlyBackupIfDue();
+    if ((backup as { alert?: boolean }).alert) {
+      console.error(
+        `[cron][${requestId}] ALERT: backup failures x${(backup as { consecutiveFailures?: number }).consecutiveFailures} — paging ops`
+      );
+      try {
+        // Same captureContext shape as recordBackupFailure() in
+        // server/_core/backup.ts — one Sentry issue for the paging signal.
+        const Sentry = await import("@sentry/node");
+        Sentry.captureMessage(
+          `cron backup alert x${(backup as { consecutiveFailures?: number }).consecutiveFailures}: ${(backup as { error?: string }).error ?? (backup as { skippedReason?: string }).skippedReason ?? "backup failing"}`,
+          {
+            level: "error",
+            tags: {
+              alert: "backup",
+              request_id: requestId,
+              consecutive_failures: String(
+                (backup as { consecutiveFailures?: number }).consecutiveFailures ?? ""
+              ),
+            },
+          }
+        );
+      } catch {
+        /* Sentry optional */
+      }
+    }
 
     res.statusCode = 200;
     res.setHeader("content-type", "application/json");
@@ -122,6 +156,7 @@ export default async function handler(req: any, res: any) {
         ran,
         perTenant,
         backup,
+        requestId,
       })
     );
   } catch (e) {
