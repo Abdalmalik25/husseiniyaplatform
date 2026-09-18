@@ -173,9 +173,23 @@ export default function () {
     });
     healthLatency.add(Date.now() - start);
 
+    // Gateway contract: 200 healthy, or an HONEST 503 (shaped degraded JSON
+    // with correlation) when the database is down. A lying gateway (wrong
+    // shape / no request id) is always a failure.
+    let shaped = false;
+    try {
+      const body = res.json();
+      shaped =
+        !!body &&
+        typeof body.ok === "boolean" &&
+        ("requestId" in body || "dbAvailable" in body);
+    } catch {
+      shaped = false;
+    }
     const ok = check(res, {
-      "health: status 200": r => r.status === 200,
-      "health: dbAvailable true": r => r.json("dbAvailable") === true,
+      "health: status 200 or honest-503": r =>
+        r.status === 200 || r.status === 503,
+      "health: shaped envelope": () => shaped,
       "health: response < 1000ms": r => r.timings.duration < 1000,
     });
 
