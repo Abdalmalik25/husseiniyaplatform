@@ -186,9 +186,14 @@ jobs:
       # DB-independent specs only (verified green against a degraded preview):
       # no credentials, no seeding, no DB writes. Authenticated journeys live
       # in e2e-authenticated below, gated on live Neon transport.
+      # NOTE: compliance.spec's final "Data Integrity & Backup Compliance"
+      # block asserts LIVE connectivity (body.ok / dbAvailable) by design, so
+      # it is excluded here via --grep-invert and runs in e2e-authenticated
+      # (full suite) instead — nothing is skipped silently, only relocated.
       - name: Run E2E public specs
         run: >
           pnpm exec playwright test
+          --grep-invert "backup encryption key is configured|database connectivity is maintained"
           e2e/compliance.spec.ts
           e2e/landing.spec.ts
           e2e/login.spec.ts
