@@ -43,7 +43,11 @@ const LONG_DIGITS_RE = /\+?\d[\d\s-]{7,}\d/g;
 const MAX_STRING = 4000;
 const MAX_DEPTH = 10;
 
-export function redact(value: unknown, depth = 0, seen?: WeakSet<object>): unknown {
+export function redact(
+  value: unknown,
+  depth = 0,
+  seen?: WeakSet<object>
+): unknown {
   if (value == null) return value;
   if (depth > MAX_DEPTH) return "[TRUNCATED]";
   if (typeof value === "string") return redactString(value);

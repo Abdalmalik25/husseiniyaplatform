@@ -37,7 +37,7 @@ const audits: ScreenRef = {
 };
 
 function keys(screens: ScreenRef[]): string[] {
-  return screens.map((s) => s.key);
+  return screens.map(s => s.key);
 }
 
 describe("recordVisit", () => {
@@ -57,18 +57,25 @@ describe("recordVisit", () => {
   });
 
   it("caps the history at the default limit of 12", () => {
-    const long = Array.from({ length: 15 }, (_, i): ScreenRef => ({
-      key: `screen-${i}`,
-      title: `Screen ${i}`,
-      group: "ops",
-    }));
+    const long = Array.from(
+      { length: 15 },
+      (_, i): ScreenRef => ({
+        key: `screen-${i}`,
+        title: `Screen ${i}`,
+        group: "ops",
+      })
+    );
     const next = recordVisit(long, trialBalance);
     expect(next.length).toBe(DEFAULT_HISTORY_LIMIT);
     expect(keys(next)[0]).toBe("trial-balance");
   });
 
   it("respects a custom maxLen and drops the oldest entries", () => {
-    const next = recordVisit([voyages, catalog, trialBalance], closingReport, 2);
+    const next = recordVisit(
+      [voyages, catalog, trialBalance],
+      closingReport,
+      2
+    );
     expect(keys(next)).toEqual(["closing-report", "voyages"]);
   });
 
@@ -112,11 +119,7 @@ describe("shortcutJump", () => {
       "catalog"
     );
     expect(promoted).toBe(true);
-    expect(keys(history)).toEqual([
-      "catalog",
-      "voyages",
-      "catalog",
-    ]);
+    expect(keys(history)).toEqual(["catalog", "voyages", "catalog"]);
   });
 
   it("returns the unchanged history copy with promoted false when absent", () => {
@@ -160,7 +163,13 @@ describe("groupSummaries", () => {
   });
 
   it("orders the four known groups first, then others alphabetically", () => {
-    const result = groupSummaries([audits, catalog, settings, voyages, catalog]);
+    const result = groupSummaries([
+      audits,
+      catalog,
+      settings,
+      voyages,
+      catalog,
+    ]);
     expect(result).toEqual([
       { group: "ops", count: 1 },
       { group: "catalog", count: 2 },
@@ -180,7 +189,7 @@ describe("groupSummaries", () => {
       group: "alpha",
     };
     const result = groupSummaries([aGroup, settings, zGroup, trialBalance]);
-    expect(result.map((s) => s.group)).toEqual([
+    expect(result.map(s => s.group)).toEqual([
       "finance",
       "alpha",
       "system",
@@ -206,7 +215,9 @@ describe("nextScreenFor", () => {
       title: "Voyages",
       group: "ops",
     });
-    expect(nextScreenFor("advanceTrialBalance", 1)?.key).toBe("voyage-position");
+    expect(nextScreenFor("advanceTrialBalance", 1)?.key).toBe(
+      "voyage-position"
+    );
     expect(nextScreenFor("advanceTrialBalance", 2)?.key).toBe("trial-balance");
     expect(nextScreenFor("advanceTrialBalance", 3)?.key).toBe("closing-report");
   });

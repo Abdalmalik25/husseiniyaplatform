@@ -85,7 +85,10 @@ async function buildPosSessionReport(
           .select()
           .from(payments)
           .where(
-            and(eq(payments.source, "sales"), inArray(payments.invoiceId, invoiceIds))
+            and(
+              eq(payments.source, "sales"),
+              inArray(payments.invoiceId, invoiceIds)
+            )
           )
       : [];
 
@@ -1467,16 +1470,16 @@ export const modulesRouter = router({
     listSessions: tenantProcedure
       .use(requirePermissions(PERMISSIONS.POS_VIEW))
       .query(async ({ ctx }) => {
-      if (!ctx.tenantId) return [];
-      const db = await getDb();
-      if (!db) return [];
-      return db
-        .select()
-        .from(posSessions)
-        .where(eq(posSessions.tenantId, ctx.tenantId))
-        .orderBy(desc(posSessions.openedAt))
-        .limit(20);
-    }),
+        if (!ctx.tenantId) return [];
+        const db = await getDb();
+        if (!db) return [];
+        return db
+          .select()
+          .from(posSessions)
+          .where(eq(posSessions.tenantId, ctx.tenantId))
+          .orderBy(desc(posSessions.openedAt))
+          .limit(20);
+      }),
     openSession: tenantProcedure
       .use(requirePermissions(PERMISSIONS.POS_VIEW))
       .input(
@@ -1630,7 +1633,11 @@ export const modulesRouter = router({
         return { session: row, report: await buildPosSessionReport(db, row) };
       }),
     closeSession: tenantProcedure
-      .use(requirePermissions({ any: [PERMISSIONS.POS_VIEW, PERMISSIONS.POS_EDIT_SALE] }))
+      .use(
+        requirePermissions({
+          any: [PERMISSIONS.POS_VIEW, PERMISSIONS.POS_EDIT_SALE],
+        })
+      )
       .input(
         z.object({
           id: z.number(),
@@ -1660,7 +1667,8 @@ export const modulesRouter = router({
         const countedCash = input.countedCash
           ? parseFloat(input.countedCash)
           : null;
-        const variance = countedCash !== null ? countedCash - expectedCash : null;
+        const variance =
+          countedCash !== null ? countedCash - expectedCash : null;
 
         await db
           .update(posSessions)
@@ -1753,7 +1761,9 @@ export const modulesRouter = router({
       }),
     listHolds: tenantProcedure
       .use(requirePermissions(PERMISSIONS.POS_HOLD_RECALL))
-      .input(z.object({ includeCompleted: z.boolean().default(false) }).optional())
+      .input(
+        z.object({ includeCompleted: z.boolean().default(false) }).optional()
+      )
       .query(async ({ input, ctx }) => {
         if (!ctx.tenantId) return [];
         const db = await getDb();
@@ -1774,7 +1784,9 @@ export const modulesRouter = router({
       }),
     getHold: tenantProcedure
       .use(requirePermissions(PERMISSIONS.POS_HOLD_RECALL))
-      .input(z.object({ id: z.number().optional(), code: z.string().optional() }))
+      .input(
+        z.object({ id: z.number().optional(), code: z.string().optional() })
+      )
       .query(async ({ input, ctx }) => {
         if (!ctx.tenantId) return null;
         const db = await getDb();

@@ -55,8 +55,7 @@ export function classifyHttpRoute(method: string): RouteKind {
 
 // ─── Trace propagation (W3C protocol, zero SDK) ─────────────────────────────
 
-const TRACEPARENT_RE =
-  /^[\da-f]{2}-([\da-f]{32})-([\da-f]{16})-[\da-f]{2}$/i;
+const TRACEPARENT_RE = /^[\da-f]{2}-([\da-f]{32})-([\da-f]{16})-[\da-f]{2}$/i;
 
 export function parseTraceparent(
   header: unknown
@@ -104,7 +103,9 @@ let errorRequests = 0; // 5xx / tRPC-error responses
 let webhookAttempts = 0;
 let webhookSucceeded = 0;
 
-export function recordRequest(s: Omit<LatencySample, "ts"> & { ts?: number }): void {
+export function recordRequest(
+  s: Omit<LatencySample, "ts"> & { ts?: number }
+): void {
   totalRequests += 1;
   if (!s.ok) errorRequests += 1;
   samples.push({ ...s, ts: s.ts ?? Date.now() });
@@ -114,11 +115,15 @@ export function recordRequest(s: Omit<LatencySample, "ts"> & { ts?: number }): v
 }
 
 /** Back-compat aliases — HTTP middleware and tRPC middleware record here. */
-export function recordHttpRequest(s: Omit<LatencySample, "ts"> & { ts?: number }): void {
+export function recordHttpRequest(
+  s: Omit<LatencySample, "ts"> & { ts?: number }
+): void {
   recordRequest(s);
 }
 
-export function recordTrpcRequest(s: Omit<LatencySample, "ts"> & { ts?: number }): void {
+export function recordTrpcRequest(
+  s: Omit<LatencySample, "ts"> & { ts?: number }
+): void {
   recordRequest(s);
 }
 
@@ -161,9 +166,10 @@ function statsFor(rows: LatencySample[]): LatencyStats {
     count: rows.length,
     p50: percentile(sorted, 50),
     p95: percentile(sorted, 95),
-    avgMs: Math.round(
-      (rows.reduce((a, r) => a + r.durationMs, 0) / rows.length) * 10
-    ) / 10,
+    avgMs:
+      Math.round(
+        (rows.reduce((a, r) => a + r.durationMs, 0) / rows.length) * 10
+      ) / 10,
     maxMs: sorted[sorted.length - 1],
     errorPct:
       Math.round(((errors / rows.length) * 100 + Number.EPSILON) * 100) / 100,
@@ -203,7 +209,9 @@ export function getSloSnapshot(): SloSnapshot {
   const all = statsFor(samples);
   const errorPctOverall =
     totalRequests > 0
-      ? Math.round(((errorRequests / totalRequests) * 100 + Number.EPSILON) * 100) / 100
+      ? Math.round(
+          ((errorRequests / totalRequests) * 100 + Number.EPSILON) * 100
+        ) / 100
       : null;
   const deliveryPct =
     webhookAttempts > 0

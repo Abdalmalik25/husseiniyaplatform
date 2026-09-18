@@ -138,7 +138,8 @@ export default async function handler(req: any, res: any) {
               alert: "backup",
               request_id: requestId,
               consecutive_failures: String(
-                (backup as { consecutiveFailures?: number }).consecutiveFailures ?? ""
+                (backup as { consecutiveFailures?: number })
+                  .consecutiveFailures ?? ""
               ),
             },
           }

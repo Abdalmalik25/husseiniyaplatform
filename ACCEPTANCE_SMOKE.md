@@ -4,10 +4,12 @@
 الزمن المستهدف: < 5 دقائق. لا E2E كامل (16/16 ثقيل) — هذه الرحلة فقط.
 
 ## المتطلبات
+
 - `DATABASE_URL` حي (Neon) + مستخدم E2E (`E2E_USERNAME`/`E2E_PASSWORD`/`E2E_TENANT_ID`) أو جلسة محلية.
 - الخادم يعمل: `pnpm dev` (محلياً `http://localhost:3000`).
 
 ## الرحلة (tRPC)
+
 1. `auth.me` — الهوية آمنة (لا `passwordHash`/`currentSessionId` في الرد).
 2. `query.dashboardSummary` `{ days: 30 }` — KPIs حية (salesTrend/lowStockCount/recentActivity).
 3. `financialReports.trialBalance` `{}` — صفوف + `totals.debit == totals.credit` (قيد مزدوج متوازن).
@@ -15,6 +17,7 @@
 5. `orders.track` `{ query: "<orderNumber>" }` — يعيد نفس الطلب (بحث برقم الطلب أو هاتف العميل فقط، حد 20).
 
 ## أوامر التحقق
+
 ```bash
 # 1) وحدة سريعة (ملف واحد فقط — لا تشغل E2E كامل)
 pnpm exec vitest run server/performance.test.ts --reporter=basic
@@ -40,10 +43,12 @@ k6 run scripts/load-test.js -e BASE_URL=http://localhost:3000 -e K6_SCENARIO=smo
 ```
 
 ## معايير النجاح
+
 - كل خطوة 200 + شكل الرد كما أعلاه؛ `trialBalance.totals.debit ≈ totals.credit`.
 - `orders.track` لا يسرب طلبات الآخرين (بحث فقط، بلا list مجهول).
 - أي فشل في 1–3 يوقف النشر (بوابة CI).
 
 ## ملاحظة QA (skip الصامت)
+
 - `server/accounting.test.ts` (4 اختبارات) + `server/dbLive.test.ts` (قفل P0) تفشل صراحة في CI عند غياب `DATABASE_URL` (لا skip صامت)؛ محلياً تتخطى فقط خارج CI.
 - `e2e/*.spec.ts` تتخطى عند غياب `E2E_USERNAME/E2E_PASSWORD` — مقصود (بوابة اعتماد، ليست محاسبة/أمن حرجة).

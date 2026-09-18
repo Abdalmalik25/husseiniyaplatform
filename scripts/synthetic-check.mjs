@@ -71,11 +71,13 @@ function parseArgs(argv) {
       opts.baseUrl = a.slice("--base-url=".length);
     } else if (a === "--timeout") {
       const v = Number(argv[++i]);
-      if (!Number.isFinite(v) || v <= 0) throw new Error("--timeout requires a positive number of ms");
+      if (!Number.isFinite(v) || v <= 0)
+        throw new Error("--timeout requires a positive number of ms");
       opts.timeoutMs = Math.floor(v);
     } else if (a.startsWith("--timeout=")) {
       const v = Number(a.slice("--timeout=".length));
-      if (!Number.isFinite(v) || v <= 0) throw new Error("--timeout requires a positive number of ms");
+      if (!Number.isFinite(v) || v <= 0)
+        throw new Error("--timeout requires a positive number of ms");
       opts.timeoutMs = Math.floor(v);
     } else if (a === "--json") {
       opts.jsonOnly = true;
@@ -130,7 +132,13 @@ async function fetchJson(url, timeoutMs) {
 /** tRPC v11 GET responses: single `{ result: { data } }` or batch `[{…}]`. */
 function isTrpcEnvelope(body) {
   if (!body || typeof body !== "object") return false;
-  if (Array.isArray(body)) return body.length > 0 && typeof body[0] === "object" && body[0] !== null && ("result" in body[0] || "error" in body[0]);
+  if (Array.isArray(body))
+    return (
+      body.length > 0 &&
+      typeof body[0] === "object" &&
+      body[0] !== null &&
+      ("result" in body[0] || "error" in body[0])
+    );
   return "result" in body || "error" in body;
 }
 
@@ -144,7 +152,9 @@ async function main() {
   try {
     opts = parseArgs(process.argv.slice(2));
   } catch (e) {
-    console.error(`[synthetic-check] usage error: ${e instanceof Error ? e.message : e}`);
+    console.error(
+      `[synthetic-check] usage error: ${e instanceof Error ? e.message : e}`
+    );
     console.error("Run with --help for usage.");
     process.exit(2);
   }
@@ -165,11 +175,27 @@ async function main() {
   try {
     const r = await fetchJson(`${opts.baseUrl}/api/live`, opts.timeoutMs);
     const pass = r.status === 200 && r.body?.ok === true;
-    checks.push({ name: "live", pass, status: r.status, ms: r.ms, requestId: r.requestId, detail: pass ? "ok" : `expected 200 {ok:true}, got ${r.status} ${r.rawShort}` });
+    checks.push({
+      name: "live",
+      pass,
+      status: r.status,
+      ms: r.ms,
+      requestId: r.requestId,
+      detail: pass
+        ? "ok"
+        : `expected 200 {ok:true}, got ${r.status} ${r.rawShort}`,
+    });
     log(`[${pass ? "PASS" : "FAIL"}] live (${r.ms}ms, req=${r.requestId})`);
     if (!pass) failed = true;
   } catch (e) {
-    checks.push({ name: "live", pass: false, status: null, ms: null, requestId: null, detail: e instanceof Error ? e.message : String(e) });
+    checks.push({
+      name: "live",
+      pass: false,
+      status: null,
+      ms: null,
+      requestId: null,
+      detail: e instanceof Error ? e.message : String(e),
+    });
     log(`[FAIL] live: ${e instanceof Error ? e.message : e}`);
     failed = true;
   }
@@ -177,9 +203,14 @@ async function main() {
   // 2) Readiness (DB-gated — any 503/degraded is a failure for paging)
   try {
     const r = await fetchJson(`${opts.baseUrl}/api/health`, opts.timeoutMs);
-    const pass = r.status === 200 && r.body?.ok === true && r.body?.dbAvailable === true;
+    const pass =
+      r.status === 200 && r.body?.ok === true && r.body?.dbAvailable === true;
     checks.push({
-      name: "health", pass, status: r.status, ms: r.ms, requestId: r.requestId,
+      name: "health",
+      pass,
+      status: r.status,
+      ms: r.ms,
+      requestId: r.requestId,
       detail: pass
         ? `dbLatencyMs=${r.body?.dbLatencyMs} cached=${r.body?.cached} version=${r.body?.version}`
         : `expected 200 {ok:true,dbAvailable:true}, got ${r.status} ${r.rawShort}`,
@@ -187,24 +218,47 @@ async function main() {
     log(`[${pass ? "PASS" : "FAIL"}] health (${r.ms}ms, req=${r.requestId})`);
     if (!pass) failed = true;
   } catch (e) {
-    checks.push({ name: "health", pass: false, status: null, ms: null, requestId: null, detail: e instanceof Error ? e.message : String(e) });
+    checks.push({
+      name: "health",
+      pass: false,
+      status: null,
+      ms: null,
+      requestId: null,
+      detail: e instanceof Error ? e.message : String(e),
+    });
     log(`[FAIL] health: ${e instanceof Error ? e.message : e}`);
     failed = true;
   }
 
   // 3) tRPC routing via public auth.me (unauthenticated null = PASS)
   try {
-    const r = await fetchJson(`${opts.baseUrl}/api/trpc/auth.me`, opts.timeoutMs);
+    const r = await fetchJson(
+      `${opts.baseUrl}/api/trpc/auth.me`,
+      opts.timeoutMs
+    );
     const envelope = isTrpcEnvelope(r.body);
     const pass = r.status === 200 && envelope && !trpcHasError(r.body);
     checks.push({
-      name: "auth.me", pass, status: r.status, ms: r.ms, requestId: r.requestId,
-      detail: pass ? "tRPC envelope ok (auth not required)" : `expected 200 tRPC result envelope, got ${r.status} ${r.rawShort}`,
+      name: "auth.me",
+      pass,
+      status: r.status,
+      ms: r.ms,
+      requestId: r.requestId,
+      detail: pass
+        ? "tRPC envelope ok (auth not required)"
+        : `expected 200 tRPC result envelope, got ${r.status} ${r.rawShort}`,
     });
     log(`[${pass ? "PASS" : "FAIL"}] auth.me (${r.ms}ms, req=${r.requestId})`);
     if (!pass) failed = true;
   } catch (e) {
-    checks.push({ name: "auth.me", pass: false, status: null, ms: null, requestId: null, detail: e instanceof Error ? e.message : String(e) });
+    checks.push({
+      name: "auth.me",
+      pass: false,
+      status: null,
+      ms: null,
+      requestId: null,
+      detail: e instanceof Error ? e.message : String(e),
+    });
     log(`[FAIL] auth.me: ${e instanceof Error ? e.message : e}`);
     failed = true;
   }

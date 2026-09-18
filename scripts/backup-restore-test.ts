@@ -31,7 +31,10 @@ import {
 } from "../server/_core/backup";
 
 function looksProd(url: string): boolean {
-  return /prod|neon\.tech\/(prod|main)|vercel/i.test(url) && !/test|staging|localhost/i.test(url);
+  return (
+    /prod|neon\.tech\/(prod|main)|vercel/i.test(url) &&
+    !/test|staging|localhost/i.test(url)
+  );
 }
 
 async function main() {
@@ -40,7 +43,9 @@ async function main() {
   // 1. Fail-closed key check (mirrors production behaviour).
   const secret = resolveBackupSecret();
   if (!secret) {
-    console.error("BACKUP_ENCRYPTION_KEY missing/short — refusing to run (fail-closed)");
+    console.error(
+      "BACKUP_ENCRYPTION_KEY missing/short — refusing to run (fail-closed)"
+    );
     process.exit(1);
   }
   console.log("BACKUP_ENCRYPTION_KEY present (fingerprint hidden)");
@@ -70,9 +75,13 @@ async function main() {
   const backups = await listBackups();
   console.log(`\nFound ${backups.length} backup(s)`);
   if (backups.length === 0) {
-    console.log("No backups found — trigger one first (tRPC backup.run or nightly cron).");
+    console.log(
+      "No backups found — trigger one first (tRPC backup.run or nightly cron)."
+    );
     const health = await getBackupHealth();
-    console.log(`Health: failures=${health.consecutiveFailures} alert=${health.needsAlert}`);
+    console.log(
+      `Health: failures=${health.consecutiveFailures} alert=${health.needsAlert}`
+    );
     return;
   }
   const idArg = process.argv.indexOf("--id");
@@ -82,25 +91,37 @@ async function main() {
     console.error(`Backup id not found: ${wanted}`);
     process.exit(1);
   }
-  console.log(`Target: id=${latest.id} scope=${latest.scope} rows=${latest.totalRows}`);
+  console.log(
+    `Target: id=${latest.id} scope=${latest.scope} rows=${latest.totalRows}`
+  );
 
   // 3. Verify (checksum + key fingerprint + decrypt probe, no writes).
   const t0 = Date.now();
   const verified = await verifyBackup(latest.id);
-  console.log(`Verify: ok=${verified.ok} (${Date.now() - t0}ms)` +
-    (verified.ok ? ` rows=${verified.totalRows}` : ` reason=${verified.reason}`));
+  console.log(
+    `Verify: ok=${verified.ok} (${Date.now() - t0}ms)` +
+      (verified.ok
+        ? ` rows=${verified.totalRows}`
+        : ` reason=${verified.reason}`)
+  );
   if (!verified.ok) process.exit(1);
 
   // 4. Dry-run restore (validates payload structure, writes nothing).
   const t1 = Date.now();
   const restored = await restoreBackup(latest.id, { dryRun: true });
-  console.log(`Dry-run restore: verified=${restored.verified.ok} (${Date.now() - t1}ms)` +
-    (restored.note ? ` note=${restored.note}` : ""));
+  console.log(
+    `Dry-run restore: verified=${restored.verified.ok} (${Date.now() - t1}ms)` +
+      (restored.note ? ` note=${restored.note}` : "")
+  );
   if (!restored.verified.ok) process.exit(1);
 
   const health = await getBackupHealth();
-  console.log(`\nBACKUP RESTORE TEST PASSED (failures=${health.consecutiveFailures} alert=${health.needsAlert})`);
-  console.log("Next: weekly dry-run in CI/cron + quarterly full restore on staging (see runbook).");
+  console.log(
+    `\nBACKUP RESTORE TEST PASSED (failures=${health.consecutiveFailures} alert=${health.needsAlert})`
+  );
+  console.log(
+    "Next: weekly dry-run in CI/cron + quarterly full restore on staging (see runbook)."
+  );
 }
 
 main().catch(e => {

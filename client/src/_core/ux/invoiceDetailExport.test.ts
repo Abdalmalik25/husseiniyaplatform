@@ -114,7 +114,7 @@ describe("buildInvoiceRows", () => {
   it("computes net, tax and total per line and preserves line numbers", () => {
     const rows = buildInvoiceRows(linesSet);
     expect(rows).toHaveLength(3);
-    expect(rows.map((row) => row.line)).toEqual([1, 2, 3]);
+    expect(rows.map(row => row.line)).toEqual([1, 2, 3]);
 
     expect(rows[0].net).toBe(10);
     expect(rows[0].tax).toBe(1);
@@ -171,10 +171,10 @@ describe("detailSummary", () => {
 describe("groupBySource", () => {
   it("groups lines by source and reports line counts and totals", () => {
     const groups = groupBySource(mixedLines);
-    const favorites = groups.find((group) => group.source === "favorites");
-    const history = groups.find((group) => group.source === "history");
-    const requests = groups.find((group) => group.source === "requests");
-    const catalog = groups.find((group) => group.source === DEFAULT_SOURCE);
+    const favorites = groups.find(group => group.source === "favorites");
+    const history = groups.find(group => group.source === "history");
+    const requests = groups.find(group => group.source === "requests");
+    const catalog = groups.find(group => group.source === DEFAULT_SOURCE);
 
     expect(favorites?.lines).toBe(2);
     expect(favorites?.total).toBeCloseTo(27.8, 10);
@@ -188,9 +188,9 @@ describe("groupBySource", () => {
 
   it("sorts groups by total descending, then source ascending", () => {
     const groups = groupBySource(mixedLines);
-    const totals = groups.map((group) => group.total);
+    const totals = groups.map(group => group.total);
     expect(totals).toEqual([...totals].sort((a, b) => b - a));
-    expect(groups.map((group) => group.source)).toEqual([
+    expect(groups.map(group => group.source)).toEqual([
       "favorites",
       DEFAULT_SOURCE,
       "history",
@@ -246,9 +246,10 @@ describe("renderCSV", () => {
   it("formats numeric values with two decimal places", () => {
     const csv = renderCSV([rowsSet[0]]);
     expect(csv).toBe(
-      ["Line,Item,Unit,Qty,Net,Tax,Total", "1,Rice,kg,2.00,10.00,1.00,11.00"].join(
-        "\n"
-      )
+      [
+        "Line,Item,Unit,Qty,Net,Tax,Total",
+        "1,Rice,kg,2.00,10.00,1.00,11.00",
+      ].join("\n")
     );
   });
 

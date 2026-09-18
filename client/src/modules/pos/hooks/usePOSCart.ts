@@ -515,15 +515,26 @@ export function usePOSCart(options: UsePOSCartOptions = {}) {
     const totalPaidNow =
       payments.reduce((sum, p) => sum + p.amount, 0) + paidAmount;
     const taxableBase =
-      summary.subtotal - Number((globalDiscount > 1
-        ? globalDiscount
-        : (summary.subtotal * globalDiscountPercent) / 100).toFixed(2)) > 0
-        ? summary.subtotal - Number((globalDiscount > 1
+      summary.subtotal -
+        Number(
+          (globalDiscount > 1
             ? globalDiscount
-            : (summary.subtotal * globalDiscountPercent) / 100).toFixed(2))
+            : (summary.subtotal * globalDiscountPercent) / 100
+          ).toFixed(2)
+        ) >
+      0
+        ? summary.subtotal -
+          Number(
+            (globalDiscount > 1
+              ? globalDiscount
+              : (summary.subtotal * globalDiscountPercent) / 100
+            ).toFixed(2)
+          )
         : 0;
     const blendedTaxRate =
-      taxableBase > 0 ? ((summary.totalTax / taxableBase) * 100).toFixed(2) : "0";
+      taxableBase > 0
+        ? ((summary.totalTax / taxableBase) * 100).toFixed(2)
+        : "0";
 
     return {
       customerId: selectedCustomer?.id,
@@ -590,27 +601,23 @@ export function usePOSCart(options: UsePOSCartOptions = {}) {
   ]);
 
   // Restore a persisted hold/cart snapshot (server pos_held_carts.snapshot JSON)
-  const restoreSnapshot = useCallback(
-    (snap: any) => {
-      if (!snap) return;
-      if (Array.isArray(snap.cart)) {
-        setCart(snap.cart);
-      }
-      if (typeof snap.globalDiscount === "number")
-        setGlobalDiscount(snap.globalDiscount);
-      if (typeof snap.globalDiscountPercent === "number")
-        setGlobalDiscountPercent(snap.globalDiscountPercent);
-      if (snap.selectedCustomer) setSelectedCustomer(snap.selectedCustomer);
-      if (snap.paymentMethod) setPaymentMethod(snap.paymentMethod);
-      if (typeof snap.paidAmount === "number")
-        setPaidAmount(snap.paidAmount);
-      if (Array.isArray(snap.payments)) setPayments(snap.payments);
-      if (typeof snap.notes === "string") setNotes(snap.notes);
-      if (typeof snap.loyaltyPointsRedeemed === "number")
-        setLoyaltyPointsRedeemed(snap.loyaltyPointsRedeemed);
-    },
-    []
-  );
+  const restoreSnapshot = useCallback((snap: any) => {
+    if (!snap) return;
+    if (Array.isArray(snap.cart)) {
+      setCart(snap.cart);
+    }
+    if (typeof snap.globalDiscount === "number")
+      setGlobalDiscount(snap.globalDiscount);
+    if (typeof snap.globalDiscountPercent === "number")
+      setGlobalDiscountPercent(snap.globalDiscountPercent);
+    if (snap.selectedCustomer) setSelectedCustomer(snap.selectedCustomer);
+    if (snap.paymentMethod) setPaymentMethod(snap.paymentMethod);
+    if (typeof snap.paidAmount === "number") setPaidAmount(snap.paidAmount);
+    if (Array.isArray(snap.payments)) setPayments(snap.payments);
+    if (typeof snap.notes === "string") setNotes(snap.notes);
+    if (typeof snap.loyaltyPointsRedeemed === "number")
+      setLoyaltyPointsRedeemed(snap.loyaltyPointsRedeemed);
+  }, []);
 
   useEffect(() => {
     onCartChange?.(cart);

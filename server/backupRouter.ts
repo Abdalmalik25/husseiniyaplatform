@@ -36,7 +36,11 @@ export const backupRouter = router({
       const tid = requireTenantId(ctx);
       // Tenant admins are scoped to their own tenant; only the platform
       // owner (isSuperAdmin) may back up another tenant or the whole estate.
-      if (!ctx.isSuperAdmin && input.tenantId !== null && input.tenantId !== tid) {
+      if (
+        !ctx.isSuperAdmin &&
+        input.tenantId !== null &&
+        input.tenantId !== tid
+      ) {
         throw new TRPCError({
           code: "FORBIDDEN",
           message: "CROSS_TENANT_DENIED: النسخ الاحتياطي متاح لنطاق مؤسستك فقط",

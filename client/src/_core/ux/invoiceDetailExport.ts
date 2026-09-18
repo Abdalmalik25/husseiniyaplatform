@@ -44,7 +44,7 @@ function lineTotal(line: InvoiceLine): number {
  * Line numbers are preserved as given.
  */
 export function buildInvoiceRows(lines: InvoiceLine[]): ExportLine[] {
-  return lines.map((line) => {
+  return lines.map(line => {
     const net = line.qty * line.price;
     const tax = net * (line.taxRate ?? 0);
     return {
@@ -97,7 +97,11 @@ export function groupBySource(
     });
   }
   return Array.from(bySource.entries())
-    .map(([source, value]) => ({ source, lines: value.lines, total: value.total }))
+    .map(([source, value]) => ({
+      source,
+      lines: value.lines,
+      total: value.total,
+    }))
     .sort(
       (a, b) =>
         b.total - a.total ||
@@ -122,7 +126,7 @@ function fmt(n: number): string {
  */
 export function renderCSV(rows: ExportLine[]): string {
   const header = ["Line", "Item", "Unit", "Qty", "Net", "Tax", "Total"];
-  const body = rows.map((row) =>
+  const body = rows.map(row =>
     [
       String(row.line),
       csvField(row.item),

@@ -720,7 +720,11 @@ export const healthcareRouter = router({
       const { assertRefsInTenant } = await import("./_core/tenantGuard");
       await assertRefsInTenant(db, ctx.tenantId, [
         { table: patients, id: input.patientId, label: "المريض" },
-        { table: healthcareProviders, id: input.providerId, label: "مقدم الرعاية" },
+        {
+          table: healthcareProviders,
+          id: input.providerId,
+          label: "مقدم الرعاية",
+        },
         { table: healthcareFacilities, id: input.facilityId, label: "المنشأة" },
       ]);
 

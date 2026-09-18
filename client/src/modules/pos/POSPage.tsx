@@ -706,14 +706,13 @@ export default function POSModule() {
   // Real persisted holds (created via modules.pos.createHold)
   const holdsData = useMemo(
     () => ({
-      items: (session.holds ?? [])
-        .map((h: any) => ({
-          id: h.id,
-          holdId: h.code,
-          itemCount: h.itemCount || 0,
-          total: Number(h.total || 0),
-          _snapshot: h.snapshot,
-        })),
+      items: (session.holds ?? []).map((h: any) => ({
+        id: h.id,
+        holdId: h.code,
+        itemCount: h.itemCount || 0,
+        total: Number(h.total || 0),
+        _snapshot: h.snapshot,
+      })),
     }),
     [session.holds]
   );
@@ -853,9 +852,10 @@ export default function POSModule() {
           toast.error("لم يتم العثور على الفاتورة المعلقة");
           return;
         }
-        const snap = typeof held.snapshot === "string"
-          ? JSON.parse(held.snapshot)
-          : held.snapshot;
+        const snap =
+          typeof held.snapshot === "string"
+            ? JSON.parse(held.snapshot)
+            : held.snapshot;
         cart.restoreSnapshot(snap);
         cart.setHoldId(String(held.id));
         await session.resumeHold(held.id);
@@ -1165,16 +1165,14 @@ export default function POSModule() {
                 <span className="mx-2">|</span>
                 <span className="font-mono">
                   {formatCurrency(
-                    session.report?.totalSales ??
-                      session.session.totalSales,
+                    session.report?.totalSales ?? session.session.totalSales,
                     config.currency,
                     config.decimals
                   )}
                 </span>
                 <span className="mx-2">|</span>
                 <span>
-                  {session.report?.invoiceCount ??
-                    session.session.invoiceCount}{" "}
+                  {session.report?.invoiceCount ?? session.session.invoiceCount}{" "}
                   فاتورة
                 </span>
               </span>

@@ -42,7 +42,10 @@ export async function resolveUserPermissions(
 ): Promise<string[]> {
   // Platform owner gets everything
   if (ctx.isSuperAdmin) {
-    return [...Object.values(PERMISSIONS), ...Object.values(EXTENDED_PERMISSIONS)] as string[];
+    return [
+      ...Object.values(PERMISSIONS),
+      ...Object.values(EXTENDED_PERMISSIONS),
+    ] as string[];
   }
 
   if (!ctx.user) return [];
@@ -84,21 +87,13 @@ export async function resolveUserPermissions(
       "batch.operate",
       "mass.assign.protect",
     ],
-    accountant: [
-      "export.data",
-      "download.report",
-      "approve",
-      "toggle_state",
-    ],
-    auditor: [
-      "export.data",
-      "download.report",
-    ],
+    accountant: ["export.data", "download.report", "approve", "toggle_state"],
+    auditor: ["export.data", "download.report"],
     user: [],
   };
 
   const implicitlyGranted = new Set(
-    (extendedByRole[userRole] ?? []).map((k) => k as string)
+    (extendedByRole[userRole] ?? []).map(k => k as string)
   );
   for (const p of implicitlyGranted) {
     rolePerms.add(p);
@@ -137,7 +132,20 @@ export async function resolveUserPermissions(
               for (const p of perms) {
                 if (typeof p === "string") rolePerms.add(p);
                 // Also check if it's an extended permission and add implicitly
-                if (p.startsWith("import.") || p.startsWith("export.") || p.startsWith("download.") || p.startsWith("approve") || p.startsWith("reject") || p.startsWith("cancel") || p.startsWith("toggle_state") || p.startsWith("reopen") || p.startsWith("migrate") || p.startsWith("share.") || p.startsWith("batch.") || p.startsWith("mass.")) {
+                if (
+                  p.startsWith("import.") ||
+                  p.startsWith("export.") ||
+                  p.startsWith("download.") ||
+                  p.startsWith("approve") ||
+                  p.startsWith("reject") ||
+                  p.startsWith("cancel") ||
+                  p.startsWith("toggle_state") ||
+                  p.startsWith("reopen") ||
+                  p.startsWith("migrate") ||
+                  p.startsWith("share.") ||
+                  p.startsWith("batch.") ||
+                  p.startsWith("mass.")
+                ) {
                   rolePerms.add(p);
                 }
               }

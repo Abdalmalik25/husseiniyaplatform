@@ -4,10 +4,7 @@ import { eq, and, desc, inArray } from "drizzle-orm";
 import { router, tenantProcedure, requirePermissions } from "./_core/trpc";
 import { requireTenantId } from "./_core/tenant";
 import { withTenantTx } from "./_core/rls";
-import {
-  assertRefsInTenant,
-  assertTenantRow,
-} from "./_core/tenantGuard";
+import { assertRefsInTenant, assertTenantRow } from "./_core/tenantGuard";
 import { getDb } from "./db";
 import {
   addProductStock,
@@ -64,13 +61,15 @@ export const posRouter = router({
     .input(
       z.object({
         customerId: z.number().optional(),
-        items: z.array(
-          z.object({
-            productId: z.number(),
-            quantity: z.number().int().min(1),
-            discount: z.number().default(0),
-          })
-        ).min(1),
+        items: z
+          .array(
+            z.object({
+              productId: z.number(),
+              quantity: z.number().int().min(1),
+              discount: z.number().default(0),
+            })
+          )
+          .min(1),
         paymentMethod: z.string().default("cash"),
         branchId: z.number().optional(),
         notes: z.string().optional(),
@@ -84,7 +83,10 @@ export const posRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db || !ctx.tenantId || !ctx.user)
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Failed to complete sale" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Failed to complete sale",
+        });
       const tid = requireTenantId(ctx);
       // Composite FK ownership: customer/branch/products must belong to same tenant.
       await assertRefsInTenant(db, tid, [
@@ -110,12 +112,18 @@ export const posRouter = router({
           )
         );
       if (productRows.length !== input.items.length)
-        throw new TRPCError({ code: "NOT_FOUND", message: "أحد الأصناف غير موجود" });
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "أحد الأصناف غير موجود",
+        });
       const productMap = new Map(productRows.map(p => [p.id, p]));
       const lines = input.items.map(item => {
         const p = productMap.get(item.productId);
         if (!p)
-          throw new TRPCError({ code: "NOT_FOUND", message: "أحد الأصناف غير موجود" });
+          throw new TRPCError({
+            code: "NOT_FOUND",
+            message: "أحد الأصناف غير موجود",
+          });
         const unit = parseFloat(p.salePrice || "0");
         const lineTotal = unit * item.quantity - (item.discount || 0);
         return {
@@ -177,10 +185,7 @@ export const posRouter = router({
           const inserted = input.idempotencyKey
             ? await insertQuery
                 .onConflictDoNothing({
-                  target: [
-                    salesInvoices.tenantId,
-                    salesInvoices.invoiceNumber,
-                  ],
+                  target: [salesInvoices.tenantId, salesInvoices.invoiceNumber],
                 })
                 .returning()
             : await insertQuery.returning();
@@ -267,11 +272,13 @@ export const posRouter = router({
       z.object({
         invoiceId: z.number(),
         items: z.array(
-          z.object({
-            productId: z.number(),
-            quantity: z.number().min(1),
-            discount: z.number().default(0),
-          }).optional()
+          z
+            .object({
+              productId: z.number(),
+              quantity: z.number().min(1),
+              discount: z.number().default(0),
+            })
+            .optional()
         ),
         paymentMethod: z.string().optional(),
         notes: z.string().optional(),
@@ -280,7 +287,10 @@ export const posRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db || !ctx.tenantId || !ctx.user)
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Failed to edit sale" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Failed to edit sale",
+        });
       const tid = requireTenantId(ctx);
 
       const invoice = await db
@@ -304,7 +314,11 @@ export const posRouter = router({
         await assertRefsInTenant(
           db,
           tid,
-          definedItems.map(i => ({ table: products, id: i.productId, label: "الصنف" }))
+          definedItems.map(i => ({
+            table: products,
+            id: i.productId,
+            label: "الصنف",
+          }))
         );
         await db
           .delete(salesInvoiceItems)
@@ -315,14 +329,14 @@ export const posRouter = router({
             .select({ salePrice: products.salePrice, name: products.name })
             .from(products)
             .where(
-              and(
-                eq(products.id, item.productId),
-                eq(products.tenantId, tid)
-              )
+              and(eq(products.id, item.productId), eq(products.tenantId, tid))
             )
             .limit(1);
           if (!productRow)
-            throw new TRPCError({ code: "NOT_FOUND", message: "الصنف غير موجود" });
+            throw new TRPCError({
+              code: "NOT_FOUND",
+              message: "الصنف غير موجود",
+            });
           const unit = parseFloat(productRow.salePrice || "0");
           await db.insert(salesInvoiceItems).values({
             invoiceId: input.invoiceId,
@@ -361,7 +375,10 @@ export const posRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db || !ctx.tenantId || !ctx.user)
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Failed to void sale" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Failed to void sale",
+        });
       const tid = requireTenantId(ctx);
 
       const [inv] = await db
@@ -380,7 +397,8 @@ export const posRouter = router({
         .limit(1);
       assertTenantRow(inv, tid, "فاتورة المبيعات");
       // Idempotent void: a retry must not restore stock twice.
-      if (inv.status === "cancelled") return { success: true, alreadyVoided: true };
+      if (inv.status === "cancelled")
+        return { success: true, alreadyVoided: true };
       await (db as any).transaction(async (tx: any) => {
         // Return the deducted quantities through the CENTRAL STOCK GUARD —
         // each leg linked to this void (referenceType pos_void).
@@ -457,7 +475,10 @@ export const posRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db || !ctx.tenantId || !ctx.user)
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Failed to hold/recall" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Failed to hold/recall",
+        });
       const tid = requireTenantId(ctx);
 
       const invoice = await db
@@ -503,7 +524,10 @@ export const posRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db || !ctx.tenantId || !ctx.user)
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Failed to apply discount" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Failed to apply discount",
+        });
       const tid = requireTenantId(ctx);
 
       const total = parseFloat(input.discountAmount);
@@ -548,7 +572,10 @@ export const posRouter = router({
     .mutation(async ({ input, ctx }) => {
       const db = await getDb();
       if (!db || !ctx.tenantId || !ctx.user)
-        throw new TRPCError({ code: "BAD_REQUEST", message: "Failed to process return" });
+        throw new TRPCError({
+          code: "BAD_REQUEST",
+          message: "Failed to process return",
+        });
       const tid = requireTenantId(ctx);
 
       const [inv] = await db
@@ -565,7 +592,11 @@ export const posRouter = router({
       await assertRefsInTenant(
         db,
         tid,
-        input.items.map(i => ({ table: products, id: i.productId, label: "الصنف" }))
+        input.items.map(i => ({
+          table: products,
+          id: i.productId,
+          label: "الصنف",
+        }))
       );
       // Restore stock for returned items — via the CENTRAL STOCK GUARD inside
       // one transaction, each leg linked to this return (no orphans).
@@ -586,7 +617,10 @@ export const posRouter = router({
         await tx
           .update(salesInvoices)
           .set({
-            notes: `${prev}${prev ? "\n" : ""}[مرتجع] ${input.reason}`.slice(0, 2000),
+            notes: `${prev}${prev ? "\n" : ""}[مرتجع] ${input.reason}`.slice(
+              0,
+              2000
+            ),
           })
           .where(
             and(

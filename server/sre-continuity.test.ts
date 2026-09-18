@@ -130,7 +130,8 @@ describe("monitoring endpoints (honest health + unified request id)", () => {
     expect(body.requestId).toBe("sre-test-live-1");
   });
 
-  it("GET /api/health reports real DB state + latency + version (cached 5s)", async () => {    const r1 = await fetch(`${base}/api/health`, {
+  it("GET /api/health reports real DB state + latency + version (cached 5s)", async () => {
+    const r1 = await fetch(`${base}/api/health`, {
       headers: { "x-request-id": "sre-test-health-1" },
     });
     expect([200, 503]).toContain(r1.status);

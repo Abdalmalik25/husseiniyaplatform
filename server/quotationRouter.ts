@@ -850,7 +850,10 @@ export const quotationRouter = router({
       if (input.to === "sent") patch.sentAt = new Date();
       if (["accepted", "rejected", "expired"].includes(input.to))
         patch.decidedAt = new Date();
-      await db.update(quotations).set(patch).where(and(eq(quotations.id, input.id), eq(quotations.tenantId, tid)));
+      await db
+        .update(quotations)
+        .set(patch)
+        .where(and(eq(quotations.id, input.id), eq(quotations.tenantId, tid)));
 
       // Submitting for review spawns approval levels from the type policy
       if (input.to === "in_review") {
@@ -1649,7 +1652,9 @@ export const quotationRouter = router({
             convertedRefId: order.id,
             updatedAt: new Date(),
           })
-          .where(and(eq(quotations.id, input.id), eq(quotations.tenantId, tid)));
+          .where(
+            and(eq(quotations.id, input.id), eq(quotations.tenantId, tid))
+          );
         await logActivity(
           db,
           tid,

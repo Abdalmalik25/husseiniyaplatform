@@ -86,10 +86,8 @@ function extractRaw(error: unknown): string {
       data?: { code?: string; message?: string };
       shape?: { message?: string; data?: { code?: string } };
     };
-    const code =
-      withData.data?.code ?? withData.shape?.data?.code ?? "";
-    const shaped =
-      withData.data?.message ?? withData.shape?.message ?? "";
+    const code = withData.data?.code ?? withData.shape?.data?.code ?? "";
+    const shaped = withData.data?.message ?? withData.shape?.message ?? "";
     return [code, error.message, shaped].filter(Boolean).join(" ");
   }
   try {

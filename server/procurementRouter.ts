@@ -27,7 +27,12 @@ export const procurementRouter = router({
       const [row] = await db
         .select()
         .from(procurements)
-        .where(and(eq(procurements.id, input.id), eq(procurements.tenantId, ctx.tenantId!)));
+        .where(
+          and(
+            eq(procurements.id, input.id),
+            eq(procurements.tenantId, ctx.tenantId!)
+          )
+        );
       return row;
     }),
 
@@ -75,7 +80,12 @@ export const procurementRouter = router({
       await db
         .update(procurements)
         .set({ status: "approved", approvedById: ctx.user?.id ?? null })
-        .where(and(eq(procurements.id, input.id), eq(procurements.tenantId, ctx.tenantId!)));
+        .where(
+          and(
+            eq(procurements.id, input.id),
+            eq(procurements.tenantId, ctx.tenantId!)
+          )
+        );
       return { success: true };
     }),
 
@@ -94,29 +104,48 @@ export const procurementRouter = router({
       const [rec] = await db
         .select()
         .from(procurements)
-        .where(and(eq(procurements.id, input.id), eq(procurements.tenantId, tenantId)))
+        .where(
+          and(
+            eq(procurements.id, input.id),
+            eq(procurements.tenantId, tenantId)
+          )
+        )
         .limit(1);
       if (!rec) throw new Error("Procurement not found");
       const receivedCostStr =
-        input.receivedCost != null ? String(input.receivedCost) : (rec.estimatedCost ?? "0");
+        input.receivedCost != null
+          ? String(input.receivedCost)
+          : (rec.estimatedCost ?? "0");
       // Update procurement status to received with actual cost
       await db
         .update(procurements)
         .set({ status: "received", receivedCost: receivedCostStr })
-        .where(and(eq(procurements.id, input.id), eq(procurements.tenantId, tenantId)));
+        .where(
+          and(
+            eq(procurements.id, input.id),
+            eq(procurements.tenantId, tenantId)
+          )
+        );
       // Add received quantity to stock: match product by item name within tenant
       const qty = Math.trunc(Number(rec.quantity) || 0);
       if (qty > 0) {
         const [matched] = await db
           .select({ id: products.id })
           .from(products)
-          .where(and(eq(products.tenantId, tenantId), eq(products.name, rec.itemName)))
+          .where(
+            and(
+              eq(products.tenantId, tenantId),
+              eq(products.name, rec.itemName)
+            )
+          )
           .limit(1);
         if (matched) {
           await db
             .update(products)
             .set({ currentStock: sql`${products.currentStock} + ${qty}` })
-            .where(and(eq(products.id, matched.id), eq(products.tenantId, tenantId)));
+            .where(
+              and(eq(products.id, matched.id), eq(products.tenantId, tenantId))
+            );
         }
       }
       return { success: true };

@@ -6,14 +6,14 @@
 
 ## 1) SLIs & SLOs
 
-| # | SLI (how measured) | SLO | Window |
-|---|---|---|---|
-| 1 | **Availability** — `200 / total` on `GET /api/health` (real `select 1` vs Neon) | **99.9%** (≈ 43 min error budget / 30d) | 30d rolling |
-| 2 | **Read latency** — p95 of tRPC `query` + HTTP `GET` durations (`route.kind=read` in `/api/slo.latency.read`) | **p95 < 800ms** | 1h rolling (instance window) + Sentry Performance long-term |
-| 3 | **Financial-write latency** — p95 of tRPC `mutation` on money/ledger paths (`invoices, payments, vouchers, journal, ledger, …` → `kind=financial_write`) | **p95 < 2000ms** | 1h rolling + Sentry Performance long-term |
-| 4 | **Error rate** — `5xx / total` (HTTP) + tRPC-error responses (`ok:false`) | **< 1%** | 5 min |
-| 5 | **Backup success** — nightly encrypted runs that succeed (`backup.status`, `recordBackupSuccess/Failure`) | **> 99%** of scheduled runs / month; **page on ≥ 2 consecutive failures** | 30d + immediate counter |
-| 6 | **Webhook delivery** — outbound deliveries (order webhooks, subscription-code emails) with `delivered:true` (`recordWebhookDelivery`) | **> 99.5%** | 7d rolling |
+| #   | SLI (how measured)                                                                                                                                       | SLO                                                                       | Window                                                      |
+| --- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| 1   | **Availability** — `200 / total` on `GET /api/health` (real `select 1` vs Neon)                                                                          | **99.9%** (≈ 43 min error budget / 30d)                                   | 30d rolling                                                 |
+| 2   | **Read latency** — p95 of tRPC `query` + HTTP `GET` durations (`route.kind=read` in `/api/slo.latency.read`)                                             | **p95 < 800ms**                                                           | 1h rolling (instance window) + Sentry Performance long-term |
+| 3   | **Financial-write latency** — p95 of tRPC `mutation` on money/ledger paths (`invoices, payments, vouchers, journal, ledger, …` → `kind=financial_write`) | **p95 < 2000ms**                                                          | 1h rolling + Sentry Performance long-term                   |
+| 4   | **Error rate** — `5xx / total` (HTTP) + tRPC-error responses (`ok:false`)                                                                                | **< 1%**                                                                  | 5 min                                                       |
+| 5   | **Backup success** — nightly encrypted runs that succeed (`backup.status`, `recordBackupSuccess/Failure`)                                                | **> 99%** of scheduled runs / month; **page on ≥ 2 consecutive failures** | 30d + immediate counter                                     |
+| 6   | **Webhook delivery** — outbound deliveries (order webhooks, subscription-code emails) with `delivered:true` (`recordWebhookDelivery`)                    | **> 99.5%**                                                               | 7d rolling                                                  |
 
 **Financial-write route class** (`classifyTrpcRoute`): any mutation whose path matches
 `invoice|payment|voucher|journal|ledger|transaction|billing|payroll|purchase|sale|pos|order|zatca|subscription|checkout|claim|fiscal|closing|balance|quotation`.
@@ -21,18 +21,18 @@ Everything else: queries → `read`, other mutations → `write`.
 
 ## 2) Burn-rate alerting (multi-window, Google SRE)
 
-Error budget for availability (99.9%) = 0.1%. Alerts consume it at a *burn rate*;
+Error budget for availability (99.9%) = 0.1%. Alerts consume it at a _burn rate_;
 fast burn pages, slow burn tickets.
 
-| Signal | Fast burn (page) | Slow burn (ticket) | Owner |
-|---|---|---|---|
-| Availability | burn ≥ 14.4× over **1h** + **5m** (≤ 2% budget in 1h) | burn ≥ 6× over **6h** + **30m** | On-call backend |
-| Error rate | **> 5%** immediate (1m) **or** > 1% over 5m | > 0.5% over 1h | On-call backend |
-| p95 read | **> 800ms** over 15m | > 600ms over 1h (early warning) | Backend owner |
-| p95 financial write | **> 2000ms** over 15m | > 1500ms over 1h (early warning) | Backend owner |
-| Backup | **≥ 2 consecutive failures** → Sentry `error` + cron `alert:true` (immediate page) | 1 failure → warning log + `backup.status` watch | Backend owner / on-call |
-| Webhook delivery | **< 99.5%** over 1h | < 99.8% over 24h | Backend owner |
-| Health 503 | `/api/health` **503 × 3 probes** | 1× 503 → warning | On-call backend → 15m → Tech Lead → Neon support |
+| Signal              | Fast burn (page)                                                                   | Slow burn (ticket)                              | Owner                                            |
+| ------------------- | ---------------------------------------------------------------------------------- | ----------------------------------------------- | ------------------------------------------------ |
+| Availability        | burn ≥ 14.4× over **1h** + **5m** (≤ 2% budget in 1h)                              | burn ≥ 6× over **6h** + **30m**                 | On-call backend                                  |
+| Error rate          | **> 5%** immediate (1m) **or** > 1% over 5m                                        | > 0.5% over 1h                                  | On-call backend                                  |
+| p95 read            | **> 800ms** over 15m                                                               | > 600ms over 1h (early warning)                 | Backend owner                                    |
+| p95 financial write | **> 2000ms** over 15m                                                              | > 1500ms over 1h (early warning)                | Backend owner                                    |
+| Backup              | **≥ 2 consecutive failures** → Sentry `error` + cron `alert:true` (immediate page) | 1 failure → warning log + `backup.status` watch | Backend owner / on-call                          |
+| Webhook delivery    | **< 99.5%** over 1h                                                                | < 99.8% over 24h                                | Backend owner                                    |
+| Health 503          | `/api/health` **503 × 3 probes**                                                   | 1× 503 → warning                                | On-call backend → 15m → Tech Lead → Neon support |
 
 Escalation everywhere: on-call → Tech Lead (15m no-ack) → status page + post-mortem within 48h for paging incidents.
 
@@ -58,9 +58,30 @@ Each serverless instance reports **its own** in-memory window honestly via `samp
     "lastSuccessAt": "2026-09-16T21:00:00.000Z"
   },
   "latency": {
-    "read": { "count": 812, "p50": 38, "p95": 210, "avgMs": 61.4, "maxMs": 1240, "errorPct": 0.12 },
-    "financialWrite": { "count": 96, "p50": 310, "p95": 1180, "avgMs": 402.1, "maxMs": 1980, "errorPct": 0 },
-    "all": { "count": 908, "p50": 44, "p95": 260, "avgMs": 97.3, "maxMs": 1980, "errorPct": 0.11 }
+    "read": {
+      "count": 812,
+      "p50": 38,
+      "p95": 210,
+      "avgMs": 61.4,
+      "maxMs": 1240,
+      "errorPct": 0.12
+    },
+    "financialWrite": {
+      "count": 96,
+      "p50": 310,
+      "p95": 1180,
+      "avgMs": 402.1,
+      "maxMs": 1980,
+      "errorPct": 0
+    },
+    "all": {
+      "count": 908,
+      "p50": 44,
+      "p95": 260,
+      "avgMs": 97.3,
+      "maxMs": 1980,
+      "errorPct": 0.11
+    }
   },
   "errorPctOverall": 0.11,
   "totalRequests": 908,

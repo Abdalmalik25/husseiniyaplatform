@@ -58,18 +58,28 @@ export async function ensureIdInTenant(
   tenantId: number,
   resource = "السجل"
 ): Promise<void> {
-  const rows = (await (db as {
-    select: (c: unknown) => {
-      from: (t: unknown) => {
-        where: (w: unknown) => { limit: (n: number) => Promise<Array<{ tenantId: number | null }>> };
+  const rows = (await (
+    db as {
+      select: (c: unknown) => {
+        from: (t: unknown) => {
+          where: (w: unknown) => {
+            limit: (n: number) => Promise<Array<{ tenantId: number | null }>>;
+          };
+        };
       };
-    };
-  })
+    }
+  )
     .select({ tenantId: (table as { tenantId: unknown }).tenantId })
     .from(table)
-    .where(eq((table as { id: Parameters<typeof eq>[0] }).id as never, id as never))
+    .where(
+      eq((table as { id: Parameters<typeof eq>[0] }).id as never, id as never)
+    )
     .limit(1)) as Array<{ tenantId: number | null }>;
-  assertTenantRow(rows[0] as { tenantId: number | null } | undefined, tenantId, resource);
+  assertTenantRow(
+    rows[0] as { tenantId: number | null } | undefined,
+    tenantId,
+    resource
+  );
 }
 
 export type TenantRef = {

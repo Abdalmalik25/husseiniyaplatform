@@ -3989,19 +3989,23 @@ export const appRouter = router({
             asOfDate: z.string().optional(),
           })
         )
-      .query(async ({ input, ctx }) => {
-        // Public enumeration surface: per-IP burst cap against scrapers.
-        // The global trpcLimiter (600/15min in server/_core/app.ts) stays
-        // the outer bound; this adds per-minute burst protection.
-        const catalogIp = ctx.req.ip || "unknown";
-        const catalogRl = checkRateLimit(`catalog:${catalogIp}`, 120, 60 * 1000);
-        if (!catalogRl.ok) {
-          throw new TRPCError({
-            code: "TOO_MANY_REQUESTS",
-            message: `عدد كبير من الطلبات — أعد المحاولة بعد ${catalogRl.retryAfterSec} ثانية.`,
-          });
-        }
-        const db = await getDb();
+        .query(async ({ input, ctx }) => {
+          // Public enumeration surface: per-IP burst cap against scrapers.
+          // The global trpcLimiter (600/15min in server/_core/app.ts) stays
+          // the outer bound; this adds per-minute burst protection.
+          const catalogIp = ctx.req.ip || "unknown";
+          const catalogRl = checkRateLimit(
+            `catalog:${catalogIp}`,
+            120,
+            60 * 1000
+          );
+          if (!catalogRl.ok) {
+            throw new TRPCError({
+              code: "TOO_MANY_REQUESTS",
+              message: `عدد كبير من الطلبات — أعد المحاولة بعد ${catalogRl.retryAfterSec} ثانية.`,
+            });
+          }
+          const db = await getDb();
           if (!db)
             return { rows: [], revenueTotal: 0, expenseTotal: 0, netProfit: 0 };
           const tid = requireTenantId(ctx);
@@ -5525,7 +5529,10 @@ ${analysisText}
                     .select()
                     .from(payments)
                     .where(
-                      eq(payments.idempotencyKey, mutation.payload.idempotencyKey)
+                      eq(
+                        payments.idempotencyKey,
+                        mutation.payload.idempotencyKey
+                      )
                     )
                     .limit(1);
                   if (existing.length > 0) {
@@ -8299,15 +8306,10 @@ ${analysisText}
                     "bank_transfer",
                   ])
                   .default("cash"),
-                amount: z
-                  .string()
-                  .refine(
-                    v => {
-                      const n = parseFloat(v);
-                      return !isNaN(n) && n >= 0;
-                    },
-                    "المبلغ يجب أن يكون رقماً غير سالب"
-                  ),
+                amount: z.string().refine(v => {
+                  const n = parseFloat(v);
+                  return !isNaN(n) && n >= 0;
+                }, "المبلغ يجب أن يكون رقماً غير سالب"),
                 reference: z.string().optional(),
               })
             )
@@ -8978,9 +8980,7 @@ ${analysisText}
                 productId: z.number(),
                 quantity: z.number().int().min(1),
                 restock: z.boolean().default(true),
-                condition: z
-                  .enum(["new", "used", "damaged"])
-                  .default("new"),
+                condition: z.enum(["new", "used", "damaged"]).default("new"),
                 serialNumbers: z.string().optional(),
               })
             )
@@ -9109,8 +9109,9 @@ ${analysisText}
           returnSubtotal - returnLineDisc - globalDiscShare
         );
 
-        const returnNumber = `RT-${new Date()
-          .getFullYear()}${String(new Date().getMonth() + 1).padStart(
+        const returnNumber = `RT-${new Date().getFullYear()}${String(
+          new Date().getMonth() + 1
+        ).padStart(
           2,
           "0"
         )}${String(new Date().getDate()).padStart(2, "0")}-${Math.random()
@@ -9298,7 +9299,7 @@ ${analysisText}
         return { items, total: countResult?.count ?? 0 };
       }),
 
-create: tenantProcedure
+    create: tenantProcedure
       .input(
         z.object({
           customerId: z.number().optional(),
@@ -9695,7 +9696,7 @@ create: tenantProcedure
                   .returning({ id: warehouseStock.id });
                 if (stockDone.length === 0)
                   throw new Error(
-                    `المخزون غير كافٍ لإلغاء فاتورة الشراء في المستودع` 
+                    `المخزون غير كافٍ لإلغاء فاتورة الشراء في المستودع`
                   );
 
                 // Mark valuation layers from this purchase as inactive

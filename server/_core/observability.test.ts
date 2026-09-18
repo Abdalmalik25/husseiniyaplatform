@@ -6,7 +6,15 @@
  * - GET /api/slo: aggregate-only snapshot + backup status + db latency.
  * - Backup paging: Sentry captureMessage fires on the 2nd consecutive failure.
  */
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import {
+  afterAll,
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from "vitest";
 import os from "os";
 import path from "path";
 import { promises as fs } from "fs";
@@ -34,7 +42,7 @@ import { createApp } from "./app";
 // NOTE: @sentry/node ships a frozen ESM namespace — vi.spyOn() on it throws
 // "Cannot redefine property". Mock the module instead (implementation logic
 // is still fully asserted via return values + health file).
-vi.mock("@sentry/node", async (importOriginal) => {
+vi.mock("@sentry/node", async importOriginal => {
   const mod = await importOriginal<typeof import("@sentry/node")>();
   return { ...mod, captureMessage: vi.fn(() => "evt-test") };
 });
@@ -198,7 +206,12 @@ describe("GET /api/slo (light ops dashboard)", () => {
   });
 
   it("returns aggregates + backup + db latency with correlation headers", async () => {
-    recordTrpcRequest({ route: "probe", kind: "read", durationMs: 10, ok: true });
+    recordTrpcRequest({
+      route: "probe",
+      kind: "read",
+      durationMs: 10,
+      ok: true,
+    });
     const res = await fetch(`${base}/api/slo`, {
       headers: { "x-request-id": "slo-test-1" },
     });

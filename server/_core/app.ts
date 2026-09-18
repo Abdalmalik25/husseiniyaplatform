@@ -104,7 +104,9 @@ export function createApp(): Express {
   app.use((req, res, next) => {
     const incoming = req.headers["x-request-id"];
     const id =
-      typeof incoming === "string" && incoming.length > 0 && incoming.length <= 128
+      typeof incoming === "string" &&
+      incoming.length > 0 &&
+      incoming.length <= 128
         ? incoming
         : crypto.randomUUID();
     (req as any).requestId = id;
@@ -514,7 +516,10 @@ export function createApp(): Express {
         Sentry.getCurrentScope?.().setTag("request_id", requestId);
         // expressErrorHandler() above already captured the exception;
         // only capture here when Sentry is on but that middleware is off.
-        if (ENV.sentryDsn && typeof (Sentry as any).captureException === "function") {
+        if (
+          ENV.sentryDsn &&
+          typeof (Sentry as any).captureException === "function"
+        ) {
           (Sentry as any).captureException(err, {
             tags: { request_id: requestId },
           });

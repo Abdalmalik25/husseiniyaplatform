@@ -191,7 +191,8 @@ export const EXTENDED_PERMISSIONS = {
   MASS_ASSIGN_PROTECT: "mass.assign.protect",
 } as const;
 
-export type ExtendedPermissionKey = (typeof EXTENDED_PERMISSIONS)[keyof typeof EXTENDED_PERMISSIONS];
+export type ExtendedPermissionKey =
+  (typeof EXTENDED_PERMISSIONS)[keyof typeof EXTENDED_PERMISSIONS];
 
 // ─── Canonical Permission Key (derived from PERMISSIONS) ─────────────────────────────────────────
 export type PermissionKey = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];

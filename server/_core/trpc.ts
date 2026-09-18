@@ -155,22 +155,22 @@ export const adminProcedure = t.procedure
   .use(observabilityMiddleware)
   .use(requireTenant)
   .use(
-  t.middleware(async opts => {
-    const { ctx, next } = opts;
+    t.middleware(async opts => {
+      const { ctx, next } = opts;
 
-    if (!ctx.user || ctx.user.role !== "admin") {
-      throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
-    }
-    const user = ctx.user;
+      if (!ctx.user || ctx.user.role !== "admin") {
+        throw new TRPCError({ code: "FORBIDDEN", message: NOT_ADMIN_ERR_MSG });
+      }
+      const user = ctx.user;
 
-    return next({
-      ctx: {
-        ...ctx,
-        user,
-      },
-    });
-  })
-);
+      return next({
+        ctx: {
+          ...ctx,
+          user,
+        },
+      });
+    })
+  );
 
 // ─── Platform owner (super-admin) procedure ────────────────────────
 /**
@@ -178,9 +178,7 @@ export const adminProcedure = t.procedure
  * سياسات الاشتراك، إدارة المستأجرين). يعتمد `requireOwner` من tenant.ts
  * والذي يقارن `openId` مع `OWNER_OPEN_ID`.
  */
-export const ownerProcedure = t.procedure
-  .use(observabilityMiddleware)
-  .use(
+export const ownerProcedure = t.procedure.use(observabilityMiddleware).use(
   t.middleware(async opts => {
     const { ctx, next } = opts;
     if (!ctx.user) {

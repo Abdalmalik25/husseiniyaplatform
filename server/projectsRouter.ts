@@ -2,10 +2,7 @@ import { z } from "zod";
 import { eq, and, desc } from "drizzle-orm";
 import { router, tenantProcedure, requirePermissions } from "./_core/trpc";
 import { getDb } from "./db";
-import {
-  projects,
-  activityLogs,
-} from "../drizzle/schema";
+import { projects, activityLogs } from "../drizzle/schema";
 import { PERMISSIONS } from "../shared/permissions";
 
 export const projectsRouter = router({
@@ -42,7 +39,9 @@ export const projectsRouter = router({
       const [row] = await db
         .select()
         .from(projects)
-        .where(and(eq(projects.id, input.id), eq(projects.tenantId, ctx.tenantId!)));
+        .where(
+          and(eq(projects.id, input.id), eq(projects.tenantId, ctx.tenantId!))
+        );
       return row;
     }),
 
@@ -56,7 +55,9 @@ export const projectsRouter = router({
         budget: z.number().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
-        status: z.enum(["planning", "active", "on_hold", "completed", "cancelled"]).default("planning"),
+        status: z
+          .enum(["planning", "active", "on_hold", "completed", "cancelled"])
+          .default("planning"),
         managerId: z.number().optional(),
       })
     )
@@ -90,7 +91,9 @@ export const projectsRouter = router({
         budget: z.number().optional(),
         startDate: z.string().optional(),
         endDate: z.string().optional(),
-        status: z.enum(["planning", "active", "on_hold", "completed", "cancelled"]).optional(),
+        status: z
+          .enum(["planning", "active", "on_hold", "completed", "cancelled"])
+          .optional(),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -102,8 +105,12 @@ export const projectsRouter = router({
         .set({
           ...rest,
           ...(budget !== undefined ? { budget: String(budget) } : {}),
-          ...(startDate !== undefined ? { startDate: startDate ? new Date(startDate) : null } : {}),
-          ...(endDate !== undefined ? { endDate: endDate ? new Date(endDate) : null } : {}),
+          ...(startDate !== undefined
+            ? { startDate: startDate ? new Date(startDate) : null }
+            : {}),
+          ...(endDate !== undefined
+            ? { endDate: endDate ? new Date(endDate) : null }
+            : {}),
         })
         .where(and(eq(projects.id, id), eq(projects.tenantId, ctx.tenantId!)))
         .returning();
@@ -118,7 +125,9 @@ export const projectsRouter = router({
       if (!db || !ctx.tenantId) throw new Error("DB unavailable");
       await db
         .delete(projects)
-        .where(and(eq(projects.id, input.id), eq(projects.tenantId, ctx.tenantId!)));
+        .where(
+          and(eq(projects.id, input.id), eq(projects.tenantId, ctx.tenantId!))
+        );
       return { success: true };
     }),
 

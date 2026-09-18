@@ -463,21 +463,31 @@ class SDKServer {
     // Check session count - need to get current count from user
     const database = await db.getDb();
     if (database) {
-      const currentUser = await database.select().from(users).where(eq(users.openId, sessionUserId)).limit(1);
+      const currentUser = await database
+        .select()
+        .from(users)
+        .where(eq(users.openId, sessionUserId))
+        .limit(1);
       const sessionUser = currentUser[0];
       const currentSessionCount = sessionUser?.sessionCount ?? 0;
 
       // If this is a new session (no currentSessionId or session changed), increment count
-      const isNewSession = !sessionUser?.currentSessionId || sessionUser.currentSessionId !== session.sessionId;
+      const isNewSession =
+        !sessionUser?.currentSessionId ||
+        sessionUser.currentSessionId !== session.sessionId;
 
       if (isNewSession && currentSessionCount >= MAX_SESSIONS && sessionUser) {
         // Find oldest active session to revoke (loginAttempts as proxy for active sessions)
-        const oldSessions = await database.select()
+        const oldSessions = await database
+          .select()
           .from(loginAttempts)
           .where(
             and(
               eq(loginAttempts.userId, sessionUser.id),
-              gte(loginAttempts.createdAt, new Date(Date.now() - 24 * 60 * 60 * 1000))
+              gte(
+                loginAttempts.createdAt,
+                new Date(Date.now() - 24 * 60 * 60 * 1000)
+              )
             )
           )
           .orderBy(loginAttempts.createdAt);
@@ -495,7 +505,9 @@ class SDKServer {
       // Update session count
       await db.upsertUser({
         openId: user.openId,
-        sessionCount: isNewSession ? currentSessionCount + 1 : currentSessionCount,
+        sessionCount: isNewSession
+          ? currentSessionCount + 1
+          : currentSessionCount,
         currentSessionId: session.sessionId,
       });
     }

@@ -66,7 +66,11 @@ export interface SlipInstance {
 const DAY_MS = 86_400_000; // 24 * 60 * 60 * 1000
 const ROUND = (n: number) => Math.round(n * 100) / 100;
 
-export function clampDayOfMonth(day: number, year: number, month: number): number {
+export function clampDayOfMonth(
+  day: number,
+  year: number,
+  month: number
+): number {
   if (!day || day < 1) return 1;
   const last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   return Math.min(day, last);
@@ -137,7 +141,13 @@ export function nextDue(
     case "annually": {
       const day = onDay && onDay >= 1 ? onDay : previous.getUTCDate();
       const m = addMonthsUtc(previous, 12 * mult);
-      return new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth(), clampDayOfMonth(day, m.getUTCFullYear(), m.getUTCMonth())));
+      return new Date(
+        Date.UTC(
+          m.getUTCFullYear(),
+          m.getUTCMonth(),
+          clampDayOfMonth(day, m.getUTCFullYear(), m.getUTCMonth())
+        )
+      );
     }
   }
 }

@@ -40,12 +40,16 @@ describe("guideFor", () => {
   it("returns how-to bullets for a filled screen", () => {
     const bullets = guideFor("catalog", false);
     expect(bullets.length).toBeGreaterThan(0);
-    expect(bullets).toContain("\u0627\u0636\u063a\u0637 \u0639\u0644\u0649 \u0627\u0633\u0645 \u0627\u0644\u0635\u0646\u0641 \u0644\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0633\u0639\u0631 \u0623\u0648 \u0627\u0644\u0648\u062d\u062f\u0629.");
+    expect(bullets).toContain(
+      "\u0627\u0636\u063a\u0637 \u0639\u0644\u0649 \u0627\u0633\u0645 \u0627\u0644\u0635\u0646\u0641 \u0644\u062a\u0639\u062f\u064a\u0644 \u0627\u0644\u0633\u0639\u0631 \u0623\u0648 \u0627\u0644\u0648\u062d\u062f\u0629."
+    );
   });
 
   it("returns first-time steps for an empty screen", () => {
     const bullets = guideFor("catalog", true);
-    expect(bullets).toContain("\u0623\u0636\u0641 \u0623\u0648\u0644 \u0635\u0646\u0641 \u062a\u0628\u064a\u0639\u0647.");
+    expect(bullets).toContain(
+      "\u0623\u0636\u0641 \u0623\u0648\u0644 \u0635\u0646\u0641 \u062a\u0628\u064a\u0639\u0647."
+    );
     expect(bullets.length).toBeLessThan(guideFor("catalog", true, true).length);
   });
 
@@ -81,7 +85,7 @@ describe("tooltipsForScreen", () => {
       "units",
     ]);
     expect(tips).toHaveLength(5);
-    expect(tips.map((t) => t.title)).toEqual([
+    expect(tips.map(t => t.title)).toEqual([
       "\u0627\u0644\u0648\u062d\u062f\u0627\u062a", // priority 46
       "\u0627\u0644\u0637\u0644\u0628\u0627\u062a", // priority 44
       "\u0627\u0644\u0645\u062f\u0641\u0648\u0639\u0627\u062a", // priority 42
@@ -91,9 +95,9 @@ describe("tooltipsForScreen", () => {
   });
 
   it("deduplicates repeated topics", () => {
-    expect(
-      tooltipsForScreen(["catalog", "catalog", "catalog"])
-    ).toHaveLength(1);
+    expect(tooltipsForScreen(["catalog", "catalog", "catalog"])).toHaveLength(
+      1
+    );
   });
 
   it("skips unknown topics without dropping known ones", () => {

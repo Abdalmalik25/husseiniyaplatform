@@ -10,7 +10,12 @@
  */
 import { z } from "zod";
 import { eq, and, gte, lte, desc, lt, gt } from "drizzle-orm";
-import { router, tenantProcedure, adminProcedure, requirePermissions } from "./_core/trpc";
+import {
+  router,
+  tenantProcedure,
+  adminProcedure,
+  requirePermissions,
+} from "./_core/trpc";
 import { requireTenantId } from "./_core/tenant";
 import { getDb } from "./db";
 import {

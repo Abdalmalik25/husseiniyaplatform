@@ -202,8 +202,8 @@ export const branches = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 255 }).notNull(),
     code: varchar("code", { length: 50 }).notNull(),
     city: varchar("city", { length: 100 }),
@@ -233,9 +233,11 @@ export const userBranchPermissions = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
-    userId: integer("userId").notNull().references(() => users.id),
+      .notNull()
+      .references(() => tenants.id),
+    userId: integer("userId")
+      .notNull()
+      .references(() => users.id),
     branchId: integer("branchId").notNull(),
     canView: boolean("canView").default(true).notNull(),
     canInsert: boolean("canInsert").default(true).notNull(),
@@ -270,8 +272,8 @@ export const accounts = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     type: accountTypeEnum("type").notNull(),
@@ -309,11 +311,11 @@ export const transactions = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     accountId: integer("accountId")
-        .notNull()
-        .references(() => accounts.id),
+      .notNull()
+      .references(() => accounts.id),
     branchId: integer("branchId").references(() => branches.id),
     costCenterId: integer("costCenterId").references(() => costCenters.id),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
@@ -328,7 +330,9 @@ export const transactions = pgTable(
     reversalReason: varchar("reversalReason", { length: 255 }),
     referenceType: varchar("referenceType", { length: 50 }),
     referenceId: integer("referenceId"),
-    journalEntryId: integer("journalEntryId").references(() => journalEntries.id),
+    journalEntryId: integer("journalEntryId").references(
+      () => journalEntries.id
+    ),
     sourceModule: varchar("sourceModule", { length: 50 }),
     userId: integer("userId").references(() => users.id),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -385,11 +389,11 @@ export const openingBalances = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     accountId: integer("accountId")
-        .notNull()
-        .references(() => accounts.id),
+      .notNull()
+      .references(() => accounts.id),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     type: transactionTypeEnum("type").default("debit").notNull(),
     notes: text("notes"),
@@ -435,8 +439,8 @@ export const budgets = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     periodName: varchar("periodName", { length: 50 }).notNull(),
     targetRevenue: decimal("targetRevenue", {
       precision: 15,
@@ -481,8 +485,8 @@ export const fiscalPeriods = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 50 }).notNull(), // e.g., "2026", "Q1-2026"
     label: varchar("label", { length: 100 }), // e.g., "السنة المالية 2026"
     startDate: timestamp("startDate").notNull(),
@@ -524,9 +528,9 @@ export const settings = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .unique()
-        .references(() => tenants.id),
+      .notNull()
+      .unique()
+      .references(() => tenants.id),
     institutionName: varchar("institutionName", { length: 255 })
       .default("مؤسسة الحسينية لخدمات الأعمال")
       .notNull(),
@@ -686,8 +690,8 @@ export const products = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     nameAr: varchar("nameAr", { length: 255 }),
@@ -809,8 +813,8 @@ export const warehouses = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     location: varchar("location", { length: 255 }),
@@ -840,8 +844,8 @@ export const workSites = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     address: text("address"),
@@ -873,8 +877,8 @@ export const devices = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     type: varchar("type", { length: 30 }).default("pos").notNull(), // pos | scanner | scale | other
@@ -912,11 +916,11 @@ export const inventoryMovements = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     warehouseId: integer("warehouseId").references(() => warehouses.id),
     type: inventoryMovementTypeEnum("type").notNull(),
     quantity: integer("quantity").notNull(),
@@ -956,11 +960,11 @@ export const productVariants = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     nameAr: varchar("nameAr", { length: 255 }),
@@ -1012,11 +1016,11 @@ export const productBatches = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     variantId: integer("variantId"),
     batchNumber: varchar("batchNumber", { length: 100 }).notNull(),
     manufactureDate: timestamp("manufactureDate"),
@@ -1028,8 +1032,8 @@ export const productBatches = pgTable(
     supplierId: integer("supplierId").references(() => suppliers.id),
     purchaseOrderId: integer("purchaseOrderId"),
     warehouseId: integer("warehouseId")
-        .notNull()
-        .references(() => warehouses.id),
+      .notNull()
+      .references(() => warehouses.id),
     location: varchar("location", { length: 100 }), // Bin/rack location
     status: batchStatusEnum("status").default("active").notNull(),
     notes: text("notes"),
@@ -1062,18 +1066,18 @@ export const productSerials = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     variantId: integer("variantId"),
     batchId: integer("batchId").references(() => inventoryBatches.id),
     serialNumber: varchar("serialNumber", { length: 100 }).notNull(),
     status: serialStatusEnum("status").default("available").notNull(),
     warehouseId: integer("warehouseId")
-        .notNull()
-        .references(() => warehouses.id),
+      .notNull()
+      .references(() => warehouses.id),
     location: varchar("location", { length: 100 }),
     soldAt: timestamp("soldAt"),
     soldToInvoiceId: integer("soldToInvoiceId"),
@@ -1114,8 +1118,8 @@ export const matrixDimensions = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 100 }).notNull(),
     nameAr: varchar("nameAr", { length: 100 }),
     code: varchar("code", { length: 50 }).notNull(),
@@ -1149,8 +1153,8 @@ export const matrixDimensionValues = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     dimensionId: integer("dimensionId").notNull(),
     value: varchar("value", { length: 100 }).notNull(),
     valueAr: varchar("valueAr", { length: 100 }),
@@ -1191,11 +1195,11 @@ export const matrixItems = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     matrixId: integer("matrixId").notNull(),
     combinationCode: varchar("combinationCode", { length: 50 }).notNull(), // e.g., "RED-L"
     combinationName: varchar("combinationName", { length: 255 }).notNull(),
@@ -1245,12 +1249,12 @@ export const inventoryAllocations = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     type: inventoryAllocationTypeEnum("type").notNull(), // serial | batch
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     variantId: integer("variantId"),
     batchId: integer("batchId").references(() => inventoryBatches.id),
     serialNumbers: text("serialNumbers").array(), // Array of serial numbers
@@ -1288,11 +1292,11 @@ export const stockMovements = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     variantId: integer("variantId"),
     batchId: integer("batchId").references(() => inventoryBatches.id),
     serialIds: integer("serialIds").array(),
@@ -1337,12 +1341,12 @@ export const stockAdjustments = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     ...govColumns(),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     warehouseId: integer("warehouseId").references(() => warehouses.id),
     previousQty: integer("previousQty").notNull(),
     newQty: integer("newQty").notNull(),
@@ -1376,12 +1380,12 @@ export const warehouseTransfers = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     ...govColumns(),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     fromWarehouseId: integer("fromWarehouseId").notNull(),
     toWarehouseId: integer("toWarehouseId").notNull(),
     quantity: integer("quantity").notNull(),
@@ -1419,14 +1423,14 @@ export const warehouseStock = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     warehouseId: integer("warehouseId")
-        .notNull()
-        .references(() => warehouses.id),
+      .notNull()
+      .references(() => warehouses.id),
     quantity: integer("quantity").default(0).notNull(),
     reservedQty: integer("reservedQty").default(0).notNull(),
     availableQty: integer("availableQty").default(0).notNull(),
@@ -1481,14 +1485,14 @@ export const inventoryBatches = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     warehouseId: integer("warehouseId")
-        .notNull()
-        .references(() => warehouses.id),
+      .notNull()
+      .references(() => warehouses.id),
     batchNumber: varchar("batchNumber", { length: 100 }).notNull(),
     lotNumber: varchar("lotNumber", { length: 100 }),
     serialNumber: varchar("serialNumber", { length: 100 }),
@@ -1560,11 +1564,11 @@ export const stockReservations = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     warehouseId: integer("warehouseId").references(() => warehouses.id),
     batchId: integer("batchId").references(() => inventoryBatches.id),
     quantity: integer("quantity").notNull(),
@@ -1619,13 +1623,13 @@ export const cycleCounts = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     ...govColumns(),
     countNumber: varchar("countNumber", { length: 50 }).notNull(),
     warehouseId: integer("warehouseId")
-        .notNull()
-        .references(() => warehouses.id),
+      .notNull()
+      .references(() => warehouses.id),
     status: cycleCountStatusEnum("status").default("planned").notNull(),
     plannedDate: timestamp("plannedDate").notNull(),
     startedAt: timestamp("startedAt"),
@@ -1667,15 +1671,15 @@ export const cycleCountLines = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     cycleCountId: integer("cycleCountId").notNull(),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     warehouseId: integer("warehouseId")
-        .notNull()
-        .references(() => warehouses.id),
+      .notNull()
+      .references(() => warehouses.id),
     batchId: integer("batchId").references(() => inventoryBatches.id),
     systemQty: integer("systemQty").default(0).notNull(),
     countedQty: integer("countedQty"),
@@ -1722,11 +1726,11 @@ export const inventoryValuationLayers = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     warehouseId: integer("warehouseId").references(() => warehouses.id),
     batchId: integer("batchId").references(() => inventoryBatches.id),
     layerDate: timestamp("layerDate").notNull(),
@@ -1780,8 +1784,8 @@ export const customers = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }),
@@ -1842,8 +1846,8 @@ export const suppliers = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }),
@@ -1934,8 +1938,8 @@ export const salesInvoices = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     ...govColumns(),
     invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull(),
     orderId: integer("orderId").references(() => orders.id),
@@ -2054,8 +2058,8 @@ export const salesInvoiceItems = pgTable(
       .notNull()
       .references(() => salesInvoices.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     productName: varchar("productName", { length: 255 }).notNull(),
     quantity: integer("quantity").notNull(),
     unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
@@ -2079,8 +2083,8 @@ export const purchaseInvoices = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     ...govColumns(),
     invoiceNumber: varchar("invoiceNumber", { length: 50 }).notNull(),
     supplierId: integer("supplierId").references(() => suppliers.id),
@@ -2190,8 +2194,8 @@ export const purchaseInvoiceItems = pgTable(
       .notNull()
       .references(() => purchaseInvoices.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     productName: varchar("productName", { length: 255 }).notNull(),
     quantity: integer("quantity").notNull(),
     unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
@@ -2216,8 +2220,8 @@ export const orders = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     ...govColumns(),
     orderNumber: varchar("orderNumber", { length: 50 }).notNull(),
     customerId: integer("customerId").references(() => customers.id),
@@ -2258,10 +2262,12 @@ export const orderItems = pgTable(
   "order_items",
   {
     id: serial("id").primaryKey(),
-    orderId: integer("orderId").notNull().references(() => orders.id),
+    orderId: integer("orderId")
+      .notNull()
+      .references(() => orders.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     productName: varchar("productName", { length: 255 }).notNull(),
     quantity: integer("quantity").notNull(),
     unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
@@ -2287,8 +2293,8 @@ export const payments = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     source: paymentSourceEnum("source").notNull(),
     invoiceId: integer("invoiceId").notNull(),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
@@ -2540,8 +2546,8 @@ export const tenantSubscriptions = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     planId: integer("planId")
       .notNull()
       .references(() => subscriptionPlans.id),
@@ -2584,8 +2590,8 @@ export const billingInvoices = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     subscriptionId: integer("subscriptionId").references(
       () => tenantSubscriptions.id
     ),
@@ -2641,8 +2647,8 @@ export const paymentHistory = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     invoiceId: integer("invoiceId"),
     amount: decimal("amount", { precision: 10, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 10 }).default("USD").notNull(),
@@ -2691,8 +2697,8 @@ export const auditLogs = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     userId: integer("userId").references(() => users.id),
     sessionId: uuid("sessionId"),
     action: varchar("action", { length: 100 }).notNull(),
@@ -2778,8 +2784,8 @@ export const teamInvitations = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     email: varchar("email", { length: 255 }).notNull(),
     role: userRoleEnum("role").default("user").notNull(),
     invitedBy: integer("invitedBy").notNull(),
@@ -2944,9 +2950,11 @@ export const apiKeys = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
-    userId: integer("userId").notNull().references(() => users.id),
+      .notNull()
+      .references(() => tenants.id),
+    userId: integer("userId")
+      .notNull()
+      .references(() => users.id),
     name: varchar("name", { length: 100 }).notNull(),
     keyHash: varchar("keyHash", { length: 255 }).notNull().unique(),
     keyPrefix: varchar("keyPrefix", { length: 20 }).notNull(),
@@ -2979,8 +2987,8 @@ export const webhooks = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     url: varchar("url", { length: 500 }).notNull(),
     secret: varchar("secret", { length: 255 }).notNull(),
     events: jsonb("events").notNull(),
@@ -3012,8 +3020,8 @@ export const webhookDeliveries = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     webhookId: integer("webhookId")
-        .notNull()
-        .references(() => webhooks.id),
+      .notNull()
+      .references(() => webhooks.id),
     event: varchar("event", { length: 100 }).notNull(),
     payload: jsonb("payload").notNull(),
     responseStatus: integer("responseStatus"),
@@ -3144,8 +3152,8 @@ export const departments = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 30 }).notNull(),
     name: varchar("name", { length: 150 }).notNull(),
     managerId: integer("managerId"),
@@ -3178,8 +3186,8 @@ export const employees = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 30 }).notNull(),
     userId: integer("userId").references(() => users.id),
     departmentId: integer("departmentId"),
@@ -3223,8 +3231,8 @@ export const attendance = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     employeeId: integer("employeeId").notNull(),
     date: timestamp("date").notNull(),
     checkIn: timestamp("checkIn"),
@@ -3262,8 +3270,8 @@ export const payrollRuns = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     periodName: varchar("periodName", { length: 40 }).notNull(),
     fromDate: timestamp("fromDate").notNull(),
     toDate: timestamp("toDate").notNull(),
@@ -3299,8 +3307,8 @@ export const payrollItems = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     payrollRunId: integer("payrollRunId")
       .notNull()
       .references(() => payrollRuns.id),
@@ -3348,8 +3356,8 @@ export const projects = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 30 }).notNull(),
     name: varchar("name", { length: 200 }).notNull(),
     description: text("description"),
@@ -3389,8 +3397,8 @@ export const projectTasks = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     projectId: integer("projectId").notNull(),
     title: varchar("title", { length: 200 }).notNull(),
     description: text("description"),
@@ -3426,8 +3434,8 @@ export const projectMembers = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     projectId: integer("projectId").notNull(),
     employeeId: integer("employeeId").notNull(),
     roleInProject: varchar("roleInProject", { length: 80 }),
@@ -3461,8 +3469,8 @@ export const procurements = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     requisitionNumber: varchar("requisitionNumber", { length: 40 }).notNull(),
     requestedById: integer("requestedById").references(() => users.id),
     departmentId: integer("departmentId"),
@@ -3519,8 +3527,8 @@ export const procurementApprovals = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     procurementId: integer("procurementId").notNull(),
     approverId: integer("approverId"),
     level: integer("level").default(1).notNull(),
@@ -3559,8 +3567,8 @@ export const tickets = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     ticketNumber: varchar("ticketNumber", { length: 40 }).notNull(),
     subject: varchar("subject", { length: 200 }).notNull(),
     description: text("description"),
@@ -3595,8 +3603,8 @@ export const qualityInspections = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 40 }).notNull(),
     title: varchar("title", { length: 200 }).notNull(),
     type: varchar("type", { length: 80 }),
@@ -3640,8 +3648,8 @@ export const journalEntries = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     branchId: integer("branchId").references(() => branches.id),
     sourceModule: varchar("sourceModule", { length: 50 }),
     sourceRefType: varchar("sourceRefType", { length: 50 }),
@@ -3690,8 +3698,8 @@ export const scheduledJournalEntries = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 200 }).notNull(),
     description: text("description"),
     branchId: integer("branchId").references(() => branches.id),
@@ -3762,8 +3770,8 @@ export const recurringExpenses = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 200 }).notNull(),
     description: text("description"),
     categoryId: integer("categoryId").references(() => categories.id),
@@ -3863,8 +3871,8 @@ export const recurringExpenseRuns = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     recurringExpenseId: integer("recurringExpenseId")
       .notNull()
       .references(() => recurringExpenses.id),
@@ -3930,8 +3938,8 @@ export const units = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 20 }).notNull(),
     name: varchar("name", { length: 80 }).notNull(),
     nameAr: varchar("nameAr", { length: 80 }),
@@ -3968,11 +3976,11 @@ export const productUnits = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     unitId: integer("unitId").notNull(),
     conversionFactor: decimal("conversionFactor", { precision: 15, scale: 6 })
       .default("1")
@@ -4009,8 +4017,8 @@ export const categories = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 30 }).notNull(),
     name: varchar("name", { length: 100 }).notNull(),
     nameAr: varchar("nameAr", { length: 100 }),
@@ -4042,8 +4050,8 @@ export const roles = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 80 }).notNull(),
     code: varchar("code", { length: 40 }).notNull(),
     description: text("description"),
@@ -4073,9 +4081,11 @@ export const userRoles = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
-    userId: integer("userId").notNull().references(() => users.id),
+      .notNull()
+      .references(() => tenants.id),
+    userId: integer("userId")
+      .notNull()
+      .references(() => users.id),
     roleId: integer("roleId").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().notNull(),
@@ -4124,8 +4134,8 @@ export const documents = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 40 }),
     title: varchar("title", { length: 200 }).notNull(),
     type: varchar("type", { length: 50 }),
@@ -4160,8 +4170,8 @@ export const messages = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     fromUserId: text("fromUserId").notNull(),
     fromName: text("fromName"),
     toUserId: text("toUserId").notNull(),
@@ -4193,10 +4203,12 @@ export const posSessions = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 40 }).notNull(),
-    openedById: integer("openedById").notNull().references(() => users.id),
+    openedById: integer("openedById")
+      .notNull()
+      .references(() => users.id),
     openedAt: timestamp("openedAt").defaultNow().notNull(),
     closedAt: timestamp("closedAt"),
     openingFloat: decimal("openingFloat", { precision: 15, scale: 2 }).default(
@@ -4235,8 +4247,8 @@ export const posOrders = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     sessionId: integer("sessionId"),
     salesInvoiceId: integer("salesInvoiceId"),
     total: decimal("total", { precision: 15, scale: 2 }).default("0"),
@@ -4271,8 +4283,8 @@ export const posCashEvents = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     sessionId: integer("sessionId")
       .references(() => posSessions.id)
       .notNull(),
@@ -4311,8 +4323,8 @@ export const posReturns = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     returnNumber: varchar("returnNumber", { length: 50 }).notNull(),
     originalInvoiceId: integer("originalInvoiceId").notNull(),
     originalInvoiceNumber: varchar("originalInvoiceNumber", { length: 50 }),
@@ -4326,7 +4338,9 @@ export const posReturns = pgTable(
     refundAmount: decimal("refundAmount", { precision: 15, scale: 2 })
       .default("0")
       .notNull(),
-    createdById: integer("created_by_id").notNull().references(() => users.id),
+    createdById: integer("created_by_id")
+      .notNull()
+      .references(() => users.id),
     processedById: integer("processedById").references(() => users.id),
     notes: text("notes"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
@@ -4342,10 +4356,7 @@ export const posReturns = pgTable(
   t => [
     index("idx_pos_returns_tenant").on(t.tenantId),
     index("idx_pos_returns_invoice").on(t.originalInvoiceId),
-    uniqueIndex("uq_pos_returns_tenant_number").on(
-      t.tenantId,
-      t.returnNumber
-    ),
+    uniqueIndex("uq_pos_returns_tenant_number").on(t.tenantId, t.returnNumber),
     index("idx_pos_returns_currency").on(t.currencyId),
     check("chk_pos_return_refund_not_negative", sql`${t.refundAmount} >= 0`),
   ]
@@ -4362,8 +4373,8 @@ export const posReturnItems = pgTable(
       .references(() => posReturns.id)
       .notNull(),
     productId: integer("productId")
-        .notNull()
-        .references(() => products.id),
+      .notNull()
+      .references(() => products.id),
     productName: varchar("productName", { length: 255 }).notNull(),
     quantity: integer("quantity").notNull(),
     unitPrice: decimal("unitPrice", { precision: 15, scale: 2 }).notNull(),
@@ -4396,10 +4407,12 @@ export const posHeldCarts = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 40 }).notNull(),
-    heldById: integer("heldById").notNull().references(() => users.id),
+    heldById: integer("heldById")
+      .notNull()
+      .references(() => users.id),
     branchId: integer("branchId").references(() => branches.id),
     sessionId: integer("sessionId"),
     customerId: integer("customerId").references(() => customers.id),
@@ -4440,8 +4453,8 @@ export const customFieldDefs = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     entityType: varchar("entity_type", { length: 50 }).notNull(),
     key: varchar("key", { length: 50 }).notNull(),
     label: varchar("label", { length: 120 }).notNull(),
@@ -4482,8 +4495,8 @@ export const customFieldValues = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     entityType: varchar("entity_type", { length: 50 }).notNull(),
     entityId: integer("entity_id").notNull(),
     fieldKey: varchar("field_key", { length: 50 }).notNull(),
@@ -4528,8 +4541,8 @@ export const salesReps = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 255 }).notNull(),
     phone: varchar("phone", { length: 50 }),
     commissionType: varchar("commissionType", { length: 20 })
@@ -4574,8 +4587,8 @@ export const offers = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 255 }).notNull(),
     kind: varchar("kind", { length: 20 }).default("financial").notNull(),
     discountPercent: decimal("discountPercent", { precision: 6, scale: 2 })
@@ -4612,8 +4625,8 @@ export const translations = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     key: varchar("key", { length: 255 }).notNull(),
     culture: varchar("culture", { length: 10 }).notNull(),
     value: text("value").notNull(),
@@ -4651,9 +4664,11 @@ export const biometricTemplates = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
-    userId: integer("userId").notNull().references(() => users.id),
+      .notNull()
+      .references(() => tenants.id),
+    userId: integer("userId")
+      .notNull()
+      .references(() => users.id),
     type: varchar("type", { length: 30 }).notNull(), // fingerprint, face, iris, voice
     algorithm: varchar("algorithm", { length: 50 }).notNull(), // e.g., ISO 19794-2, ISO 39794-5
     algorithmVersion: varchar("algorithmVersion", { length: 20 }).notNull(),
@@ -4663,7 +4678,9 @@ export const biometricTemplates = pgTable(
     qualityScore: integer("qualityScore"), // 0-100
     status: varchar("status", { length: 20 }).default("active").notNull(), // active, revoked, expired
     enrolledAt: timestamp("enrolledAt").defaultNow().notNull(),
-    enrolledById: integer("enrolledById").notNull().references(() => users.id),
+    enrolledById: integer("enrolledById")
+      .notNull()
+      .references(() => users.id),
     approvedById: integer("approved_by_id").references(() => users.id),
     approvedAt: timestamp("approvedAt"),
     revokedAt: timestamp("revokedAt"),
@@ -4704,8 +4721,8 @@ export const syncMetadata = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     aggregateId: uuid("aggregateId").notNull(),
     entityType: varchar("entityType", { length: 100 }).notNull(),
     entityId: integer("entityId").notNull(),
@@ -4757,15 +4774,13 @@ export const costCenters = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 30 }).notNull(),
     name: varchar("name", { length: 150 }).notNull(),
     nameAr: varchar("nameAr", { length: 150 }),
     type: costCenterTypeEnum("type").default("cost").notNull(),
-    parentId: integer("parentId").references(
-      (): AnyPgColumn => costCenters.id
-    ),
+    parentId: integer("parentId").references((): AnyPgColumn => costCenters.id),
     managerId: integer("managerId"), // موظف مسؤول
     departmentId: integer("departmentId"),
     budgetAccountId: integer("budgetAccountId"), // حساب الموازنة المرتبط
@@ -4817,8 +4832,8 @@ export const allocationRules = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 150 }).notNull(),
     description: text("description"),
     method: allocationMethodEnum("method").default("proportional").notNull(),
@@ -4876,8 +4891,8 @@ export const allocationRuns = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     ruleId: integer("ruleId").notNull(),
     periodName: varchar("periodName", { length: 50 }).notNull(),
     status: varchar("status", { length: 20 }).default("draft").notNull(), // draft, posted, reversed
@@ -4925,8 +4940,8 @@ export const budgetScenarios = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 100 }).notNull(),
     description: text("description"),
     version: budgetVersionEnum("version").default("draft").notNull(),
@@ -4971,12 +4986,12 @@ export const budgetLines = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     scenarioId: integer("scenarioId").notNull(),
     accountId: integer("accountId")
-        .notNull()
-        .references(() => accounts.id),
+      .notNull()
+      .references(() => accounts.id),
     costCenterId: integer("costCenterId").references(() => costCenters.id),
     periodName: varchar("periodName", { length: 50 }).notNull(), // monthly breakdown
     amount: decimal("amount", { precision: 15, scale: 2 })
@@ -5021,13 +5036,13 @@ export const varianceAnalyses = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     scenarioId: integer("scenarioId").notNull(),
     periodName: varchar("periodName", { length: 50 }).notNull(),
     accountId: integer("accountId")
-        .notNull()
-        .references(() => accounts.id),
+      .notNull()
+      .references(() => accounts.id),
     costCenterId: integer("costCenterId").references(() => costCenters.id),
     budgetAmount: decimal("budgetAmount", { precision: 15, scale: 2 })
       .default("0")
@@ -5113,8 +5128,8 @@ export const kpis = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 150 }).notNull(),
     nameAr: varchar("nameAr", { length: 150 }),
@@ -5171,8 +5186,8 @@ export const kpiMeasurements = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     kpiId: integer("kpiId").notNull(),
     periodName: varchar("periodName", { length: 50 }).notNull(),
     costCenterId: integer("costCenterId").references(() => costCenters.id),
@@ -5225,8 +5240,8 @@ export const reportDefinitions = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 150 }).notNull(),
     nameAr: varchar("nameAr", { length: 150 }),
@@ -5283,8 +5298,8 @@ export const reportExecutions = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     reportId: integer("reportId").notNull(),
     parameters: jsonb("parameters"),
     status: varchar("status", { length: 20 }).default("pending").notNull(), // pending, running, completed, failed
@@ -5329,8 +5344,8 @@ export const consolidationEntities = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id), // parent/group tenant
+      .notNull()
+      .references(() => tenants.id), // parent/group tenant
     code: varchar("code", { length: 30 }).notNull(),
     name: varchar("name", { length: 150 }).notNull(),
     entityTenantId: integer("entityTenantId").notNull(), // child/subsidiary tenant
@@ -5379,14 +5394,14 @@ export const consolidationAdjustments = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     periodName: varchar("periodName", { length: 50 }).notNull(),
     consolidationEntityId: integer("consolidationEntityId").notNull(),
     adjustmentType: varchar("adjustmentType", { length: 50 }).notNull(), // elimination, translation, goodwill, nci
     accountId: integer("accountId")
-        .notNull()
-        .references(() => accounts.id),
+      .notNull()
+      .references(() => accounts.id),
     amount: decimal("amount", { precision: 15, scale: 2 }).notNull(),
     currency: varchar("currency", { length: 10 }).notNull(),
     exchangeRate: decimal("exchangeRate", { precision: 18, scale: 8 }).default(
@@ -5428,8 +5443,8 @@ export const prescriptions = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     customerId: varchar("customer_id", { length: 255 }).notNull(),
     customerName: varchar("customer_name", { length: 255 }).notNull(),
     doctorName: varchar("doctor_name", { length: 255 }).notNull(),
@@ -5460,8 +5475,8 @@ export const prescriptionItems = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     prescriptionId: integer("prescription_id").notNull(),
     productId: integer("product_id").notNull(),
     quantity: integer("quantity").notNull(),
@@ -5486,8 +5501,8 @@ export const controlledSubstancesLog = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     productId: integer("product_id").notNull(),
     operation: varchar("operation", { length: 20 }).notNull(),
     quantity: integer("quantity").notNull(),
@@ -5538,8 +5553,8 @@ export const patientAllergies = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     customerId: varchar("customer_id", { length: 255 }).notNull(),
     customerName: varchar("customer_name", { length: 255 }).notNull(),
     allergen: varchar("allergen", { length: 200 }).notNull(),
@@ -5564,8 +5579,8 @@ export const insuranceClaims = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     claimNumber: varchar("claim_number", { length: 50 }).notNull(),
     prescriptionId: integer("prescription_id"),
     customerId: varchar("customer_id", { length: 255 }).notNull(),
@@ -5690,8 +5705,8 @@ export const quotationTypes = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     nameAr: varchar("nameAr", { length: 255 }),
@@ -5723,8 +5738,8 @@ export const quotations = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     country: varchar("country", { length: 100 }).default("اليمن"),
     workSiteId: integer("workSiteId"),
     deviceId: integer("deviceId"),
@@ -5797,8 +5812,8 @@ export const quotationItems = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     kind: quotationItemKindEnum("kind").default("product").notNull(),
     refId: integer("refId"),
@@ -5837,8 +5852,8 @@ export const quotationVersions = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     versionNo: integer("versionNo").default(1).notNull(),
     snapshot: jsonb("snapshot").notNull(),
@@ -5861,8 +5876,8 @@ export const quotationAlternatives = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
@@ -5881,8 +5896,8 @@ export const quotationTerms = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     category: varchar("category", { length: 50 }),
     title: varchar("title", { length: 255 }),
@@ -5899,8 +5914,8 @@ export const quotationParties = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     role: quotationPartyRoleEnum("role").notNull(),
     entityType: varchar("entityType", { length: 50 }),
@@ -5928,8 +5943,8 @@ export const quotationApprovals = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     approverId: integer("approverId"),
     approverName: varchar("approverName", { length: 255 }),
@@ -5951,8 +5966,8 @@ export const quotationNegotiations = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     round: integer("round").default(1).notNull(),
     side: quotationNegotiationSideEnum("side").notNull(),
@@ -5971,8 +5986,8 @@ export const quotationAttachments = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     fileName: varchar("fileName", { length: 255 }).notNull(),
     fileUrl: text("fileUrl").notNull(),
@@ -5990,8 +6005,8 @@ export const quotationLinks = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     linkType: quotationLinkTypeEnum("linkType").notNull(),
     entityType: varchar("entityType", { length: 50 }).notNull(),
@@ -6012,8 +6027,8 @@ export const quotationAnalyses = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId").notNull(),
     versionNo: integer("versionNo").default(1).notNull(),
     inputHash: varchar("inputHash", { length: 64 }).notNull(),
@@ -6041,8 +6056,8 @@ export const quotationAlerts = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     quotationId: integer("quotationId"),
     alertType: varchar("alertType", { length: 40 }).notNull(),
     severity: varchar("severity", { length: 20 }).default("info").notNull(),
@@ -6088,8 +6103,8 @@ export const vouchers = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     voucherNumber: varchar("voucherNumber", { length: 50 }).notNull(),
     voucherPrefix: varchar("voucherPrefix", { length: 10 })
       .default("VCH")
@@ -6137,7 +6152,9 @@ export const vouchers = pgTable(
     requiresLevel2Approval: boolean("requiresLevel2Approval").default(false),
     requiresLevel3Approval: boolean("requiresLevel3Approval").default(false),
     postedById: integer("posted_by_id").references(() => users.id),
-    journalEntryId: integer("journal_entry_id").references(() => journalEntries.id),
+    journalEntryId: integer("journal_entry_id").references(
+      () => journalEntries.id
+    ),
     reversalOfId: integer("reversalOfId"),
     description: text("description"),
     notes: text("notes"),
@@ -6176,12 +6193,12 @@ export const voucherLines = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     voucherId: integer("voucherId").notNull(),
     accountId: integer("accountId")
-        .notNull()
-        .references(() => accounts.id),
+      .notNull()
+      .references(() => accounts.id),
     accountCode: varchar("accountCode", { length: 20 }),
     accountName: varchar("accountName", { length: 255 }),
     debitAmount: decimal("debitAmount", { precision: 18, scale: 4 }).default(
@@ -6248,8 +6265,8 @@ export const voucherSequences = pgTable(
   {
     id: serial("id").primaryKey(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     voucherType: voucherTypeEnum("voucherType").notNull(),
     prefix: varchar("prefix", { length: 10 }).notNull(),
     currentNumber: integer("currentNumber").default(0).notNull(),
@@ -6336,8 +6353,8 @@ export const healthcareFacilities = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     branchId: integer("branch_id"),
     name: varchar("name", { length: 200 }).notNull(),
     code: varchar("code", { length: 50 }).notNull(),
@@ -6370,8 +6387,8 @@ export const healthcareProviders = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     employeeId: integer("employee_id"),
     userId: uuid("user_id"),
     facilityId: integer("facility_id"),
@@ -6404,8 +6421,8 @@ export const patients = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     patientNumber: varchar("patient_number", { length: 50 }).notNull(),
     fullName: varchar("full_name", { length: 255 }).notNull(),
     firstName: varchar("first_name", { length: 100 }).notNull(),
@@ -6463,8 +6480,8 @@ export const appointments = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     appointmentNumber: varchar("appointment_number", { length: 50 }).notNull(),
     patientId: integer("patient_id").notNull(),
     providerId: integer("provider_id"),
@@ -6510,8 +6527,8 @@ export const medicalRecords = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     recordNumber: varchar("record_number", { length: 50 }).notNull(),
     patientId: integer("patient_id").notNull(),
     appointmentId: integer("appointment_id"),
@@ -6558,8 +6575,8 @@ export const medicalRecordEntries = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     recordId: integer("record_id").notNull(),
     patientId: integer("patient_id").notNull(),
     entryType: recordEntryTypeEnum("entry_type").notNull(),
@@ -6585,8 +6602,8 @@ export const vitalSignRecords = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     patientId: integer("patient_id").notNull(),
     recordId: integer("record_id"),
     appointmentId: integer("appointment_id"),
@@ -6632,8 +6649,8 @@ export const patientConsents = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     patientId: integer("patient_id").notNull(),
     consentType: varchar("consent_type", { length: 100 }).notNull(),
     description: text("description").notNull(),
@@ -6683,8 +6700,8 @@ export const securityEvents = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     eventType: varchar("eventType", { length: 100 }).notNull(),
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description"),
@@ -6727,8 +6744,8 @@ export const securityIncidents = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     incidentNumber: varchar("incidentNumber", { length: 50 }).notNull(),
     title: varchar("title", { length: 255 }).notNull(),
     description: text("description"),
@@ -6762,8 +6779,8 @@ export const vulnerabilities = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     name: varchar("name", { length: 255 }).notNull(),
     description: text("description"),
     severity: varchar("severity", { length: 20 }).default("medium").notNull(),
@@ -6791,8 +6808,8 @@ export const complianceControls = pgTable(
     id: serial("id").primaryKey(),
     GlobalId: uuid("GlobalId").defaultRandom().notNull().unique(),
     tenantId: integer("tenantId")
-        .notNull()
-        .references(() => tenants.id),
+      .notNull()
+      .references(() => tenants.id),
     framework: varchar("framework", { length: 50 }).notNull(),
     controlId: varchar("controlId", { length: 50 }).notNull(),
     controlName: varchar("controlName", { length: 255 }).notNull(),

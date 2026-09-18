@@ -51,7 +51,12 @@ export const inventoryRouter = router({
       const [row] = await db
         .select()
         .from(productsTable)
-        .where(and(eq(productsTable.id, input.id), eq(productsTable.tenantId, ctx.tenantId!)));
+        .where(
+          and(
+            eq(productsTable.id, input.id),
+            eq(productsTable.tenantId, ctx.tenantId!)
+          )
+        );
       return row;
     }),
 
@@ -137,7 +142,12 @@ export const inventoryRouter = router({
             ? { reorderPoint: String(reorderPoint) }
             : {}),
         })
-        .where(and(eq(productsTable.id, id), eq(productsTable.tenantId, ctx.tenantId!)))
+        .where(
+          and(
+            eq(productsTable.id, id),
+            eq(productsTable.tenantId, ctx.tenantId!)
+          )
+        )
         .returning();
       return row;
     }),
@@ -150,7 +160,12 @@ export const inventoryRouter = router({
       if (!db || !ctx.tenantId) throw new Error("DB unavailable");
       await db
         .delete(productsTable)
-        .where(and(eq(productsTable.id, input.id), eq(productsTable.tenantId, ctx.tenantId!)));
+        .where(
+          and(
+            eq(productsTable.id, input.id),
+            eq(productsTable.tenantId, ctx.tenantId!)
+          )
+        );
       return { success: true };
     }),
 
@@ -220,21 +235,24 @@ export const inventoryRouter = router({
           });
         }
         // Source document for the movement (audit trail).
-        const [adj] = await tx.insert(stockAdjustments).values({
-          tenantId: tid,
-          productId: input.productId,
-          warehouseId: input.warehouseId,
-          previousQty,
-          newQty,
-          reason:
-            input.type === "add"
-              ? "إدخال"
-              : input.type === "remove"
-                ? "إخراج"
-                : "تسوية",
-          notes: input.notes ?? null,
-          userId: ctx.user.id,
-        }).returning({ id: stockAdjustments.id });
+        const [adj] = await tx
+          .insert(stockAdjustments)
+          .values({
+            tenantId: tid,
+            productId: input.productId,
+            warehouseId: input.warehouseId,
+            previousQty,
+            newQty,
+            reason:
+              input.type === "add"
+                ? "إدخال"
+                : input.type === "remove"
+                  ? "إخراج"
+                  : "تسوية",
+            notes: input.notes ?? null,
+            userId: ctx.user.id,
+          })
+          .returning({ id: stockAdjustments.id });
         const diff = newQty - previousQty;
         if (diff !== 0 && adj) {
           await recordStockMovement(tx, {
@@ -286,16 +304,19 @@ export const inventoryRouter = router({
           warehouseId: input.warehouseId,
           quantity: input.countedQty,
         });
-        const [adj] = await tx.insert(stockAdjustments).values({
-          tenantId: tid,
-          productId: input.productId,
-          warehouseId: input.warehouseId,
-          previousQty,
-          newQty: input.countedQty,
-          reason: "جرد فعلي",
-          notes: input.notes ?? null,
-          userId: ctx.user.id,
-        }).returning({ id: stockAdjustments.id });
+        const [adj] = await tx
+          .insert(stockAdjustments)
+          .values({
+            tenantId: tid,
+            productId: input.productId,
+            warehouseId: input.warehouseId,
+            previousQty,
+            newQty: input.countedQty,
+            reason: "جرد فعلي",
+            notes: input.notes ?? null,
+            userId: ctx.user.id,
+          })
+          .returning({ id: stockAdjustments.id });
         const diff = input.countedQty - previousQty;
         if (diff !== 0 && adj) {
           await recordStockMovement(tx, {
@@ -306,7 +327,8 @@ export const inventoryRouter = router({
             quantity: Math.abs(diff),
             referenceId: adj.id,
             referenceType: "stock_adjustment",
-            notes: input.notes ?? `جرد فعلي: ${previousQty} ← ${input.countedQty}`,
+            notes:
+              input.notes ?? `جرد فعلي: ${previousQty} ← ${input.countedQty}`,
           });
         }
       });

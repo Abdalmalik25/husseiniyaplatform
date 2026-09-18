@@ -219,7 +219,8 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
       try {
         await closeSessionMutation.mutateAsync({
           id: activeSession.id,
-          countedCash: countedCash !== undefined ? countedCash.toString() : undefined,
+          countedCash:
+            countedCash !== undefined ? countedCash.toString() : undefined,
         });
       } catch (err) {
         setError(err instanceof Error ? err.message : "فشل إغلاق الوردية");
@@ -317,7 +318,10 @@ export function usePOSSession(options: UsePOSSessionOptions = {}) {
 
   const sessionReportQuery = trpc.modules.pos.sessionReport.useQuery(
     { id: activeSession?.id ?? -1 },
-    { enabled: !!activeSession && activeSession.status === "open", staleTime: 15_000 }
+    {
+      enabled: !!activeSession && activeSession.status === "open",
+      staleTime: 15_000,
+    }
   );
   const report = sessionReportQuery.data?.report ?? null;
 

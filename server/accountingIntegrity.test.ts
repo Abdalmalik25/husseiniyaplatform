@@ -156,8 +156,8 @@ describe("Accounting Integrity (atomic journal + fail-closed period lock)", () =
 
     // Must REJECT (blocked for safety) — resolving here would mean the
     // unverifiable period was treated as open (fail-open).
-    await expect(assertPeriodOpen(db, TID, OPEN_DATE, "قيد يدوي")).rejects.toThrow(
-      /تعذر التحقق/
-    );
+    await expect(
+      assertPeriodOpen(db, TID, OPEN_DATE, "قيد يدوي")
+    ).rejects.toThrow(/تعذر التحقق/);
   });
 });

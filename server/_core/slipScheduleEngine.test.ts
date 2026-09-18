@@ -54,7 +54,9 @@ describe("slipScheduleEngine - pure, deterministic recurrence core", () => {
     expect(isWithinOpenFiscalPeriod(U(2024, 12, 31), open)).toBe(false);
     expect(isWithinOpenFiscalPeriod(U(2025, 3, 15), open)).toBe(true);
     expect(isWithinOpenFiscalPeriod(U(2025, 3, 15), open, closed)).toBe(true);
-    expect(isWithinOpenFiscalPeriod(U(2025, 6, 30, 23, 59, 59), open, closed)).toBe(true);
+    expect(
+      isWithinOpenFiscalPeriod(U(2025, 6, 30, 23, 59, 59), open, closed)
+    ).toBe(true);
     expect(isWithinOpenFiscalPeriod(U(2025, 7, 1), open, closed)).toBe(false);
     // no window -> always open
     expect(isWithinOpenFiscalPeriod(U(2030, 1, 1))).toBe(true);

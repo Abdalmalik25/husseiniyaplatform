@@ -156,13 +156,16 @@ export async function auditLog(entry: AuditLogEntry): Promise<void> {
     // ─── Hash-chained immutable audit trail ──────────────────────────
     // Retrieve the last entry for this tenant to build the chain
     const lastEntryResult = await db
-      .select({ previousHash: sql`MAX(currentHash)`, chainSequence: sql`MAX(chainSequence)` })
+      .select({
+        previousHash: sql`MAX(currentHash)`,
+        chainSequence: sql`MAX(chainSequence)`,
+      })
       .from(sql`audit_logs`)
       .where(sql`tenant_id = ${entry.tenantId ?? 0}`);
 
     const lastEntry = lastEntryResult[0];
-    const prevHash = lastEntry?.previousHash as string ?? "0".repeat(64); // genesis
-    const newChainSeq = (lastEntry?.chainSequence as number ?? 0) + 1;
+    const prevHash = (lastEntry?.previousHash as string) ?? "0".repeat(64); // genesis
+    const newChainSeq = ((lastEntry?.chainSequence as number) ?? 0) + 1;
 
     // Compute currentHash: SHA-256(previousHash + action + canonical data + timestamp)
     const timestamp = new Date().toISOString();

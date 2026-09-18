@@ -89,7 +89,7 @@ export function suggest(
 
   const now = Date.now();
   const scored = items
-    .map((it) => {
+    .map(it => {
       const hay = normalizeSearchText(`${it.name} ${it.unit} ${it.code ?? ""}`);
       const exact = hay.includes(q);
       const sub = opts.allowSubstring && hay.includes(q);
@@ -104,7 +104,7 @@ export function suggest(
             : 0;
         return {
           item: it,
-          score: prefix * 0.5 + Math.min(freq, 50) / 50 * 0.3 + recency * 0.2,
+          score: prefix * 0.5 + (Math.min(freq, 50) / 50) * 0.3 + recency * 0.2,
         };
       }
       const freq = it.frequency ?? 0;
@@ -114,7 +114,7 @@ export function suggest(
           : 0;
       // exact matches dominate; among exact, weight by use (smart hints)
       let base = exact ? 100 : 40;
-      base += Math.min(freq, 200) / 200 * 25;
+      base += (Math.min(freq, 200) / 200) * 25;
       base += recency * 20;
       if (it.source === "favorites") base += 12; // favourite bias
       const boundaryBonus = exact && charPrefixScore(q, hay) >= 0.85 ? 8 : 0;
@@ -123,14 +123,16 @@ export function suggest(
     .filter((x): x is NonNullable<typeof x> => x !== null)
     .sort((a, b) => b.score - a.score || a.item.id - b.item.id);
 
-  return scored.slice(0, opts.limit).map((s) => s.item);
+  return scored.slice(0, opts.limit).map(s => s.item);
 }
 
 /** True if query is a strong (high-confidence) match — for instant actions. */
 export function isConfidentMatch(query: string, item: CatalogItem): boolean {
   const q = normalizeSearchText(query);
   if (!q) return false;
-  const hay = normalizeSearchText(`${item.name} ${item.unit} ${item.code ?? ""}`);
+  const hay = normalizeSearchText(
+    `${item.name} ${item.unit} ${item.code ?? ""}`
+  );
   return hay.includes(q);
 }
 

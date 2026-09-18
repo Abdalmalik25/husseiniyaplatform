@@ -71,9 +71,9 @@ describe("withTenantTx — RLS tenant context (mocked, no DB)", () => {
           throw new Error("must not open");
         },
       };
-      await expect(withTenantTx(db as never, bad as never, async () => null)).rejects.toThrow(
-        /TENANT_REQUIRED/
-      );
+      await expect(
+        withTenantTx(db as never, bad as never, async () => null)
+      ).rejects.toThrow(/TENANT_REQUIRED/);
       expect(txOpened).toBe(false);
       expect(() => assertValidTenantId(bad)).toThrow(/TENANT_REQUIRED/);
     }
@@ -130,7 +130,7 @@ describe("0023_nuclear_fortress.sql — artifact contract (no DB)", () => {
     expect(s).toContain("idx_nf_sales_invoices_tenant_created");
     expect(s).toContain("idx_nf_transactions_tenant_id");
     // (ه) idempotency ledger
-    expect(s).toContain("CREATE TABLE IF NOT EXISTS \"idempotency_keys\"");
+    expect(s).toContain('CREATE TABLE IF NOT EXISTS "idempotency_keys"');
     expect(s).toContain("uq_idempotency_keys_tenant_key");
     // safety: no destructive top-level statements
     for (const line of s.split("\n")) {

@@ -28,7 +28,7 @@ export function recordVisit(
 ): ScreenRef[] {
   const cap = Math.max(0, Math.trunc(maxLen ?? DEFAULT_HISTORY_LIMIT));
   if (cap === 0) return [];
-  const rest = history.filter((entry) => entry.key !== screen.key);
+  const rest = history.filter(entry => entry.key !== screen.key);
   return [screen, ...rest].slice(0, cap);
 }
 
@@ -48,7 +48,7 @@ export function shortcutJump(
   history: ScreenRef[],
   targetKey: string
 ): { history: ScreenRef[]; promoted: boolean } {
-  const index = history.findIndex((entry) => entry.key === targetKey);
+  const index = history.findIndex(entry => entry.key === targetKey);
   if (index === -1) {
     return { history: history.slice(), promoted: false };
   }
@@ -87,7 +87,7 @@ export function groupSummaries(
     if (ra !== rb) return ra - rb;
     return a < b ? -1 : a > b ? 1 : 0;
   });
-  return groups.map((group) => ({
+  return groups.map(group => ({
     group,
     count: counts.get(group) ?? 0,
   }));
@@ -123,7 +123,7 @@ const FLOW_TABLE: ScreenFlow[] = [
  * the flow is unknown or the step index is out of range.
  */
 export function nextScreenFor(flow: string, step: number): ScreenRef | null {
-  const item = FLOW_TABLE.find((entry) => entry.key === flow);
+  const item = FLOW_TABLE.find(entry => entry.key === flow);
   if (!item) return null;
   if (step < 0 || step >= item.steps.length) return null;
   return item.steps[step];

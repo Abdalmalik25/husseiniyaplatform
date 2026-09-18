@@ -4,14 +4,14 @@
 
 ## 1) Monitoring endpoints
 
-| Endpoint | Type | Honest signal |
-|---|---|---|
-| `GET /api/health` | Readiness (DB-gated) | Real `select 1` vs Neon + `dbLatencyMs` + `uptimeSec` + `version` + `requestId`; cache 5s (`cached:true`); `200` ok / `503` degraded; `Cache-Control: no-store`; echoes `x-request-id` |
-| `GET /api/live` | Liveness (no DB) | Process alive: `200 { ok, version, uptimeSec, requestId }` |
-| `GET /api/performance` | SLO stats | Cache hit-rates + uptime (`no-store, private`) |
-| `POST /api/cron/tick` | Automation | `Authorization: Bearer $CRON_SECRET` (503 fail-closed in prod without it); response includes `backup { attempted, ok, consecutiveFailures, alert }` + `requestId` |
-| tRPC `backup.status` (admin) | Backup program | `{ consecutiveFailures, needsAlert, lastFailureAt, lastSuccessAt, recent[] }` |
-| tRPC `backup.verify/restore` (admin) | DR prove-out | `verify { ok, totalRows }`; `restore dryRun:true` default, real needs `confirm:true` |
+| Endpoint                             | Type                 | Honest signal                                                                                                                                                                          |
+| ------------------------------------ | -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /api/health`                    | Readiness (DB-gated) | Real `select 1` vs Neon + `dbLatencyMs` + `uptimeSec` + `version` + `requestId`; cache 5s (`cached:true`); `200` ok / `503` degraded; `Cache-Control: no-store`; echoes `x-request-id` |
+| `GET /api/live`                      | Liveness (no DB)     | Process alive: `200 { ok, version, uptimeSec, requestId }`                                                                                                                             |
+| `GET /api/performance`               | SLO stats            | Cache hit-rates + uptime (`no-store, private`)                                                                                                                                         |
+| `POST /api/cron/tick`                | Automation           | `Authorization: Bearer $CRON_SECRET` (503 fail-closed in prod without it); response includes `backup { attempted, ok, consecutiveFailures, alert }` + `requestId`                      |
+| tRPC `backup.status` (admin)         | Backup program       | `{ consecutiveFailures, needsAlert, lastFailureAt, lastSuccessAt, recent[] }`                                                                                                          |
+| tRPC `backup.verify/restore` (admin) | DR prove-out         | `verify { ok, totalRows }`; `restore dryRun:true` default, real needs `confirm:true`                                                                                                   |
 
 ```bash
 curl -s https://<app>/api/health | jq '{ok,dbAvailable,dbLatencyMs,cached,uptimeSec,version,requestId}'
@@ -31,13 +31,13 @@ pnpm tsx scripts/backup-restore-test.ts   # weekly dry-run (verify + dry-run res
 
 ## 3) Alerts (owner + escalation each)
 
-| Alert | Threshold | Owner | Escalation |
-|---|---|---|---|
-| Health 503 / DB unreachable | `/api/health` 503 × 3 probes | On-call backend | 15m → Tech Lead → Neon support + status page |
-| 5xx spike | error% > 1% (5m) / > 5% immediate | On-call backend | Rollback release → Lead; post-mortem 48h |
-| p95 breach | p95 > 300ms (15m) | Backend owner | Index/caching fix; Lead if > 1h |
-| **Backup failing** | **`consecutiveFailures ≥ 2`** (nightly or manual; Sentry + cron `alert:true`) | Backend owner / On-call | Same shift: check `BACKUP_ENCRYPTION_KEY` + S3/Forge + `backup.status`; Lead + freeze deploys if unresolved 24h |
-| Cron auth misconfig | `/api/cron/tick` 503 `CRON_SECRET not configured` | DevOps | Add secret in Vercel → redeploy |
+| Alert                       | Threshold                                                                     | Owner                   | Escalation                                                                                                      |
+| --------------------------- | ----------------------------------------------------------------------------- | ----------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Health 503 / DB unreachable | `/api/health` 503 × 3 probes                                                  | On-call backend         | 15m → Tech Lead → Neon support + status page                                                                    |
+| 5xx spike                   | error% > 1% (5m) / > 5% immediate                                             | On-call backend         | Rollback release → Lead; post-mortem 48h                                                                        |
+| p95 breach                  | p95 > 300ms (15m)                                                             | Backend owner           | Index/caching fix; Lead if > 1h                                                                                 |
+| **Backup failing**          | **`consecutiveFailures ≥ 2`** (nightly or manual; Sentry + cron `alert:true`) | Backend owner / On-call | Same shift: check `BACKUP_ENCRYPTION_KEY` + S3/Forge + `backup.status`; Lead + freeze deploys if unresolved 24h |
+| Cron auth misconfig         | `/api/cron/tick` 503 `CRON_SECRET not configured`                             | DevOps                  | Add secret in Vercel → redeploy                                                                                 |
 
 ## 4) Backup program (tested, fail-closed)
 

@@ -1,19 +1,6 @@
-import {
-  eq,
-  and,
-  or,
-  ilike,
-  inArray,
-  asc,
-  isNull,
-} from "drizzle-orm";
+import { eq, and, or, ilike, inArray, asc, isNull } from "drizzle-orm";
 import { z } from "zod";
-import {
-  products,
-  customers,
-  orders,
-  orderItems,
-} from "../drizzle/schema";
+import { products, customers, orders, orderItems } from "../drizzle/schema";
 import type { getDb } from "./db";
 import {
   deductProductStock,

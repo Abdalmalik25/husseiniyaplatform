@@ -63,7 +63,8 @@ function findSetOperator(node: unknown): "+" | "-" | null {
   return found;
 }
 
-function pairsFromSql(node: unknown): Array<{ col: string; val: unknown }> {  const out: Array<{ col: string; val: unknown }> = [];
+function pairsFromSql(node: unknown): Array<{ col: string; val: unknown }> {
+  const out: Array<{ col: string; val: unknown }> = [];
   let lastCol: string | null = null;
   const visit = (n: unknown): void => {
     if (typeof n === "number") {
@@ -457,12 +458,14 @@ describe("inventory consistency: source linkage + helpers", () => {
 
   it("isUniqueViolationDatabaseError detects 23505 across driver shapes", () => {
     expect(isUniqueViolationDatabaseError({ code: "23505" })).toBe(true);
-    expect(
-      isUniqueViolationDatabaseError({ cause: { code: "23505" } })
-    ).toBe(true);
+    expect(isUniqueViolationDatabaseError({ cause: { code: "23505" } })).toBe(
+      true
+    );
     expect(
       isUniqueViolationDatabaseError(
-        new Error('duplicate key value violates unique constraint "orders_idempotency_key_unique"')
+        new Error(
+          'duplicate key value violates unique constraint "orders_idempotency_key_unique"'
+        )
       )
     ).toBe(true);
     expect(isUniqueViolationDatabaseError(new Error("connection reset"))).toBe(

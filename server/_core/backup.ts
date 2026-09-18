@@ -550,14 +550,20 @@ export async function getBackupHealth(): Promise<BackupHealth> {
   }
 }
 
-async function writeBackupHealth(h: Omit<BackupHealth, "needsAlert">): Promise<void> {
+async function writeBackupHealth(
+  h: Omit<BackupHealth, "needsAlert">
+): Promise<void> {
   try {
     await ensureDir(backupDir());
     const full: BackupHealth = {
       ...h,
       needsAlert: h.consecutiveFailures >= BACKUP_ALERT_THRESHOLD,
     };
-    await fs.writeFile(backupHealthFile(), JSON.stringify(full, null, 2), "utf8");
+    await fs.writeFile(
+      backupHealthFile(),
+      JSON.stringify(full, null, 2),
+      "utf8"
+    );
   } catch {
     /* health tracking must never break the backup itself */
   }
@@ -603,7 +609,13 @@ export async function recordBackupFailure(err: unknown): Promise<BackupHealth> {
       const Sentry = await import("@sentry/node");
       Sentry.captureMessage(
         `backup failures x${next.consecutiveFailures}: ${message}`,
-        { level: "error", tags: { alert: "backup", consecutive_failures: String(next.consecutiveFailures) } }
+        {
+          level: "error",
+          tags: {
+            alert: "backup",
+            consecutive_failures: String(next.consecutiveFailures),
+          },
+        }
       );
     } catch {
       /* Sentry optional */
@@ -677,7 +689,13 @@ export async function runNightlyBackupIfDue(): Promise<NightlyBackupResult> {
         }
       }
     }
-    return { attempted: true, ok: true, id: manifest.id, consecutiveFailures: 0, alert: false };
+    return {
+      attempted: true,
+      ok: true,
+      id: manifest.id,
+      consecutiveFailures: 0,
+      alert: false,
+    };
   } catch (e) {
     // NEVER let the backup break the cron tick.
     console.error("[backup] nightly backup failed:", e);

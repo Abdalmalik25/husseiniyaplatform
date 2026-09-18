@@ -32,19 +32,31 @@ describe("normalizeSearchText", () => {
 
   it("strips tatweel but keeps the surrounding letters", () => {
     // meem + tatweel + alif + hamza => "maa" folded to (m, a, a)
-    expect(normalizeSearchText("\u0645\u0640\u0627\u0621")).toBe("\u0645\u0627\u0627");
+    expect(normalizeSearchText("\u0645\u0640\u0627\u0621")).toBe(
+      "\u0645\u0627\u0627"
+    );
   });
 
   it("folds every hamza form (A, aa, i, ') to plain alif", () => {
-    expect(normalizeSearchText("\u0623\u062D\u0645\u062F")).toBe("\u0627\u062D\u0645\u062F");
-    expect(normalizeSearchText("\u0625\u064A\u0645\u0627\u0646")).toBe("\u0627\u064A\u0645\u0627\u0646");
-    expect(normalizeSearchText("\u0622\u064A\u0629")).toBe("\u0627\u064A\u0647");
+    expect(normalizeSearchText("\u0623\u062D\u0645\u062F")).toBe(
+      "\u0627\u062D\u0645\u062F"
+    );
+    expect(normalizeSearchText("\u0625\u064A\u0645\u0627\u0646")).toBe(
+      "\u0627\u064A\u0645\u0627\u0646"
+    );
+    expect(normalizeSearchText("\u0622\u064A\u0629")).toBe(
+      "\u0627\u064A\u0647"
+    );
     expect(normalizeSearchText("\u0621")).toBe("\u0627");
   });
 
   it("folds waw-with-hamza to waw and yaa-with-hamza to yaa", () => {
-    expect(normalizeSearchText("\u0645\u0624\u0645\u0646")).toBe("\u0645\u0648\u0645\u0646");
-    expect(normalizeSearchText("\u0628\u0626\u0631")).toBe("\u0628\u064A\u0631");
+    expect(normalizeSearchText("\u0645\u0624\u0645\u0646")).toBe(
+      "\u0645\u0648\u0645\u0646"
+    );
+    expect(normalizeSearchText("\u0628\u0626\u0631")).toBe(
+      "\u0628\u064A\u0631"
+    );
   });
 
   it("folds alif-maqsura (y) to yaa and taa-marbuta (h) to haa", () => {
@@ -82,7 +94,9 @@ describe("suggest", () => {
       item({ id: 2, frequency: 10 }),
       item({ id: 3, frequency: 100 }),
     ];
-    expect(suggest("\u0633\u0643\u0631", items).map((i) => i.id)).toEqual([3, 2, 1]);
+    expect(suggest("\u0633\u0643\u0631", items).map(i => i.id)).toEqual([
+      3, 2, 1,
+    ]);
   });
 
   it("applies a favourites bias over unused catalog rows", () => {
@@ -90,7 +104,7 @@ describe("suggest", () => {
       item({ id: 1, frequency: 0 }),
       item({ id: 4, frequency: 0, source: "favorites" }),
     ];
-    expect(suggest("\u0633\u0643\u0631", items).map((i) => i.id)).toEqual([4, 1]);
+    expect(suggest("\u0633\u0643\u0631", items).map(i => i.id)).toEqual([4, 1]);
   });
 
   it("ranks a recent item above a stale high-frequency item", () => {
@@ -99,7 +113,7 @@ describe("suggest", () => {
       item({ id: 1, frequency: 0, lastUsedAt: now - 1 * DAY_MS }),
       item({ id: 2, frequency: 100, lastUsedAt: now - 100 * DAY_MS }),
     ];
-    expect(suggest("\u0633\u0643\u0631", items).map((i) => i.id)).toEqual([1, 2]);
+    expect(suggest("\u0633\u0643\u0631", items).map(i => i.id)).toEqual([1, 2]);
   });
 
   it("honours recencyHalfLifeMs so a long half-life lets frequency dominate", () => {
@@ -109,7 +123,9 @@ describe("suggest", () => {
       item({ id: 2, frequency: 100, lastUsedAt: now - 100 * DAY_MS }),
     ];
     const opts: SuggestionOptions = { recencyHalfLifeMs: 300 * DAY_MS };
-    expect(suggest("\u0633\u0643\u0631", items, opts).map((i) => i.id)).toEqual([2, 1]);
+    expect(suggest("\u0633\u0643\u0631", items, opts).map(i => i.id)).toEqual([
+      2, 1,
+    ]);
   });
 
   it("breaks equal score ties deterministically by ascending id", () => {
@@ -118,7 +134,9 @@ describe("suggest", () => {
       item({ id: 6, frequency: 7 }),
       item({ id: 7, frequency: 7 }),
     ];
-    expect(suggest("\u0633\u0643\u0631", items).map((i) => i.id)).toEqual([5, 6, 7]);
+    expect(suggest("\u0633\u0643\u0631", items).map(i => i.id)).toEqual([
+      5, 6, 7,
+    ]);
   });
 
   it("caps results at the default limit of 8 and honours a custom limit", () => {
@@ -127,15 +145,19 @@ describe("suggest", () => {
     );
     const result = suggest("\u0632\u064A\u062A", items);
     expect(result).toHaveLength(8);
-    expect(result.map((i) => i.id)).toEqual([10, 9, 8, 7, 6, 5, 4, 3]);
-    expect(suggest("\u0632\u064A\u062A", items, { limit: 2 }).map((i) => i.id)).toEqual([10, 9]);
+    expect(result.map(i => i.id)).toEqual([10, 9, 8, 7, 6, 5, 4, 3]);
+    expect(
+      suggest("\u0632\u064A\u062A", items, { limit: 2 }).map(i => i.id)
+    ).toEqual([10, 9]);
   });
 
   it("matches by substring anywhere in the item text", () => {
     const items = [item({ id: 42, tenantId: 7 })];
-    expect(suggest("\u0643\u0631", items).map((i) => i.id)).toEqual([42]);
+    expect(suggest("\u0643\u0631", items).map(i => i.id)).toEqual([42]);
     // substring matching is enabled by default, so disabling is a no-op today
-    expect(suggest("\u0643\u0631", items, { allowSubstring: false }).map((i) => i.id)).toEqual([42]);
+    expect(
+      suggest("\u0643\u0631", items, { allowSubstring: false }).map(i => i.id)
+    ).toEqual([42]);
   });
 
   it("never returns suggestions outside the provided (tenant-scoped) item set", () => {
@@ -143,7 +165,7 @@ describe("suggest", () => {
     const result = suggest("\u0633\u0643\u0631", [only]);
     expect(result).toEqual([only]);
     expect(result[0]).toBe(only);
-    expect(result.every((it) => it.tenantId === 7)).toBe(true);
+    expect(result.every(it => it.tenantId === 7)).toBe(true);
   });
 
   it("returns an empty list when nothing matches", () => {
@@ -175,14 +197,20 @@ describe("isConfidentMatch", () => {
 
 describe("splitUnitHint", () => {
   it("detaches a trailing known unit from the query", () => {
-    expect(splitUnitHint("5 \u0633\u0643\u0631 \u0643\u063A", ["\u0643\u063A"])).toEqual({
+    expect(
+      splitUnitHint("5 \u0633\u0643\u0631 \u0643\u063A", ["\u0643\u063A"])
+    ).toEqual({
       query: "5 \u0633\u0643\u0631",
       unit: "\u0643\u063A",
     });
   });
 
   it("matches unit spellings after normalisation (kaas for kaas)", () => {
-    expect(splitUnitHint("3 \u0634\u0627\u064A \u0643\u0627\u0633", ["\u0643\u0623\u0633"])).toEqual({
+    expect(
+      splitUnitHint("3 \u0634\u0627\u064A \u0643\u0627\u0633", [
+        "\u0643\u0623\u0633",
+      ])
+    ).toEqual({
       query: "3 \u0634\u0627\u064A",
       unit: "\u0643\u0623\u0633",
     });
@@ -192,7 +220,11 @@ describe("splitUnitHint", () => {
     expect(splitUnitHint("\u0633\u0643\u0631", ["\u0643\u063A"])).toEqual({
       query: "\u0633\u0643\u0631",
     });
-    expect(splitUnitHint("5 \u0633\u0643\u0631 \u0639\u0644\u0628\u0629", ["\u0643\u063A"])).toEqual({
+    expect(
+      splitUnitHint("5 \u0633\u0643\u0631 \u0639\u0644\u0628\u0629", [
+        "\u0643\u063A",
+      ])
+    ).toEqual({
       query: "5 \u0633\u0643\u0631 \u0639\u0644\u0628\u0629",
     });
   });
@@ -211,25 +243,36 @@ describe("splitUnitHint", () => {
 
 describe("highlightRanges", () => {
   it("returns the matched span on the normalised subject", () => {
-    expect(highlightRanges("\u0633\u0643\u0631", "\u0633\u064F\u0643\u064E\u0651\u0631")).toEqual([
-      { start: 0, end: 3 },
-    ]);
+    expect(
+      highlightRanges(
+        "\u0633\u0643\u0631",
+        "\u0633\u064F\u0643\u064E\u0651\u0631"
+      )
+    ).toEqual([{ start: 0, end: 3 }]);
   });
 
   it("finds the span later in the normalised subject", () => {
-    expect(highlightRanges("\u0633\u0643\u0631", "\u0645\u0644\u062D \u0633\u0643\u0631")).toEqual([
-      { start: 4, end: 7 },
-    ]);
+    expect(
+      highlightRanges(
+        "\u0633\u0643\u0631",
+        "\u0645\u0644\u062D \u0633\u0643\u0631"
+      )
+    ).toEqual([{ start: 4, end: 7 }]);
   });
 
   it("returns only the first span when the subject matches several times", () => {
-    expect(highlightRanges("\u0633\u0643\u0631", "\u0633\u0643\u0631 \u0633\u0643\u0631")).toEqual([
-      { start: 0, end: 3 },
-    ]);
+    expect(
+      highlightRanges(
+        "\u0633\u0643\u0631",
+        "\u0633\u0643\u0631 \u0633\u0643\u0631"
+      )
+    ).toEqual([{ start: 0, end: 3 }]);
   });
 
   it("returns an empty array when there is no match", () => {
-    expect(highlightRanges("\u0639\u0633\u0644", "\u0633\u0643\u0631")).toEqual([]);
+    expect(highlightRanges("\u0639\u0633\u0644", "\u0633\u0643\u0631")).toEqual(
+      []
+    );
   });
 
   it("returns an empty array for a blank query", () => {
