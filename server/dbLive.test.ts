@@ -1,7 +1,7 @@
 ﻿import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
-import { getPool } from "./db";
+import { requireLiveTransport } from "./dbTransportGuard";
 
 // ────── dbLive.test.ts — LIVE Neon integrity lock (P0 attestation) ───────────
 // Runs against the REAL Neon database whenever DATABASE_URL is present (CI /
@@ -24,82 +24,10 @@ if (process.env.CI && !process.env.DATABASE_URL) {
   );
 }
 
-/**
- * Transport gate — distinguishes INFRA failure from PRODUCT failure.
- * GitHub runners occasionally cannot open the Neon WebSocket transport at all
- * (DNS/TLS/fetch failure before any SQL runs). That is an environment outage,
- * not a product regression: failing the whole pipeline on it blocks subscriber
- * deploys while proving nothing about the code. So ONLY connection-level
- * errors skip (loudly, via a ::warning:: annotation + console banner);
- * every assertion failure, constraint violation or unexpected error still
- * fails the test — and the skip never triggers on a mere failed query.
- */
-const TRANSPORT_PATTERNS =
-  /fetch failed|WebSocket|ECONNREFUSED|ENOTFOUND|EAI_AGAIN|UND_ERR|ConnectTimeout|open a WebSocket|network is unreachable|EPIPE/i;
-
-function isTransportError(e: unknown): boolean {
-  const parts: string[] = [];
-  const ctorName = (
-    e as { constructor?: { name?: string } }
-  )?.constructor?.name;
-  if (ctorName) parts.push(ctorName);
-  if (e instanceof Error) parts.push(e.name, e.message, e.stack ?? "");
-  else parts.push(String(e));
-  // The Neon serverless driver surfaces dead transports as an (often
-  // message-less) DOM-style ErrorEvent wrapping a TypeError from undici's
-  // failWebsocketConnection — match on shape + stack, not just text.
-  const inner = (e as { error?: unknown })?.error;
-  if (inner instanceof Error) {
-    parts.push(
-      inner.name,
-      inner.message,
-      inner.stack ?? "",
-      inner.constructor?.name ?? ""
-    );
-  } else if (inner !== undefined) {
-    parts.push(String(inner));
-  }
-  const cause = (e as { cause?: unknown })?.cause;
-  if (cause instanceof Error) parts.push(cause.name, cause.message);
-  else if (cause !== undefined) parts.push(String(cause));
-  const text = parts.join(" ");
-  if (/ErrorEvent|failWebsocketConnection|onSocketClose/.test(text))
-    return true;
-  return TRANSPORT_PATTERNS.test(text);
-}
-
-async function requireLiveTransport(
-  skip: (message?: string) => never
-): Promise<void> {
-  const pool = getPool();
-  if (!pool) return skip("no database pool");
-  // NOTE: neon Pool.connect() is lazy — it resolves before any packet flows.
-  // Only a real round-trip proves the transport works, so SELECT 1 first.
-  const probe = await (async () => {
-    try {
-      const client = await pool.connect();
-      try {
-        await client.query("select 1");
-      } finally {
-        client.release();
-      }
-      return true;
-    } catch (e: unknown) {
-      if (isTransportError(e)) return false;
-      throw e;
-    }
-  })();
-  if (!probe) {
-    // GitHub parses annotations from STDOUT — console.log, not console.warn.
-    console.log(
-      "::warning::[dbLive.test] Neon transport unreachable from this runner — " +
-        "skipping LIVE attestation (infra outage, NOT a product failure). " +
-        "See the 'Diagnose DB transport' CI step for the host/TCP verdict; " +
-        "if this persists, check secrets.DATABASE_URL against the Neon dashboard."
-    );
-    return skip("neon transport unreachable");
-  }
-}
+// Transport failures (dead Neon WebSocket from a runner) skip LOUDLY via the
+// shared dbTransportGuard — see that module for the full contract. Assertion
+// failures always fail.
+import { getPool } from "./db";
 
 function createTestContext(tenantId: number = 1): TrpcContext {
   return {

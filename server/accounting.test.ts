@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
+import { requireLiveTransport } from "./dbTransportGuard";
 
 // These are integration tests: they need a live DATABASE_URL (and the LLM
 // test additionally needs LLM_API_URL/LLM_API_KEY).
@@ -53,7 +54,8 @@ describe("Al-Husainia Accounting System Routers", () => {
     // Remote Neon HTTP can hiccup on cold connects (~10s timeout per attempt),
     // so integration tests get an extended timeout plus retries.
     { timeout: 45000, retry: 2 },
-    async () => {
+    async ({ skip }) => {
+      await requireLiveTransport(skip);
       const ctx = createTestContext();
       const caller = appRouter.createCaller(ctx);
       const settings = await caller.accounting.getSettings();
@@ -66,7 +68,8 @@ describe("Al-Husainia Accounting System Routers", () => {
   it.skipIf(!dbAvailable())(
     "retrieves chart of accounts successfully",
     { timeout: 45000, retry: 2 },
-    async () => {
+    async ({ skip }) => {
+      await requireLiveTransport(skip);
       const ctx = createTestContext();
       const caller = appRouter.createCaller(ctx);
       const accounts = await caller.accounting.getAccounts();
@@ -94,7 +97,8 @@ describe("Al-Husainia Accounting System Routers", () => {
   it.skipIf(!dbAvailable())(
     "adds and retrieves financial transactions successfully",
     { timeout: 60000, retry: 2 },
-    async () => {
+    async ({ skip }) => {
+      await requireLiveTransport(skip);
       const ctx = createTestContext();
       const caller = appRouter.createCaller(ctx);
       const accounts = await caller.accounting.getAccounts();
