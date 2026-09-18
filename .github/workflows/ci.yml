@@ -62,6 +62,32 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: "Diagnose DB transport (host only — never prints secrets)"
+        run: |
+          node -e '
+            const net = require("net");
+            const dns = require("dns").promises;
+            const raw = process.env.SECRET_URL || "";
+            if (!raw) { console.log("DATABASE_URL secret is EMPTY — live-DB tests will fail-fast per repo policy."); process.exit(0); }
+            let host = "";
+            try { host = new URL(raw).hostname; } catch { console.log("DATABASE_URL is not a valid URL."); process.exit(0); }
+            console.log("DB host: " + host);
+            (async () => {
+              try {
+                const addrs = await dns.lookup(host).catch(e => ({ dnsError: e.message }));
+                console.log("DNS: " + JSON.stringify(addrs && addrs.address ? addrs.address : addrs));
+              } catch (e) { console.log("DNS lookup threw: " + e.message); }
+              const sock = net.connect(443, host);
+              const done = ok => { console.log(ok ? "TCP 443: REACHABLE" : "TCP 443: UNREACHABLE (Neon project may be suspended, or the secret rotated — compare host with Neon dashboard)"); sock.destroy(); };
+              sock.setTimeout(10000);
+              sock.once("connect", () => done(true));
+              sock.once("timeout", () => done(false));
+              sock.once("error", () => done(false));
+            })();
+          '
+        env:
+          SECRET_URL: ${{ secrets.DATABASE_URL }}
+
       - name: Run unit tests (with coverage gate)
         run: pnpm test -- --coverage
         env:
